@@ -23,6 +23,8 @@ jobs:
       with:
         toolchain: nightly
         profile: minimal
+    - name: Add rustfmt (nightly)
+      run: rustup component add --toolchain nightly rustfmt
     - name: Cache cargo-udeps
       id: cache-cargo-udeps
       uses: actions/cache@v4
