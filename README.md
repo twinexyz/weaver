@@ -1,6 +1,23 @@
 # weaver
 A mono-repo structure for everything twine
 
+## Running a Twine node
+```sh
+cargo run --bin twine-node -- \
+    node \
+    --dev \
+    --http \
+    --http.port 8570 \
+    --ws \
+    --ws.port 8571 \
+    --port 8572 \
+    --authrpc.port 8573 \
+    --datadir /tmp/reth \
+    --rpc.eth-proof-window 1000 \
+    --rpc.proof-permits 1000 \
+    --dev.block-time 5sec
+```
+
 ## Contributions
 
 ### Rust Formatting
