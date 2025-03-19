@@ -14,7 +14,14 @@ jobs:
       with:
         toolchain: stable
         profile: minimal
-    - name: Install cargo-udeps
+    - name: Cache cargo-udeps
+      id: cache-cargo-udeps
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/bin/cargo-udeps
+    - if: ${{ steps.cache-cargo-udeps.outputs.cache-hit != 'true' }}
+      name: Install cargo-udeps
       run: cargo install cargo-udeps
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v3
