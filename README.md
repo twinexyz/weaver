@@ -3,6 +3,12 @@ A mono-repo structure for everything twine
 
 ## Contributions
 
+### Rust Formatting
+We use specific formatting that depends on rust nightly channel. Hence, `cargo fmt` would result in wrong formatting. Please use:
+```sh
+cargo +nightly fmt
+```
+
 ### Pre-commit hooks
 This repository makes use of `pre-commit` hooks. There are two methods of setting it up:
 1. **Recommended**: A pre-downloaded artifact is provided in `artifacts/pre-commit.pyz` (originally `artifacts/pre-commit-x.y.z.pyz` and dowloaded from: [https://github.com/pre-commit/pre-commit/releases](https://github.com/pre-commit/pre-commit/releases))

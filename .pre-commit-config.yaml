@@ -22,3 +22,11 @@ repos:
         entry: cargo +nightly fmt --all -- --check --color always
         language: system
         pass_filenames: false
+-   repo: local
+    hooks:
+      - id: cargo-clippy
+        name: cargo-clippy
+        description: Check if all files follow the rustfmt style
+        entry: cargo clippy --locked --all-features --all-targets
+        language: system
+        pass_filenames: false
