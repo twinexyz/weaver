@@ -9,6 +9,13 @@ jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
+    - name: Set up Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        profile: minimal
+    - name: Install cargo-udeps
+      run: cargo install cargo-udeps
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v3
     - uses: pre-commit/action@v3.0.1
