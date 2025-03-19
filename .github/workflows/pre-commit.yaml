@@ -18,7 +18,7 @@ jobs:
       id: cache-cargo-udeps
       uses: actions/cache@v4
       with:
-        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('Cargo.lock') }}
+        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/Cargo.lock') }}
         path: |
           ~/.cargo/bin/cargo-udeps
     - if: ${{ steps.cache-cargo-udeps.outputs.cache-hit != 'true' }}
