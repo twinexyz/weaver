@@ -1,0 +1,22 @@
+[package]
+name = "twine-node"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+twine-executor = { workspace = true }
+alloy-primitives = { workspace = true }
+alloy-sol-types = { workspace = true }
+eyre = { workspace = true }
+reth = { workspace = true }
+reth-exex = { workspace = true }
+reth-node-api = { workspace = true }
+reth-node-ethereum = { workspace = true }
+reth-tracing = { workspace = true }
+serde_json = { workspace = true }
+ssz_types = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+
+[[bin]]
+name = "twine-node"
+path = "src/main.rs"
