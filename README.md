@@ -1,2 +1,14 @@
 # weaver
 A mono-repo structure for everything twine
+
+## Contributions
+
+### Pre-commit hooks
+This repository makes use of `pre-commit` hooks. There are two methods of setting it up:
+1. **Recommended**: A pre-downloaded artifact is provided in `artifacts/pre-commit.pyz` (originally `artifacts/pre-commit-x.y.z.pyz` and dowloaded from: [https://github.com/pre-commit/pre-commit/releases](https://github.com/pre-commit/pre-commit/releases))
+2. **Non-recommended**: Install using steps mentioned here: [https://pre-commit.com/](https://pre-commit.com/)
+
+Before every git commit, it should be ensured that following is run locally for everyone's sanity.
+```
+./artifacts/pre-commit.pyz run --all-files
+```

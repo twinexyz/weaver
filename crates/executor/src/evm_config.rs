@@ -42,18 +42,16 @@ impl TwineEvmConfig {
             #[allow(unused_mut)]
             let mut loaded_precompiles =
                 ContextPrecompiles::new(PrecompileSpecId::from_spec_id(spec_id));
-            
+
             #[cfg(feature = "twine-consensus-verifier-precompile")]
-            loaded_precompiles.extend([
-                (
-                    twine_constants::precompiles::TWINE_CONSENSUS_VERIFIER_PRECOMPILE_ADDRESS,
-                    twine_consensus_verifier_precompile::ConsensusVerifierPrecompile::new_ordinary(),
-                )
-            ]);
-            
+            loaded_precompiles.extend([(
+                twine_constants::precompiles::TWINE_CONSENSUS_VERIFIER_PRECOMPILE_ADDRESS,
+                twine_consensus_verifier_precompile::ConsensusVerifierPrecompile::new_ordinary(),
+            )]);
+
             // #[cfg(feature = "twine-transactions-precompile")]
             // loaded_precompiles.extend(transaction_precompile());
-            
+
             loaded_precompiles
         });
     }

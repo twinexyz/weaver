@@ -24,7 +24,7 @@ impl StatefulPrecompile for ConsensusVerifierPrecompile {
         _gas_limit: u64,
         _env: &reth::revm::primitives::Env,
     ) -> PrecompileResult {
-        Ok(PrecompileOutput{
+        Ok(PrecompileOutput {
             gas_used: 0,
             bytes: bytes.clone(),
         })

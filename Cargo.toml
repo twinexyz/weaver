@@ -54,7 +54,7 @@ twine-constants = { path = "crates/constants" }
 
 [patch.crates-io]
 # The following is required since we would like to remove
-# unnecessary dependency on `ring` crate which original 
+# unnecessary dependency on `ring` crate which original
 # `ethereum_hashing` crate depended on.
 ethereum_hashing = { git = "https://github.com/Atamanov/ethereum_hashing.git" }
 
