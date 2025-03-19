@@ -1,2 +1,2 @@
 # weaver
-A mono-repo structure for everything twine
+A repo to twine 'em all.
