@@ -12,5 +12,4 @@ This repository makes use of `pre-commit` hooks. There are two methods of settin
 Before every git commit, it should be ensured that following is run locally for everyone's sanity.
 ```
 ./artifacts/pre-commit.pyz run --all-files
-
 ```
