@@ -1,17 +1,18 @@
-use std::{convert::Infallible, sync::Arc};
+use std::convert::Infallible;
+use std::sync::Arc;
 
 use alloy_consensus::Header;
 use alloy_primitives::Address;
-use reth::revm::{
-    handler::register::EvmHandler,
-    inspector_handle_register,
-    precompile::PrecompileSpecId,
-    primitives::{CfgEnvWithHandlerCfg, EVMError, HaltReason, HandlerCfg, SpecId, TxEnv},
-    ContextPrecompiles, EvmBuilder, GetInspector,
+use reth::revm::handler::register::EvmHandler;
+use reth::revm::precompile::PrecompileSpecId;
+use reth::revm::primitives::{
+    CfgEnvWithHandlerCfg, EVMError, HaltReason, HandlerCfg, SpecId, TxEnv,
 };
+use reth::revm::{inspector_handle_register, ContextPrecompiles, EvmBuilder, GetInspector};
 use reth_chainspec::ChainSpec;
 use reth_evm::{ConfigureEvm, ConfigureEvmEnv, EvmEnv, NextBlockEnvAttributes};
-use reth_node_ethereum::{evm::EthEvm, EthEvmConfig};
+use reth_node_ethereum::evm::EthEvm;
+use reth_node_ethereum::EthEvmConfig;
 use reth_primitives::TransactionSigned;
 
 /// Custom EVM configuration for Twine.
@@ -30,8 +31,7 @@ impl TwineEvmConfig {
 
     fn set_precompiles<EXT, DB>(handler: &mut EvmHandler<EXT, DB>)
     where
-        DB: reth_evm::Database,
-    {
+        DB: reth_evm::Database, {
         // first we need the evm spec id, which determines the precompiles
         let spec_id = handler.cfg.spec_id;
 
@@ -59,19 +59,17 @@ impl TwineEvmConfig {
 
 /// This is implmented for `TwineEvmConfig` because `ConfigureEvm` needs it
 impl ConfigureEvmEnv for TwineEvmConfig {
-    type Header = Header;
-    type Transaction = TransactionSigned;
     type Error = Infallible;
-    type TxEnv = TxEnv;
+    type Header = Header;
     type Spec = SpecId;
+    type Transaction = TransactionSigned;
+    type TxEnv = TxEnv;
 
     fn tx_env(&self, transaction: &Self::Transaction, signer: Address) -> Self::TxEnv {
         self.inner.tx_env(transaction, signer)
     }
 
-    fn evm_env(&self, header: &Self::Header) -> EvmEnv {
-        self.inner.evm_env(header)
-    }
+    fn evm_env(&self, header: &Self::Header) -> EvmEnv { self.inner.evm_env(header) }
 
     fn next_evm_env(
         &self,
@@ -116,8 +114,7 @@ impl ConfigureEvm for TwineEvmConfig {
     ) -> Self::Evm<'_, DB, I>
     where
         DB: reth_evm::Database,
-        I: GetInspector<DB>,
-    {
+        I: GetInspector<DB>, {
         let cfg_env_with_handler_cfg = CfgEnvWithHandlerCfg {
             cfg_env: evm_env.cfg_env,
             handler_cfg: HandlerCfg::new(evm_env.spec),

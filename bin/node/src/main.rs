@@ -1,5 +1,6 @@
 use reth::cli::Cli;
-use reth_node_ethereum::{node::EthereumAddOns, EthereumNode};
+use reth_node_ethereum::node::EthereumAddOns;
+use reth_node_ethereum::EthereumNode;
 use twine_executor::executor_builder::TwineExecutorBuilder;
 
 fn main() -> eyre::Result<()> {

@@ -1,9 +1,7 @@
 use std::sync::Arc;
 
-use reth::revm::{
-    primitives::{Precompile, PrecompileOutput, PrecompileResult, StatefulPrecompile},
-    ContextPrecompile,
-};
+use reth::revm::primitives::{Precompile, PrecompileOutput, PrecompileResult, StatefulPrecompile};
+use reth::revm::ContextPrecompile;
 
 #[derive(Clone)]
 pub struct ConsensusVerifierPrecompile {}
@@ -11,8 +9,7 @@ pub struct ConsensusVerifierPrecompile {}
 impl ConsensusVerifierPrecompile {
     pub fn new_ordinary<DB>() -> ContextPrecompile<DB>
     where
-        DB: reth_evm::Database,
-    {
+        DB: reth_evm::Database, {
         ContextPrecompile::Ordinary(Precompile::Stateful(Arc::new(Self {})))
     }
 }
