@@ -18,10 +18,15 @@ cargo run --bin twine-node -- \
     --dev.block-time 5sec
 ```
 
+## Running devtests
+```sh
+RUST_LOG=info cargo run --bin twine-devtest
+```
+
 ## Contributions
 
 ### Rust Formatting
-We use specific formatting that depends on rust nightly channel. Hence, `cargo fmt` would result in wrong formatting. Please use:
+We use `rustfmt` that depends on rust nightly channel. Hence, `cargo fmt` would result in warnings and wrong formatting according to CI. Please use:
 ```sh
 cargo +nightly fmt
 ```

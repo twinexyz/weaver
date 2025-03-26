@@ -6,7 +6,7 @@ on:
     branches: [main]
 
 jobs:
-  pre-commit-checks:
+  fmt-and-udeps:
     runs-on: ubuntu-latest
     concurrency:
       group: ${{ github.ref }}-${{ github.workflow }}

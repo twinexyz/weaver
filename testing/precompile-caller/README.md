@@ -70,6 +70,15 @@ forge script \
 $ cast <subcommand>
 ```
 
+For example:
+```sh
+cast send \
+    0x2910E325cf29dd912E3476B61ef12F49cb931096 \
+    "callPrecompile(bytes)" 0x1234 \
+    --rpc-url 127.0.0.1:8570 \
+    --private-key 0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a
+```
+
 ### Help
 
 ```shell
