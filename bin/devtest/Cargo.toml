@@ -1,0 +1,16 @@
+[package]
+name = "twine-devtest"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+eyre = { workspace = true }
+# reth.workspace = true
+regex.workspace = true
+log.workspace = true
+env_logger.workspace = true
+git2.workspace = true
+
+[[bin]]
+name = "twine-devtest"
+path = "src/main.rs"
