@@ -13,6 +13,7 @@ contract PrecompileCaller {
      */
     function callPrecompile(bytes memory input) public returns (bool success, bytes memory output) {
         (success, output) = PRECOMPILE_ADDRESS.call(input);
+        return (success, output);
     }
 
     /**

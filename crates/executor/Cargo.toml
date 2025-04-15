@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-alloy-evm.workspace = true
 reth.workspace = true
 reth-chainspec.workspace = true
 reth-evm-ethereum.workspace = true
@@ -12,6 +11,7 @@ reth-node-api.workspace = true
 reth-node-core.workspace = true
 reth-primitives.workspace = true
 reth-node-ethereum = { workspace = true, features = ["test-utils"] }
+reth-ethereum-payload-builder.workspace = true
 reth-tracing.workspace = true
 reth-evm.workspace = true
 alloy-genesis.workspace = true
@@ -20,12 +20,12 @@ alloy-consensus.workspace = true
 eyre.workspace = true
 parking_lot.workspace = true
 tokio.workspace = true
-# twine-consensus-verifier-precompile = { workspace = true, optional = true }
+twine-consensus-verifier-precompile = { workspace = true, optional = true }
 twine-constants = { workspace = true }
 
 [features]
 default = ["twine-consensus-verifier-precompile", "twine-transactions-precompile"]
 twine-consensus-verifier-precompile = [
-    # "dep:twine-consensus-verifier-precompile"
+    "dep:twine-consensus-verifier-precompile"
 ]
 twine-transactions-precompile = []

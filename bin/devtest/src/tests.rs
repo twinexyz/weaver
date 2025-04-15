@@ -12,6 +12,10 @@ pub struct Test {
     pub test: Box<dyn Fn() -> eyre::Result<()>>,
 }
 
+impl Default for Tests {
+    fn default() -> Self { Self::new() }
+}
+
 impl Tests {
     pub fn new() -> Self {
         Self {

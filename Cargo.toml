@@ -13,15 +13,15 @@ members = [
 
     "crates/executor",
     "crates/constants",
-    # "crates/precompiles/consensus-verifier",
+    "crates/precompiles/consensus-verifier",
 ]
 resolver = "3"
 
 [workspace.dependencies]
-alloy-primitives = { version = "0.8.20", default-features = false, features = ["sha3-keccak", "map-foldhash"] }
-alloy-consensus = { version = "0.12.6", default-features = false, features = ["serde", "serde-bincode-compat"] }
-alloy-genesis = { version = "0.12.6", default-features = false }
-alloy-evm = { version = "0.1.0-alpha.3", default-features = false }
+alloy-primitives = { version = "0.8.15", default-features = false}
+alloy-consensus = { version = "0.11.1", default-features = false }
+alloy-genesis = { version = "0.11.1", default-features = false }
+# alloy-evm = { version = "0.1.0-alpha.3", default-features = false }
 alloy-sol-types = "0.8.0"
 eyre = "0.6"
 tokio = { version = "1.40.0", features = ["full"] }
@@ -35,36 +35,35 @@ env_logger = "0.11.7"
 git2 = "0.20.1"
 
 # RETH
-reth = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.4" }
-reth-exex = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.4" }
-reth-node-ethereum = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.4", features = [
+reth = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.2.2" }
+reth-exex = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.2.2" }
+reth-node-ethereum = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.2.2", features = [
   "test-utils",
 ] }
-reth-chainspec = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.4" }
-reth-ethereum-payload-builder = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.4" }
-reth-node-core = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.4" }
-reth-evm-ethereum = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.4" }
-reth-tracing = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.4" }
-reth-node-api = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.4" }
-reth-evm = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.4" }
-reth-revm = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.4", default-features = false, features = [
+reth-chainspec = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.2.2" }
+reth-ethereum-payload-builder = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.2.2" }
+reth-node-core = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.2.2" }
+reth-evm-ethereum = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.2.2" }
+reth-tracing = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.2.2" }
+reth-node-api = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.2.2" }
+reth-evm = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.2.2" }
+reth-revm = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.2.2", default-features = false, features = [
   "std",
 ] }
-reth-primitives = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.4", default-features = false, features = [
+reth-primitives = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.2.2", default-features = false, features = [
   "alloy-compat",
   "std",
 ] }
 
 twine-executor = { path = "crates/executor" }
-# twine-consensus-verifier-precompile = { path = "crates/precompiles/consensus-verifier" }
+twine-consensus-verifier-precompile = { path = "crates/precompiles/consensus-verifier" }
 twine-constants = { path = "crates/constants" }
 
 [patch.crates-io]
 # The following is required since we would like to remove
 # unnecessary dependency on `ring` crate which original
 # `ethereum_hashing` crate depended on.
-ethereum_hashing = { git = "https://github.com/Atamanov/ethereum_hashing.git" }
-
+# ethereum_hashing = { git = "https://github.com/Atamanov/ethereum_hashing.git" }
 # Below is heavily inspired from codebases like `reth`. We find the following
 # to be quite helpful.
 
