@@ -1,3 +1,4 @@
+use alloy_trie::proof::ProofVerificationError;
 use reth::revm::primitives::PrecompileErrors;
 use thiserror::Error;
 
@@ -7,20 +8,32 @@ pub enum TransactionPrecompileError {
     InvalidCaller,
     #[error("failed to decode verifier input")]
     DecodeVerifierInput,
+    #[error("invalid chain id: `{0}` ")]
+    InvalidChainId(u64),
+    #[error("failed to decode txns and proofs")]
+    DecodeTxnAndProofs,
+    #[error("failed to decode receipts")]
+    DecodeReceipt,
+    #[error("failed to decode event")]
+    DecodeEvent,
+    #[error("invalid nonce: current nonce `{0}")]
+    InvalidNonce(u64),
+    #[error("failed to query storage slot of contract")]
+    QueryEvmFailed,
+    #[error("failed to verify merkle patricia trie: `{0}`")]
+    MerkleVerifierError(String),
+    #[error("failed to decode key path and proofs")]
+    DecodeKeyPathAndProof,
     #[error("unknown error:  `{0}`")]
     Other(String),
 }
 
 impl TransactionPrecompileError {
     /// Returns an other error with the given message.
-    pub fn other(err: impl Into<String>) -> Self {
-        Self::Other(err.into())
-    }
+    pub fn other(err: impl Into<String>) -> Self { Self::Other(err.into()) }
 
     /// Returns true if the error is out of gas.
-    pub fn is_oog(&self) -> bool {
-        matches!(self, Self::InvalidCaller)
-    }
+    pub fn is_oog(&self) -> bool { matches!(self, Self::InvalidCaller) }
 }
 
 impl From<TransactionPrecompileError> for PrecompileErrors {

@@ -12,13 +12,19 @@ reth-primitives.workspace = true
 reth.workspace = true
 reth-tracing.workspace = true
 reth-evm.workspace = true
+
 alloy-primitives.workspace = true
 alloy-consensus.workspace = true
 alloy-sol-types.workspace = true
+alloy-eips.workspace = true
+alloy-trie.workspace = true
+
 eyre.workspace = true
 thiserror.workspace = true
+
 twine-constants = { workspace = true }
 twine-evm-contracts.workspace = true
+twine-l1-utils.workspace = true
 
 [lints]
 workspace = true
