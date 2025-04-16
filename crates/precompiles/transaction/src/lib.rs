@@ -50,8 +50,7 @@ impl TransactionPrecompile {
     /// A `ContextPrecompile` instance wrapping the `TransactionPrecompile`.
     pub fn new_stateful<DB>() -> ContextPrecompile<DB>
     where
-        DB: reth_evm::Database,
-    {
+        DB: reth_evm::Database, {
         let txns = Arc::new(TransactionPrecompile {});
         ContextPrecompile::ContextStateful(txns)
     }
@@ -121,21 +120,24 @@ impl<DB: Database> ContextStatefulPrecompile<DB> for TransactionPrecompile {
     }
 }
 
-/// Handles an Ethereum event by decoding transaction data, verifying proofs, and processing receipts.
+/// Handles an Ethereum event by decoding transaction data, verifying proofs,
+/// and processing receipts.
 ///
-/// This function is responsible for decoding the provided `data` into transactions and proofs,
-/// validating the receipt envelope, and performing any necessary processing for the given Ethereum event.
-/// It is designed to be called within the context of an EVM execution environment.
+/// This function is responsible for decoding the provided `data` into
+/// transactions and proofs, validating the receipt envelope, and performing any
+/// necessary processing for the given Ethereum event. It is designed to be
+/// called within the context of an EVM execution environment.
 ///
 /// # Arguments
 ///
-/// * `chain_id` - The identifier of the chain associated with the Ethereum event. This is typically
-///                used to differentiate between multiple chains in a multi-chain environment.
-/// * `data` - The raw bytes of the Ethereum event data. This data is expected to contain encoded
-///            transactions, proofs, and other relevant information.
-/// * `evmctx` - A mutable reference to the EVM context. This provides access to the database and
-///              other contextual information required for processing the event.
-///
+/// * `chain_id` - The identifier of the chain associated with the Ethereum
+///   event. This is typically used to differentiate between multiple chains in
+///   a multi-chain environment.
+/// * `data` - The raw bytes of the Ethereum event data. This data is expected
+///   to contain encoded transactions, proofs, and other relevant information.
+/// * `evmctx` - A mutable reference to the EVM context. This provides access to
+///   the database and other contextual information required for processing the
+///   event.
 pub fn handle_ethereum_event<DB: Database>(
     chain_id: U256,
     data: Bytes,
@@ -335,28 +337,32 @@ fn verify_merkle_proof_for_txn(
 
 /// Retrieves the receipt root for a given block height on a specific chain.
 ///
-/// This function queries the database within the provided EVM context to fetch the receipt root
-/// associated with the specified block height. The receipt root is typically used in Ethereum-like
-/// systems to verify the integrity of transaction receipts within a block.
+/// This function queries the database within the provided EVM context to fetch
+/// the receipt root associated with the specified block height. The receipt
+/// root is typically used in Ethereum-like systems to verify the integrity of
+/// transaction receipts within a block.
 ///
 /// # Arguments
 ///
-/// * `chain_id` - The identifier of the chain for which the receipt root is being queried. This
-///                ensures that the function operates within the correct chain context.
-/// * `height` - The block height (or block number) for which the receipt root is requested. This
-///              must correspond to a valid block in the blockchain.
-/// * `evmctx` - A mutable reference to the EVM context. This provides access to the database and
-///              other contextual information required to retrieve the receipt root.
+/// * `chain_id` - The identifier of the chain for which the receipt root is
+///   being queried. This ensures that the function operates within the correct
+///   chain context.
+/// * `height` - The block height (or block number) for which the receipt root
+///   is requested. This must correspond to a valid block in the blockchain.
+/// * `evmctx` - A mutable reference to the EVM context. This provides access to
+///   the database and other contextual information required to retrieve the
+///   receipt root.
 ///
 /// # Returns
 ///
-/// A `Result` containing the receipt root as a `FixedBytes<32>` on success, or an error of type
-/// `TransactionPrecompileError` on failure.
+/// A `Result` containing the receipt root as a `FixedBytes<32>` on success, or
+/// an error of type `TransactionPrecompileError` on failure.
 ///
-/// - On success: The receipt root is returned as a 32-byte fixed-size array (`FixedBytes<32>`),
-///               representing the Merkle root of the transaction receipts for the specified block.
-/// - On failure: An error is returned, indicating the specific issue encountered during the query.
-///
+/// - On success: The receipt root is returned as a 32-byte fixed-size array
+///   (`FixedBytes<32>`), representing the Merkle root of the transaction
+///   receipts for the specified block.
+/// - On failure: An error is returned, indicating the specific issue
+///   encountered during the query.
 pub fn get_receipt_root<DB: Database>(
     chain_id: U256,
     height: U256,
@@ -407,30 +413,35 @@ pub fn calculate_receipt_slot_position(outer_key: U256, inner_key: U256) -> U256
     retuning
 }
 
-/// Verifies a Merkle Patricia Trie (MPT) proof for a given key-path and root hash.
+/// Verifies a Merkle Patricia Trie (MPT) proof for a given key-path and root
+/// hash.
 ///
-/// This function validates that the provided Merkle proof (`proof`) correctly corresponds to the
-/// specified `key_path` and `mpt_root`. It ensures the integrity of the data by reconstructing the
-/// trie path using the proof and comparing it with the expected root hash.
+/// This function validates that the provided Merkle proof (`proof`) correctly
+/// corresponds to the specified `key_path` and `mpt_root`. It ensures the
+/// integrity of the data by reconstructing the trie path using the proof and
+/// comparing it with the expected root hash.
 ///
 /// # Arguments
 ///
-/// * `data` - The raw bytes representing the value associated with the key-path in the trie. This
-///            is used to validate the leaf node in the proof.
-/// * `mpt_root` - The root hash of the Merkle Patricia Trie, represented as a 32-byte fixed-size
-///                array (`FixedBytes<32>`). This is the expected root hash to verify against.
-/// * `key_path` - The key-path in the trie, represented as a sequence of nibbles (`Nibbles`). This
-///                specifies the path to the leaf node being verified.
-/// * `proof` - A vector of byte arrays (`Vec<Bytes>`) containing the Merkle proof. Each element
-///             represents a node in the trie along the path to the leaf node.
+/// * `data` - The raw bytes representing the value associated with the key-path
+///   in the trie. This is used to validate the leaf node in the proof.
+/// * `mpt_root` - The root hash of the Merkle Patricia Trie, represented as a
+///   32-byte fixed-size array (`FixedBytes<32>`). This is the expected root
+///   hash to verify against.
+/// * `key_path` - The key-path in the trie, represented as a sequence of
+///   nibbles (`Nibbles`). This specifies the path to the leaf node being
+///   verified.
+/// * `proof` - A vector of byte arrays (`Vec<Bytes>`) containing the Merkle
+///   proof. Each element represents a node in the trie along the path to the
+///   leaf node.
 ///
 /// # Returns
 ///
 /// A `Result` indicating the outcome of the verification:
-/// - On success: Returns `Ok(true)` if the proof is valid and matches the `mpt_root`.
-/// - On failure: Returns an error of type `TransactionPrecompileError` if the proof is invalid or
-///               an issue occurs during verification.
-///
+/// - On success: Returns `Ok(true)` if the proof is valid and matches the
+///   `mpt_root`.
+/// - On failure: Returns an error of type `TransactionPrecompileError` if the
+///   proof is invalid or an issue occurs during verification.
 pub fn verify_merkle_proof(
     data: &Bytes,
     mpt_root: FixedBytes<32>,

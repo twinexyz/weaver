@@ -1,6 +1,5 @@
 //! Reusable utility functions
 //! Relevant to all the L1s on twine
-//!
 
 use std::collections::HashSet;
 
