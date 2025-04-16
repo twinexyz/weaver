@@ -1,4 +1,3 @@
-use alloy_trie::proof::ProofVerificationError;
 use reth::revm::primitives::PrecompileErrors;
 use thiserror::Error;
 
@@ -31,9 +30,6 @@ pub enum TransactionPrecompileError {
 impl TransactionPrecompileError {
     /// Returns an other error with the given message.
     pub fn other(err: impl Into<String>) -> Self { Self::Other(err.into()) }
-
-    /// Returns true if the error is out of gas.
-    pub fn is_oog(&self) -> bool { matches!(self, Self::InvalidCaller) }
 }
 
 impl From<TransactionPrecompileError> for PrecompileErrors {
