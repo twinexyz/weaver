@@ -15,6 +15,7 @@ members = [
     "crates/constants",
     "crates/precompiles/consensus-verifier", 
     "crates/precompiles/transaction", 
+    "crates/evm-contracts",
 ]
 resolver = "3"
 
@@ -23,7 +24,8 @@ alloy-primitives = { version = "0.8.15", default-features = false}
 alloy-consensus = { version = "0.11.1", default-features = false }
 alloy-genesis = { version = "0.11.1", default-features = false }
 # alloy-evm = { version = "0.1.0-alpha.3", default-features = false }
-alloy-sol-types = "0.8.0"
+alloy-contract = { version = "0.11.1", default-features = false }
+alloy-sol-types = { version = "0.8.20", features = ["json"] }
 eyre = "0.6"
 tokio = { version = "1.40.0", features = ["full"] }
 serde = { version = "1.0.210", features = ["derive"] }
@@ -60,6 +62,7 @@ reth-primitives = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.2
 twine-executor = { path = "crates/executor" }
 twine-consensus-verifier-precompile = { path = "crates/precompiles/consensus-verifier" }
 twine-transaction-precompile = { path = "crates/precompiles/transaction" }
+twine-evm-contracts = { path = "crates/evm-contracts" }
 twine-constants = { path = "crates/constants" }
 
 [patch.crates-io]
