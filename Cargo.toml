@@ -15,7 +15,8 @@ members = [
     "crates/constants",
     "crates/precompiles/consensus-verifier", 
     "crates/precompiles/transaction", 
-    "crates/evm-contracts",
+    "crates/evm-contracts", 
+    "crates/l1-utils",
 ]
 resolver = "3"
 
@@ -64,6 +65,7 @@ twine-consensus-verifier-precompile = { path = "crates/precompiles/consensus-ver
 twine-transaction-precompile = { path = "crates/precompiles/transaction" }
 twine-evm-contracts = { path = "crates/evm-contracts" }
 twine-constants = { path = "crates/constants" }
+twine-l1-utils= { path = "crates/l1-utils" }
 
 [patch.crates-io]
 # The following is required since we would like to remove
