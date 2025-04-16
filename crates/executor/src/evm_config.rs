@@ -31,7 +31,8 @@ impl TwineEvmConfig {
 
     fn set_precompiles<EXT, DB>(handler: &mut EvmHandler<EXT, DB>)
     where
-        DB: reth_evm::Database, {
+        DB: reth_evm::Database,
+    {
         // first we need the evm spec id, which determines the precompiles
         let spec_id = handler.cfg.spec_id;
 
@@ -47,6 +48,12 @@ impl TwineEvmConfig {
             loaded_precompiles.extend([(
                 twine_constants::precompiles::TWINE_CONSENSUS_VERIFIER_PRECOMPILE_ADDRESS,
                 twine_consensus_verifier_precompile::ConsensusVerifierPrecompile::new_ordinary(),
+            )]);
+
+            #[cfg(feature = "twine-transactions-precompile")]
+            loaded_precompiles.extend([(
+                twine_constants::precompiles::TWINE_TRANSACTION_PRECOMPILE_ADDRESS,
+                twine_transaction_precompile::TransactionPrecompile::new_ordinary(),
             )]);
 
             loaded_precompiles
@@ -66,7 +73,9 @@ impl ConfigureEvmEnv for TwineEvmConfig {
         self.inner.tx_env(transaction, signer)
     }
 
-    fn evm_env(&self, header: &Self::Header) -> EvmEnv { self.inner.evm_env(header) }
+    fn evm_env(&self, header: &Self::Header) -> EvmEnv {
+        self.inner.evm_env(header)
+    }
 
     fn next_evm_env(
         &self,
@@ -111,7 +120,8 @@ impl ConfigureEvm for TwineEvmConfig {
     ) -> Self::Evm<'_, DB, I>
     where
         DB: reth_evm::Database,
-        I: GetInspector<DB>, {
+        I: GetInspector<DB>,
+    {
         let cfg_env_with_handler_cfg = CfgEnvWithHandlerCfg {
             cfg_env: evm_env.cfg_env,
             handler_cfg: HandlerCfg::new(evm_env.spec),

@@ -9707,6 +9707,7 @@ dependencies = [
  "tokio",
  "twine-consensus-verifier-precompile",
  "twine-constants",
+ "twine-transaction-precompile",
 ]
 
 [[package]]
@@ -9725,6 +9726,23 @@ dependencies = [
  "serde_json",
  "tokio",
  "twine-executor",
+]
+
+[[package]]
+name = "twine-transaction-precompile"
+version = "0.1.0"
+dependencies = [
+ "alloy-consensus",
+ "alloy-primitives",
+ "alloy-sol-types",
+ "eyre",
+ "reth",
+ "reth-evm",
+ "reth-primitives",
+ "reth-tracing",
+ "thiserror 2.0.12",
+ "twine-constants",
+ "twine-evm-contracts",
 ]
 
 [[package]]

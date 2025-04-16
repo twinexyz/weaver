@@ -21,6 +21,7 @@ eyre.workspace = true
 parking_lot.workspace = true
 tokio.workspace = true
 twine-consensus-verifier-precompile = { workspace = true, optional = true }
+twine-transaction-precompile = { workspace = true }
 twine-constants = { workspace = true }
 
 [features]

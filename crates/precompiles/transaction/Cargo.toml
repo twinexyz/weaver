@@ -1,0 +1,24 @@
+[package]
+name = "twine-transaction-precompile"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+exclude.workspace = true
+
+[dependencies]
+reth-primitives.workspace = true
+reth.workspace = true
+reth-tracing.workspace = true
+reth-evm.workspace = true
+alloy-primitives.workspace = true
+alloy-consensus.workspace = true
+alloy-sol-types.workspace = true
+eyre.workspace = true
+thiserror.workspace = true
+twine-constants = { workspace = true }
+twine-evm-contracts.workspace = true
+
+[lints]
+workspace = true
