@@ -7,7 +7,7 @@ on:
 
 jobs:
   fmt-and-udeps:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     concurrency:
       group: ${{ github.ref }}-${{ github.workflow }}
       cancel-in-progress: true
@@ -17,11 +17,6 @@ jobs:
       uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
-        profile: minimal
-    - name: Set up Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: nightly
         profile: minimal
     - name: Add rustfmt (nightly)
       run: rustup component add --toolchain nightly rustfmt
