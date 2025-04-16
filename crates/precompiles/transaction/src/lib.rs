@@ -17,10 +17,11 @@ use alloy_trie::Nibbles;
 use errors::TransactionPrecompileError;
 use reth::revm::primitives::{PrecompileOutput, PrecompileResult};
 use reth::revm::{ContextPrecompile, ContextStatefulPrecompile, Database};
+use reth_primitives::Log;
 use reth_tracing::tracing;
 use sol::{L1Txns, MerkleParamType, TokenTxn, VerifierInput};
 use twine_constants::sequencer::PRECOMPILE_ADMIN;
-use twine_constants::twine::TwineSystemStorageContract;
+use twine_constants::twine::TWINE_SYSTEM_STORAGE_CONTRACT;
 use twine_evm_contracts::L1MessageQueue::{QueueDepositTransaction, QueueWithdrawalTransaction};
 use twine_l1_utils::{get_chain_type, whitelisted_contract};
 
@@ -114,11 +115,9 @@ impl<DB: Database> ContextStatefulPrecompile<DB> for TransactionPrecompile {
                 return Err(TransactionPrecompileError::DecodeVerifierInput.into());
             }
         }
-
-        Ok(PrecompileOutput {
-            gas_used: 0,
-            bytes: Bytes::from_static(&[9, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
-        })
+        return Err(
+            TransactionPrecompileError::Other("Failed Transaction Execution".to_string()).into(),
+        );
     }
 }
 
@@ -142,104 +141,196 @@ pub fn handle_ethereum_event<DB: Database>(
     data: Bytes,
     evmctx: &mut reth::revm::InnerEvmContext<DB>,
 ) -> PrecompileResult {
-    let (txns, proof) = match MerkleParamType::abi_decode_sequence(&data, true) {
-        Ok((txns, proof)) => (txns, proof),
-        Err(_) => return Err(TransactionPrecompileError::DecodeTxnAndProofs.into()),
-    };
+    // Decode the transactions and proofs from the input data
+    let (txns, proofs) = decode_txns_and_proofs(&data)?;
 
     tracing::debug!("Decoded into {} txns and proofs", txns.len());
 
-    // TODO: require length to be one after handled on `merkora` component
-
-    for (txn, proof) in txns.iter().zip(proof.iter()) {
-        let receipt = match ReceiptEnvelope::decode_2718(&mut txn.to_vec().as_slice()) {
-            Ok(receipt) => receipt,
-            Err(e) => {
-                tracing::error!("Failed to decode receipt: {:?}", e);
-                return Err(TransactionPrecompileError::DecodeReceipt.into());
-            }
-        };
-
-        for log in receipt.logs() {
-            let contract = log.address;
-            if whitelisted_contract(chain_id).contains(&contract) {
-                if let Some(topic0) = log.topics().first() {
-                    match *topic0 {
-                        QueueDepositTransaction::SIGNATURE_HASH => {
-                            tracing::debug!("Deposit Transaction Executing");
-                            let dep = match QueueDepositTransaction::decode_log(log, true) {
-                                Ok(d) => d,
-                                Err(e) => {
-                                    tracing::debug!(
-                                        "Could not decode to queue deposit transaction"
-                                    );
-                                    return Err(TransactionPrecompileError::DecodeReceipt.into());
-                                }
-                            };
-
-                            if !dep.chainId.eq(&chain_id.to::<u64>()) {
-                                tracing::debug!("Chain id mismatch ");
-                                return Err(TransactionPrecompileError::InvalidChainId(
-                                    dep.chainId,
-                                )
-                                .into());
-                            }
-
-                            let receipt_root = get_receipt_root(
-                                U256::from(dep.chainId),
-                                U256::from(dep.blockNumber),
-                                evmctx,
-                            )?;
-
-                            type MerklePatriciaProofVerifyParams =
-                                (sol_data::Bytes, sol_data::Array<sol_data::Bytes>);
-                            match MerklePatriciaProofVerifyParams::abi_decode_sequence(&proof, true)
-                            {
-                                Ok((k, proof)) => {
-                                    let key_path = Nibbles::from_vec(k.to_vec());
-                                    verify_merkle_proof(
-                                        txn.clone(),
-                                        receipt_root,
-                                        key_path,
-                                        proof,
-                                    )?;
-                                }
-                                Err(_) => {
-                                    return Err(
-                                        TransactionPrecompileError::DecodeKeyPathAndProof.into()
-                                    )
-                                }
-                            }
-                            let l1_txn = L1Txns {
-                                nonce: U256::from(dep.nonce),
-                                tokenTxn: TokenTxn {
-                                    token: dep.l2Token,
-                                    to: dep.toTwineAddress,
-                                    value: dep.amount,
-                                    mint: true,
-                                },
-                                forcedTxn: Vec::new(),
-                            };
-                            return PrecompileResult::Ok(PrecompileOutput {
-                                gas_used: 0,
-                                bytes: l1_txn.abi_encode().into(),
-                            });
-                        }
-
-                        QueueWithdrawalTransaction::SIGNATURE_HASH => {
-                            tracing::debug!("Withdraw Transaction Executing");
-                        }
-                        _ => {}
-                    }
-                }
-            }
+    // Process each transaction and its corresponding proof
+    for (txn, proof) in txns.iter().zip(proofs.iter()) {
+        if let Some(output) = process_transaction(txn, proof, chain_id, evmctx)? {
+            return Ok(output);
         }
     }
 
-    // ReceiptWithBloom::decode(&mut data.to_vec().as_slice()).map_err(|e|
-    // format!("{e:?}"))?;
+    // If no valid transaction is processed, return an error
+    Err(TransactionPrecompileError::DecodeVerifierInput.into())
+}
 
-    return Err(TransactionPrecompileError::DecodeVerifierInput.into());
+/// Decodes the transaction and proof sequence from the input data.
+fn decode_txns_and_proofs(
+    data: &Bytes,
+) -> Result<(Vec<Bytes>, Vec<Bytes>), TransactionPrecompileError> {
+    MerkleParamType::abi_decode_sequence(data, true)
+        .map_err(|_| TransactionPrecompileError::DecodeTxnAndProofs)
+}
+
+/// Processes a single transaction and its proof.
+fn process_transaction<DB: Database>(
+    txn: &Bytes,
+    proof: &Bytes,
+    chain_id: U256,
+    evmctx: &mut reth::revm::InnerEvmContext<DB>,
+) -> Result<Option<PrecompileOutput>, TransactionPrecompileError> {
+    // Decode the receipt envelope
+    let receipt = ReceiptEnvelope::decode_2718(&mut txn.to_vec().as_slice()).map_err(|e| {
+        tracing::error!("Failed to decode receipt: {:?}", e);
+        TransactionPrecompileError::DecodeReceipt
+    })?;
+
+    // Process each log in the receipt
+    for log in receipt.logs() {
+        if let Some(output) = process_log(txn, log, proof, chain_id, evmctx)? {
+            return Ok(Some(output));
+        }
+    }
+
+    Ok(None)
+}
+
+/// Processes a single log entry.
+fn process_log<DB: Database>(
+    txn: &Bytes,
+    log: &Log,
+    proof: &Bytes,
+    chain_id: U256,
+    evmctx: &mut reth::revm::InnerEvmContext<DB>,
+) -> Result<Option<PrecompileOutput>, TransactionPrecompileError> {
+    let contract = log.address;
+
+    // Check if the contract is whitelisted
+    if !whitelisted_contract(chain_id).contains(&contract) {
+        return Ok(None);
+    }
+
+    // Check the topic signature
+    if let Some(topic0) = log.topics().first() {
+        match *topic0 {
+            QueueDepositTransaction::SIGNATURE_HASH => {
+                tracing::debug!("Deposit Transaction Executing");
+                return process_deposit_transaction(txn, log, proof, chain_id, evmctx);
+            }
+            QueueWithdrawalTransaction::SIGNATURE_HASH => {
+                tracing::debug!("Withdraw Transaction Executing");
+                return process_withdrawal_transaction(txn, log, proof, chain_id, evmctx);
+            }
+            _ => {}
+        }
+    }
+
+    Ok(None)
+}
+
+/// Processes a deposit transaction log.
+fn process_deposit_transaction<DB: Database>(
+    txn: &Bytes,
+    log: &Log,
+    proof: &Bytes,
+    chain_id: U256,
+    evmctx: &mut reth::revm::InnerEvmContext<DB>,
+) -> Result<Option<PrecompileOutput>, TransactionPrecompileError> {
+    // Decode the deposit transaction from the log
+    let dep = QueueDepositTransaction::decode_log(log, true).map_err(|_| {
+        tracing::debug!("Could not decode to queue deposit transaction");
+        TransactionPrecompileError::DecodeReceipt
+    })?;
+
+    // Validate the chain ID
+    if !dep.chainId.eq(&chain_id.to::<u64>()) {
+        tracing::debug!("Chain id mismatch ");
+        return Err(TransactionPrecompileError::InvalidChainId(dep.chainId).into());
+    }
+
+    // Retrieve the receipt root
+    let receipt_root =
+        get_receipt_root(U256::from(dep.chainId), U256::from(dep.blockNumber), evmctx)?;
+
+    // Verify the Merkle proof
+    verify_merkle_proof_for_txn(txn, proof, receipt_root)?;
+
+    // Construct the L1 transaction object
+    let l1_txn = L1Txns {
+        nonce: U256::from(dep.nonce),
+        tokenTxn: TokenTxn {
+            token: dep.l2Token,
+            to: dep.toTwineAddress,
+            value: dep.amount,
+            mint: true,
+        },
+        forcedTxn: Vec::new(),
+    };
+
+    // Return the precompile output
+    Ok(Some(PrecompileOutput {
+        gas_used: 0,
+        bytes: l1_txn.abi_encode().into(),
+    }))
+}
+
+/// Processes a withdrawal transaction log.
+fn process_withdrawal_transaction<DB: Database>(
+    txn: &Bytes,
+    log: &Log,
+    proof: &Bytes,
+    chain_id: U256,
+    evmctx: &mut reth::revm::InnerEvmContext<DB>,
+) -> Result<Option<PrecompileOutput>, TransactionPrecompileError> {
+    // Decode the withdraw transaction from the log
+    let withdraw = QueueWithdrawalTransaction::decode_log(log, true).map_err(|_| {
+        tracing::debug!("Could not decode to queue withdraw transaction");
+        TransactionPrecompileError::DecodeReceipt
+    })?;
+
+    // Validate the chain ID
+    if !withdraw.chainId.eq(&chain_id.to::<u64>()) {
+        tracing::debug!("Chain id mismatch ");
+        return Err(TransactionPrecompileError::InvalidChainId(withdraw.chainId).into());
+    }
+
+    // Retrieve the receipt root
+    let receipt_root = get_receipt_root(
+        U256::from(withdraw.chainId),
+        U256::from(withdraw.blockNumber),
+        evmctx,
+    )?;
+
+    // Verify the Merkle proof
+    verify_merkle_proof_for_txn(txn, proof, receipt_root)?;
+
+    // Construct the L1 transaction object
+    let l1_txn = L1Txns {
+        nonce: U256::from(withdraw.nonce),
+        tokenTxn: TokenTxn {
+            token: withdraw.l2Token,
+            to: withdraw.toTwineAddress,
+            value: withdraw.amount,
+            mint: false,
+        },
+        forcedTxn: Vec::new(),
+    };
+
+    // Return the precompile output
+    Ok(Some(PrecompileOutput {
+        gas_used: 0,
+        bytes: l1_txn.abi_encode().into(),
+    }))
+}
+
+/// Verifies the Merkle proof for a transaction.
+fn verify_merkle_proof_for_txn(
+    txn: &Bytes,
+    proof: &Bytes,
+    receipt_root: FixedBytes<32>,
+) -> Result<(), TransactionPrecompileError> {
+    type MerklePatriciaProofVerifyParams = (sol_data::Bytes, sol_data::Array<sol_data::Bytes>);
+
+    let (k, proof) = MerklePatriciaProofVerifyParams::abi_decode_sequence(proof, true)
+        .map_err(|_| TransactionPrecompileError::DecodeKeyPathAndProof)?;
+
+    let key_path = Nibbles::from_vec(k.to_vec());
+    verify_merkle_proof(txn, receipt_root, key_path, proof)?;
+
+    Ok(())
 }
 
 /// Retrieves the receipt root for a given block height on a specific chain.
@@ -272,8 +363,8 @@ pub fn get_receipt_root<DB: Database>(
     evmctx: &mut reth::revm::InnerEvmContext<DB>,
 ) -> Result<FixedBytes<32>, TransactionPrecompileError> {
     let receipt_root_slot = calculate_receipt_slot_position(chain_id, height);
-    println!("[💚💛]: Slot position is {}", receipt_root_slot);
-    let messenger_contract = TwineSystemStorageContract;
+    tracing::debug!("Slot position is {}", receipt_root_slot);
+    let messenger_contract = TWINE_SYSTEM_STORAGE_CONTRACT;
     let receipt_root: FixedBytes<32>;
 
     match evmctx.load_account(messenger_contract) {
@@ -341,12 +432,12 @@ pub fn calculate_receipt_slot_position(outer_key: U256, inner_key: U256) -> U256
 ///               an issue occurs during verification.
 ///
 pub fn verify_merkle_proof(
-    data: Bytes,
+    data: &Bytes,
     mpt_root: FixedBytes<32>,
     key_path: Nibbles,
     proof: Vec<Bytes>,
 ) -> Result<bool, TransactionPrecompileError> {
-    match verify_proof(mpt_root, key_path, Some(data.into()), proof.iter()) {
+    match verify_proof(mpt_root, key_path, Some(data.clone().into()), proof.iter()) {
         Ok(_) => Ok(true),
         Err(e) => Err(TransactionPrecompileError::MerkleVerifierError(format!("{}", e)).into()),
     }
