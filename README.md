@@ -1,6 +1,12 @@
 # weaver
 A mono-repo structure for everything twine
 
+## Prerequisities
+This repo depends on the abis of twine-evm-contracts. To get the latest artifacts, run
+```sh
+sh scripts/generate_evm_contract_artifacts.sh
+```
+
 ## Running a Twine node
 ```sh
 cargo run --bin twine-node -- \
