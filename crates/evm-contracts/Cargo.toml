@@ -1,0 +1,12 @@
+[package]
+name = "twine-evm-contracts"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+exclude.workspace = true
+
+[dependencies]
+alloy-contract.workspace = true
+alloy-sol-types.workspace = true

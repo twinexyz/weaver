@@ -145,6 +145,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "alloy-contract"
+version = "0.11.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ee6180fb232becdea70fad57c63b6967f01f74ab9595671b870f504116dd29de"
+dependencies = [
+ "alloy-dyn-abi",
+ "alloy-json-abi",
+ "alloy-network",
+ "alloy-network-primitives",
+ "alloy-primitives",
+ "alloy-provider",
+ "alloy-rpc-types-eth",
+ "alloy-sol-types",
+ "alloy-transport",
+ "futures",
+ "futures-util",
+ "thiserror 2.0.12",
+]
+
+[[package]]
 name = "alloy-dyn-abi"
 version = "0.8.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -664,6 +684,7 @@ version = "0.8.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "83ad5da86c127751bc607c174d6c9fe9b85ef0889a9ca0c641735d77d4f98f26"
 dependencies = [
+ "alloy-json-abi",
  "alloy-sol-macro-input",
  "const-hex",
  "heck",
@@ -682,12 +703,14 @@ version = "0.8.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba3d30f0d3f9ba3b7686f3ff1de9ee312647aac705604417a2f40c604f409a9e"
 dependencies = [
+ "alloy-json-abi",
  "const-hex",
  "dunce",
  "heck",
  "macro-string",
  "proc-macro2",
  "quote",
+ "serde_json",
  "syn 2.0.100",
  "syn-solidity",
 ]
@@ -2164,7 +2187,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8d162beedaa69905488a8da94f5ac3edb4dd4788b732fadb7bd120b2625c1976"
 dependencies = [
  "data-encoding",
- "syn 1.0.109",
+ "syn 2.0.100",
 ]
 
 [[package]]
@@ -4054,7 +4077,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc2f4eb4bc735547cfed7c0a4922cbd04a4655978c09b54f1f7b228750664c34"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]
@@ -9648,26 +9671,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "twine-consensus-verifier-precompile"
-version = "0.1.0"
-dependencies = [
- "alloy-consensus",
- "alloy-genesis",
- "alloy-primitives",
- "eyre",
- "parking_lot",
- "reth",
- "reth-chainspec",
- "reth-evm",
- "reth-node-api",
- "reth-node-core",
- "reth-node-ethereum",
- "reth-primitives",
- "reth-tracing",
- "tokio",
-]
-
-[[package]]
 name = "twine-constants"
 version = "0.1.0"
 dependencies = [
@@ -9683,6 +9686,14 @@ dependencies = [
  "git2",
  "log",
  "regex",
+]
+
+[[package]]
+name = "twine-evm-contracts"
+version = "0.1.0"
+dependencies = [
+ "alloy-contract",
+ "alloy-sol-types",
 ]
 
 [[package]]
@@ -9705,7 +9716,56 @@ dependencies = [
  "reth-primitives",
  "reth-tracing",
  "tokio",
- "twine-consensus-verifier-precompile",
+ "twine-constants",
+ "twine-l1-consensus-verifier-precompile",
+ "twine-l1-transactions-precompile",
+]
+
+[[package]]
+name = "twine-l1-consensus-verifier-precompile"
+version = "0.1.0"
+dependencies = [
+ "alloy-consensus",
+ "alloy-genesis",
+ "alloy-primitives",
+ "eyre",
+ "parking_lot",
+ "reth",
+ "reth-chainspec",
+ "reth-evm",
+ "reth-node-api",
+ "reth-node-core",
+ "reth-node-ethereum",
+ "reth-primitives",
+ "reth-tracing",
+ "tokio",
+]
+
+[[package]]
+name = "twine-l1-transactions-precompile"
+version = "0.1.0"
+dependencies = [
+ "alloy-consensus",
+ "alloy-eips",
+ "alloy-primitives",
+ "alloy-sol-types",
+ "alloy-trie",
+ "eyre",
+ "reth",
+ "reth-evm",
+ "reth-primitives",
+ "reth-tracing",
+ "thiserror 2.0.12",
+ "twine-constants",
+ "twine-evm-contracts",
+ "twine-l1-utils",
+]
+
+[[package]]
+name = "twine-l1-utils"
+version = "0.1.0"
+dependencies = [
+ "reth",
  "twine-constants",
 ]
 

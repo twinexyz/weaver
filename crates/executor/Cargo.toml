@@ -20,12 +20,13 @@ alloy-consensus.workspace = true
 eyre.workspace = true
 parking_lot.workspace = true
 tokio.workspace = true
-twine-consensus-verifier-precompile = { workspace = true, optional = true }
+twine-l1-consensus-verifier-precompile = { workspace = true, optional = true }
+twine-l1-transactions-precompile = { workspace = true }
 twine-constants = { workspace = true }
 
 [features]
-default = ["twine-consensus-verifier-precompile", "twine-transactions-precompile"]
-twine-consensus-verifier-precompile = [
-    "dep:twine-consensus-verifier-precompile"
+default = ["twine-l1-consensus-verifier-precompile", "twine-l1-transactions-precompile"]
+twine-l1-consensus-verifier-precompile = [
+    "dep:twine-l1-consensus-verifier-precompile"
 ]
-twine-transactions-precompile = []
+twine-l1-transactions-precompile = []

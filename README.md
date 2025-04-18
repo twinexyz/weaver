@@ -1,6 +1,12 @@
 # weaver
 A mono-repo structure for everything twine
 
+## Prerequisities
+This repo depends on the abis of twine-evm-contracts. To get the latest artifacts, run
+```sh
+sh scripts/generate_evm_contract_artifacts.sh
+```
+
 ## Running a Twine node
 ```sh
 cargo run --bin twine-node -- \
@@ -33,7 +39,9 @@ cargo +nightly fmt
 
 ### Pre-commit hooks
 This repository makes use of `pre-commit` hooks. There are two methods of setting it up:
+
 1. **Recommended**: A pre-downloaded artifact is provided in `artifacts/pre-commit.pyz` (originally `artifacts/pre-commit-x.y.z.pyz` and dowloaded from: [https://github.com/pre-commit/pre-commit/releases](https://github.com/pre-commit/pre-commit/releases))
+
 2. **Optional**: Install using steps mentioned here: [https://pre-commit.com/](https://pre-commit.com/). This makes sure "pre-commit" is run every time before you try doing a `git commit`. Useful for implicit invocation.
 
 #### Explicit invocation of hooks without `git commit`
