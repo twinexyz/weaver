@@ -17,7 +17,7 @@ members = [
     "crates/precompiles/l1-transactions",
     "crates/evm-contracts",
     "crates/l1-utils",
-    "crates/test-harness"
+    "crates/test-harness",
 ]
 resolver = "3"
 
