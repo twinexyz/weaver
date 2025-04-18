@@ -13,7 +13,7 @@ members = [
 
     "crates/executor",
     "crates/constants",
-    "crates/precompiles/consensus-verifier",
+    "crates/precompiles/consensus-verifier", "crates/test-harness",
 ]
 resolver = "3"
 
@@ -23,7 +23,9 @@ alloy-consensus = { version = "0.11.1", default-features = false }
 alloy-genesis = { version = "0.11.1", default-features = false }
 # alloy-evm = { version = "0.1.0-alpha.3", default-features = false }
 alloy-sol-types = "0.8.0"
+
 eyre = "0.6"
+reqwest = { version = "0.11", features = ["json"] }
 tokio = { version = "1.40.0", features = ["full"] }
 serde = { version = "1.0.210", features = ["derive"] }
 serde_json = "1.0.132"
