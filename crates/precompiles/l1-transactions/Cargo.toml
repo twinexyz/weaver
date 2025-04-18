@@ -1,5 +1,5 @@
 [package]
-name = "twine-transaction-precompile"
+name = "twine-l1-transactions-precompile"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
