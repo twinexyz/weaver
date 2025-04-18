@@ -1,5 +1,5 @@
 [package]
-name = "twine-consensus-verifier-precompile"
+name = "twine-l1-consensus-verifier-precompile"
 version = "0.1.0"
 edition = "2021"
 
