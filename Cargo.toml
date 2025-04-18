@@ -13,14 +13,16 @@ members = [
 
     "crates/executor",
     "crates/constants",
-    "crates/precompiles/consensus-verifier", 
-    "crates/precompiles/transaction", 
-    "crates/evm-contracts", 
+    "crates/precompiles/consensus-verifier",
+    "crates/precompiles/transaction",
+    "crates/evm-contracts",
     "crates/l1-utils",
 ]
 resolver = "3"
 
 [workspace.dependencies]
+# The versions of alloy related crates should be fetched from `reth`
+# https://github.com/paradigmxyz/reth/blob/{RETH_TAG}/Cargo.toml
 alloy-primitives = { version = "0.8.15", default-features = false}
 alloy-consensus = { version = "0.11.1", default-features = false }
 alloy-genesis = { version = "0.11.1", default-features = false }
