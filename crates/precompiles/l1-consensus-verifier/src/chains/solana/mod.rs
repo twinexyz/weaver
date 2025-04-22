@@ -14,6 +14,7 @@ use twine_constants::chains::{
 use twine_solana_sdk::Pubkey;
 use types::{SolanaPrecompileInput, SolanaVerifierOutput, ValidatorInfo, ValidatorSet};
 
+use crate::errors::VerificationError;
 use crate::Chains;
 mod types;
 
@@ -58,9 +59,12 @@ impl SolanaConsensusVerifier {
         }
     }
 
-    fn validate_validators(&self, vote_list: Vec<VoteOrTowerSync>) -> Result<(), String> {
+    fn validate_validators(
+        &self,
+        vote_list: Vec<VoteOrTowerSync>,
+    ) -> Result<(), VerificationError> {
         if vote_list.len() > self.validator_keys.len() {
-            return Err(String::from("invalid validators numbers"));
+            return Err(VerificationError::InvalidValidators);
         }
         let threshold_votes = ((self.validator_keys.len() * 2) / 3) as u64;
         let threshold_stake = (self.total_stake * 2) / 3;
@@ -90,7 +94,7 @@ impl SolanaConsensusVerifier {
             .collect();
 
         if voters < threshold_votes || stake < threshold_stake {
-            return Err(String::from("unachieved threshold"));
+            return Err(VerificationError::UnachievedThreshold);
         }
         Ok(())
     }
@@ -103,7 +107,7 @@ impl Chains for SolanaConsensusVerifier {
                 Ok(solana_precompile_input) => solana_precompile_input,
                 Err(_) =>
                     return PrecompileResult::Err(PrecompileErrors::Error(PrecompileError::Other(
-                        String::from("decode error"),
+                        format!("{}", VerificationError::DecodeError),
                     ))),
             };
 
@@ -112,14 +116,16 @@ impl Chains for SolanaConsensusVerifier {
                 Ok(public_value_struct) => public_value_struct,
                 Err(_) =>
                     return PrecompileResult::Err(PrecompileErrors::Error(PrecompileError::Other(
-                        String::from("decode error"),
+                        format!("{}", VerificationError::DecodeError),
                     ))),
             };
 
         let completed_proof_package = public_value_struct.package;
 
         if let Err(e) = self.validate_validators(completed_proof_package.votes) {
-            return PrecompileResult::Err(PrecompileErrors::Error(PrecompileError::Other(e)));
+            return PrecompileResult::Err(PrecompileErrors::Error(PrecompileError::Other(
+                format!("{}", e),
+            )));
         }
 
         let verifier_output = SolanaVerifierOutput {
