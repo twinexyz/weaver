@@ -45,6 +45,7 @@ regex = "1.11.1"
 log = "0.4.26"
 env_logger = "0.11.7"
 git2 = "0.20.1"
+borsh = { version = "1.5", features = ["derive"] }
 
 # RETH
 reth = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.2.2" }
@@ -66,6 +67,10 @@ reth-primitives = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.2
   "alloy-compat",
   "std",
 ] }
+
+# TWINE dependencies
+twine_tcp_lib = { git = "https://github.com/twinexyz/twine-consensus-prover", branch = "main" }
+twine-solana-sdk = { git = "https://github.com/twinexyz/twine-solana-sdk", branch = "main" }
 
 twine-executor = { path = "crates/executor" }
 twine-l1-consensus-verifier-precompile = { path = "crates/precompiles/l1-consensus-verifier" }
