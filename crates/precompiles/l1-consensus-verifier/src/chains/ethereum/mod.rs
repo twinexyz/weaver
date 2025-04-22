@@ -1,12 +1,25 @@
+use std::fmt::Debug;
+
+use alloy_primitives::hex::ToHexExt;
+use alloy_primitives::{keccak256, Bytes};
+use alloy_rlp::Decodable;
+use alloy_sol_types::SolValue;
+use reth::revm::primitives::{
+    PrecompileError, PrecompileErrors, PrecompileOutput, PrecompileResult,
+};
 use serde_json;
+use ssz::{Decode, Encode};
+use ssz_types::{typenum, BitVector};
 use twine_constants::chains::{
     ETHEREUM_CHAIN_ID, ETHEREUM_HOLESKY, ETHEREUM_HOLESKY_CHAIN_ID, ETHEREUM_MAINNET,
     ETHEREUM_SEPOLIA, ETHEREUM_SEPOLIA_CHAIN_ID,
 };
+use twine_tcp_lib::eth::EthPublicValuesStruct;
 use twine_tcp_lib::*;
+use types::{EthereumVerifierPrecompileOutput, PrecompileInput};
 
 use crate::Chains;
-
+mod types;
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct EthereumConsensusVerifier {
@@ -40,8 +53,111 @@ impl EthereumConsensusVerifier {
 }
 
 impl Chains for EthereumConsensusVerifier {
-    fn verify(&self, input: &alloy_primitives::Bytes) -> reth::revm::primitives::PrecompileResult {
-        _ = input;
-        todo!()
+    fn verify(&self, input: &alloy_primitives::Bytes) -> PrecompileResult {
+        if let Ok(eth_precompile_input) = PrecompileInput::decode(&mut input.as_ref()) {
+            if eth_precompile_input.bitmap.len() > 2
+                || eth_precompile_input.proof.len() > 2
+                || eth_precompile_input.public_inputs.len() > 2
+            {
+                return PrecompileResult::Err(PrecompileErrors::Error(PrecompileError::Other(String::from("accepts proof for two end point blocks or a single block, cannot accept more than that."))));
+            }
+            let mut calculated_public_keys = vec![];
+            let mut proofs = vec![];
+            let mut verified_receipt_roots = vec![];
+            for (index, public_inputs) in eth_precompile_input.public_inputs.iter().enumerate() {
+                let public_value: EthPublicValuesStruct =
+                    match ssz::Decode::from_ssz_bytes(public_inputs) {
+                        Ok(public_value) => public_value,
+                        Err(_) =>
+                            return PrecompileResult::Err(PrecompileErrors::Error(
+                                PrecompileError::Other(String::from("decode error")),
+                            )),
+                    };
+
+                let header_index = if index == 0 {
+                    index
+                } else {
+                    eth_precompile_input.headers.len() - 1
+                };
+
+                let header = match eth_precompile_input.headers.get(header_index) {
+                    Some(header) => header,
+                    None =>
+                        return PrecompileResult::Err(PrecompileErrors::Error(
+                            PrecompileError::Other(String::from("header not found")),
+                        )),
+                };
+
+                let header_hash = header.hash_slow().0;
+
+                let mut calculated_public_key = public_value;
+                calculated_public_key.execution_header_hash = header_hash;
+
+                let participating_mask: &Vec<u8> = match eth_precompile_input.bitmap.get(index) {
+                    Some(participating_mask) => participating_mask,
+                    None =>
+                        return PrecompileResult::Err(PrecompileErrors::Error(
+                            PrecompileError::Other(String::from("bit mask not found")),
+                        )),
+                };
+
+                let participating_mask: BitVector<typenum::U512> =
+                    match BitVector::from_ssz_bytes(&participating_mask) {
+                        Ok(participating_mask) => participating_mask,
+                        Err(_) =>
+                            return PrecompileResult::Err(PrecompileErrors::Error(
+                                PrecompileError::Other(String::from("bit mask decode error")),
+                            )),
+                    };
+
+                let mut count = 0;
+                let mut participating_keys = vec![];
+
+                participating_mask.iter().enumerate().for_each(|(i, bit)| {
+                    if bit {
+                        participating_keys.push(self.validator_keys[i].clone());
+                        count += 1;
+                    }
+                });
+
+                calculated_public_key.participating_keys = vec![participating_keys];
+
+                let calculated_public_key_bytes =
+                    Bytes::copy_from_slice(&calculated_public_key.as_ssz_bytes());
+                calculated_public_keys.push(calculated_public_key_bytes);
+                let proof = Bytes::copy_from_slice(&eth_precompile_input.proof[index]);
+                proofs.push(proof);
+            }
+
+            // verify header chain
+            let headers = eth_precompile_input.headers;
+            for i in 0..headers.len() - 1 {
+                let header_n = headers.get(i).expect("header not found");
+                let hash_n: String = keccak256(alloy_rlp::encode(header_n)).encode_hex();
+                let header_np1 = headers.get(i + 1).expect("header not found");
+                let parent_hash_np1: String = header_np1.parent_hash.encode_hex();
+
+                if hash_n != parent_hash_np1 {
+                    return PrecompileResult::Err(PrecompileErrors::Error(PrecompileError::Other(
+                        String::from("header chain verification failed"),
+                    )));
+                }
+                verified_receipt_roots.push(Bytes::copy_from_slice(&headers[i].receipts_root.0));
+            }
+
+            let precompile_output = EthereumVerifierPrecompileOutput {
+                public_values: calculated_public_keys,
+                proofs,
+                verified_receipt_roots,
+            };
+
+            return PrecompileResult::Ok(PrecompileOutput::new(
+                0,
+                Bytes::copy_from_slice(&precompile_output.abi_encode()),
+            ));
+        }
+        return PrecompileResult::Err(PrecompileErrors::Error(PrecompileError::Other(
+            String::from("decode error"),
+        )));
     }
 }
