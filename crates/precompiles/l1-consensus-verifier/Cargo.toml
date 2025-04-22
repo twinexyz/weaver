@@ -8,6 +8,8 @@ twine-constants.workspace = true
 alloy-consensus.workspace = true
 alloy-genesis.workspace = true
 alloy-primitives.workspace = true
+alloy-sol-types.workspace = true
+alloy-rlp.workspace = true
 eyre.workspace = true
 parking_lot.workspace = true
 reth.workspace = true
@@ -18,13 +20,15 @@ reth-node-core.workspace = true
 reth-node-ethereum = { workspace = true, features = ["test-utils"] }
 reth-primitives.workspace = true
 reth-tracing.workspace = true
-alloy-sol-types.workspace = true
 tokio.workspace = true
 twine_tcp_lib.workspace = true
 twine-solana-sdk.workspace = true
 serde_json.workspace = true
 serde.workspace = true
 borsh.workspace = true
+ethereum_ssz.workspace = true
+ethereum_ssz_derive.workspace = true
+ssz_types.workspace = true
 
 [features]
 twine-build =[]

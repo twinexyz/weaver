@@ -42,6 +42,8 @@ alloy = { version = "0.2.1", features = ["rpc-types", "sol-types", "ssz"] }
 
 bls12_381 = { git = "https://github.com/sp1-patches/bls12_381", branch = "patch-v0.8.0", features = ["experimental"] }
 
+alloy-rlp = "0.3.9"
+
 env_logger = "0.11.7"
 ethereum_ssz = "0.6.0"
 ethereum_ssz_derive = "0.6.0"
