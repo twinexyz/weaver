@@ -71,7 +71,7 @@ impl Chains for EthereumConsensusVerifier {
                     match ssz::Decode::from_ssz_bytes(public_inputs) {
                         Ok(public_value) => public_value,
                         Err(e) => {
-                            error!("{}: {:?}", self.chain_name_from_id(self.chain_id), e);
+                            error!("{}: {:?}", self.chain(), e);
                             return PrecompileResult::Err(PrecompileErrors::Error(
                                 PrecompileError::Other(format!(
                                     "{}",
@@ -90,11 +90,7 @@ impl Chains for EthereumConsensusVerifier {
                 let header = match eth_precompile_input.headers.get(header_index) {
                     Some(header) => header,
                     None => {
-                        error!(
-                            "{}: {}",
-                            self.chain_name_from_id(self.chain_id),
-                            VerificationError::HeaderNotFound
-                        );
+                        error!("{}: {}", self.chain(), VerificationError::HeaderNotFound);
                         return PrecompileResult::Err(PrecompileErrors::Error(
                             PrecompileError::Other(format!(
                                 "{}",
@@ -112,11 +108,7 @@ impl Chains for EthereumConsensusVerifier {
                 let participating_mask: &Vec<u8> = match eth_precompile_input.bitmap.get(index) {
                     Some(participating_mask) => participating_mask,
                     None => {
-                        error!(
-                            "{}: {}",
-                            self.chain_name_from_id(self.chain_id),
-                            "bit mask not found"
-                        );
+                        error!("{}: {}", self.chain(), "bit mask not found");
                         return PrecompileResult::Err(PrecompileErrors::Error(
                             PrecompileError::Other(format!(
                                 "{}",
@@ -130,7 +122,7 @@ impl Chains for EthereumConsensusVerifier {
                     match BitVector::from_ssz_bytes(&participating_mask) {
                         Ok(participating_mask) => participating_mask,
                         Err(e) => {
-                            error!("{}: {:?}", self.chain_name_from_id(self.chain_id), e);
+                            error!("{}: {:?}", self.chain(), e);
                             return PrecompileResult::Err(PrecompileErrors::Error(
                                 PrecompileError::Other(format!(
                                     "{}",
@@ -174,7 +166,7 @@ impl Chains for EthereumConsensusVerifier {
                 if hash_n != parent_hash_np1 {
                     error!(
                         "{}: {}",
-                        self.chain_name_from_id(self.chain_id),
+                        self.chain(),
                         VerificationError::HeaderChainVerificationError
                     );
                     return PrecompileResult::Err(PrecompileErrors::Error(PrecompileError::Other(
@@ -192,7 +184,7 @@ impl Chains for EthereumConsensusVerifier {
 
             info!(
                 "{}: {}",
-                self.chain_name_from_id(self.chain_id),
+                self.chain(),
                 "successfully exited the verifier precompile"
             );
             return PrecompileResult::Ok(PrecompileOutput::new(
@@ -200,11 +192,7 @@ impl Chains for EthereumConsensusVerifier {
                 Bytes::copy_from_slice(&precompile_output.abi_encode()),
             ));
         }
-        error!(
-            "{}: {}",
-            self.chain_name_from_id(self.chain_id),
-            VerificationError::DecodeError
-        );
+        error!("{}: {}", self.chain(), VerificationError::DecodeError);
         return PrecompileResult::Err(PrecompileErrors::Error(PrecompileError::Other(
             String::from("decode error"),
         )));
