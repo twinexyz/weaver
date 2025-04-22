@@ -2696,6 +2696,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "curve25519-dalek-ng"
+version = "4.1.1"
+source = "git+https://github.com/sp1-patches/curve25519-dalek-ng.git?branch=patch-v4.1.1#3fb3e7f6047ddeef0f0c9212f4604bd30d64bd28"
+dependencies = [
+ "anyhow",
+ "byteorder",
+ "cfg-if",
+ "digest 0.9.0",
+ "rand_core 0.6.4",
+ "sp1-lib",
+ "subtle-ng",
+ "zeroize",
+]
+
+[[package]]
 name = "darling"
 version = "0.13.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3087,6 +3102,20 @@ checksum = "115531babc129696a58c64a4fef0a8bf9e9698629fb97e9e40767d235cfbcd53"
 dependencies = [
  "pkcs8",
  "signature",
+]
+
+[[package]]
+name = "ed25519-consensus"
+version = "2.1.0"
+source = "git+https://github.com/sp1-patches/ed25519-consensus?tag=ed25519_consensus-v2.1.0-patch-v1#2b2c4b43344bc4daf5b1326f367f2d9d661eeabb"
+dependencies = [
+ "curve25519-dalek-ng",
+ "hex",
+ "rand_core 0.6.4",
+ "serde",
+ "sha2 0.9.9",
+ "thiserror 1.0.69",
+ "zeroize",
 ]
 
 [[package]]
@@ -9693,6 +9722,16 @@ dependencies = [
 [[package]]
 name = "sha2"
 version = "0.10.8"
+source = "git+https://github.com/sp1-patches/RustCrypto-hashes?tag=patch-sha2-0.10.8-sp1-4.0.0#1f224388fdede7cef649bce0d63876d1a9e3f515"
+dependencies = [
+ "cfg-if",
+ "cpufeatures",
+ "digest 0.10.7",
+]
+
+[[package]]
+name = "sha2"
+version = "0.10.8"
 source = "git+https://github.com/sp1-patches/RustCrypto-hashes?branch=patch-v0.10.8#1f224388fdede7cef649bce0d63876d1a9e3f515"
 dependencies = [
  "cfg-if",
@@ -9896,6 +9935,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "solana-consensus-prover-lib"
+version = "0.1.0"
+source = "git+https://github.com/twinexyz/solana-consensus-prover?branch=develop#b62882fca8f089f88843553ab25071f166098d5d"
+dependencies = [
+ "alloy-sol-types 0.7.7",
+ "bincode",
+ "borsh 1.5.7",
+ "bs58 0.5.1",
+ "bytemuck",
+ "ed25519-consensus",
+ "num-derive",
+ "num-traits",
+ "serde",
+ "sha2 0.10.8 (git+https://github.com/sp1-patches/RustCrypto-hashes?tag=patch-sha2-0.10.8-sp1-4.0.0)",
+ "solana-short-vec",
+ "thiserror 2.0.12",
+ "twine-solana-sdk",
+]
+
+[[package]]
+name = "solana-short-vec"
+version = "2.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c54c66f19b9766a56fa0057d060de8378676cb64987533fa088861858fc5a69"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "sp1-lib"
 version = "3.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10030,6 +10098,12 @@ name = "subtle"
 version = "2.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
+
+[[package]]
+name = "subtle-ng"
+version = "2.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "734676eb262c623cec13c3155096e08d1f8f29adce39ba17948b18dad1e54142"
 
 [[package]]
 name = "syn"
@@ -10772,6 +10846,7 @@ dependencies = [
  "reth-tracing",
  "serde",
  "serde_json",
+ "solana-consensus-prover-lib",
  "ssz_types",
  "tokio",
  "twine-constants",
