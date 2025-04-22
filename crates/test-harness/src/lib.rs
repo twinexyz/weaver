@@ -479,8 +479,8 @@ mod tests {
         }));
 
         harness.add_step(TestStep::AsyncFn(Box::new(AsyncFnStep {
-            name: "Call_API".to_string(),
-            description: "Check API response being 200".to_string(),
+            name: "ContextArena".to_string(),
+            description: "Pass params to anvil service via context arena".to_string(),
             futurefn: Box::new(|ctx| {
                 Box::new(async move {
                     let random_port: String = "9345".to_string();
