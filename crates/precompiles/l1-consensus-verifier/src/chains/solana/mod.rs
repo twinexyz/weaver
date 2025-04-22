@@ -67,7 +67,7 @@ impl SolanaConsensusVerifier {
         if vote_list.len() > self.validator_keys.len() {
             error!(
                 "{}: {:?}",
-                self.chain_name_from_id(self.chain_id),
+                self.chain(),
                 VerificationError::InvalidValidators
             );
             return Err(VerificationError::InvalidValidators);
@@ -102,7 +102,7 @@ impl SolanaConsensusVerifier {
         if voters < threshold_votes || stake < threshold_stake {
             error!(
                 "{}: {}",
-                self.chain_name_from_id(self.chain_id),
+                self.chain(),
                 VerificationError::UnachievedThreshold
             );
             return Err(VerificationError::UnachievedThreshold);
@@ -117,7 +117,7 @@ impl Chains for SolanaConsensusVerifier {
             match BorshDeserialize::deserialize(&mut input.to_vec().as_slice()) {
                 Ok(solana_precompile_input) => solana_precompile_input,
                 Err(e) => {
-                    error!("{}: {:?}", self.chain_name_from_id(self.chain_id), e);
+                    error!("{}: {:?}", self.chain(), e);
                     return PrecompileResult::Err(PrecompileErrors::Error(PrecompileError::Other(
                         format!("{}", VerificationError::DecodeError),
                     )));
@@ -128,7 +128,7 @@ impl Chains for SolanaConsensusVerifier {
             match serde_json::from_slice(&solana_precompile_input.proof_public_values) {
                 Ok(public_value_struct) => public_value_struct,
                 Err(e) => {
-                    error!("{}: {:?}", self.chain_name_from_id(self.chain_id), e);
+                    error!("{}: {:?}", self.chain(), e);
                     return PrecompileResult::Err(PrecompileErrors::Error(PrecompileError::Other(
                         format!("{}", VerificationError::DecodeError),
                     )));
@@ -138,7 +138,7 @@ impl Chains for SolanaConsensusVerifier {
         let completed_proof_package = public_value_struct.package;
 
         if let Err(e) = self.validate_validators(completed_proof_package.votes) {
-            error!("{}: {:?}", self.chain_name_from_id(self.chain_id), e);
+            error!("{}: {:?}", self.chain(), e);
             return PrecompileResult::Err(PrecompileErrors::Error(PrecompileError::Other(
                 format!("{}", e),
             )));
@@ -151,7 +151,7 @@ impl Chains for SolanaConsensusVerifier {
 
         info!(
             "{}: {:?}",
-            self.chain_name_from_id(self.chain_id),
+            self.chain(),
             "successfully exited verifier precompile"
         );
         return PrecompileResult::Ok(PrecompileOutput::new(
