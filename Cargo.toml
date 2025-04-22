@@ -95,6 +95,10 @@ reth-tracing = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.2.2"
 twine-constants = { path = "crates/constants" }
 twine-ethereum-consensus-prover-lib = { path = "crates/ethereum-consensus-prover-lib" }
 twine-evm-contracts = { path = "crates/evm-contracts" }
+# TWINE dependencies
+twine_tcp_lib = { git = "https://github.com/twinexyz/twine-consensus-prover", branch = "main" }
+twine-solana-sdk = { git = "https://github.com/twinexyz/twine-solana-sdk", branch = "main" }
+
 twine-executor = { path = "crates/executor" }
 twine-l1-consensus-verifier-precompile = { path = "crates/precompiles/l1-consensus-verifier" }
 twine-l1-transactions-precompile = { path = "crates/precompiles/l1-transactions" }
