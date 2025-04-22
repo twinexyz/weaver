@@ -20,6 +20,11 @@ alloy-sol-types.workspace = true
 eyre.workspace = true
 parking_lot.workspace = true
 tokio.workspace = true
+twine_tcp_lib.workspace = true
+twine-solana-sdk.workspace = true
+serde_json.workspace = true
+serde.workspace = true
+borsh.workspace = true
 
 [features]
 twine-build =[]
