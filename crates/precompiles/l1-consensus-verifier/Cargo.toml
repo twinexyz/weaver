@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+twine-constants.workspace = true
 alloy-consensus.workspace = true
 alloy-genesis.workspace = true
 alloy-primitives.workspace = true
@@ -17,4 +18,9 @@ reth-node-core.workspace = true
 reth-node-ethereum = { workspace = true, features = ["test-utils"] }
 reth-primitives.workspace = true
 reth-tracing.workspace = true
+alloy-sol-types.workspace = true
 tokio.workspace = true
+
+[features]
+twine-build =[]
+rsp-build = []
