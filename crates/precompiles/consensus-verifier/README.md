@@ -1,8 +1,8 @@
-# Consensus Verifier Precompile 
+# Consensus Verifier Precompile
 
-## Features 
-### twine-build 
-Input the validator set from the file itself 
+## Features
+### twine-build
+Input the validator set from the file itself
 
-### rsp-build 
-Input the validator set from 
+### rsp-build
+Input the validator set from
