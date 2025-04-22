@@ -6,20 +6,20 @@ use std::sync::Arc;
 
 use alloy_primitives::Bytes;
 use alloy_sol_types::{sol_data, SolType};
-use chains::ethereum::SolanaConsensusVerifier;
+use chains::ethereum::EthereumConsensusVerifier;
+use chains::solana::SolanaConsensusVerifier;
 use reth::revm::primitives::{
     Precompile, PrecompileError, PrecompileErrors, PrecompileResult, StatefulPrecompile,
 };
 use reth::revm::ContextPrecompile;
 use twine_constants::chains::{
-    ETHEREUM_CHAIN_ID, ETHEREUM_HOLESKY, ETHEREUM_HOLESKY_CHAIN_ID, ETHEREUM_MAINNET,
-    ETHEREUM_SEPOLIA, ETHEREUM_SEPOLIA_CHAIN_ID, SOLANA_CHAIN_ID, SOLANA_DEVNET,
-    SOLANA_DEVNET_CHAIN_ID, SOLANA_MAINNET,
+    ETHEREUM_CHAIN_ID, ETHEREUM_HOLESKY_CHAIN_ID, ETHEREUM_SEPOLIA_CHAIN_ID, SOLANA_CHAIN_ID,
+    SOLANA_DEVNET_CHAIN_ID,
 };
 
 #[derive(Debug)]
 pub struct ConsensusVerifierPrecompile {
-    pub chains: HashMap<String, Box<dyn Chains>>,
+    pub chains: HashMap<u64, Box<dyn Chains>>,
 }
 
 pub struct Test {}
@@ -29,15 +29,28 @@ pub trait Chains: Debug + Send + Sync {
 }
 
 impl ConsensusVerifierPrecompile {
-    pub fn new_ordinary<DB>() -> ContextPrecompile<DB>
+    pub fn new_ordinary<DB>(chain_validator_sets: HashMap<u64, String>) -> ContextPrecompile<DB>
     where
         DB: reth_evm::Database, {
-        let mut chains: HashMap<String, Box<dyn Chains>> = HashMap::new();
-        // register solana devnet
-        chains.insert(
-            String::from(SOLANA_DEVNET),
-            Box::new(SolanaConsensusVerifier {}),
-        );
+        let mut chains: HashMap<u64, Box<dyn Chains>> = HashMap::new();
+        for (chain_id, validator_set) in chain_validator_sets.iter() {
+            match *chain_id {
+                ETHEREUM_CHAIN_ID | ETHEREUM_HOLESKY_CHAIN_ID | ETHEREUM_SEPOLIA_CHAIN_ID => {
+                    chains.insert(
+                        *chain_id,
+                        Box::new(EthereumConsensusVerifier::new(*chain_id, &validator_set)),
+                    );
+                }
+                SOLANA_CHAIN_ID | SOLANA_DEVNET_CHAIN_ID => {
+                    chains.insert(
+                        *chain_id,
+                        Box::new(SolanaConsensusVerifier::new(*chain_id, &validator_set)),
+                    );
+                }
+                _ => panic!("unknown chain id"),
+            };
+        }
+
         ContextPrecompile::Ordinary(Precompile::Stateful(Arc::new(Self { chains })))
     }
 }
@@ -56,30 +69,32 @@ impl StatefulPrecompile for ConsensusVerifierPrecompile {
         match VerifierInput::abi_decode_sequence(&bytes, true) {
             Ok((chain_id, precompile_input)) => match chain_id {
                 ETHEREUM_CHAIN_ID => {
-                    if let Some(eth_mainnet_verifier) = self.chains.get(ETHEREUM_MAINNET) {
+                    if let Some(eth_mainnet_verifier) = self.chains.get(&ETHEREUM_CHAIN_ID) {
                         return eth_mainnet_verifier.verify(&precompile_input);
                     }
                 }
                 ETHEREUM_HOLESKY_CHAIN_ID => {
-                    if let Some(eth_mainnet_verifier) = self.chains.get(ETHEREUM_HOLESKY) {
+                    if let Some(eth_mainnet_verifier) = self.chains.get(&ETHEREUM_HOLESKY_CHAIN_ID)
+                    {
                         return eth_mainnet_verifier.verify(&precompile_input);
                     }
                 }
 
                 ETHEREUM_SEPOLIA_CHAIN_ID => {
-                    if let Some(eth_mainnet_verifier) = self.chains.get(ETHEREUM_SEPOLIA) {
+                    if let Some(eth_mainnet_verifier) = self.chains.get(&ETHEREUM_HOLESKY_CHAIN_ID)
+                    {
                         return eth_mainnet_verifier.verify(&precompile_input);
                     }
                 }
 
                 SOLANA_CHAIN_ID => {
-                    if let Some(eth_mainnet_verifier) = self.chains.get(SOLANA_MAINNET) {
+                    if let Some(eth_mainnet_verifier) = self.chains.get(&SOLANA_CHAIN_ID) {
                         return eth_mainnet_verifier.verify(&precompile_input);
                     }
                 }
 
                 SOLANA_DEVNET_CHAIN_ID => {
-                    if let Some(eth_mainnet_verifier) = self.chains.get(SOLANA_DEVNET) {
+                    if let Some(eth_mainnet_verifier) = self.chains.get(&SOLANA_DEVNET_CHAIN_ID) {
                         return eth_mainnet_verifier.verify(&precompile_input);
                     }
                 }
@@ -94,7 +109,7 @@ impl StatefulPrecompile for ConsensusVerifierPrecompile {
                 ))),
         }
         PrecompileResult::Err(PrecompileErrors::Error(PrecompileError::Other(
-            String::from("not implemented"),
+            String::from("chain exists but is not registered"),
         )))
     }
 }
