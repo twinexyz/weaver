@@ -29,6 +29,7 @@ borsh.workspace = true
 ethereum_ssz.workspace = true
 ethereum_ssz_derive.workspace = true
 ssz_types.workspace = true
+solana-consensus-prover-lib.workspace = true
 
 [features]
 twine-build =[]

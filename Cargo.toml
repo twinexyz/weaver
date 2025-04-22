@@ -100,6 +100,7 @@ twine-evm-contracts = { path = "crates/evm-contracts" }
 # TWINE dependencies
 twine_tcp_lib = { git = "https://github.com/twinexyz/twine-consensus-prover", branch = "main" }
 twine-solana-sdk = { git = "https://github.com/twinexyz/twine-solana-sdk", branch = "main" }
+solana-consensus-prover-lib = { git = "https://github.com/twinexyz/solana-consensus-prover", branch = "develop" }
 
 twine-executor = { path = "crates/executor" }
 twine-l1-consensus-verifier-precompile = { path = "crates/precompiles/l1-consensus-verifier" }
