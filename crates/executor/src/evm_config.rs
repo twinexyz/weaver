@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::convert::Infallible;
 use std::sync::Arc;
 
@@ -20,17 +21,24 @@ use reth_primitives::TransactionSigned;
 #[non_exhaustive]
 pub struct TwineEvmConfig {
     pub(crate) inner: EthEvmConfig,
+    pub chains_validator_sets: HashMap<u64, String>,
 }
 
 impl TwineEvmConfig {
-    pub const fn new(chain_spec: Arc<ChainSpec>) -> Self {
+    pub const fn new(
+        chain_spec: Arc<ChainSpec>,
+        chains_validator_sets: HashMap<u64, String>,
+    ) -> Self {
         Self {
             inner: EthEvmConfig::new(chain_spec),
+            chains_validator_sets,
         }
     }
 
-    fn set_precompiles<EXT, DB>(handler: &mut EvmHandler<EXT, DB>)
-    where
+    fn set_precompiles<EXT, DB>(
+        handler: &mut EvmHandler<EXT, DB>,
+        chains_validator_sets: HashMap<u64, String>,
+    ) where
         DB: reth_evm::Database, {
         // first we need the evm spec id, which determines the precompiles
         let spec_id = handler.cfg.spec_id;
@@ -46,7 +54,9 @@ impl TwineEvmConfig {
             #[cfg(feature = "twine-l1-consensus-verifier-precompile")]
             loaded_precompiles.extend([(
                 twine_constants::precompiles::TWINE_CONSENSUS_VERIFIER_PRECOMPILE_ADDRESS,
-                twine_l1_consensus_verifier_precompile::ConsensusVerifierPrecompile::new_ordinary(),
+                twine_l1_consensus_verifier_precompile::ConsensusVerifierPrecompile::new_ordinary(
+                    chains_validator_sets.clone(),
+                ),
             )]);
 
             #[cfg(feature = "twine-l1-transactions-precompile")]
@@ -103,7 +113,7 @@ impl ConfigureEvm for TwineEvmConfig {
             .with_block_env(evm_env.block_env)
             // add additional precompiles
             .append_handler_register_box(Box::new(move |handler| {
-                TwineEvmConfig::set_precompiles(handler)
+                TwineEvmConfig::set_precompiles(handler, self.chains_validator_sets.clone())
             }))
             .build()
             .into()
@@ -129,7 +139,7 @@ impl ConfigureEvm for TwineEvmConfig {
             .with_block_env(evm_env.block_env)
             // add additional precompiles
             .append_handler_register_box(Box::new(move |handler| {
-                TwineEvmConfig::set_precompiles(handler)
+                TwineEvmConfig::set_precompiles(handler, self.chains_validator_sets.clone())
             }))
             .append_handler_register(inspector_handle_register)
             .build()
