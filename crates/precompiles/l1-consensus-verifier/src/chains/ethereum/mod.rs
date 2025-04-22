@@ -18,6 +18,7 @@ use twine_tcp_lib::eth::EthPublicValuesStruct;
 use twine_tcp_lib::*;
 use types::{EthereumVerifierPrecompileOutput, PrecompileInput};
 
+use crate::errors::VerificationError;
 use crate::Chains;
 mod types;
 #[allow(dead_code)]
@@ -59,7 +60,7 @@ impl Chains for EthereumConsensusVerifier {
                 || eth_precompile_input.proof.len() > 2
                 || eth_precompile_input.public_inputs.len() > 2
             {
-                return PrecompileResult::Err(PrecompileErrors::Error(PrecompileError::Other(String::from("accepts proof for two end point blocks or a single block, cannot accept more than that."))));
+                return PrecompileResult::Err(PrecompileErrors::Error(PrecompileError::Other(format!("{}", VerificationError::Custom(String::from("accepts proof for two end point blocks or a single block, cannot accept more than that."))))));
             }
             let mut calculated_public_keys = vec![];
             let mut proofs = vec![];
@@ -70,7 +71,10 @@ impl Chains for EthereumConsensusVerifier {
                         Ok(public_value) => public_value,
                         Err(_) =>
                             return PrecompileResult::Err(PrecompileErrors::Error(
-                                PrecompileError::Other(String::from("decode error")),
+                                PrecompileError::Other(format!(
+                                    "{}",
+                                    VerificationError::DecodeError
+                                )),
                             )),
                     };
 
@@ -84,7 +88,7 @@ impl Chains for EthereumConsensusVerifier {
                     Some(header) => header,
                     None =>
                         return PrecompileResult::Err(PrecompileErrors::Error(
-                            PrecompileError::Other(String::from("header not found")),
+                            PrecompileError::Other(format!("{}", VerificationError::InvalidHeader)),
                         )),
                 };
 
@@ -97,7 +101,10 @@ impl Chains for EthereumConsensusVerifier {
                     Some(participating_mask) => participating_mask,
                     None =>
                         return PrecompileResult::Err(PrecompileErrors::Error(
-                            PrecompileError::Other(String::from("bit mask not found")),
+                            PrecompileError::Other(format!(
+                                "{}",
+                                VerificationError::Custom(String::from("bit mask not found"))
+                            )),
                         )),
                 };
 
@@ -106,7 +113,10 @@ impl Chains for EthereumConsensusVerifier {
                         Ok(participating_mask) => participating_mask,
                         Err(_) =>
                             return PrecompileResult::Err(PrecompileErrors::Error(
-                                PrecompileError::Other(String::from("bit mask decode error")),
+                                PrecompileError::Other(format!(
+                                    "{}",
+                                    VerificationError::DecodeError
+                                )),
                             )),
                     };
 
@@ -132,14 +142,18 @@ impl Chains for EthereumConsensusVerifier {
             // verify header chain
             let headers = eth_precompile_input.headers;
             for i in 0..headers.len() - 1 {
-                let header_n = headers.get(i).expect("header not found");
+                let header_n = headers
+                    .get(i)
+                    .expect(&format!("{}", VerificationError::HeaderNotFound)); // can expect because looping in the vector of headers
                 let hash_n: String = keccak256(alloy_rlp::encode(header_n)).encode_hex();
-                let header_np1 = headers.get(i + 1).expect("header not found");
+                let header_np1 = headers
+                    .get(i + 1)
+                    .expect(&format!("{}", VerificationError::HeaderNotFound)); // can expect because looping in the vector of headers
                 let parent_hash_np1: String = header_np1.parent_hash.encode_hex();
 
                 if hash_n != parent_hash_np1 {
                     return PrecompileResult::Err(PrecompileErrors::Error(PrecompileError::Other(
-                        String::from("header chain verification failed"),
+                        format!("{}", VerificationError::HeaderChainVerificationError),
                     )));
                 }
                 verified_receipt_roots.push(Bytes::copy_from_slice(&headers[i].receipts_root.0));
