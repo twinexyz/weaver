@@ -1,3 +1,4 @@
+use alloy_sol_types::sol;
 use borsh::{BorshDeserialize, BorshSerialize};
 use serde::{Deserialize, Serialize};
 
@@ -22,3 +23,10 @@ pub struct ValidatorSet {
     pub epoch: String,
     pub validators: Vec<ValidatorInfo>,
 }
+
+sol!(
+    struct SolanaVerifierOutput {
+        bytes public_value;
+        bytes proof;
+    }
+);
