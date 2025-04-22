@@ -9836,6 +9836,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "sha2"
+version = "0.10.8"
+source = "git+https://github.com/sp1-patches/RustCrypto-hashes?branch=patch-v0.10.8#1f224388fdede7cef649bce0d63876d1a9e3f515"
+dependencies = [
+ "cfg-if",
+ "cpufeatures",
+ "digest 0.10.7",
+]
+
+[[package]]
 name = "sha3"
 version = "0.10.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10955,6 +10965,7 @@ dependencies = [
  "alloy-genesis 0.11.1",
  "alloy-primitives 0.8.25",
  "alloy-sol-types 0.8.25",
+ "borsh 1.5.7",
  "eyre",
  "parking_lot",
  "reth",
@@ -10965,8 +10976,12 @@ dependencies = [
  "reth-node-ethereum",
  "reth-primitives",
  "reth-tracing",
+ "serde",
+ "serde_json",
  "tokio",
  "twine-constants",
+ "twine-solana-sdk 0.1.0 (git+https://github.com/twinexyz/twine-solana-sdk?branch=main)",
+ "twine_tcp_lib",
 ]
 
 [[package]]
@@ -11036,6 +11051,54 @@ dependencies = [
  "sha2 0.10.8 (git+https://github.com/sp1-patches/RustCrypto-hashes?tag=patch-0.10.8-sp1-4.0.0-rc.3)",
  "smallvec",
  "thiserror 2.0.12",
+]
+
+[[package]]
+name = "twine-solana-sdk"
+version = "0.1.0"
+source = "git+https://github.com/twinexyz/twine-solana-sdk?branch=main#1c17df9d0f37d23342931c09029ffa997fadd521"
+dependencies = [
+ "bincode",
+ "blake3 1.5.4",
+ "borsh 0.10.4",
+ "borsh 0.9.3",
+ "borsh 1.5.7",
+ "bs58 0.4.0",
+ "bytemuck",
+ "hex",
+ "log",
+ "num-derive",
+ "num-traits",
+ "parking_lot",
+ "rand 0.8.5",
+ "serde",
+ "serde_bytes",
+ "sha2 0.10.8 (git+https://github.com/sp1-patches/RustCrypto-hashes?branch=patch-v0.10.8)",
+ "smallvec",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "twine_tcp_lib"
+version = "0.1.0"
+source = "git+https://github.com/twinexyz/twine-consensus-prover?branch=main#858af9676c352ad73ec56924a4cf8176b299897d"
+dependencies = [
+ "alloy",
+ "alloy-sol-types 0.7.7",
+ "bls12_381",
+ "ethereum_ssz 0.6.0",
+ "ethereum_ssz_derive 0.6.0",
+ "eyre",
+ "hex",
+ "num-bigint",
+ "num-traits",
+ "serde",
+ "serde_json",
+ "sha2 0.9.9",
+ "ssz_types",
+ "tree_hash",
+ "tree_hash_derive",
+ "typenum",
 ]
 
 [[package]]
@@ -11387,18 +11450,18 @@ dependencies = [
 
 [[package]]
 name = "webpki-root-certs"
-version = "0.26.8"
+version = "0.26.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09aed61f5e8d2c18344b3faa33a4c837855fe56642757754775548fee21386c4"
+checksum = "180d2741b6115c3d906577e6533ad89472d48d96df00270fccb78233073d77f7"
 dependencies = [
  "rustls-pki-types",
 ]
 
 [[package]]
 name = "webpki-roots"
-version = "0.26.8"
+version = "0.26.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2210b291f7ea53617fbafcc4939f10914214ec15aace5ba62293a668f322c5c9"
+checksum = "29aad86cec885cafd03e8305fd727c418e970a521322c91688414d5b8efba16b"
 dependencies = [
  "rustls-pki-types",
 ]
