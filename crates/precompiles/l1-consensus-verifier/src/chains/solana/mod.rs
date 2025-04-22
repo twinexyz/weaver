@@ -7,6 +7,7 @@ use borsh::BorshDeserialize;
 use reth::revm::primitives::{
     PrecompileError, PrecompileErrors, PrecompileOutput, PrecompileResult,
 };
+use reth_tracing::tracing::{error, info};
 use solana_consensus_prover_lib::{PublicValuesStruct, VoteOrTowerSync};
 use twine_constants::chains::{
     SOLANA_CHAIN_ID, SOLANA_DEVNET, SOLANA_DEVNET_CHAIN_ID, SOLANA_MAINNET,
@@ -51,7 +52,7 @@ impl SolanaConsensusVerifier {
         }
     }
 
-    pub fn chain_name_from_id(id: u64) -> String {
+    pub fn chain_name_from_id(&self, id: u64) -> String {
         match id {
             SOLANA_CHAIN_ID => String::from(SOLANA_MAINNET),
             SOLANA_DEVNET_CHAIN_ID => String::from(SOLANA_DEVNET),
@@ -64,6 +65,11 @@ impl SolanaConsensusVerifier {
         vote_list: Vec<VoteOrTowerSync>,
     ) -> Result<(), VerificationError> {
         if vote_list.len() > self.validator_keys.len() {
+            error!(
+                "{}: {:?}",
+                self.chain_name_from_id(self.chain_id),
+                VerificationError::InvalidValidators
+            );
             return Err(VerificationError::InvalidValidators);
         }
         let threshold_votes = ((self.validator_keys.len() * 2) / 3) as u64;
@@ -94,6 +100,11 @@ impl SolanaConsensusVerifier {
             .collect();
 
         if voters < threshold_votes || stake < threshold_stake {
+            error!(
+                "{}: {}",
+                self.chain_name_from_id(self.chain_id),
+                VerificationError::UnachievedThreshold
+            );
             return Err(VerificationError::UnachievedThreshold);
         }
         Ok(())
@@ -105,24 +116,29 @@ impl Chains for SolanaConsensusVerifier {
         let solana_precompile_input: SolanaPrecompileInput =
             match BorshDeserialize::deserialize(&mut input.to_vec().as_slice()) {
                 Ok(solana_precompile_input) => solana_precompile_input,
-                Err(_) =>
+                Err(e) => {
+                    error!("{}: {:?}", self.chain_name_from_id(self.chain_id), e);
                     return PrecompileResult::Err(PrecompileErrors::Error(PrecompileError::Other(
                         format!("{}", VerificationError::DecodeError),
-                    ))),
+                    )));
+                }
             };
 
         let public_value_struct: PublicValuesStruct =
             match serde_json::from_slice(&solana_precompile_input.proof_public_values) {
                 Ok(public_value_struct) => public_value_struct,
-                Err(_) =>
+                Err(e) => {
+                    error!("{}: {:?}", self.chain_name_from_id(self.chain_id), e);
                     return PrecompileResult::Err(PrecompileErrors::Error(PrecompileError::Other(
                         format!("{}", VerificationError::DecodeError),
-                    ))),
+                    )));
+                }
             };
 
         let completed_proof_package = public_value_struct.package;
 
         if let Err(e) = self.validate_validators(completed_proof_package.votes) {
+            error!("{}: {:?}", self.chain_name_from_id(self.chain_id), e);
             return PrecompileResult::Err(PrecompileErrors::Error(PrecompileError::Other(
                 format!("{}", e),
             )));
@@ -133,9 +149,16 @@ impl Chains for SolanaConsensusVerifier {
             proof: Bytes::copy_from_slice(&solana_precompile_input.proof_public_values),
         };
 
+        info!(
+            "{}: {:?}",
+            self.chain_name_from_id(self.chain_id),
+            "successfully exited verifier precompile"
+        );
         return PrecompileResult::Ok(PrecompileOutput::new(
             0,
             Bytes::copy_from_slice(&verifier_output.abi_encode()),
         ));
     }
+
+    fn chain(&self) -> String { self.chain_name_from_id(self.chain_id) }
 }

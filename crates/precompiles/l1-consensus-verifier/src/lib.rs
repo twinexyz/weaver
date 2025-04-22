@@ -14,6 +14,7 @@ use reth::revm::primitives::{
     Precompile, PrecompileError, PrecompileErrors, PrecompileResult, StatefulPrecompile,
 };
 use reth::revm::ContextPrecompile;
+use reth_tracing::tracing::{error, info};
 use twine_constants::chains::{
     ETHEREUM_CHAIN_ID, ETHEREUM_HOLESKY_CHAIN_ID, ETHEREUM_SEPOLIA_CHAIN_ID, SOLANA_CHAIN_ID,
     SOLANA_DEVNET_CHAIN_ID,
@@ -28,6 +29,7 @@ pub struct Test {}
 
 pub trait Chains: Debug + Send + Sync {
     fn verify(&self, input: &Bytes) -> PrecompileResult;
+    fn chain(&self) -> String;
 }
 
 impl ConsensusVerifierPrecompile {
@@ -72,12 +74,14 @@ impl StatefulPrecompile for ConsensusVerifierPrecompile {
             Ok((chain_id, precompile_input)) => match chain_id {
                 ETHEREUM_CHAIN_ID => {
                     if let Some(eth_mainnet_verifier) = self.chains.get(&ETHEREUM_CHAIN_ID) {
+                        info!("verify consensus for: {}", eth_mainnet_verifier.chain());
                         return eth_mainnet_verifier.verify(&precompile_input);
                     }
                 }
                 ETHEREUM_HOLESKY_CHAIN_ID => {
                     if let Some(eth_holesky_verifier) = self.chains.get(&ETHEREUM_HOLESKY_CHAIN_ID)
                     {
+                        info!("verify consensus for: {}", eth_holesky_verifier.chain());
                         return eth_holesky_verifier.verify(&precompile_input);
                     }
                 }
@@ -85,18 +89,21 @@ impl StatefulPrecompile for ConsensusVerifierPrecompile {
                 ETHEREUM_SEPOLIA_CHAIN_ID => {
                     if let Some(eth_sepolia_verifier) = self.chains.get(&ETHEREUM_HOLESKY_CHAIN_ID)
                     {
+                        info!("verify consensus for: {}", eth_sepolia_verifier.chain());
                         return eth_sepolia_verifier.verify(&precompile_input);
                     }
                 }
 
                 SOLANA_CHAIN_ID => {
                     if let Some(solana_mainnet_verifier) = self.chains.get(&SOLANA_CHAIN_ID) {
+                        info!("verify consensus for: {}", solana_mainnet_verifier.chain());
                         return solana_mainnet_verifier.verify(&precompile_input);
                     }
                 }
 
                 SOLANA_DEVNET_CHAIN_ID => {
                     if let Some(solana_devnet_verifier) = self.chains.get(&SOLANA_DEVNET_CHAIN_ID) {
+                        info!("verify consensus for: {}", solana_devnet_verifier.chain());
                         return solana_devnet_verifier.verify(&precompile_input);
                     }
                 }
@@ -105,14 +112,17 @@ impl StatefulPrecompile for ConsensusVerifierPrecompile {
                         format!("{}", VerificationError::UnimplementedChain),
                     ))),
             },
-            Err(e) =>
+            Err(e) => {
+                error!("VerifierInput decode error");
                 return PrecompileResult::Err(PrecompileErrors::Error(PrecompileError::Other(
                     e.to_string(),
-                ))),
+                )));
+            }
         }
+        error!("some chain's verifier errored");
         PrecompileResult::Err(PrecompileErrors::Error(PrecompileError::Other(format!(
             "{}",
-            VerificationError::DecodeError
+            VerificationError::Custom(String::from("some chain's verifier errored"))
         ))))
     }
 }
