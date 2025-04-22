@@ -7,6 +7,7 @@ use alloy_sol_types::SolValue;
 use reth::revm::primitives::{
     PrecompileError, PrecompileErrors, PrecompileOutput, PrecompileResult,
 };
+use reth_tracing::tracing::{error, info};
 use serde_json;
 use ssz::{Decode, Encode};
 use ssz_types::{typenum, BitVector};
@@ -43,7 +44,7 @@ impl EthereumConsensusVerifier {
         }
     }
 
-    pub fn chain_name_from_id(id: u64) -> String {
+    pub fn chain_name_from_id(&self, id: u64) -> String {
         match id {
             ETHEREUM_CHAIN_ID => String::from(ETHEREUM_MAINNET),
             ETHEREUM_HOLESKY_CHAIN_ID => String::from(ETHEREUM_HOLESKY),
@@ -69,13 +70,15 @@ impl Chains for EthereumConsensusVerifier {
                 let public_value: EthPublicValuesStruct =
                     match ssz::Decode::from_ssz_bytes(public_inputs) {
                         Ok(public_value) => public_value,
-                        Err(_) =>
+                        Err(e) => {
+                            error!("{}: {:?}", self.chain_name_from_id(self.chain_id), e);
                             return PrecompileResult::Err(PrecompileErrors::Error(
                                 PrecompileError::Other(format!(
                                     "{}",
                                     VerificationError::DecodeError
                                 )),
-                            )),
+                            ));
+                        }
                     };
 
                 let header_index = if index == 0 {
@@ -86,10 +89,19 @@ impl Chains for EthereumConsensusVerifier {
 
                 let header = match eth_precompile_input.headers.get(header_index) {
                     Some(header) => header,
-                    None =>
+                    None => {
+                        error!(
+                            "{}: {}",
+                            self.chain_name_from_id(self.chain_id),
+                            VerificationError::HeaderNotFound
+                        );
                         return PrecompileResult::Err(PrecompileErrors::Error(
-                            PrecompileError::Other(format!("{}", VerificationError::InvalidHeader)),
-                        )),
+                            PrecompileError::Other(format!(
+                                "{}",
+                                VerificationError::HeaderNotFound
+                            )),
+                        ));
+                    }
                 };
 
                 let header_hash = header.hash_slow().0;
@@ -99,25 +111,33 @@ impl Chains for EthereumConsensusVerifier {
 
                 let participating_mask: &Vec<u8> = match eth_precompile_input.bitmap.get(index) {
                     Some(participating_mask) => participating_mask,
-                    None =>
+                    None => {
+                        error!(
+                            "{}: {}",
+                            self.chain_name_from_id(self.chain_id),
+                            "bit mask not found"
+                        );
                         return PrecompileResult::Err(PrecompileErrors::Error(
                             PrecompileError::Other(format!(
                                 "{}",
                                 VerificationError::Custom(String::from("bit mask not found"))
                             )),
-                        )),
+                        ));
+                    }
                 };
 
                 let participating_mask: BitVector<typenum::U512> =
                     match BitVector::from_ssz_bytes(&participating_mask) {
                         Ok(participating_mask) => participating_mask,
-                        Err(_) =>
+                        Err(e) => {
+                            error!("{}: {:?}", self.chain_name_from_id(self.chain_id), e);
                             return PrecompileResult::Err(PrecompileErrors::Error(
                                 PrecompileError::Other(format!(
                                     "{}",
                                     VerificationError::DecodeError
                                 )),
-                            )),
+                            ));
+                        }
                     };
 
                 let mut count = 0;
@@ -152,6 +172,11 @@ impl Chains for EthereumConsensusVerifier {
                 let parent_hash_np1: String = header_np1.parent_hash.encode_hex();
 
                 if hash_n != parent_hash_np1 {
+                    error!(
+                        "{}: {}",
+                        self.chain_name_from_id(self.chain_id),
+                        VerificationError::HeaderChainVerificationError
+                    );
                     return PrecompileResult::Err(PrecompileErrors::Error(PrecompileError::Other(
                         format!("{}", VerificationError::HeaderChainVerificationError),
                     )));
@@ -165,13 +190,25 @@ impl Chains for EthereumConsensusVerifier {
                 verified_receipt_roots,
             };
 
+            info!(
+                "{}: {}",
+                self.chain_name_from_id(self.chain_id),
+                "successfully exited the verifier precompile"
+            );
             return PrecompileResult::Ok(PrecompileOutput::new(
                 0,
                 Bytes::copy_from_slice(&precompile_output.abi_encode()),
             ));
         }
+        error!(
+            "{}: {}",
+            self.chain_name_from_id(self.chain_id),
+            VerificationError::DecodeError
+        );
         return PrecompileResult::Err(PrecompileErrors::Error(PrecompileError::Other(
             String::from("decode error"),
         )));
     }
+
+    fn chain(&self) -> String { self.chain_name_from_id(self.chain_id) }
 }
