@@ -9728,6 +9728,7 @@ dependencies = [
  "alloy-consensus",
  "alloy-genesis",
  "alloy-primitives",
+ "alloy-sol-types",
  "eyre",
  "parking_lot",
  "reth",
@@ -9739,6 +9740,7 @@ dependencies = [
  "reth-primitives",
  "reth-tracing",
  "tokio",
+ "twine-constants",
 ]
 
 [[package]]
