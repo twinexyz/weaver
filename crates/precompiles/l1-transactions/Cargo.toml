@@ -17,6 +17,11 @@ alloy-primitives.workspace = true
 alloy-sol-types.workspace = true
 alloy-trie.workspace = true
 
+solana-consensus-prover-lib.workspace = true
+
+borsh.workspace = true
+eyre.workspace = true
+serde_json.workspace = true
 thiserror.workspace = true
 
 twine-constants = { workspace = true }
