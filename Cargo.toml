@@ -35,6 +35,14 @@ alloy-sol-types = { version = "0.8.20", features = ["json"] }
 alloy-eips = { version = "0.11.1", default-features = false }
 alloy-trie = { version = "0.7", default-features = false }
 
+# this is an exception to the above rule, twine-ethereum-consensus-prover is the only
+# crate that depends on this.
+alloy = { version = "0.2.1", features = [
+    "rpc-types",
+    "sol-types",
+    "ssz",
+]}
+
 
 eyre = "0.6"
 reqwest = { version = "0.11", features = ["json"] }
