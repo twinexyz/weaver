@@ -18,11 +18,9 @@ jobs:
       with:
         toolchain: stable
         profile: minimal
-    - name: Run http server test
-      run: RUST_LOG=info cargo test --package test-harness --lib -- tests::test_start_callapi_stop_python_serve --exact --show-output
     - name: Install Foundry
       uses: foundry-rs/foundry-toolchain@v1
       with:
         version: nightly
     - name: Run anvil test
-      run: RUST_LOG=info cargo test --package test-harness --lib -- tests::test_anvil_setup --exact --show-output
+      run: RUST_LOG=info cargo test --package test-harness

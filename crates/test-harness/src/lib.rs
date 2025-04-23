@@ -439,7 +439,7 @@ mod tests {
 
     #[test]
     fn test_start_callapi_stop_python_serve() {
-        env_logger::init();
+        let _ = env_logger::try_init();
         let mut harness = TestHarness::new("PythonServerTester", ".");
 
         harness.add_service(Box::new(SubProcessService {
@@ -517,7 +517,7 @@ mod tests {
 
     #[test]
     fn test_anvil_setup() {
-        env_logger::init();
+        let _ = env_logger::try_init();
         let mut harness = TestHarness::new("Anvil", ".");
 
         harness.add_service(Box::new(SubProcessService {
