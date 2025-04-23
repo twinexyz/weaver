@@ -4,7 +4,6 @@ use std::str::FromStr;
 
 use alloy_primitives::Bytes;
 use alloy_sol_types::SolValue;
-use borsh::BorshDeserialize;
 use reth::revm::primitives::{
     PrecompileError, PrecompileErrors, PrecompileOutput, PrecompileResult,
 };
@@ -201,7 +200,7 @@ impl SolanaConsensusVerifier {
 impl Chains for SolanaConsensusVerifier {
     fn verify(&self, input: &alloy_primitives::Bytes) -> reth::revm::primitives::PrecompileResult {
         let solana_precompile_input: SolanaPrecompileInput =
-            match BorshDeserialize::deserialize(&mut input.to_vec().as_slice()) {
+            match serde_json::from_slice(&input.to_vec().as_slice()) {
                 Ok(solana_precompile_input) => solana_precompile_input,
                 Err(e) => {
                     error!("{}: {:?}", self.chain(), e);
