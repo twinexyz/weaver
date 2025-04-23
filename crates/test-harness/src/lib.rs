@@ -582,8 +582,8 @@ mod tests {
         })));
 
         harness.add_step(TestStep::AsyncFn(Box::new(AsyncFnStep {
-            name: "Call_API".to_string(),
-            description: "Check API response being 200".to_string(),
+            name: "CallRPCMethod".to_string(),
+            description: "Check anvil rpc".to_string(),
             futurefn: Box::new(|ctx| {
                 Box::new(async move {
                     let client = Client::new();
