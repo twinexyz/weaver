@@ -89,8 +89,9 @@ impl SolanaConsensusVerifier {
             return Err(Box::new(VerificationError::InvalidValidators));
         }
 
-        let threshold_votes = self.calculate_threshold(self.validator_keys.len() as u64)?; // always safe because usize is architecture dependent with its max size of 64
-                                                                                           // bits which fits in u64
+        // always safe because usize is architecture dependent with its max size of 64
+        // bits which fits in u64
+        let threshold_votes = self.calculate_threshold(self.validator_keys.len() as u64)?;
         let threshold_stake = self.calculate_threshold(self.total_stake)?;
 
         let (pariticipant_voters, cumulative_stake) =
@@ -183,6 +184,12 @@ impl SolanaConsensusVerifier {
                         .validator_keys
                         .contains_key(&tower_sync_info.voter_pubkey.to_string())
                         as u64;
+                    if let Some(validator_info) = self
+                        .validator_keys
+                        .get(&tower_sync_info.voter_pubkey.to_string())
+                    {
+                        stake += validator_info.stake
+                    }
                 }
             })
             .collect();
@@ -225,8 +232,8 @@ impl Chains for SolanaConsensusVerifier {
         }
 
         let verifier_output = SolanaVerifierOutput {
-            public_value: Bytes::copy_from_slice(&solana_precompile_input.proof),
-            proof: Bytes::copy_from_slice(&solana_precompile_input.proof_public_values),
+            public_value: Bytes::copy_from_slice(&solana_precompile_input.proof_public_values),
+            proof: Bytes::copy_from_slice(&solana_precompile_input.proof),
         };
 
         info!(
