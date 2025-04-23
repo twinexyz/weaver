@@ -6,6 +6,7 @@ use std::fmt::Debug;
 use std::future::Future;
 use std::process::{Child, ChildStderr, ChildStdout, Command, Stdio};
 use std::rc::Rc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
@@ -18,17 +19,6 @@ use log::{error, info};
 /// It wraps a `HashMap<String, String>` inside an `Rc<RefCell<...>>`,
 /// This is used to pass params between services or async functions
 pub type ContextArena = Rc<RefCell<HashMap<String, String>>>;
-
-/// A parser function type that takes a string slice (typically a line of
-/// output) and returns an optional processed `String`.
-///
-/// This is typically used to parse `stdout` or `stderr` lines emitted by a
-/// subprocess.
-///
-/// The `Parser` is wrapped in an `Arc` to allow shared ownership across
-/// threads, and it must be both `Send` and `Sync` to be safely used in
-/// concurrent contexts.
-pub type Parser = Arc<dyn Fn(&str) -> Option<String> + Send + Sync>;
 
 /// A single step of a test
 #[derive(Debug)]
@@ -87,7 +77,7 @@ impl TestHarness {
         }
     }
 
-    ///
+    /// Adds services to run
     pub fn add_service(&mut self, service: Box<dyn Service<ServiceError = eyre::Error>>) {
         self.services.push(service);
     }
@@ -219,8 +209,11 @@ pub struct SubProcessLogReader {
     pub stdout: RefCell<Option<Box<dyn FnOnce(ChildStdout) + Send>>>,
     /// Read stderr via this channel
     pub stderr: RefCell<Option<Box<dyn FnOnce(ChildStderr) + Send>>>,
-    /// Service start after a certain time
-    pub wait_after: Option<Duration>,
+    /// Notification to proceed
+    /// This takes more precedence than `wait_after`
+    pub proceed_flag: Arc<AtomicBool>,
+    ///
+    pub block_until_proceed: bool,
 }
 
 impl Debug for SubProcessLogReader {
@@ -265,8 +258,10 @@ impl ServiceStepExecutor for SubProcessLogReader {
             }
         }
 
-        if let Some(wait_duration) = self.wait_after {
-            std::thread::sleep(wait_duration);
+        if self.block_until_proceed {
+            while !self.proceed_flag.load(Ordering::Acquire) {
+                std::thread::sleep(Duration::from_millis(30));
+            }
         }
 
         Ok(())
@@ -431,6 +426,7 @@ impl Service for SubProcessService {
 #[cfg(test)]
 mod tests {
     use std::io::{BufRead, BufReader};
+    use std::sync::atomic::AtomicBool;
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use reqwest::Client;
@@ -562,23 +558,30 @@ mod tests {
             wait_after: Some(Duration::from_secs(3)),
         })));
 
-        harness.add_step(TestStep::Service(Box::new(SubProcessLogReader {
-            name: "AnvilLogReader".to_string(),
-            description: "read anvil stdout logs".to_string(),
-            service_idx: 0,
-            stdout: RefCell::new(Some(Box::new(|out| {
+        harness.add_step(TestStep::Service(Box::new({
+            let mut reader = SubProcessLogReader {
+                name: "AnvilLogReader".to_string(),
+                description: "Wait till block 3, the proceed".to_string(),
+                service_idx: 0,
+                block_until_proceed: true,
+                proceed_flag: Arc::new(AtomicBool::new(false)),
+                stdout: RefCell::new(None),
+                stderr: RefCell::new(None),
+            };
+
+            let proceed = Arc::clone(&reader.proceed_flag);
+            reader.stdout = RefCell::new(Some(Box::new(move |out| {
                 let reader = BufReader::new(out);
-                for line_res in reader.lines() {
-                    if let Ok(line) = line_res {
-                        if line.contains("Block Number: 2") {
-                            println!("Chain is progressing..");
-                            return;
-                        }
+                for line in reader.lines().flatten() {
+                    if line.contains("Block Number: 3") {
+                        info!("Reached block 3. Now, proceed to run other test step");
+                        proceed.store(true, Ordering::Release);
+                        break;
                     }
                 }
-            }))),
-            stderr: RefCell::new(None),
-            wait_after: None,
+            })));
+
+            reader
         })));
 
         harness.add_step(TestStep::AsyncFn(Box::new(AsyncFnStep {
