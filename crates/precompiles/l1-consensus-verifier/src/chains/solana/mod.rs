@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::error::Error;
 use std::str::FromStr;
 
 use alloy_primitives::Bytes;
@@ -60,20 +61,107 @@ impl SolanaConsensusVerifier {
         }
     }
 
-    fn validate_validators(
-        &self,
-        vote_list: Vec<VoteOrTowerSync>,
-    ) -> Result<(), VerificationError> {
+    /// validates weather the validators present in the vote list are
+    /// 1. Of valid size i.e. validator in `vote_list` not greeater than
+    /// in `self.validators`
+    /// 2. The total validators and their cumulative stake in the `vote_list`
+    /// fulfils the threshold requirement of 2/3
+    ///
+    /// # Arguments
+    /// * `vote_list`: list of voters, this is encoded in the public value
+    /// of the proof
+    ///
+    /// # Returns
+    /// * `Result<(), Box<dyn Error>>`
+    ///
+    /// # Errors
+    /// * Invalid number of validators i.e. validators in `vote_list` greater
+    ///   than
+    /// validators in `self.validator_keys`
+    /// * Threshold not reached
+    fn validate_validators(&self, vote_list: Vec<VoteOrTowerSync>) -> Result<(), Box<dyn Error>> {
         if vote_list.len() > self.validator_keys.len() {
             error!(
                 "{}: {:?}",
                 self.chain(),
                 VerificationError::InvalidValidators
             );
-            return Err(VerificationError::InvalidValidators);
+            return Err(Box::new(VerificationError::InvalidValidators));
         }
-        let threshold_votes = ((self.validator_keys.len() * 2) / 3) as u64;
-        let threshold_stake = (self.total_stake * 2) / 3;
+
+        let threshold_votes = self.calculate_threshold(self.validator_keys.len() as u64)?; // always safe because usize is architecture dependent with its max size of 64
+                                                                                           // bits which fits in u64
+        let threshold_stake = self.calculate_threshold(self.total_stake)?;
+
+        let (pariticipant_voters, cumulative_stake) =
+            self.calculate_participant_validators_and_stake(vote_list);
+
+        if pariticipant_voters < threshold_votes || cumulative_stake < threshold_stake {
+            error!(
+                "{}: {}",
+                self.chain(),
+                VerificationError::UnachievedThreshold
+            );
+            return Err(Box::new(VerificationError::UnachievedThreshold));
+        }
+        Ok(())
+    }
+
+    /// Calculates 2/3 threshold of `n`
+    ///
+    /// # Arguments
+    /// * `n`: n's 2/3 threshold is calculated
+    ///
+    /// # Returns
+    /// * Result<u64, Box<dyn Error>>
+    ///
+    /// # Errors
+    /// * u64 overflow while multiplying
+    /// * division by 0 error while dividing (which is not possible)
+    ///
+    /// # Example
+    /// ```no_run
+    /// let n = 10;
+    /// let threshold = calculate_threshold(n);
+    /// ```
+    fn calculate_threshold(&self, n: u64) -> Result<u64, Box<dyn Error>> {
+        let checked_multiply = match n.checked_mul(2) {
+            Some(checked_multiply) => checked_multiply,
+            None => return Err(Box::new(VerificationError::Overflow)),
+        };
+
+        let threshold = match checked_multiply.checked_div(3) {
+            Some(checked_division) => checked_division,
+            None => return Err(Box::new(VerificationError::DivisionError)),
+        };
+
+        Ok(threshold)
+    }
+
+    /// Checks if the votes contained in the `vote_list` is also present in the
+    /// hashmap of the validator set that is loaded from the validator set file
+    /// and returns the number of voters in the `vote_list` and their cumulative
+    /// stake.
+    ///
+    /// # Arguments
+    /// * `vote_list`: list of voters, this is encoded in the public value of
+    ///   the
+    /// proof.
+    ///
+    /// # Returns
+    /// * tuple of (u64, u64): (total number of voters in vote list also present
+    ///   in
+    /// self.validator_keys, cumulative stake of the voters);
+    ///
+    /// # Example
+    /// ```no_run
+    /// let vote_list: Vec<VoteOrTowerSync> = vec![];
+    /// let (participant_votes, cumulative_stake) = calculate_participant_validators_and_stake(vote_list);
+    /// ```
+    fn calculate_participant_validators_and_stake(
+        &self,
+        vote_list: Vec<VoteOrTowerSync>,
+    ) -> (u64, u64) {
         let mut voters = 0u64;
         let mut stake = 0u64;
         () = vote_list
@@ -99,15 +187,7 @@ impl SolanaConsensusVerifier {
             })
             .collect();
 
-        if voters < threshold_votes || stake < threshold_stake {
-            error!(
-                "{}: {}",
-                self.chain(),
-                VerificationError::UnachievedThreshold
-            );
-            return Err(VerificationError::UnachievedThreshold);
-        }
-        Ok(())
+        (voters, stake)
     }
 }
 
