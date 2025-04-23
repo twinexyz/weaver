@@ -4,8 +4,8 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::future::Future;
-use std::io::{BufRead, BufReader};
-use std::process::{Child, ChildStderr, ChildStdout, Command, Stdio};
+use std::io::{BufRead, BufReader, Read};
+use std::process::{Child, Command, Stdio};
 use std::rc::Rc;
 use std::sync::{mpsc, Arc};
 use std::thread;
@@ -382,13 +382,13 @@ impl Service for SubProcessService {
 
         if let Some((stdout_tx, stdout_parser)) = self.stdout_stream.clone() {
             if let Some(stdout) = child.stdout.take() {
-                self.read_stdout(Some(stdout), stdout_parser, stdout_tx);
+                self.read_std_stream(stdout, stdout_parser, stdout_tx);
             }
         }
 
         if let Some((stderr_tx, stderr_parser)) = self.stderr_stream.clone() {
             if let Some(stderr) = child.stderr.take() {
-                self.read_stderr(Some(stderr), stderr_parser, stderr_tx);
+                self.read_std_stream(stderr, stderr_parser, stderr_tx);
             }
         }
 
@@ -419,44 +419,24 @@ impl Service for SubProcessService {
 }
 
 impl SubProcessService {
-    fn read_stdout(
+    fn read_std_stream<T: Read + Send + Sync + 'static>(
         &mut self,
-        stdout: Option<ChildStdout>,
+        std_stream: T,
         output_parser: Parser,
         tx: mpsc::Sender<String>,
     ) {
-        if let Some(out) = stdout {
-            thread::spawn(move || {
-                let reader = BufReader::new(out);
-                for line in reader.lines().flatten() {
+        thread::spawn(move || {
+            let reader = BufReader::new(std_stream);
+            for line_res in reader.lines() {
+                if let Ok(line) = line_res {
                     if let Some(response) = output_parser(&line) {
                         if let Err(_) = tx.send(response) {
-                            eprintln!("Failed sending parsed stdout response to channel");
+                            eprintln!("Failed sending parsed std stream response to channel");
                         }
                     }
                 }
-            });
-        }
-    }
-
-    fn read_stderr(
-        &mut self,
-        stderr: Option<ChildStderr>,
-        output_parser: Parser,
-        tx: mpsc::Sender<String>,
-    ) {
-        if let Some(err) = stderr {
-            thread::spawn(move || {
-                let reader = BufReader::new(err);
-                for line in reader.lines().flatten() {
-                    if let Some(response) = output_parser(&line) {
-                        if let Err(_) = tx.send(response) {
-                            eprintln!("Failed sending parsed stderr response to channel");
-                        }
-                    }
-                }
-            });
-        }
+            }
+        });
     }
 }
 
