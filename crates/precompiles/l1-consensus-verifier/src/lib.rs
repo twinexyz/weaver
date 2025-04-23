@@ -83,7 +83,7 @@ impl StatefulPrecompile for ConsensusVerifierPrecompile {
                 )));
             }
         }
-        error!("some chain's verifier errored");
+        error!("{}", VerificationError::UnimplementedChain);
         PrecompileResult::Err(PrecompileErrors::Error(PrecompileError::Other(format!(
             "{}",
             VerificationError::UnimplementedChain
