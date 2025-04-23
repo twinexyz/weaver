@@ -4,13 +4,13 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::future::Future;
-use std::io::{BufRead, BufReader, Read};
-use std::process::{Child, Command, Stdio};
+use std::process::{Child, ChildStderr, ChildStdout, Command, Stdio};
 use std::rc::Rc;
-use std::sync::{mpsc, Arc};
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
+use eyre::Result;
 use log::{error, info};
 
 /// `ContextArena` is a shared, mutable key-value store.
@@ -30,29 +30,12 @@ pub type ContextArena = Rc<RefCell<HashMap<String, String>>>;
 /// concurrent contexts.
 pub type Parser = Arc<dyn Fn(&str) -> Option<String> + Send + Sync>;
 
-/// Represents an optional stream parser for either `stdout` or `stderr`.
-///
-/// If present, the tuple contains:
-/// - An `mpsc::Sender<String>`: Used to send parsed log lines to another task
-///   or consumer.
-/// - A `Parser`: A function that processes lines of text and optionally
-///   filters/transforms them.
-///
-/// This type is used to hook into a subprocess's output stream and selectively
-/// process and forward its logs.
-///
-/// # Usage
-/// This type is passed to a service (e.g. `add_stdout_parser(StreamParser)`) to
-/// attach a parser to an output stream. If `None`, no parsing or forwarding
-/// will be done for that stream.
-type StreamParser = Option<(mpsc::Sender<String>, Parser)>;
-
 /// A single step of a test
 #[derive(Debug)]
 pub enum TestStep {
     /// A step that executes over services, such as starting or stopping a
     /// service
-    Service(Box<dyn ServiceStepExecutor<StepError = String>>),
+    Service(Box<dyn ServiceStepExecutor<StepError = eyre::Error>>),
     /// A step that executes an async function
     AsyncFn(Box<AsyncFnStep>),
 }
@@ -64,7 +47,7 @@ pub struct AsyncFnStep {
     /// Async fn description
     pub description: String,
     /// Async function to execute with context arena
-    pub futurefn: Box<dyn FnOnce(ContextArena) -> Box<dyn Future<Output = Result<(), String>>>>,
+    pub futurefn: Box<dyn FnOnce(ContextArena) -> Box<dyn Future<Output = Result<()>>>>,
 }
 
 impl Debug for AsyncFnStep {
@@ -82,16 +65,12 @@ impl Debug for AsyncFnStep {
 pub struct TestHarness {
     /// Name of the test
     pub test_name: String,
-
     /// Directory to run tests at
     pub root_dir: String,
-
     /// List of services involved in the test.
-    pub services: Vec<Box<dyn Service<ServiceError = String>>>,
-
+    pub services: Vec<Box<dyn Service<ServiceError = eyre::Error>>>,
     /// Ordered steps that define the test logic.
     pub steps: Vec<TestStep>,
-
     /// Shared mutable context used across steps and services.
     pub context_arena: ContextArena,
 }
@@ -108,49 +87,16 @@ impl TestHarness {
         }
     }
 
-    /// Adds a service to the test harness.
-    /// ## Returns:
-    /// A tuple of two `Option<mpsc::Receiver<String>>`:
-    /// - `stdout_rx`: An `Option` containing a receiver for the `stdout` logs
-    ///   if a `stdout_parser` is provided. If no parser is given, this will be
-    ///   `None`.
-    /// - `stderr_rx`: An `Option` containing a receiver for the `stderr` logs
-    ///   if a `stderr_parser` is provided. If no parser is given, this will be
-    ///   `None`.
-    pub fn add_service(
-        &mut self,
-        mut service: Box<dyn Service<ServiceError = String>>,
-        stdout_parser: Option<Parser>,
-        stderr_parser: Option<Parser>,
-    ) -> (
-        Option<mpsc::Receiver<String>>,
-        Option<mpsc::Receiver<String>>,
-    ) {
-        let mut stdout_rx = None;
-        let mut stderr_rx = None;
-
-        if let Some(out_parser) = stdout_parser {
-            let (stdout_tx, rx) = mpsc::channel();
-            service.add_stdout_parser(Some((stdout_tx, out_parser)));
-            stdout_rx = Some(rx);
-        }
-
-        if let Some(err_parser) = stderr_parser {
-            let (stderr_tx, rx) = mpsc::channel();
-            service.add_stderr_parser(Some((stderr_tx, err_parser)));
-            stderr_rx = Some(rx);
-        }
-
+    ///
+    pub fn add_service(&mut self, service: Box<dyn Service<ServiceError = eyre::Error>>) {
         self.services.push(service);
-
-        (stdout_rx, stderr_rx)
     }
 
     /// Adds a test step to be executed later.
     pub fn add_step(&mut self, step: TestStep) { self.steps.push(step); }
 
     /// Executes all added services and test steps in order.
-    pub fn execute(mut self) -> Result<(), String> {
+    pub fn execute(mut self) -> Result<()> {
         info!(
             "Executing test: {} with rootdir: {}",
             self.test_name, self.root_dir
@@ -161,11 +107,14 @@ impl TestHarness {
             let result = match step {
                 TestStep::Service(step_executor) =>
                     step_executor.execute(self.context_arena.clone(), self.services.as_mut_slice()),
-                TestStep::AsyncFn(async_step) => tokio::runtime::Runtime::new()
-                    .map_err(|e| format!("Failed to create runtime: {}", e))?
-                    .block_on(Box::into_pin((async_step.futurefn)(
+                TestStep::AsyncFn(async_step) => {
+                    let runtime = tokio::runtime::Runtime::new()
+                        .map_err(|e| eyre::eyre!("Failed to create runtime: {}", e))?;
+
+                    runtime.block_on(Box::into_pin((async_step.futurefn)(
                         self.context_arena.clone(),
-                    ))),
+                    )))
+                }
             };
             if let Err(e) = result {
                 error!("Step execution failed: {}", e);
@@ -202,7 +151,7 @@ pub trait ServiceStepExecutor: Debug {
     fn execute(
         &self,
         ctx: ContextArena,
-        services: &mut [Box<dyn Service<ServiceError = String>>],
+        services: &mut [Box<dyn Service<ServiceError = eyre::Error>>],
     ) -> Result<(), Self::StepError>;
 }
 
@@ -228,26 +177,98 @@ impl Debug for SubProcessServiceStarter {
 }
 
 impl ServiceStepExecutor for SubProcessServiceStarter {
-    type StepError = String;
+    type StepError = eyre::Error;
 
     fn execute(
         &self,
         ctx: ContextArena,
-        services: &mut [Box<dyn Service<ServiceError = String>>],
+        services: &mut [Box<dyn Service<ServiceError = eyre::Error>>],
     ) -> Result<(), Self::StepError> {
         // Implementation of the step execution logic
         assert!(services.len() == 1, "Expected exactly one service");
         let service = &mut services[self.service_idx];
         if service.is_running() {
-            return Err(format!("Service '{}' is already running", self.name));
+            return Err(eyre::eyre!(format!(
+                "Service '{}' is already running",
+                self.name
+            )));
         }
 
         service
             .start(ctx)
-            .map_err(|e| format!("Failed to start service '{}': {}", self.name, e))?;
+            .map_err(|e| eyre::eyre!(format!("Failed to start service '{}': {}", self.name, e)))?;
         if let Some(wait_duration) = self.wait_after {
             std::thread::sleep(wait_duration);
         }
+        Ok(())
+    }
+}
+
+/// A step that reads logs of a service
+pub struct SubProcessLogReader {
+    /// Service identifier
+    pub name: String,
+    /// Service description
+    pub description: String,
+    /// Service index
+    pub service_idx: usize,
+    /// Read stdout
+    /// Wrapping in RefCell enables us to be able to call `execute`
+    /// method of `ServiceStepExecutor` without it taking mutable reference to
+    /// self
+    pub stdout: RefCell<Option<Box<dyn FnOnce(ChildStdout) + Send>>>,
+    /// Read stderr via this channel
+    pub stderr: RefCell<Option<Box<dyn FnOnce(ChildStderr) + Send>>>,
+    /// Service start after a certain time
+    pub wait_after: Option<Duration>,
+}
+
+impl Debug for SubProcessLogReader {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SubProcessLogReader")
+            .field("name", &self.name)
+            .field("description", &self.description)
+            .finish()
+    }
+}
+
+impl ServiceStepExecutor for SubProcessLogReader {
+    type StepError = eyre::Error;
+
+    fn execute(
+        &self,
+        _ctx: ContextArena,
+        services: &mut [Box<dyn Service<ServiceError = eyre::Error>>],
+    ) -> Result<(), Self::StepError> {
+        let service = &mut services[self.service_idx];
+
+        if !service.is_running() {
+            return Err(eyre::eyre!(format!(
+                "Service '{}' is not running",
+                self.name
+            )));
+        }
+
+        if let Some(stdout) = service.take_stdout_stream() {
+            if let Some(stdout_handler) = self.stdout.borrow_mut().take() {
+                thread::spawn(move || {
+                    stdout_handler(stdout);
+                });
+            }
+        }
+
+        if let Some(stderr) = service.take_stderr_stream() {
+            if let Some(stderr_handler) = self.stderr.borrow_mut().take() {
+                thread::spawn(move || {
+                    stderr_handler(stderr);
+                });
+            }
+        }
+
+        if let Some(wait_duration) = self.wait_after {
+            std::thread::sleep(wait_duration);
+        }
+
         Ok(())
     }
 }
@@ -257,13 +278,10 @@ impl ServiceStepExecutor for SubProcessServiceStarter {
 pub struct SubProcessServiceStopper {
     /// Service Identifier
     pub name: String,
-
     /// Service description
     pub description: String,
-
     /// Service Index
     pub service_idx: usize,
-
     /// Wait for this time after service is killed
     pub wait_after: Option<Duration>,
 }
@@ -278,22 +296,25 @@ impl Debug for SubProcessServiceStopper {
 }
 
 impl ServiceStepExecutor for SubProcessServiceStopper {
-    type StepError = String;
+    type StepError = eyre::Error;
 
     fn execute(
         &self,
         _ctx: ContextArena,
-        services: &mut [Box<dyn Service<ServiceError = String>>],
+        services: &mut [Box<dyn Service<ServiceError = eyre::Error>>],
     ) -> Result<(), Self::StepError> {
         // Implementation of the step execution logic
         assert!(services.len() == 1, "Expected exactly one service");
         let service = &mut services[0];
         if !service.is_running() {
-            return Err(format!("Service '{}' is not running", self.name));
+            return Err(eyre::eyre!(format!(
+                "Service '{}' is not running",
+                self.name
+            )));
         }
         service
             .stop()
-            .map_err(|e| format!("Failed to stop service '{}': {}", self.name, e))?;
+            .map_err(|e| eyre::eyre!(format!("Failed to stop service '{}': {}", self.name, e)))?;
         if let Some(wait_duration) = self.wait_after {
             std::thread::sleep(wait_duration);
         }
@@ -318,11 +339,11 @@ pub trait Service: Debug {
     /// Stops the service gracefully.
     fn stop(&mut self) -> Result<(), Self::ServiceError>;
 
-    /// Get stdout parser
-    fn add_stdout_parser(&mut self, stdout: StreamParser);
+    /// Take stdout
+    fn take_stdout_stream(&mut self) -> Option<ChildStdout>;
 
-    /// Get stderr parser
-    fn add_stderr_parser(&mut self, stderr: StreamParser);
+    /// Take stderr
+    fn take_stderr_stream(&mut self) -> Option<ChildStderr>;
 }
 
 /// Running service
@@ -339,9 +360,9 @@ pub struct SubProcessService {
     /// Mutate the context arena with parsed output
     pub context_arena: Option<ContextArena>,
     /// stdout
-    pub stdout_stream: StreamParser,
+    pub stdout_stream: Option<ChildStdout>,
     /// stderr
-    pub stderr_stream: StreamParser,
+    pub stderr_stream: Option<ChildStderr>,
 }
 
 impl Debug for SubProcessService {
@@ -354,43 +375,29 @@ impl Debug for SubProcessService {
 }
 
 impl Service for SubProcessService {
-    type ServiceError = String;
+    type ServiceError = eyre::Error;
 
-    fn start(&mut self, ctx: ContextArena) -> Result<(), String> {
+    fn start(&mut self, ctx: ContextArena) -> Result<()> {
         if self.is_running() {
-            return Err(format!("Subprocess '{}' is already running", self.name));
+            return Err(eyre::eyre!(format!(
+                "Subprocess '{}' is already running",
+                self.name
+            )));
         }
 
         let command = (&self.cmd_gen)(ctx);
         let mut cmd = Command::new(&command[0]);
         cmd.args(&command[1..]);
 
-        let enable_stdout = self.stdout_stream.is_some();
-        let enable_stderr = self.stderr_stream.is_some();
+        cmd.stdout(Stdio::piped());
+        cmd.stderr(Stdio::piped());
 
-        if enable_stdout {
-            cmd.stdout(Stdio::piped());
-        }
+        let mut child = cmd.spawn().map_err(|e| {
+            eyre::eyre!(format!("Failed to start subprocess '{}': {}", self.name, e))
+        })?;
 
-        if enable_stderr {
-            cmd.stderr(Stdio::piped());
-        }
-
-        let mut child = cmd
-            .spawn()
-            .map_err(|e| format!("Failed to start subprocess '{}': {}", self.name, e))?;
-
-        if let Some((stdout_tx, stdout_parser)) = self.stdout_stream.clone() {
-            if let Some(stdout) = child.stdout.take() {
-                self.read_std_stream(stdout, stdout_parser, stdout_tx);
-            }
-        }
-
-        if let Some((stderr_tx, stderr_parser)) = self.stderr_stream.clone() {
-            if let Some(stderr) = child.stderr.take() {
-                self.read_std_stream(stderr, stderr_parser, stderr_tx);
-            }
-        }
+        self.stderr_stream = child.stderr.take();
+        self.stdout_stream = child.stdout.take();
 
         self.child = Some(child);
         Ok(())
@@ -398,7 +405,7 @@ impl Service for SubProcessService {
 
     fn is_running(&self) -> bool { self.child.is_some() }
 
-    fn stop(&mut self) -> Result<(), String> {
+    fn stop(&mut self) -> Result<()> {
         if let Some(ctx) = &self.context_arena {
             let _ = ctx.borrow().iter().map(|(k, v)| {
                 println!("{}:{}", k, v);
@@ -407,41 +414,25 @@ impl Service for SubProcessService {
         if let Some(mut child) = self.child.take() {
             return match child.kill() {
                 Ok(_) => Ok(()),
-                Err(e) => Err(format!("Failed to stop subprocess '{}': {}", self.name, e)),
+                Err(e) => Err(eyre::eyre!(format!(
+                    "Failed to stop subprocess '{}': {}",
+                    self.name, e
+                ))),
             };
         }
         Ok(())
     }
 
-    fn add_stdout_parser(&mut self, stdout: StreamParser) { self.stdout_stream = stdout; }
+    fn take_stdout_stream(&mut self) -> Option<ChildStdout> { self.stdout_stream.take() }
 
-    fn add_stderr_parser(&mut self, stderr: StreamParser) { self.stderr_stream = stderr; }
-}
-
-impl SubProcessService {
-    fn read_std_stream<T: Read + Send + Sync + 'static>(
-        &mut self,
-        std_stream: T,
-        output_parser: Parser,
-        tx: mpsc::Sender<String>,
-    ) {
-        thread::spawn(move || {
-            let reader = BufReader::new(std_stream);
-            for line_res in reader.lines() {
-                if let Ok(line) = line_res {
-                    if let Some(response) = output_parser(&line) {
-                        if let Err(_) = tx.send(response) {
-                            eprintln!("Failed sending parsed std stream response to channel");
-                        }
-                    }
-                }
-            }
-        });
-    }
+    fn take_stderr_stream(&mut self) -> Option<ChildStderr> { self.stderr_stream.take() }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::io::{BufRead, BufReader};
+    use std::time::{SystemTime, UNIX_EPOCH};
+
     use reqwest::Client;
 
     use super::*;
@@ -451,26 +442,22 @@ mod tests {
         env_logger::init();
         let mut harness = TestHarness::new("PythonServerTester", ".");
 
-        harness.add_service(
-            Box::new(SubProcessService {
-                name: "Python_HTTP_Service".to_string(),
-                cmd_gen: Box::new(|ctx: ContextArena| {
-                    return vec![
-                        "python3".to_string(),
-                        "-m".to_string(),
-                        "http.server".to_string(),
-                        ctx.borrow().get("port").unwrap().to_string(),
-                    ];
-                }),
-                child: None,
-                context_arena: None,
-                stdout_stream: None,
-                stderr_stream: None,
-                description: "Python_HTTP_Service".to_string(),
+        harness.add_service(Box::new(SubProcessService {
+            name: "Python_HTTP_Service".to_string(),
+            description: "Python_HTTP_Service".to_string(),
+            cmd_gen: Box::new(|ctx: ContextArena| {
+                return vec![
+                    "python3".to_string(),
+                    "-m".to_string(),
+                    "http.server".to_string(),
+                    ctx.borrow().get("port").unwrap().to_string(),
+                ];
             }),
-            None,
-            None,
-        );
+            child: None,
+            context_arena: None,
+            stdout_stream: None,
+            stderr_stream: None,
+        }));
 
         harness.add_step(TestStep::AsyncFn(Box::new(AsyncFnStep {
             name: "Call_API".to_string(),
@@ -507,9 +494,12 @@ mod tests {
                             if resp.status() == 200 {
                                 Ok(())
                             } else {
-                                Err(format!("API call failed: Status code {}", resp.status()))
+                                Err(eyre::eyre!(format!(
+                                    "API call failed: Status code {}",
+                                    resp.status()
+                                )))
                             },
-                        Err(e) => Err(format!("Failed to make API call: {}", e)),
+                        Err(e) => Err(eyre::eyre!(format!("Failed to make API call: {}", e))),
                     }
                 })
             }),
@@ -530,50 +520,65 @@ mod tests {
         env_logger::init();
         let mut harness = TestHarness::new("Anvil", ".");
 
-        let log_stream = harness.add_service(
-            Box::new(SubProcessService {
-                name: "anvil".to_string(),
-                description: "Anvil is a local blockchain node".to_string(),
-                cmd_gen: Box::new(|ctx: ContextArena| {
-                    return vec![
-                        "anvil".to_string(),
-                        "-b".to_string(),
-                        "1".to_string(),
-                        "-p".to_string(),
-                        ctx.borrow().get("port").unwrap().to_string(),
-                    ];
-                }),
-                child: None,
-                context_arena: None,
-                stdout_stream: None,
-                stderr_stream: None,
+        harness.add_service(Box::new(SubProcessService {
+            name: "Anvil".to_string(),
+            description: "Anvil is a local blockchain node".to_string(),
+            cmd_gen: Box::new(|ctx: ContextArena| {
+                return vec![
+                    "anvil".to_string(),
+                    "-b".to_string(),
+                    "1".to_string(),
+                    "-p".to_string(),
+                    ctx.borrow().get("port").unwrap().to_string(),
+                ];
             }),
-            Some(Arc::new(|line| {
-                if line.contains("Block Number: 2") {
-                    return Some("chain is running".to_string());
-                }
-                None
-            })),
-            Some(Arc::new(|_line| None)),
-        );
+            child: None,
+            context_arena: None,
+            stdout_stream: None,
+            stderr_stream: None,
+        }));
 
         harness.add_step(TestStep::AsyncFn(Box::new(AsyncFnStep {
             name: "ContextArena".to_string(),
             description: "Pass params to anvil service via context arena".to_string(),
             futurefn: Box::new(|ctx| {
                 Box::new(async move {
-                    let random_port: String = "9345".to_string();
-                    ctx.borrow_mut().insert("port".to_string(), random_port);
+                    let seed = SystemTime::now()
+                        .duration_since(UNIX_EPOCH)
+                        .unwrap()
+                        .as_millis();
+                    let random_port = (seed % 1000 + 9000) as u16;
+                    ctx.borrow_mut()
+                        .insert("port".to_string(), random_port.to_string());
                     Ok(())
                 })
             }),
         })));
 
         harness.add_step(TestStep::Service(Box::new(SubProcessServiceStarter {
-            name: "anvil".to_string(),
+            name: "AnvilStarter".to_string(),
             description: "Starts the anvil local blockchain node".to_string(),
             service_idx: 0,
             wait_after: Some(Duration::from_secs(3)),
+        })));
+
+        harness.add_step(TestStep::Service(Box::new(SubProcessLogReader {
+            name: "AnvilLogReader".to_string(),
+            description: "read anvil stdout logs".to_string(),
+            service_idx: 0,
+            stdout: RefCell::new(Some(Box::new(|out| {
+                let reader = BufReader::new(out);
+                for line_res in reader.lines() {
+                    if let Ok(line) = line_res {
+                        if line.contains("Block Number: 2") {
+                            println!("Chain is progressing..");
+                            return;
+                        }
+                    }
+                }
+            }))),
+            stderr: RefCell::new(None),
+            wait_after: None,
         })));
 
         harness.add_step(TestStep::AsyncFn(Box::new(AsyncFnStep {
@@ -604,21 +609,16 @@ mod tests {
                             if resp.status() == 200 {
                                 Ok(())
                             } else {
-                                Err(format!("API call failed: Status code {}", resp.status()))
+                                Err(eyre::eyre!(format!(
+                                    "API call failed: Status code{}",
+                                    resp.status()
+                                )))
                             },
-                        Err(e) => Err(format!("Failed to make API call: {}", e)),
+                        Err(e) => Err(eyre::eyre!(format!("Failed to make API call: {}", e))),
                     }
                 })
             }),
         })));
-
-        if let Some(stdout_rx) = log_stream.0 {
-            thread::spawn(move || {
-                for line in stdout_rx {
-                    assert_eq!("chain is running".to_string(), line);
-                }
-            });
-        }
 
         harness.add_step(TestStep::Service(Box::new(SubProcessServiceStopper {
             name: "anvil".to_string(),
