@@ -10,6 +10,8 @@ pub enum VerificationError {
     InvalidValidators,
     UnachievedThreshold,
     UnimplementedChain,
+    Overflow,
+    DivisionError,
     Custom(String),
 }
 
@@ -26,6 +28,8 @@ impl fmt::Display for VerificationError {
             VerificationError::InvalidValidators => write!(f, "invalid validators"),
             VerificationError::UnachievedThreshold => write!(f, "unachieved threshold"),
             VerificationError::UnimplementedChain => write!(f, "chain not implemented"),
+            VerificationError::Overflow => write!(f, "overflown"),
+            VerificationError::DivisionError => write!(f, "division error"),
             VerificationError::Custom(error) => write!(f, "{}", error),
         }
     }
