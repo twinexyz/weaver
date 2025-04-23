@@ -19,6 +19,13 @@ sol!(
 sol!(
     #[allow(missing_docs)]
     #[sol(rpc)]
+    TwineSystemStorageContract,
+    "artifacts/TwineSystemStorageContract.json"
+);
+
+sol!(
+    #[allow(missing_docs)]
+    #[sol(rpc)]
     L1MessageQueue,
     "artifacts/L1MessageQueue.json"
 );
