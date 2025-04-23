@@ -90,9 +90,10 @@ impl EthereumConsensusVerifier {
         verified_headers: &mut Vec<u64>,
     ) -> Result<(), VerificationError> {
         // comparing the hash of nth header with the parent hash of n+1th header
-        // so looping from 0..len -1 which is the second to last element of the list
-        // comparision occurs in between ith and i+1th headers, i+1 (never overflows)
-        // in case the vector of header has single value, it does not enter the
+        // so looping from 0..len -1 which is the second to last element of the list.
+        // Comparision occurs in between ith and i+1th headers. i+1 at max is the last
+        // element of the vector. So, i+1 never overflows
+        // In case the vector of header has single value, it does not enter the
         // loop and is considered a verified header in itself.
         for i in 0..headers.len() - 1 {
             let header_n = headers
