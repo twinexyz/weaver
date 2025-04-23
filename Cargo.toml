@@ -17,7 +17,8 @@ members = [
     "crates/precompiles/l1-transactions",
     "crates/evm-contracts",
     "crates/l1-utils",
-    "crates/test-harness"
+    "crates/test-harness",
+    "crates/ethereum-consensus-prover-lib",
 ]
 resolver = "3"
 
@@ -47,6 +48,13 @@ regex = "1.11.1"
 log = "0.4.26"
 env_logger = "0.11.7"
 git2 = "0.20.1"
+tree_hash = "0.7.0"
+tree_hash_derive = "0.7.0"
+ethereum_ssz = "0.6.0"
+ethereum_ssz_derive = "0.6.0"
+sha2 = "0.9"
+hex = "0.4.3"
+typenum = "1.12.0"
 
 # RETH
 reth = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.2.2" }
@@ -75,6 +83,7 @@ twine-l1-transactions-precompile = { path = "crates/precompiles/l1-transactions"
 twine-evm-contracts = { path = "crates/evm-contracts" }
 twine-constants = { path = "crates/constants" }
 twine-l1-utils= { path = "crates/l1-utils" }
+twine-ethereum-consensus-prover-lib ={ path = "crates/ethereum-consensus-prover-lib"}
 
 [patch.crates-io]
 # The following is required since we would like to remove
