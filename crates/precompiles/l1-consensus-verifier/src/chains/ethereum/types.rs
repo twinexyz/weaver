@@ -16,5 +16,6 @@ sol!(
         bytes[] public_values;
         bytes[] proofs;
         bytes[] verified_receipt_roots;
+        uint64[] verified_headers;
     }
 );
