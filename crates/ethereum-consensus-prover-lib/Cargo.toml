@@ -9,7 +9,6 @@ alloy = { version = "0.2.1", features = [
     "sol-types",
     "ssz",
 ]}
-alloy-sol-types.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 tree_hash.workspace = true
