@@ -165,7 +165,7 @@ impl EthereumConsensusVerifier {
     ///
     /// # Errors
     /// * DecodeError while decoding the bit map.
-    fn recalculate_public_value_for_header(
+    fn recalculate_public_value(
         &self,
         header: &Header,
         participant_bitmap: &Vec<u8>,
@@ -263,17 +263,14 @@ impl Chains for EthereumConsensusVerifier {
                     }
                 };
 
-                let calculated_public_value = match self.recalculate_public_value_for_header(
-                    header,
-                    participating_mask,
-                    public_value,
-                ) {
-                    Ok(calculated_public_key) => calculated_public_key,
-                    Err(e) =>
-                        return PrecompileResult::Err(PrecompileErrors::Error(
-                            PrecompileError::Other(format!("{}", e)),
-                        )),
-                };
+                let calculated_public_value =
+                    match self.recalculate_public_value(header, participating_mask, public_value) {
+                        Ok(calculated_public_key) => calculated_public_key,
+                        Err(e) =>
+                            return PrecompileResult::Err(PrecompileErrors::Error(
+                                PrecompileError::Other(format!("{}", e)),
+                            )),
+                    };
 
                 let calculated_public_value_bytes =
                     Bytes::copy_from_slice(&calculated_public_value.as_ssz_bytes());
