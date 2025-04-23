@@ -1,0 +1,27 @@
+[package]
+name = "twine-ethereum-consensus-prover-lib"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+alloy = { version = "0.2.1", features = [
+    "rpc-types",
+    "sol-types",
+    "ssz",
+]}
+alloy-sol-types.workspace = true
+serde.workspace = true
+serde_json.workspace = true 
+tree_hash.workspace = true
+tree_hash_derive.workspace = true
+ethereum_ssz.workspace = true
+ethereum_ssz_derive.workspace = true
+ssz_types.workspace = true
+sha2.workspace = true
+hex.workspace = true
+typenum.workspace = true
+bls12_381 = { git = "https://github.com/sp1-patches/bls12_381", branch = "patch-v0.8.0", features = ["experimental"] }
+eyre.workspace = true
+
+[patch.crates-io]
+ethereum_hashing = { git = "https://github.com/Atamanov/ethereum_hashing.git"}
