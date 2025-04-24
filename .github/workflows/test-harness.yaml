@@ -22,8 +22,8 @@ jobs:
       uses: foundry-rs/foundry-toolchain@v1
       with:
         version: nightly
-    - name: Check anvil exists
-      run: anvil --version
+    # - name: Check anvil exists
+    #   run: anvil --version
     - name: Run anvil test
       run: cargo test --package test-harness --lib -- tests::test_start_callapi_stop_python_serve
       # run: RUST_LOG=info cargo test --package test-harness
