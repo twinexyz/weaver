@@ -7,7 +7,7 @@ use std::future::Future;
 use std::process::{Child, ChildStderr, ChildStdout, Command, Stdio};
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
@@ -206,13 +206,13 @@ pub struct SubProcessLogReader {
     /// Wrapping in RefCell enables us to be able to call `execute`
     /// method of `ServiceStepExecutor` without it taking mutable reference to
     /// self
-    pub stdout: RefCell<Option<Box<dyn FnOnce(ChildStdout) + Send>>>,
+    pub stdout: Arc<Mutex<Option<Box<dyn FnOnce(ChildStdout) + Send>>>>,
     /// Read stderr via this channel
-    pub stderr: RefCell<Option<Box<dyn FnOnce(ChildStderr) + Send>>>,
+    pub stderr: Arc<Mutex<Option<Box<dyn FnOnce(ChildStderr) + Send>>>>,
     /// Notification to proceed
     /// This takes more precedence than `wait_after`
     pub proceed_flag: Arc<AtomicBool>,
-    ///
+    /// Wait till proceed_flag is enabled
     pub block_until_proceed: bool,
 }
 
@@ -243,7 +243,7 @@ impl ServiceStepExecutor for SubProcessLogReader {
         }
 
         if let Some(stdout) = service.take_stdout_stream() {
-            if let Some(stdout_handler) = self.stdout.borrow_mut().take() {
+            if let Some(stdout_handler) = self.stdout.lock().unwrap().take() {
                 thread::spawn(move || {
                     stdout_handler(stdout);
                 });
@@ -251,7 +251,7 @@ impl ServiceStepExecutor for SubProcessLogReader {
         }
 
         if let Some(stderr) = service.take_stderr_stream() {
-            if let Some(stderr_handler) = self.stderr.borrow_mut().take() {
+            if let Some(stderr_handler) = self.stderr.lock().unwrap().take() {
                 thread::spawn(move || {
                     stderr_handler(stderr);
                 });
@@ -565,12 +565,12 @@ mod tests {
                 service_idx: 0,
                 block_until_proceed: true,
                 proceed_flag: Arc::new(AtomicBool::new(false)),
-                stdout: RefCell::new(None),
-                stderr: RefCell::new(None),
+                stdout: Arc::new(Mutex::new(None)),
+                stderr: Arc::new(Mutex::new(None)),
             };
 
             let proceed = Arc::clone(&reader.proceed_flag);
-            reader.stdout = RefCell::new(Some(Box::new(move |out| {
+            reader.stdout = Arc::new(Mutex::new(Some(Box::new(move |out| {
                 let reader = BufReader::new(out);
                 for line in reader.lines().flatten() {
                     info!("[stdout] {}", line);
@@ -580,7 +580,7 @@ mod tests {
                         break;
                     }
                 }
-            })));
+            }))));
 
             reader
         })));
