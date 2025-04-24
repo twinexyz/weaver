@@ -573,7 +573,7 @@ mod tests {
             reader.stdout = RefCell::new(Some(Box::new(move |out| {
                 let reader = BufReader::new(out);
                 for line in reader.lines().flatten() {
-                    println!("[stdout] {}", line);
+                    info!("[stdout] {}", line);
                     if line.contains("Block Number: 3") {
                         info!("Reached block 3. Now, proceed to run other test step");
                         proceed.store(true, Ordering::Release);
