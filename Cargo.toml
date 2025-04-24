@@ -17,6 +17,7 @@ members = [
     "crates/precompiles/l1-transactions",
     "crates/evm-contracts",
     "crates/l1-utils",
+    "crates/test-harness"
 ]
 resolver = "3"
 
@@ -35,6 +36,7 @@ alloy-trie = { version = "0.7", default-features = false }
 
 
 eyre = "0.6"
+reqwest = { version = "0.11", features = ["json"] }
 tokio = { version = "1.40.0", features = ["full"] }
 serde = { version = "1.0.210", features = ["derive"] }
 serde_json = "1.0.132"
