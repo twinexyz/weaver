@@ -35,6 +35,7 @@ repos:
       - id: dprint-check
         name: dprint-check
         description: Check if toml files are properly formatted
-        entry: dprint fmt
+        entry: dprint
+        args: [check]
         language: system
         pass_filenames: false
