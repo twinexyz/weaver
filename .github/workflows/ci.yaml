@@ -34,3 +34,11 @@ jobs:
       run: cargo install cargo-udeps
     - uses: actions/setup-python@v3
     - uses: pre-commit/action@v3.0.1
+    # Install dprint
+    - name: Install dprint
+      run: |
+        curl -fsSL https://dprint.dev/install.sh | sh
+        echo "$HOME/.dprint/bin" >> $GITHUB_PATH
+    # Run dprint fmt
+    - name: Run dprint fmt
+      run: ~/.dprint/bin/dprint fmt --check
