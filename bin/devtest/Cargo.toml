@@ -4,12 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+env_logger.workspace = true
 eyre = { workspace = true }
+git2.workspace = true
+log.workspace = true
 # reth.workspace = true
 regex.workspace = true
-log.workspace = true
-env_logger.workspace = true
-git2.workspace = true
 
 [[bin]]
 name = "twine-devtest"

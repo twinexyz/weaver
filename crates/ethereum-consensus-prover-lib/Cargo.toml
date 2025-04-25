@@ -1,0 +1,19 @@
+[package]
+name = "twine-ethereum-consensus-prover-lib"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+alloy.workspace = true
+bls12_381.workspace = true
+ethereum_ssz.workspace = true
+ethereum_ssz_derive.workspace = true
+eyre.workspace = true
+hex.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+ssz_types.workspace = true
+tree_hash.workspace = true
+tree_hash_derive.workspace = true
+typenum.workspace = true

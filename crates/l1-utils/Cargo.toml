@@ -2,14 +2,14 @@
 name = "twine-l1-utils"
 version.workspace = true
 edition.workspace = true
-rust-version.workspace = true
+exclude.workspace = true
 license.workspace = true
 repository.workspace = true
-exclude.workspace = true
+rust-version.workspace = true
 
 [dependencies]
-twine-constants.workspace = true
 reth.workspace = true
+twine-constants.workspace = true
 
 [lints]
 workspace = true

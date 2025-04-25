@@ -30,3 +30,12 @@ repos:
         entry: cargo clippy --locked --all-features --all-targets
         language: system
         pass_filenames: false
+-   repo: local
+    hooks:
+      - id: dprint-check
+        name: dprint-check
+        description: Check if toml files are properly formatted
+        entry: dprint
+        args: [check]
+        language: system
+        pass_filenames: false
