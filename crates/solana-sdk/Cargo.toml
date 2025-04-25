@@ -9,7 +9,7 @@ rust-version.workspace = true
 
 [dependencies]
 bincode.workspace = true
-blake3 = { git = "https://github.com/twinexyz/BLAKE3" }
+blake3.workspace = true
 borsh.workspace = true
 borsh0_10.workspace = true
 borsh0_9.workspace = true

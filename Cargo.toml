@@ -67,6 +67,7 @@ typenum = "1.12.0"
 
 # SOLANA
 bincode = "1.3"
+blake3 = { git = "https://github.com/twinexyz/BLAKE3" }
 borsh = { version = "1.2.1", features = ["derive", "unstable__schema"] }
 borsh0_10 = { package = "borsh", version = "0.10.3" }
 borsh0_9 = { package = "borsh", version = "0.9.3" }
