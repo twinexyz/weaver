@@ -2,26 +2,26 @@
 name = "twine-solana-sdk"
 version.workspace = true
 edition.workspace = true
-rust-version.workspace = true
+exclude.workspace = true
 license.workspace = true
 repository.workspace = true
-exclude.workspace = true
+rust-version.workspace = true
 
 [dependencies]
-bytemuck.workspace = true
 bincode.workspace = true
 blake3 = { git = "https://github.com/twinexyz/BLAKE3" }
 borsh.workspace = true
 borsh0_10.workspace = true
 borsh0_9.workspace = true
 bs58.workspace = true
+bytemuck.workspace = true
 log.workspace = true
 num-derive.workspace = true
 num-traits.workspace = true
 rand.workspace = true
-sha2 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", tag = "patch-0.10.8-sp1-4.0.0-rc.3" }
 serde.workspace = true
 serde_bytes.workspace = true
+sha2_solana.workspace = true
 smallvec.workspace = true
 thiserror.workspace = true
 

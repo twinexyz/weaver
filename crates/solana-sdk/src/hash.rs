@@ -11,7 +11,7 @@ use std::{fmt, mem};
 use borsh::{BorshDeserialize, BorshSerialize};
 use bytemuck::{Pod, Zeroable};
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
+use sha2_solana::{Digest, Sha256};
 use thiserror::Error;
 
 use crate::sanitize::Sanitize;
