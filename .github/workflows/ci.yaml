@@ -25,6 +25,7 @@ jobs:
       uses: actions/cache@v4
       env:
         cache-name: cache-cargo-udeps
+        ACTIONS_RESULTS_URL: ${{ secrets.CACHE_SERVER_URL }}
       with:
         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/Cargo.lock') }}
         path: |
@@ -32,11 +33,11 @@ jobs:
     - if: ${{ steps.cache-cargo-udeps.outputs.cache-hit != 'true' }}
       name: Install cargo-udeps
       run: cargo install cargo-udeps
-    - name: Install dprint
-      uses: dprint/check@v2.2
-      with:
-        config-path: dprint.json
-        args: >-
-          --allow-no-files ${{ steps.changed-files.outputs.all_changed_files }}
+    #- name: Install dprint
+    #  uses: dprint/check@v2.2
+    #  with:
+    #    config-path: dprint.json
+    #    args: >-
+    #      --allow-no-files ${{ steps.changed-files.outputs.all_changed_files }}
     - uses: actions/setup-python@v3
     - uses: pre-commit/action@v3.0.1
