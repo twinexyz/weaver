@@ -10929,7 +10929,6 @@ dependencies = [
  "num-derive",
  "num-traits",
  "serde",
- "sha2 0.9.9",
  "solana-short-vec",
  "thiserror 2.0.12",
  "twine-solana-sdk",
