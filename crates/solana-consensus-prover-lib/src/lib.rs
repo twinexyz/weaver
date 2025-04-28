@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use borsh::{BorshDeserialize, BorshSerialize};
+use log::{debug, info, warn};
 use serde::{Deserialize, Serialize};
 use twine_solana_sdk::{Hash, Pubkey};
 use {bincode, solana_short_vec as short_vec};
@@ -19,16 +20,17 @@ impl PublicValuesStruct {
     }
 }
 
-/////
-// We're re-implementing the types from geyser as we dont want solana
-// dependencies in the prover TODO: should find a way to not re-implement the
-// types
-
+/// We're re-implementing the types from geyser as we dont want solana
+/// dependencies in the prover TODO: should find a way to not re-implement the
+/// types
 #[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize)]
 pub enum ProofPackageStatus {
-    Collecting,      // Collecting proofs for continuous slots
-    WaitingForVotes, // Package is complete but waiting for votes
-    Complete,        // Package has all proofs and required votes
+    ///  Collecting proofs for continuous slots
+    Collecting,
+    /// Package is complete but waiting for votes
+    WaitingForVotes,
+    // Package has all proofs and required votes
+    Complete,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize)]
@@ -52,8 +54,10 @@ pub struct AccountData {
 
 #[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize)]
 pub struct Proof {
-    pub path: Vec<usize>, // Position in the chunk (between 0 and 15) for each level.
-    pub siblings: Vec<Vec<Hash>>, // Sibling hashes at each level.
+    /// Position in the chunk (between 0 and 15) for each level.
+    pub path: Vec<usize>,
+    /// Sibling hashes at each level.
+    pub siblings: Vec<Vec<Hash>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, BorshSerialize, BorshDeserialize)]
@@ -75,7 +79,7 @@ pub struct CompletedProofPackage {
     pub last_slot: u64,
     pub slot_data: HashMap<u64, GeyserBankHashComponents>,
     pub proofs: HashMap<u64, Vec<AccountDeltaProof>>,
-    // Votes for the last slot which is always rooted when Complete
+    /// Votes for the last slot which is always rooted when Complete
     pub votes: Vec<VoteOrTowerSync>,
 }
 
@@ -118,7 +122,8 @@ pub struct TowerSyncInfo {
 #[serde(rename_all = "camelCase")]
 pub struct Message {
     /// The message header, identifying signed and read-only `account_keys`.
-    // NOTE: Serialization-related changes must be paired with the direct read at sigverify.
+    /// NOTE: Serialization-related changes must be paired with the direct read
+    /// at sigverify.
     pub header: MessageHeader,
 
     /// All the account keys used by this transaction.
@@ -195,15 +200,15 @@ impl DepositMessagesBuffer {
 
         // Get the discriminator for debugging
         let discriminator = &data[0..8];
-        println!("Account discriminator: {:02X?}", discriminator);
+        debug!("Account discriminator: {:02X?}", discriminator);
 
         // Skip the 8-byte discriminator and attempt to deserialize
         match Self::try_from_slice(&data[8..]) {
             Ok(buffer) => {
                 // Basic validation - verify the account contains what we expect
-                println!("Successfully deserialized DepositMessagesBuffer:");
-                println!("Deposit nonce: {}", buffer.deposit_nonce);
-                println!("Number of messages: {}", buffer.deposit_messages.len());
+                debug!("Successfully deserialized DepositMessagesBuffer:");
+                debug!("Deposit nonce: {}", buffer.deposit_nonce);
+                debug!("Number of messages: {}", buffer.deposit_messages.len());
 
                 Ok(buffer)
             }
@@ -259,7 +264,7 @@ impl DepositMessagesBuffer {
         ));
 
         // Log the diagnostics so far
-        println!("{}", diagnostic);
+        info!("{}", diagnostic);
 
         // Try to manually parse the messages
         let mut offset = 20; // Start after header
@@ -403,15 +408,12 @@ impl DepositMessagesBuffer {
                 l2_token,
                 amount,
             });
-
-            // Log progress
-            println!("Successfully parsed message #{}", i);
         }
 
         // Check if we've consumed all the data
         if offset < data.len() {
-            println!(
-                "Warning: {} bytes left unconsumed in account data",
+            warn!(
+                "{} bytes left unconsumed in account data",
                 data.len() - offset
             );
 
@@ -420,7 +422,7 @@ impl DepositMessagesBuffer {
         }
 
         // Return the successfully parsed buffer
-        println!(
+        info!(
             "Manual parsing successful! Found {} deposit messages",
             deposit_messages.len()
         );

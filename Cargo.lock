@@ -10925,6 +10925,7 @@ dependencies = [
  "borsh 1.5.7",
  "bs58 0.4.0",
  "bytemuck",
+ "log",
  "num-derive",
  "num-traits",
  "serde",
