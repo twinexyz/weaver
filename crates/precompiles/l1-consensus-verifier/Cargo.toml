@@ -30,6 +30,13 @@ ethereum_ssz.workspace = true
 ethereum_ssz_derive.workspace = true
 ssz_types.workspace = true
 solana-consensus-prover-lib.workspace = true
+gkr = { path = "/Users/adityagupta/Code/Expander/gkr" }
+config_macros = { path = "/Users/adityagupta/Code/Expander/config_macros" }
+gkr_engine = { path = "/Users/adityagupta/Code/Expander/gkr_engine" }
+gkr_hashers = { path = "/Users/adityagupta/Code/Expander/hasher" }
+poly_commit = { path = "/Users/adityagupta/Code/Expander/poly_commit" }
+transcript = { path = "/Users/adityagupta/Code/Expander/transcript" }
+mersenne31 = { path = "/Users/adityagupta/Code/Expander/arith/mersenne31" }
 
 [features]
 twine-build =[]
