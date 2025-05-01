@@ -1,3 +1,6 @@
+#![cfg_attr(target_arch = "x86_64", feature(target_feature))]
+#![cfg_attr(target_arch = "x86_64", feature(stdsimd))]
+
 pub mod chains;
 pub mod errors;
 
@@ -11,7 +14,7 @@ use chains::ethereum::EthereumConsensusVerifier;
 use chains::solana::SolanaConsensusVerifier;
 use errors::VerificationError;
 use reth::revm::primitives::{
-    Precompile, PrecompileError, PrecompileErrors, PrecompileResult, StatefulPrecompile,
+    Precompile, PrecompileError, PrecompileErrors, PrecompileOutput, PrecompileResult, StatefulPrecompile
 };
 use reth::revm::ContextPrecompile;
 use reth_tracing::tracing::{error, info};
@@ -68,7 +71,7 @@ impl ConsensusVerifierPrecompile {
     }
 }
 
-pub type VerifierInput = (sol_data::Uint<64>, sol_data::Bytes);
+pub type VerifierInput = sol_data::Bytes;
 
 declare_gkr_config!(
     BLSConfig,
@@ -87,14 +90,31 @@ impl StatefulPrecompile for ConsensusVerifierPrecompile {
     ) -> PrecompileResult {
         _ = gas_limit;
         _ = env;
+         // Try to decode the input, return error if decoding fails
+         let proof_input = match VerifierInput::abi_decode(bytes, true) {
+            Ok(input) => input,
+            Err(e) => {
+                error!("{}: {}", VerificationError::DecodeError, e);
+                return PrecompileResult::Err(PrecompileErrors::Error(PrecompileError::Other(
+                    format!("{}", VerificationError::DecodeError)
+                )));
+            }
+        };
 
-        verify_bls::<BLSConfig>();
+        // Verify the BLS proof with SIMD optimizations
+        #[cfg_attr(target_arch = "x86_64", target_feature(enable = "avx2,avx,sse4.1,sse4.2"))]
+        let verification_result = verify_bls::<BLSConfig>(proof_input.to_vec());
         
-        error!("{}", VerificationError::UnimplementedChain);
-        PrecompileResult::Err(PrecompileErrors::Error(PrecompileError::Other(format!(
-            "{}",
-            VerificationError::UnimplementedChain
-        ))))
+        if verification_result {
+            info!("BLS verification successful");
+            // Return empty bytes as success with no return data
+            PrecompileResult::Ok(PrecompileOutput::new(0, Bytes::new()))
+        } else {
+            error!("{}", VerificationError::ProofVerificationFailed);
+            PrecompileResult::Err(PrecompileErrors::Error(PrecompileError::Other(
+                format!("{}", VerificationError::ProofVerificationFailed)
+            )))
+        }
     }
 }
 
