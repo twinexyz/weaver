@@ -17,4 +17,5 @@ reth-node-core.workspace = true
 reth-node-ethereum = { workspace = true, features = ["test-utils"] }
 reth-primitives.workspace = true
 reth-tracing.workspace = true
+revm-context.workspace = true
 tokio.workspace = true

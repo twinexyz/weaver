@@ -1,3 +1,4 @@
+use reth::builder::components::BasicPayloadServiceBuilder;
 use reth::cli::Cli;
 use reth_node_ethereum::node::EthereumAddOns;
 use reth_node_ethereum::EthereumNode;
@@ -13,7 +14,9 @@ fn main() -> eyre::Result<()> {
             // 2. The payload builder: The code which builds the block and creates the payload.
             EthereumNode::components()
                 .executor(TwineExecutorBuilder::default())
-                .payload(TwinePayloadBuilder::default()),
+                .payload(BasicPayloadServiceBuilder::new(
+                    TwinePayloadBuilder::default(),
+                )),
         );
         let twine_node_with_l1_additions =
             twine_added_ethereum_node.with_add_ons(EthereumAddOns::default());

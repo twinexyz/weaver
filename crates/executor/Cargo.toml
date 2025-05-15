@@ -11,6 +11,7 @@ eyre.workspace = true
 parking_lot.workspace = true
 reth.workspace = true
 reth-chainspec.workspace = true
+reth-ethereum = { workspace = true, features = ["test-utils", "node", "evm", "pool"] }
 reth-ethereum-payload-builder.workspace = true
 reth-evm.workspace = true
 reth-evm-ethereum.workspace = true
@@ -25,7 +26,10 @@ twine-l1-consensus-verifier-precompile = { workspace = true, optional = true }
 twine-l1-transactions-precompile = { workspace = true }
 
 [features]
-default = ["twine-l1-consensus-verifier-precompile", "twine-l1-transactions-precompile"]
+default = [
+  "twine-l1-consensus-verifier-precompile",
+  "twine-l1-transactions-precompile",
+]
 twine-l1-consensus-verifier-precompile = [
   "dep:twine-l1-consensus-verifier-precompile",
 ]
