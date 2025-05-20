@@ -1,4 +1,4 @@
-use reth::revm::primitives::{address, Address};
+use alloy_primitives::{address, Address};
 
 pub const ETHEREUM_MESSAGE_QUEUE: Address = address!("610178dA211FEF7D417bC0e6FeD39F05609AD788");
 

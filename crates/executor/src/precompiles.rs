@@ -9,11 +9,33 @@ use twine_constants::precompiles::{
 use twine_l1_consensus_verifier_precompile::ConsensusVerifierPrecompile;
 use twine_l1_transactions_precompile::TransactionPrecompile;
 
+/// Twine specific precompiles
+#[derive(Clone, Debug)]
+pub struct TwinePrecompiles {
+    pub transaction_precompile: Address,
+    pub consensus_precompile: Address,
+}
+
+impl TwinePrecompiles {
+    pub fn contains(&self, address: &Address) -> bool {
+        self.consensus_precompile.eq(address) || self.transaction_precompile.eq(address)
+    }
+}
+
+impl Default for TwinePrecompiles {
+    fn default() -> Self {
+        Self {
+            transaction_precompile: TWINE_TRANSACTION_PRECOMPILE_ADDRESS,
+            consensus_precompile: TWINE_CONSENSUS_VERIFIER_PRECOMPILE_ADDRESS,
+        }
+    }
+}
+
+/// General precompiles plus twine precompiles
 #[derive(Clone)]
 pub struct TwineCustomPrecompile {
     pub inner: EthPrecompiles,
-    pub l1_consensus: Address,
-    pub l1_transaction: Address,
+    pub twine_precompiles: TwinePrecompiles,
 }
 
 impl<CTX: ContextTr> PrecompileProvider<CTX> for TwineCustomPrecompile {
@@ -24,8 +46,7 @@ impl<CTX: ContextTr> PrecompileProvider<CTX> for TwineCustomPrecompile {
             precompiles: Precompiles::prague(),
             spec: spec.into(),
         };
-        self.l1_consensus = TWINE_CONSENSUS_VERIFIER_PRECOMPILE_ADDRESS;
-        self.l1_transaction = TWINE_TRANSACTION_PRECOMPILE_ADDRESS;
+        self.twine_precompiles = TwinePrecompiles::default();
         true
     }
 
@@ -39,14 +60,14 @@ impl<CTX: ContextTr> PrecompileProvider<CTX> for TwineCustomPrecompile {
     ) -> Result<Option<Self::Output>, String> {
         #[cfg(feature = "twine-l1-transactions-precompile")]
         {
-            if address.eq(&self.l1_transaction) {
+            if address.eq(&self.twine_precompiles.transaction_precompile) {
                 return TransactionPrecompile::run(context, address, inputs, is_static, gas_limit);
             }
         }
 
         #[cfg(feature = "twine-l1-consensus-verifier-precompile")]
         {
-            if address.eq(&self.l1_consensus) {
+            if address.eq(&self.twine_precompiles.consensus_precompile) {
                 return ConsensusVerifierPrecompile::run(
                     context, address, inputs, is_static, gas_limit,
                 );
@@ -57,7 +78,14 @@ impl<CTX: ContextTr> PrecompileProvider<CTX> for TwineCustomPrecompile {
             .run(context, address, inputs, is_static, gas_limit)
     }
 
-    fn warm_addresses(&self) -> Box<impl Iterator<Item = Address>> { self.inner.warm_addresses() }
+    fn warm_addresses(&self) -> Box<impl Iterator<Item = Address>> {
+        Box::new(self.inner.warm_addresses().chain(vec![
+            TWINE_CONSENSUS_VERIFIER_PRECOMPILE_ADDRESS,
+            TWINE_TRANSACTION_PRECOMPILE_ADDRESS,
+        ]))
+    }
 
-    fn contains(&self, address: &Address) -> bool { self.inner.contains(address) }
+    fn contains(&self, address: &Address) -> bool {
+        self.inner.contains(address) || self.twine_precompiles.contains(address)
+    }
 }

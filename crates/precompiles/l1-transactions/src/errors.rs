@@ -1,5 +1,5 @@
 use alloy_primitives::Bytes;
-use reth::revm::interpreter::{Gas, InterpreterResult};
+use reth_revm::interpreter::{Gas, InstructionResult, InterpreterResult};
 use thiserror::Error;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Error)]
@@ -36,7 +36,7 @@ impl TransactionPrecompileError {
 impl From<TransactionPrecompileError> for InterpreterResult {
     fn from(_err: TransactionPrecompileError) -> Self {
         InterpreterResult {
-            result: reth::revm::interpreter::InstructionResult::PrecompileError,
+            result: InstructionResult::PrecompileError,
             output: Bytes::new(),
             gas: Gas::new(0),
         }

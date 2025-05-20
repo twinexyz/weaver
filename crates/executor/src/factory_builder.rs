@@ -10,11 +10,8 @@ use reth_ethereum::evm::primitives::{Database, EvmEnv};
 use reth_ethereum::node::evm::EthEvm;
 use reth_evm::eth::EthEvmContext;
 use reth_evm::EvmFactory;
-use twine_constants::precompiles::{
-    TWINE_CONSENSUS_VERIFIER_PRECOMPILE_ADDRESS, TWINE_TRANSACTION_PRECOMPILE_ADDRESS,
-};
 
-use crate::precompiles::TwineCustomPrecompile;
+use crate::precompiles::{TwineCustomPrecompile, TwinePrecompiles};
 
 #[derive(Debug, Default, Clone, Copy)]
 #[non_exhaustive]
@@ -41,8 +38,7 @@ impl EvmFactory for TwineEvmFactory {
 
         let twine_precompile = TwineCustomPrecompile {
             inner: eth_precompiles,
-            l1_consensus: TWINE_CONSENSUS_VERIFIER_PRECOMPILE_ADDRESS,
-            l1_transaction: TWINE_TRANSACTION_PRECOMPILE_ADDRESS,
+            twine_precompiles: TwinePrecompiles::default(),
         };
         let evm = Context::mainnet()
             .with_db(db)

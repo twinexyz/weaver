@@ -3,7 +3,7 @@
 
 use std::collections::HashSet;
 
-use reth::revm::primitives::{Address, U256};
+use reth_revm::primitives::{Address, U256};
 use twine_constants::chains::{
     ETHEREUM_CHAIN_ID, ETHEREUM_HOLESKY_CHAIN_ID, ETHEREUM_SEPOLIA_CHAIN_ID, SOLANA_CHAIN_ID,
 };

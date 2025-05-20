@@ -8,7 +8,7 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-reth.workspace = true
+reth-revm.workspace = true
 twine-constants.workspace = true
 
 [lints]

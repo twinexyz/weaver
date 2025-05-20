@@ -8,15 +8,14 @@
 
 use alloy_consensus::ReceiptEnvelope;
 use alloy_eips::Decodable2718;
-use alloy_primitives::{keccak256, Address, Bytes, FixedBytes, U256};
+use alloy_primitives::{keccak256, Address, Bytes, FixedBytes, Log, U256};
 use alloy_sol_types::{sol_data, SolEvent, SolType, SolValue};
 use alloy_trie::proof::verify_proof;
 use alloy_trie::Nibbles;
 use errors::TransactionPrecompileError;
-use reth::revm::context::{ContextTr, JournalTr};
-use reth::revm::interpreter::{Gas, InputsImpl, InstructionResult, InterpreterResult};
-use reth::revm::Database;
-use reth_primitives::Log;
+use reth_revm::context::{ContextTr, JournalTr};
+use reth_revm::interpreter::{Gas, InputsImpl, InstructionResult, InterpreterResult};
+use reth_revm::Database;
 use reth_tracing::tracing;
 use sol::{L1Txns, MerkleParamType, TokenTxn, VerifierInput};
 use twine_constants::precompiles::TWINE_SYSTEM_STORAGE_CONTRACT;

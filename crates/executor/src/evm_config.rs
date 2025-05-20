@@ -1,7 +1,6 @@
 use std::convert::Infallible;
 use std::sync::Arc;
 
-use reth::primitives::SealedBlock;
 use reth_ethereum::chainspec::ChainSpec;
 use reth_ethereum::evm::primitives::NextBlockEnvAttributes;
 use reth_ethereum::evm::{EthBlockAssembler, EthEvmConfig, RethReceiptBuilder};
@@ -10,7 +9,7 @@ use reth_ethereum::primitives::SealedHeader;
 use reth_ethereum::EthPrimitives;
 use reth_evm::eth::EthBlockExecutorFactory;
 use reth_evm::{EvmEnvFor, ExecutionCtxFor};
-use reth_primitives::{BlockTy, HeaderTy};
+use reth_primitives::{BlockTy, HeaderTy, SealedBlock};
 
 use crate::factory_builder::TwineEvmFactory;
 
