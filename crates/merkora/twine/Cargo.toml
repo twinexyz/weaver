@@ -1,0 +1,16 @@
+[package]
+name = "merkora-twine"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+alloy = { version = "0.5.4", features = ["full"] }
+alloy-network.workspace = true
+alloy-provider.workspace = true
+anyhow.workspace = true
+merkora-db.workspace = true
+merkora-types.workspace = true
+serde_json.workspace = true
+sqlx.workspace = true
+tokio.workspace = true
+tracing.workspace = true

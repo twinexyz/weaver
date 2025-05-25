@@ -1,0 +1,32 @@
+[package]
+name = "merkora"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+futures = "0.3.31"
+merkora-config.workspace = true
+merkora-db.workspace = true
+merkora-db-poller.workspace = true
+merkora-ethereum.workspace = true
+merkora-json-rpc-server.workspace = true
+merkora-solana.workspace = true
+merkora-twine.workspace = true
+merkora-types.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+
+[[bin]]
+name = "merkora"
+path = "src/main.rs"
+
+[features]
+default = ["event_websocket"]
+
+polling = ["merkora-ethereum/polling"]
+block_websocket = ["merkora-ethereum/block_websocket"]
+event_websocket = ["merkora-ethereum/event_websocket"]
+zkmode = ["merkora-db-poller/zkmode"]

@@ -1,0 +1,6 @@
+[package]
+name = "merkora-supported-chains"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]

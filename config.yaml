@@ -1,0 +1,21 @@
+global:
+  port: 5555
+  log: info
+  db-path: postgres://twine:twine@localhost/twine_merkora
+twine:
+  l2-messenger-contract: 0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0
+  rpc: http://127.0.0.1:8545
+  private-key: 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+l1s:
+  ethereum:
+    - name: ethereum
+      chain-id: 17000
+      rpc: http://127.0.0.1:8570
+      wss: ws://127.0.0.1:8571
+      start-height: 1
+      beacon-rpc: https://ethereum-holesky.core.chainstack.com/beacon/c84e62a1ef4145f9edce1ca433a7901d
+      l1-message-queue: 0x610178dA211FEF7D417bC0e6FeD39F05609AD788
+      l1-twine-dvn: 0xC500a815D49F4396d28111C3D91A2120195eBe6f
+  solana:
+  - name: solana-devnet
+    chain-id: 900

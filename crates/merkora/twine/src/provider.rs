@@ -1,0 +1,214 @@
+use std::sync::Arc;
+
+use alloy::eips::BlockId;
+use alloy::hex::FromHex;
+use alloy::primitives::{Address, B256, U256};
+use alloy::rpc::types::{Block, TransactionReceipt, TransactionRequest};
+use alloy::signers::local::PrivateKeySigner;
+use alloy::transports::http::{reqwest, Http};
+use alloy_network::{Ethereum, EthereumWallet};
+use alloy_provider::fillers::{
+    BlobGasFiller, ChainIdFiller, FillProvider, GasFiller, JoinFill, NonceFiller, WalletFiller,
+};
+use alloy_provider::{Identity, Provider, ProviderBuilder, RootProvider};
+use anyhow::{Error, Result};
+use merkora_types::TwineInputParams;
+use sqlx::PgPool;
+use tokio::sync::mpsc::Receiver;
+use tokio::sync::Notify;
+
+use crate::L2Messenger;
+
+static MAX_RETRIES: i32 = 10;
+
+type HttpClient = Http<reqwest::Client>;
+type Fillers = JoinFill<
+    JoinFill<
+        Identity,
+        JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>,
+    >,
+    WalletFiller<EthereumWallet>,
+>;
+type FullProvider = FillProvider<Fillers, RootProvider<HttpClient>, HttpClient, Ethereum>;
+type Messenger = L2Messenger::L2MessengerInstance<HttpClient, FullProvider>;
+
+#[derive(Debug, Clone)]
+pub struct TwineProvider {
+    pub provider: FullProvider,
+    pub l2_messenger: Messenger,
+}
+
+impl TwineProvider {
+    pub fn new(url: &str, wallet: EthereumWallet, l2_messenger_addr: Address) -> Self {
+        let provider = ProviderBuilder::new()
+            .with_recommended_fillers()
+            .wallet(wallet.clone())
+            .on_http(url.parse().unwrap());
+
+        let l2_messenger = L2Messenger::new(l2_messenger_addr, provider.clone());
+
+        Self {
+            provider,
+            l2_messenger,
+        }
+    }
+
+    pub fn new_with_pk(url: &str, private_key: &str, l2_messenger: &str) -> Self {
+        let signer = PrivateKeySigner::from_bytes(&B256::from_hex(private_key).unwrap()).unwrap();
+        let wallet = EthereumWallet::from(signer);
+
+        let l2_messenger = Address::from_hex(l2_messenger).expect("Invalid l2 messenger address");
+        TwineProvider::new(url, wallet, l2_messenger)
+    }
+
+    pub async fn get_block_by_number(&self, block_number: u64) -> Option<Block> {
+        let block = self
+            .provider
+            .get_block_by_number(alloy::eips::BlockNumberOrTag::Number(block_number), true)
+            .await;
+        block.unwrap_or_default()
+    }
+
+    pub async fn get_block_receipts(&self, block_number: u64) -> Result<Vec<TransactionReceipt>> {
+        for i in 0..10 {
+            match self
+                .provider
+                .get_block_receipts(BlockId::number(block_number))
+                .await
+            {
+                Ok(blk_rec) =>
+                    if let Some(b) = blk_rec {
+                        return Ok(b);
+                    } else {
+                        tracing::info!("Got None in block receipts ");
+                    },
+                Err(e) => {
+                    tracing::error!("Error querying receipts: {i}/10 error: {}", e.to_string());
+                }
+            }
+        }
+        Err(Error::msg("Failed to query block receipts"))
+    }
+
+    /// - Wallet and network configuration in self
+    /// - This channel should receive all params to call l2 messenger contract
+    ///   on twine
+    pub async fn send_transaction_to_twine(
+        &self,
+        mut receiver: Receiver<TwineInputParams>,
+        db: PgPool,
+        notify: Arc<Notify>,
+    ) -> Result<()> {
+        while let Some(rx) = receiver.recv().await {
+            let chain_id = rx.chain_id;
+            match rx.chain_type {
+                merkora_types::manager::ChainTyp::Solana => {
+                    if let Some(solana_params) = rx.account_info {
+                        let tx = self
+                            .l2_messenger
+                            .handleSolanaTransactions(U256::from(chain_id), solana_params)
+                            .into_transaction_request();
+                        if let Err(_e) = self.send_transaction(tx).await {
+                            tracing::error!("Failed to handle solana transactions");
+                            notify.notify_one();
+                        } else {
+                            if let Err(e) =
+                                merkora_db::mark_nonce_as_processed(&db, rx.chain_id, rx.nonce)
+                                    .await
+                            {
+                                tracing::error!(error=?e, "Failed to mark nonce as processed in db");
+                            }
+                            notify.notify_one();
+                            tracing::info!(nonce = rx.nonce, chain_id, "message processed!");
+                        }
+                    }
+                }
+                merkora_types::manager::ChainTyp::Ethereum => {
+                    if let Some(eth_params) = rx.transactions {
+                        if let Some(eth_consensus) = rx.verifier {
+                            let height = rx.block_height.unwrap();
+                            // If height already processed, do not resend transaction for the block
+                            if matches!(
+                                merkora_db::is_nonce_processed(&db, rx.chain_id, rx.nonce).await,
+                                Ok(true)
+                            ) {
+                                notify.notify_one();
+                                continue;
+                            }
+                            let receipt_root = rx.receipt_root.unwrap();
+                            let tx = self
+                                .l2_messenger
+                                .handleEthereumProofAndTransactions(
+                                    U256::from(chain_id),
+                                    U256::from(height),
+                                    receipt_root,
+                                    eth_consensus,
+                                    eth_params,
+                                )
+                                .into_transaction_request();
+                            if let Err(e) = self.send_transaction(tx).await {
+                                tracing::error!(error=?e, "Failed to handle ethereum transactions");
+                                notify.notify_one();
+                            } else {
+                                if let Err(e) =
+                                    merkora_db::mark_nonce_as_processed(&db, rx.chain_id, rx.nonce)
+                                        .await
+                                {
+                                    tracing::error!(error=?e, "Failed to mark nonce as processed in db");
+                                }
+                                notify.notify_one();
+                                tracing::info!(
+                                    height,
+                                    nonce = rx.nonce,
+                                    chain_id,
+                                    "message processed!"
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Err(Error::msg("Receive loop terminated"))
+    }
+
+    pub async fn send_transaction(&self, request: TransactionRequest) -> Result<()> {
+        let mut attempt = 0;
+        loop {
+            let pending_tx = self.provider.send_transaction(request.clone()).await?;
+
+            tracing::info!("Pending transaction hash: {}", pending_tx.tx_hash());
+
+            match pending_tx.get_receipt().await {
+                Ok(receipt) => {
+                    let txn_hash = receipt.transaction_hash.to_string();
+                    if receipt.status() {
+                        tracing::info!("Transaction Successful! txn_hash: {}", txn_hash);
+                    } else {
+                        tracing::warn!("Transaction Failed! txn_hash: {}", txn_hash);
+                    }
+                    return Ok(());
+                }
+                Err(e) => {
+                    attempt += 1;
+                    if attempt >= MAX_RETRIES {
+                        tracing::warn!(
+                            "Transaction failed after {} attempts. Error: {}",
+                            attempt,
+                            e
+                        );
+                        return Err(e.into());
+                    }
+
+                    tracing::error!(
+                        "Transaction Failed! Error: {}. Retrying ({}/{})",
+                        e,
+                        attempt,
+                        MAX_RETRIES
+                    );
+                    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+                }
+            }
+        }
+    }
+}

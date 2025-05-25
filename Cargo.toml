@@ -9,14 +9,16 @@ rust-version = "1.85"
 [workspace]
 members = [
   "bin/devtest",
+  "bin/merkora",
   "bin/node",
-
   "crates/constants",
   "crates/ethereum-consensus-prover",
   "crates/evm-contracts",
   "crates/executor",
   "crates/integration-tests",
   "crates/l1-utils",
+  "crates/merkora/config",
+  "crates/merkora/json-rpc-server",
   "crates/precompiles/l1-consensus-verifier",
   "crates/precompiles/l1-transactions",
   "crates/solana-consensus-prover",
@@ -38,15 +40,15 @@ alloy-sol-types = { version = "1.0.0", default-features = false, features = ["js
 alloy-trie = { version = "0.8.1", default-features = false }
 
 bls12_381 = { git = "https://github.com/sp1-patches/bls12_381", branch = "patch-v0.8.0", features = ["experimental"] }
-
+clap = { version = "4.5.21", features = ["derive", "string"] }
 env_logger = "0.11.7"
 ethereum_ssz = "0.9.0"
 ethereum_ssz_derive = "0.9.0"
 eyre = "0.6"
 git2 = "0.20.1"
 hex = "0.4.3"
+home = "0.5.9"
 log = "0.4.26"
-
 parking_lot = "0.12"
 rand = "0.8.5"
 regex = "1.11.1"
@@ -105,6 +107,16 @@ twine-l1-transactions-precompile = { path = "crates/precompiles/l1-transactions"
 twine-l1-utils = { path = "crates/l1-utils" }
 twine-solana-consensus-prover-lib = { path = "crates/solana-consensus-prover" }
 twine-solana-sdk = { path = "crates/solana-sdk" }
+
+merkora-config = { path = "crates/merkora/config" }
+merkora-db = { path = "crates/merkora/db" }
+merkora-db-poller = { path = "crates/merkora/poller" }
+merkora-ethereum = { path = "crates/merkora/ethereum" }
+merkora-json-rpc-server = { path = "crates/merkora/json-rpc-server" }
+merkora-solana = { path = "crates/merkora/solana" }
+merkora-supported-chains = { path = "crates/merkora/supported-chains" }
+merkora-twine = { path = "crates/merkora/twine" }
+merkora-types = { path = "crates/merkora/types" }
 
 [patch.crates-io]
 # The following is required since we would like to remove

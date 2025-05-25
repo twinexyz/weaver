@@ -1,0 +1,14 @@
+[package]
+name = "merkora-db"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+alloy.workspace = true
+anyhow.workspace = true
+merkora-types.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sqlx.workspace = true
+tokio.workspace = true
+tracing.workspace = true
