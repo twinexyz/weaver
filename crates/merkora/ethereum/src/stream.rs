@@ -14,9 +14,7 @@ use anyhow::{anyhow, Context, Result};
 use merkora_types::db::L1MessageDetails;
 use reth_primitives::ReceiptWithBloom;
 use tokio::sync::{mpsc, Semaphore};
-use twine_evm_contracts::evm::ethereum::l1_message_queue::L1MessageQueue::{
-    QueueDepositTransaction, QueueWithdrawalTransaction,
-};
+use twine_evm_contracts::L1MessageQueue::{QueueDepositTransaction, QueueWithdrawalTransaction};
 
 use crate::utils::{
     adjust_index_for_rlp, generate_receipt_with_bloom, get_index_nibble,

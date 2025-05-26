@@ -6,7 +6,7 @@ edition.workspace = true
 [dependencies]
 merkora-config.workspace = true
 merkora-types.workspace = true
-twine-evm-contracts = { git = "https://github.com/twinexyz/contracts-metadata", branch = "master" }
+twine-evm-contracts.workspace = true
 twine_tcp_lib.workspace = true
 
 alloy = { version = "0.5.4", features = ["full"] }

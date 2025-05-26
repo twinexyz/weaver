@@ -7,9 +7,7 @@ use alloy_trie::proof::{verify_proof, ProofNodes, ProofRetainer};
 use alloy_trie::{HashBuilder, Nibbles};
 use anyhow::Result;
 use reth_primitives::ReceiptWithBloom;
-use twine_evm_contracts::evm::ethereum::l1_message_queue::L1MessageQueue::{
-    QueueDepositTransaction, QueueWithdrawalTransaction,
-};
+use twine_evm_contracts::L1MessageQueue::{QueueDepositTransaction, QueueWithdrawalTransaction};
 
 use super::utils::generate_receipt_with_bloom;
 use crate::utils::{adjust_index_for_rlp, get_index_nibble, ordered_trie_root_with_encoder};

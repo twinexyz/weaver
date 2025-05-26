@@ -5223,7 +5223,6 @@ dependencies = [
 name = "merkora-db"
 version = "0.1.0"
 dependencies = [
- "alloy 0.2.1",
  "anyhow",
  "merkora-types",
  "serde",
@@ -5271,7 +5270,7 @@ dependencies = [
  "ssz_types",
  "tokio",
  "tracing",
- "twine-evm-contracts 0.1.0 (git+https://github.com/twinexyz/contracts-metadata?branch=master)",
+ "twine-evm-contracts",
  "twine_tcp_lib",
 ]
 
@@ -11530,8 +11529,17 @@ dependencies = [
 name = "twine-evm-contracts"
 version = "0.1.0"
 dependencies = [
- "alloy-contract",
- "alloy-sol-types",
+ "alloy-contract 0.11.1",
+ "alloy-sol-types 0.8.25",
+]
+
+[[package]]
+name = "twine-evm-contracts"
+version = "0.1.0"
+source = "git+https://github.com/twinexyz/contracts-metadata?branch=master#80666271858a764fefc86cdf4539f68a370866ac"
+dependencies = [
+ "alloy-contract 0.11.1",
+ "alloy-sol-types 0.8.25",
 ]
 
 [[package]]
@@ -11597,7 +11605,7 @@ dependencies = [
  "reth-tracing",
  "thiserror 2.0.12",
  "twine-constants",
- "twine-evm-contracts 0.1.0",
+ "twine-evm-contracts",
  "twine-l1-utils",
 ]
 
