@@ -236,7 +236,7 @@ pub fn get_receipt_root<CTX: ContextTr>(
         .sload(TWINE_SYSTEM_STORAGE_CONTRACT, receipt_slot)
     {
         Ok(root) => Ok(FixedBytes::from(root.data)),
-        Err(e) => Err(TransactionPrecompileError::QueryEvmFailed.into()),
+        Err(_) => Err(TransactionPrecompileError::QueryEvmFailed.into()),
     }
 }
 
