@@ -1,0 +1,79 @@
+services:
+  kafka:
+    image: apache/kafka:4.0.0
+    container_name: kafka1
+    environment:
+      # In KRaft mode, every Kafka node must have a unique ID that
+      # Identifies it in the controller quorum (see `KAFKA_CONTROLLER_QUORUM_VOTERS`)
+      KAFKA_NODE_ID: 1
+
+      # What roles this node plays in the Kafka cluster. In KRaft mode, it can be both a broker and a controller.
+      # A broker deals with data storage and retrieval,
+      # while a controller manages the cluster metadata and leader election.
+      # We run this node as a single-node Kafka cluster in KRaft mode, hence both roles are specified.
+      KAFKA_PROCESS_ROLES: broker,controller
+
+      # The location where Kafka stores its data.
+      KAFKA_LOG_DIR: /mnt/kafka-logs
+
+      # Kafka clients fetch metadata (including broker addresses) when they connect.
+      # If `KAFKA_ADVERTISED_LISTENERS` points to a hostname/IP that is not reachable from the client,
+      # they cannot connect, even if the broker is listening correctly.
+      # Hence, there is need to specify the "actual" address kafka connects to "KAFKA_LISTENERS"
+      # and the address advertised to clients "KAFKA_ADVERTISED_LISTENERS".
+      # Here is an example of how we would use this in an AWS machine:
+      #     KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      #     KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://ec2-3-21-42-99.compute-1.amazonaws.com:9092,CONTROLLER://ec2-3-21-42-99.compute-1.amazonaws.com:9093
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:19092 # This is what is exposed to the outside world.
+
+      # Specifies which listener to use for controller-to-controller communication in KRaft mode
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+
+      # Maps listener names to security protocols.
+      # `CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT` means that the CONTROLLER listener uses PLAINTEXT protocol,
+      # and the PLAINTEXT listener also uses PLAINTEXT protocol.
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+
+      # Specifies who are the voters in the controller quorum.
+      # In a single-node KRaft mode, this is just the node's controller interface itself.
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+
+      # Kafka automatically creates the `__consumer_offsets` topic (if it doesn't already exist)
+      # This is a special internal topic that Kafka uses to store the committed offsets of consumer groups.
+      #   When a consumer commits its offset, it gets stored here.
+      #   If this topic is misconfigured, offset tracking and consumer group coordination can break
+      # Set it to the number of replicas you want for the `__consumer_offsets` topic. `1` means no replication.
+      # and can lead to data loss if the broker fails. Although, in a single-node setup, replication is not needed.
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+      # Kafka automatically creates the `__transaction_state` topic (if it doesn't already exist)
+      # This topic is used to store the state of transactions in Kafka (needed for atomicity)
+      # Set it to the number of replicas you want for the `__transaction_state` topic. `1` means no replication.
+      # and can lead to data loss if the broker fails. Although, in a single-node setup, replication is not needed.
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      # Minimum number of in-sync replicas for the `__transaction_state` topic.
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+
+      # Defines how long a consumer group coordinator waits before rebalancing consumers on group join. 0 means no delay.
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+
+      # Specifies the default number of partitions created when you create a new Kafka topic
+      # without explicitly specifying the number of partitions.
+      KAFKA_NUM_PARTITIONS: 1
+
+
+    ports:
+      - "19092:9092"
+      - "19093:9093" # not needed for single-node KRaft mode, but included for consistency
+
+
+    healthcheck:
+      test: ["CMD", "kafka-topics.sh", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+    volumes:
+      - ~/.twine/docker_data_volumes/kafka_1node/1/kafka-logs:/mnt/kafka-logs

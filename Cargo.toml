@@ -9,8 +9,8 @@ rust-version = "1.85"
 [workspace]
 members = [
   "bin/devtest",
+  "bin/kafka-tester",
   "bin/node",
-
   "crates/constants",
   "crates/ethereum-consensus-prover-lib",
   "crates/evm-contracts",
@@ -47,6 +47,7 @@ log = "0.4.26"
 
 parking_lot = "0.12"
 rand = "0.8.5"
+rdkafka = "0.37.0"
 regex = "1.11.1"
 reqwest = { version = "0.11", features = ["json"] }
 serde = { version = "1.0.210", features = ["derive"] }

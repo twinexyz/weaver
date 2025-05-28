@@ -1,0 +1,14 @@
+[package]
+name = "kafka-tester"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+env_logger = { workspace = true }
+log = { workspace = true }
+rdkafka = { workspace = true }
+tokio = { workspace = true }
+
+[[bin]]
+name = "kafka-tester"
+path = "src/main.rs"
