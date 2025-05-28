@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-alloy.workspace = true
+alloy-primitives.workspace = true
 bls12_381.workspace = true
 ethereum_ssz.workspace = true
 ethereum_ssz_derive.workspace = true
