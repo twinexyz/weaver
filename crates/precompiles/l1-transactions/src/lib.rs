@@ -15,7 +15,6 @@ use alloy_trie::Nibbles;
 use errors::TransactionPrecompileError;
 use reth_revm::context::{ContextTr, JournalTr};
 use reth_revm::interpreter::{Gas, InputsImpl, InstructionResult, InterpreterResult};
-use reth_revm::Database;
 use reth_tracing::tracing;
 use sol::{L1Txns, MerkleParamType, TokenTxn, VerifierInput};
 use twine_constants::precompiles::TWINE_SYSTEM_STORAGE_CONTRACT;
@@ -39,7 +38,7 @@ impl TransactionPrecompile {
         _is_static: bool,
         _gas_limit: u64,
     ) -> Result<Option<InterpreterResult>, String> {
-        tracing::info!("Consensus verifier precompile invoked");
+        tracing::info!("Transaction precompile invoked");
 
         let (chain_id, data) = VerifierInput::abi_decode_sequence(&inputs.input)
             .map_err(|_| TransactionPrecompileError::DecodeVerifierInput.to_string())?;
@@ -180,6 +179,8 @@ fn process_l1_transaction<CTX: ContextTr>(
         evmctx,
     )?;
 
+    tracing::info!("Receipt root obtained: {}", receipt_root);
+
     verify_merkle_proof_for_txn(txn, proof, receipt_root)?;
 
     let l1_txn = L1Txns {
@@ -190,8 +191,10 @@ fn process_l1_transaction<CTX: ContextTr>(
             value: l1_log.amount(),
             mint,
         },
-        forcedTxn: vec![],
+        contractCallData: l1_log.message(),
     };
+
+    println!("l1 txn: {:#?}", l1_txn);
 
     Ok(Some(InterpreterResult {
         result: InstructionResult::Return,
@@ -226,23 +229,14 @@ pub fn get_receipt_root<CTX: ContextTr>(
     evmctx: &mut CTX,
 ) -> Result<FixedBytes<32>, TransactionPrecompileError> {
     let receipt_slot = calculate_receipt_slot_position(chain_id, height);
-    tracing::debug!("Slot position is {}", receipt_slot);
+    evmctx.journal().warm_account(TWINE_SYSTEM_STORAGE_CONTRACT);
 
     match evmctx
         .journal()
-        .warm_account_and_storage(TWINE_SYSTEM_STORAGE_CONTRACT, [receipt_slot])
+        .sload(TWINE_SYSTEM_STORAGE_CONTRACT, receipt_slot)
     {
-        Ok(_) => match evmctx
-            .db()
-            .storage(TWINE_SYSTEM_STORAGE_CONTRACT, receipt_slot)
-        {
-            Ok(root) => Ok(FixedBytes::from(root)),
-            Err(_) => Ok(FixedBytes::from_slice(&[0u8; 32])),
-        },
-        Err(_) => {
-            tracing::debug!("Failed loading twine system storage contract");
-            Err(TransactionPrecompileError::QueryEvmFailed.into())
-        }
+        Ok(root) => Ok(FixedBytes::from(root.data)),
+        Err(e) => Err(TransactionPrecompileError::QueryEvmFailed.into()),
     }
 }
 
@@ -250,7 +244,10 @@ pub fn get_receipt_root<CTX: ContextTr>(
 pub fn calculate_receipt_slot_position(outer_key: U256, inner_key: U256) -> U256 {
     let mut outer_key_encoded = vec![];
     outer_key_encoded.extend_from_slice(&outer_key.to_be_bytes_vec());
-    outer_key_encoded.extend_from_slice(&U256::from(0).to_be_bytes_vec());
+
+    let receipt_slot = U256::from(3);
+    outer_key_encoded.extend_from_slice(&receipt_slot.to_be_bytes_vec());
+
     let outer_mapping_slot_hash = keccak256(&outer_key_encoded);
 
     let mut inner_key_encoded = vec![];
@@ -291,6 +288,9 @@ pub trait L1Log {
 
     /// Amount to mint/burn
     fn amount(&self) -> U256;
+
+    /// Call for deposit and call
+    fn message(&self) -> Bytes;
 }
 
 /// Wrapper over deposit logs for `L1Log` abstraction.
@@ -309,6 +309,8 @@ impl L1Log for WrappedDeposit {
     fn to_address(&self) -> Address { self.0.toTwineAddress }
 
     fn amount(&self) -> U256 { self.0.amount }
+
+    fn message(&self) -> Bytes { self.0.message.clone() }
 }
 
 /// Wrapper over withdraw logs for `L1Log` abstraction.
@@ -327,4 +329,6 @@ impl L1Log for WrappedWithdrawal {
     fn to_address(&self) -> Address { self.0.toTwineAddress }
 
     fn amount(&self) -> U256 { self.0.amount }
+
+    fn message(&self) -> Bytes { Bytes::new() }
 }
