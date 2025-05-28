@@ -26,25 +26,20 @@ resolver = "3"
 [workspace.dependencies]
 # The versions of alloy related crates should be fetched from `reth`
 # https://github.com/paradigmxyz/reth/blob/{RETH_TAG}/Cargo.toml
-alloy-consensus = { version = "0.11.1", default-features = false }
-# alloy-evm = { version = "0.1.0-alpha.3", default-features = false }
-alloy-contract = { version = "0.11.1", default-features = false }
+alloy-consensus = { version = "0.14.0", default-features = false }
+alloy-contract = { version = "0.14.0", default-features = false }
 # needed to implement `encode_2718` function which comes from `use alloy_eips::Encodable2718;`
-alloy-eips = { version = "0.11.1", default-features = false }
-alloy-genesis = { version = "0.11.1", default-features = false }
-alloy-primitives = { version = "0.8.15", default-features = false }
-alloy-sol-types = { version = "0.8.20", features = ["json"] }
-alloy-trie = { version = "0.7", default-features = false }
-
-# this is an exception to the above rule, twine-ethereum-consensus-prover is the only
-# crate that depends on this.
-alloy = { version = "0.2.1", features = ["rpc-types", "sol-types", "ssz"] }
+alloy-eips = { version = "0.14.0", default-features = false }
+alloy-genesis = { version = "0.14.0", default-features = false }
+alloy-primitives = { version = "1.0.0", default-features = false, features = ["map-foldhash"] }
+alloy-sol-types = { version = "1.0.0", default-features = false, features = ["json"] }
+alloy-trie = { version = "0.8.1", default-features = false }
 
 bls12_381 = { git = "https://github.com/sp1-patches/bls12_381", branch = "patch-v0.8.0", features = ["experimental"] }
 
 env_logger = "0.11.7"
-ethereum_ssz = "0.6.0"
-ethereum_ssz_derive = "0.6.0"
+ethereum_ssz = "0.9.0"
+ethereum_ssz_derive = "0.9.0"
 eyre = "0.6"
 git2 = "0.20.1"
 hex = "0.4.3"
@@ -58,11 +53,11 @@ serde = { version = "1.0.210", features = ["derive"] }
 serde_bytes = "0.11.14"
 serde_json = "1.0.132"
 sha2 = "0.9"
-ssz_types = "0.7.0"
+ssz_types = "0.11.0"
 thiserror = "2.0.12"
 tokio = { version = "1.40.0", features = ["full"] }
-tree_hash = "0.7.0"
-tree_hash_derive = "0.7.0"
+tree_hash = "0.10.0"
+tree_hash_derive = "0.10.0"
 typenum = "1.12.0"
 
 # SOLANA
@@ -79,18 +74,21 @@ sha2_solana = { package = "sha2", git = "https://github.com/sp1-patches/RustCryp
 smallvec = "1.13.2"
 
 # RETH
-reth = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.2.2" }
-reth-chainspec = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.2.2" }
-reth-ethereum-payload-builder = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.2.2" }
-reth-evm = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.2.2" }
-reth-evm-ethereum = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.2.2" }
-reth-exex = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.2.2" }
-reth-node-api = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.2.2" }
-reth-node-core = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.2.2" }
-reth-node-ethereum = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.2.2", features = ["test-utils"] }
-reth-primitives = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.2.2", default-features = false, features = ["alloy-compat", "std"] }
-reth-revm = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.2.2", default-features = false, features = ["std"] }
-reth-tracing = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.2.2" }
+reth = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.10" }
+reth-chainspec = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.10" }
+reth-ethereum = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.10" }
+reth-ethereum-payload-builder = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.10" }
+reth-evm = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.10" }
+reth-evm-ethereum = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.10" }
+reth-exex = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.10" }
+reth-node-api = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.10" }
+reth-node-core = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.10" }
+reth-node-ethereum = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.10", features = ["test-utils"] }
+reth-primitives = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.10", default-features = false, features = ["alloy-compat", "std"] }
+reth-revm = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.10", default-features = false, features = ["std"] }
+reth-tracing = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.10" }
+
+revm-context = { version = "3.0.0", default-features = false }
 
 twine-constants = { path = "crates/constants" }
 twine-ethereum-consensus-prover-lib = { path = "crates/ethereum-consensus-prover-lib" }

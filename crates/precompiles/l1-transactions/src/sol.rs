@@ -8,22 +8,18 @@ pub(crate) type MerkleParamType = (
 );
 
 sol!(
+    #[derive(Debug)]
     struct TokenTxn{
+        uint256 value;
         address token;
         address to;
-        uint256 value;
         bool mint;
     }
 
-    struct L1ForcedTxn{
-        address to;
-        uint256 value;
-        bytes data;
-    }
-
+    #[derive(Debug)]
     struct L1Txns {
         uint256 nonce;
         TokenTxn tokenTxn;
-        L1ForcedTxn[] forcedTxn;
+        bytes contractCallData;
     }
 );

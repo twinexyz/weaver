@@ -12,6 +12,7 @@ sh scripts/generate_evm_contract_artifacts.sh
 cargo run --bin twine-node -- \
     node \
     --dev \
+    --chain bin/node/res/dev-genesis.json \
     --http \
     --http.port 8570 \
     --ws \
