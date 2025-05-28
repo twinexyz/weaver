@@ -18,7 +18,17 @@ pub struct TwinePrecompiles {
 
 impl TwinePrecompiles {
     pub fn contains(&self, address: &Address) -> bool {
-        self.consensus_precompile.eq(address) || self.transaction_precompile.eq(address)
+        #[cfg(feature = "twine-l1-consensus-verifier-precompile")]
+        if self.consensus_precompile.eq(address) {
+            return true;
+        }
+
+        #[cfg(feature = "twine-l1-transactions-precompile")]
+        if self.transaction_precompile.eq(address) {
+            return true;
+        }
+
+        false
     }
 }
 
@@ -79,10 +89,16 @@ impl<CTX: ContextTr> PrecompileProvider<CTX> for TwineCustomPrecompile {
     }
 
     fn warm_addresses(&self) -> Box<impl Iterator<Item = Address>> {
-        Box::new(self.inner.warm_addresses().chain(vec![
-            TWINE_CONSENSUS_VERIFIER_PRECOMPILE_ADDRESS,
-            TWINE_TRANSACTION_PRECOMPILE_ADDRESS,
-        ]))
+        let addresses = self.inner.warm_addresses();
+
+        #[cfg(feature = "twine-l1-consensus-verifier-precompile")]
+        let addresses =
+            addresses.chain(std::iter::once(TWINE_CONSENSUS_VERIFIER_PRECOMPILE_ADDRESS));
+
+        #[cfg(feature = "twine-l1-transactions-precompile")]
+        let addresses = addresses.chain(std::iter::once(TWINE_TRANSACTION_PRECOMPILE_ADDRESS));
+
+        Box::new(addresses)
     }
 
     fn contains(&self, address: &Address) -> bool {
