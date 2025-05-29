@@ -1,15 +1,17 @@
 [package]
-name = "merkora-solana"
+name = "twine-merkora-solana"
 version.workspace = true
 edition.workspace = true
 
 [dependencies]
-merkora-config.workspace = true
-merkora-types.workspace = true
+twine-config.workspace = true
+twine-merkora-types.workspace = true
 
-alloy = { version = "0.5.4", features = ["full"] }
 alloy-network.workspace = true
+alloy-primitives.workspace = true
 alloy-provider.workspace = true
+alloy-sol-types.workspace = true
+alloy-rpc-types.workspace = true
 anyhow.workspace = true
 async-trait.workspace = true
 serde.workspace = true

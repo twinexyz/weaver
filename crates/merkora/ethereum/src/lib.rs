@@ -1,24 +1,24 @@
 use std::str::FromStr;
 use std::time::Duration;
 
-use alloy::providers::{ProviderBuilder, WsConnect};
 use alloy_primitives::{Address, Bytes, FixedBytes};
+use alloy_provider::{DynProvider, Provider, ProviderBuilder, WsConnect};
 use alloy_rlp::{RlpDecodable, RlpEncodable};
 use alloy_sol_types::SolType;
 use anyhow::anyhow;
 use async_trait::async_trait;
 use beacon::BeaconProvider;
 use header::header_to_header;
-use merkora_config::EthereumConfig;
-use merkora_types::db::L1MessageDetails;
-use merkora_types::manager::ChainTyp;
-use merkora_types::traits::{ChainProvider, ChainTypeHandler};
-use merkora_types::TwineInputParams;
 use sqlx::PgPool;
 use ssz::Encode;
 use tokio::sync::mpsc;
 use transactions::ReceiptsProof;
-use twine_tcp_lib::eth::EthPublicValuesStruct;
+use twine_config::EthereumConfig;
+use twine_ethereum_consensus_prover_lib::eth::EthPublicValuesStruct;
+use twine_merkora_types::db::L1MessageDetails;
+use twine_merkora_types::manager::ChainTyp;
+use twine_merkora_types::traits::{ChainProvider, ChainTypeHandler};
+use twine_merkora_types::TwineInputParams;
 use utils::TransactionData;
 
 pub mod beacon;
@@ -37,9 +37,8 @@ pub struct EthereumProviderConfig {
 
 #[derive(Clone)]
 pub struct EthereumProvider {
-    pub execution_provider:
-        alloy::providers::RootProvider<alloy::transports::http::Http<reqwest::Client>>,
-    pub ws_provider: alloy::providers::RootProvider<alloy::pubsub::PubSubFrontend>,
+    pub execution_provider: DynProvider,
+    pub ws_provider: DynProvider,
     pub db: PgPool,
     pub beacon_provider: BeaconProvider,
     pub chain_id: u64,
@@ -55,19 +54,23 @@ pub struct PrecompileInput {
     pub proof: Vec<Vec<u8>>,
     pub public_inputs: Vec<Vec<u8>>,
     pub participation_mask: Vec<Vec<u8>>,
-    pub headers: Vec<alloy::consensus::Header>,
+    pub headers: Vec<alloy_consensus::Header>,
 }
 
 impl EthereumProviderConfig {
     pub fn new(cfg: EthereumConfig) -> Self { Self { cfg } }
 
     pub async fn build(&self, db: PgPool) -> EthereumProvider {
-        let rpc_url = self.cfg.rpc.parse().expect("Invalid RPC url");
+        let http_rpc_url = self.cfg.rpc.parse().expect("Invalid RPC url");
+        let http_provider = ProviderBuilder::new().on_http(http_rpc_url);
+        let execution_provider = DynProvider::new(http_provider);
+
+        let beacon_provider = BeaconProvider::new(self.cfg.beacon_rpc.clone());
+
         let ws_rpc = self.cfg.wss.clone();
         let ws = WsConnect::new(ws_rpc);
-        let provider = ProviderBuilder::new().on_http(rpc_url);
-        let beacon_provider = BeaconProvider::new(self.cfg.beacon_rpc.clone());
-        let wss_provider = ProviderBuilder::new().on_ws(ws).await.unwrap();
+        let wss_provider_inner = ProviderBuilder::new().on_ws(ws).await.unwrap();
+        let wss_provider = DynProvider::new(wss_provider_inner);
 
         let l1_message_queue = Address::from_str(&self.cfg.l1_message_queue)
             .expect("Invalid l1 message queue address");
@@ -75,7 +78,7 @@ impl EthereumProviderConfig {
             Address::from_str(&self.cfg.l1_twine_dvn).expect("Invalid l1 twine dvn address");
 
         EthereumProvider {
-            execution_provider: provider,
+            execution_provider,
             ws_provider: wss_provider,
             db,
             beacon_provider,
@@ -125,7 +128,7 @@ impl ChainProvider for EthereumProvider {
 
     async fn generate_input_params(
         r: L1MessageDetails,
-        tx: mpsc::Sender<merkora_types::TwineInputParams>,
+        tx: mpsc::Sender<twine_merkora_types::TwineInputParams>,
     ) -> anyhow::Result<()> {
         let receipt_root = FixedBytes::from_slice(&r.receipt_root);
         let msg_nonce = r.nonce;
@@ -174,7 +177,7 @@ impl EthereumProvider {
     async fn generate_contract_params<T>(
         &self,
         chain_details: T,
-        tx: mpsc::Sender<merkora_types::TwineInputParams>,
+        tx: mpsc::Sender<twine_merkora_types::TwineInputParams>,
     ) -> anyhow::Result<()>
     where
         T: ChainTypeHandler + Send, {

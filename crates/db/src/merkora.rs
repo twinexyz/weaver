@@ -1,8 +1,8 @@
 use anyhow::Result;
-use merkora_types::db::{L1MessageDetails, L1MessageDetailsDB};
 use sqlx::PgPool;
 use tokio::sync::mpsc;
 use tracing::{debug, info};
+use twine_merkora_types::db::{L1MessageDetails, L1MessageDetailsDB};
 
 /// Connect to a postgres instance
 pub async fn connect(database_url: &str) -> Result<PgPool> {

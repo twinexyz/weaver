@@ -1,15 +1,24 @@
 [package]
-name = "merkora-twine"
+name = "twine-merkora-twine"
 version.workspace = true
 edition.workspace = true
 
 [dependencies]
-alloy = { version = "0.5.4", features = ["full"] }
+alloy-contract.workspace = true
+alloy-eips.workspace = true
 alloy-network.workspace = true
+alloy-network-primitives.workspace = true
+alloy-primitives.workspace = true
 alloy-provider.workspace = true
+alloy-rpc-types.workspace = true
+alloy-signer-local.workspace = true
+alloy-sol-types.workspace = true
+alloy-sol-macro.workspace = true
+alloy-transport-http.workspace = true
 anyhow.workspace = true
-merkora-db.workspace = true
-merkora-types.workspace = true
+twine-db.workspace = true
+twine-evm-contracts.workspace = true
+twine-merkora-types.workspace = true
 serde_json.workspace = true
 sqlx.workspace = true
 tokio.workspace = true

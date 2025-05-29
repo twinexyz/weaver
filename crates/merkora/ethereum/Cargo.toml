@@ -1,35 +1,38 @@
 [package]
-name = "merkora-ethereum"
+name = "twine-merkora-ethereum"
 version.workspace = true
 edition.workspace = true
 
 [dependencies]
-merkora-config.workspace = true
-merkora-types.workspace = true
+twine-config.workspace = true
+twine-merkora-types.workspace = true
 twine-evm-contracts.workspace = true
-twine_tcp_lib.workspace = true
+twine-ethereum-consensus-prover-lib.workspace = true
 
-alloy = { version = "0.5.4", features = ["full"] }
-alloy-primitives = "0.8.10"
-alloy-rlp = { version = "0.3.10", default-features = false }
-alloy-sol-types = "0.8.15"
-alloy-trie = "0.7.3"
-
+alloy-consensus.workspace = true
+alloy-eips.workspace = true
+alloy-primitives.workspace = true
+alloy-provider.workspace = true
+alloy-pubsub.workspace = true
+alloy-rlp.workspace = true
+alloy-rpc-types.workspace = true
+alloy-sol-types.workspace = true
+alloy-transport-http.workspace = true
+alloy-trie.workspace = true
 anyhow.workspace = true
 async-trait.workspace = true
+ethereum_ssz.workspace = true
+ethereum_ssz_derive.workspace = true
+futures-util.workspace = true
+lru.workspace = true
+reqwest.workspace = true
+reth-primitives.workspace = true
 serde_json.workspace = true
 sqlx.workspace = true
+ssz_types.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 
-ethereum_ssz = "0.6.0"
-ethereum_ssz_derive = "0.6.0"
-reqwest = "0.12.9"
-reth-primitives = { git = "https://github.com/paradigmxyz/reth.git", rev = "1ce067b77bd5a1c2ec7a03c0bdde363afc602bcc" }
-ssz_types = "0.7.0"
-
-futures-util = "0.3.31"
-lru = "0.13.0"
 
 [features]
 event_websocket = []

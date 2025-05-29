@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use reqwest::Client;
 use tokio::time::sleep;
-use twine_tcp_lib::eth::EthBeaconBlock;
+use twine_ethereum_consensus_prover_lib::eth::EthBeaconBlock;
 
 #[derive(Debug, Clone)]
 pub struct BeaconProvider {

@@ -9,16 +9,16 @@ use clap::{Parser, Subcommand};
 use futures::stream::FuturesUnordered;
 use futures::StreamExt;
 use logging::init_logger;
-use merkora_config::{default_config_path, load_and_validate_config, Config};
-use merkora_ethereum::EthereumProviderConfig;
-use merkora_json_rpc_server::JsonRpcServer;
-use merkora_solana::SolanaProvider;
-use merkora_twine::provider::TwineProvider;
-use merkora_types::db::L1MessageDetails;
-use merkora_types::manager::{ChainIdentifier, ChainManager, ChainTyp};
-use merkora_types::traits::ChainProvider;
 use tokio::sync::{mpsc, Notify};
 use tracing::info;
+use twine_config::{default_config_path, load_and_validate_config, Config};
+use twine_merkora_ethereum::EthereumProviderConfig;
+use twine_merkora_json_rpc_server::JsonRpcServer;
+use twine_merkora_solana::SolanaProvider;
+use twine_merkora_twine::provider::TwineProvider;
+use twine_merkora_types::db::L1MessageDetails;
+use twine_merkora_types::manager::{ChainIdentifier, ChainManager, ChainTyp};
+use twine_merkora_types::traits::ChainProvider;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -98,7 +98,7 @@ async fn run(cfg: Config) -> anyhow::Result<()> {
     let notify = Arc::new(Notify::new());
 
     // DB from db crate
-    let db = merkora_db::connect(&db_path)
+    let db = twine_db::merkora::connect(&db_path)
         .await
         .context("failed to connect to db")?;
 
@@ -143,7 +143,7 @@ async fn run(cfg: Config) -> anyhow::Result<()> {
             );
 
             let db_last_processed: Result<u64, anyhow::Error> =
-                merkora_db::fetch_oldest_unprocessed_slot_or_block_number(
+                twine_db::merkora::fetch_oldest_unprocessed_slot_or_block_number(
                     &db,
                     ethereum_chain.chain_id,
                 )
@@ -250,7 +250,7 @@ async fn run(cfg: Config) -> anyhow::Result<()> {
         let tx_clone = txns_params_tx.clone();
         let notify_clone = notify.clone();
         let handle = tokio::spawn(async move {
-            merkora_db_poller::poll_next_message(&db_clone, tx_clone, notify_clone).await
+            twine_merkora_db_poller::poll_next_message(&db_clone, tx_clone, notify_clone).await
         });
         handles.push(handle);
     }
@@ -265,7 +265,7 @@ async fn run(cfg: Config) -> anyhow::Result<()> {
         let notify_clone = notify.clone();
         let handle = tokio::spawn(async move {
             while let Some(block_height) = block_height_rx.recv().await {
-                if let Err(err) = merkora_db_poller::process_messages_up_to_height(
+                if let Err(err) = twine_merkora_db_poller::process_messages_up_to_height(
                     &db_clone,
                     tx_clone.clone(),
                     notify_clone.clone(),
@@ -288,7 +288,7 @@ async fn run(cfg: Config) -> anyhow::Result<()> {
     {
         let db_clone = db.clone();
         let db_handle = tokio::spawn(async move {
-            merkora_db::run(db_clone, &mut l1_msg_rx).await;
+            twine_db::merkora::run(db_clone, &mut l1_msg_rx).await;
         });
         handles.push(db_handle);
     }

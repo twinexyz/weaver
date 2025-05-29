@@ -2,19 +2,20 @@ use std::cmp::min;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use alloy::eips::BlockNumberOrTag;
-use alloy::providers::Provider;
-use alloy::pubsub::SubscriptionStream;
-use alloy::rpc::types::{Block, Filter, Log, TransactionReceipt};
+use alloy_eips::BlockNumberOrTag;
 use alloy_primitives::Bytes;
+use alloy_provider::Provider;
+use alloy_pubsub::SubscriptionStream;
+use alloy_rlp::Encodable;
+use alloy_rpc_types::{Block, Filter, Header, Log, TransactionReceipt};
 use alloy_sol_types::{sol_data, SolEvent, SolType};
 use alloy_trie::proof::ProofRetainer;
 use alloy_trie::HashBuilder;
 use anyhow::{anyhow, Context, Result};
-use merkora_types::db::L1MessageDetails;
-use reth_primitives::ReceiptWithBloom;
+use reth_primitives::{Receipt, ReceiptWithBloom};
 use tokio::sync::{mpsc, Semaphore};
 use twine_evm_contracts::L1MessageQueue::{QueueDepositTransaction, QueueWithdrawalTransaction};
+use twine_merkora_types::db::L1MessageDetails;
 
 use crate::utils::{
     adjust_index_for_rlp, generate_receipt_with_bloom, get_index_nibble,
@@ -80,7 +81,7 @@ impl EthereumProvider {
                     tokio::spawn(async move {
                         let _permit = permit.acquire().await;
                         match self_cloned.process_block(height).await {
-                            Ok(Some(l1_messages)) =>
+                            Ok(Some(l1_messages)) => {
                                 for l1_msg in l1_messages {
                                     if sender.send(l1_msg).await.is_err() {
                                         tracing::error!(
@@ -88,7 +89,8 @@ impl EthereumProvider {
                                             "failed sending receipt to channel"
                                         );
                                     }
-                                },
+                                }
+                            }
                             Err(e) => {
                                 tracing::error!(height, error = ?e, "block processing failed");
                             }
@@ -196,7 +198,7 @@ impl EthereumProvider {
         let mut stream = self.subscribe_to_blocks().await?;
 
         while let Some(block) = stream.next().await {
-            let height = block.header.number;
+            let height = block.number;
 
             tracing::debug!("Current height: {current_height} height from websocket: {height}");
 
@@ -293,7 +295,8 @@ impl EthereumProvider {
         let receipt_root = block.header.receipts_root;
         let receipts = self.get_block_receipts(height).await?;
         let txns_size = receipts.len();
-        let rwb: Vec<ReceiptWithBloom> = receipts.iter().map(generate_receipt_with_bloom).collect();
+        let rwb: Vec<ReceiptWithBloom<Receipt>> =
+            receipts.iter().map(generate_receipt_with_bloom).collect();
 
         let filtered_receipts: Vec<TransactionReceipt> = receipts
             .into_iter()
@@ -322,17 +325,16 @@ impl EthereumProvider {
                 continue;
             }
             let idx = receipt.transaction_index.unwrap();
-            let txn_receipt: ReceiptWithBloom = rwb[idx as usize].clone();
+            let txn_receipt: ReceiptWithBloom<Receipt> = rwb[idx as usize].clone();
             let receipt_key = idx_nibble_map
                 .get(&(idx as usize))
                 .expect("not in idx nibble map");
             let mut serialized_receipt = Vec::new();
-            txn_receipt.encode_inner(&mut serialized_receipt, false);
+            txn_receipt.encode(&mut serialized_receipt);
 
             let retainer = ProofRetainer::from_iter([receipt_key.clone()]);
             let hb = HashBuilder::default().with_proof_retainer(retainer);
-            let mut mpt =
-                ordered_trie_root_with_encoder(&rwb, |r, buf| r.encode_inner(buf, false), hb);
+            let mut mpt = ordered_trie_root_with_encoder(&rwb, |r, buf| r.encode(buf), hb);
 
             let root = mpt.root();
             assert_eq!(
@@ -350,15 +352,15 @@ impl EthereumProvider {
             let encoded_proof =
                 MerklePatriciaProofVerifyParams::abi_encode_sequence(&(byte_key, byte_proof));
 
-            for log in txn_receipt.into_receipt().logs {
+            for log in txn_receipt.receipt.logs {
                 match log.topics().first() {
                     Some(&QueueDepositTransaction::SIGNATURE_HASH) => {
-                        if let Ok(dep) = QueueDepositTransaction::decode_log(&log, true) {
+                        if let Ok(dep) = QueueDepositTransaction::decode_log(&log) {
                             let nonce = dep.nonce;
                             let md = L1MessageDetails {
                                 nonce,
                                 chain_id: dep.chainId,
-                                message_type: merkora_types::db::L1MessageType::Deposit,
+                                message_type: twine_merkora_types::db::L1MessageType::Deposit,
                                 block_number: dep.blockNumber,
                                 receipt_root: receipt_root.0,
                                 public_values: serialized_receipt.clone(),
@@ -368,12 +370,12 @@ impl EthereumProvider {
                         }
                     }
                     Some(&QueueWithdrawalTransaction::SIGNATURE_HASH) => {
-                        if let Ok(dep) = QueueWithdrawalTransaction::decode_log(&log, true) {
+                        if let Ok(dep) = QueueWithdrawalTransaction::decode_log(&log) {
                             let nonce = dep.nonce;
                             let md = L1MessageDetails {
                                 nonce,
                                 chain_id: dep.chainId,
-                                message_type: merkora_types::db::L1MessageType::Withdraw,
+                                message_type: twine_merkora_types::db::L1MessageType::Withdraw,
                                 block_number: dep.blockNumber,
                                 receipt_root: receipt_root.0,
                                 public_values: serialized_receipt.clone(),
@@ -391,7 +393,7 @@ impl EthereumProvider {
     }
 
     #[cfg(feature = "block_websocket")]
-    async fn subscribe_to_blocks(&self) -> Result<SubscriptionStream<Block>> {
+    async fn subscribe_to_blocks(&self) -> Result<SubscriptionStream<Header>> {
         self.ws_provider
             .subscribe_blocks()
             .await

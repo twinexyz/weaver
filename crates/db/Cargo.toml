@@ -1,11 +1,11 @@
 [package]
-name = "merkora-db"
+name = "twine-db"
 version.workspace = true
 edition.workspace = true
 
 [dependencies]
 anyhow.workspace = true
-merkora-types.workspace = true
+twine-merkora-types.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 sqlx.workspace = true

@@ -7,14 +7,14 @@ edition = "2021"
 anyhow.workspace = true
 clap.workspace = true
 futures = "0.3.31"
-merkora-config.workspace = true
-merkora-db.workspace = true
-merkora-db-poller.workspace = true
-merkora-ethereum.workspace = true
-merkora-json-rpc-server.workspace = true
-merkora-solana.workspace = true
-merkora-twine.workspace = true
-merkora-types.workspace = true
+twine-config.workspace = true
+twine-db.workspace = true
+twine-merkora-db-poller.workspace = true
+twine-merkora-ethereum.workspace = true
+twine-merkora-json-rpc-server.workspace = true
+twine-merkora-solana.workspace = true
+twine-merkora-twine.workspace = true
+twine-merkora-types.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
@@ -26,7 +26,7 @@ path = "src/main.rs"
 [features]
 default = ["event_websocket"]
 
-polling = ["merkora-ethereum/polling"]
-block_websocket = ["merkora-ethereum/block_websocket"]
-event_websocket = ["merkora-ethereum/event_websocket"]
-zkmode = ["merkora-db-poller/zkmode"]
+polling = ["twine-merkora-ethereum/polling"]
+block_websocket = ["twine-merkora-ethereum/block_websocket"]
+event_websocket = ["twine-merkora-ethereum/event_websocket"]
+zkmode = ["twine-merkora-db-poller/zkmode"]

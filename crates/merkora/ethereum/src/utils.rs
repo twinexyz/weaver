@@ -1,16 +1,16 @@
-use alloy::rpc::types::TransactionReceipt;
-use alloy::sol;
 use alloy_primitives::Log;
+use alloy_rpc_types::TransactionReceipt;
+use alloy_sol_types::sol;
 use alloy_trie::{HashBuilder, Nibbles};
 use reth_primitives::{Receipt, ReceiptWithBloom};
 
 // Transaction receipt has extra fields which are not needed for receipts root.
 // This function filters them out
-pub fn generate_receipt_with_bloom(txn_receipt: &TransactionReceipt) -> ReceiptWithBloom {
+pub fn generate_receipt_with_bloom(txn_receipt: &TransactionReceipt) -> ReceiptWithBloom<Receipt> {
     let status = txn_receipt.status();
     let tx_type = txn_receipt.transaction_type();
     let cgu = txn_receipt.inner.cumulative_gas_used() as u64;
-    let bloom = *txn_receipt.inner.logs_bloom();
+    let logs_bloom = *txn_receipt.inner.logs_bloom();
 
     let logx = txn_receipt.inner.as_receipt().unwrap().logs.clone();
 
@@ -27,22 +27,19 @@ pub fn generate_receipt_with_bloom(txn_receipt: &TransactionReceipt) -> ReceiptW
 
         alloy_logs.push(lx);
     }
-    let reth_tx_type = match tx_type {
-        alloy::consensus::TxType::Legacy => reth_primitives::TxType::Legacy,
-        alloy::consensus::TxType::Eip2930 => reth_primitives::TxType::Eip2930,
-        alloy::consensus::TxType::Eip1559 => reth_primitives::TxType::Eip1559,
-        alloy::consensus::TxType::Eip4844 => reth_primitives::TxType::Eip4844,
-        alloy::consensus::TxType::Eip7702 => reth_primitives::TxType::Eip7702,
-    };
-
     let receipt = Receipt {
-        tx_type: reth_tx_type,
-        success: status,
         cumulative_gas_used: cgu,
         logs: alloy_logs,
+        tx_type,
+        success: status,
     };
 
-    ReceiptWithBloom { bloom, receipt }
+    let receipt_with_bloom = ReceiptWithBloom {
+        logs_bloom,
+        receipt,
+    };
+
+    receipt_with_bloom
 }
 
 /// Creates a merkle patricia trie for items. The key for MPT is based on index
@@ -53,7 +50,8 @@ pub fn ordered_trie_root_with_encoder<T, F>(
     mut hb: HashBuilder,
 ) -> HashBuilder
 where
-    F: FnMut(&T, &mut Vec<u8>), {
+    F: FnMut(&T, &mut Vec<u8>),
+{
     let mut value_buffer = Vec::new();
 
     let items_len = items.len();

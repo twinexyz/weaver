@@ -1,12 +1,12 @@
-use alloy::rpc::types::Header;
+use alloy_rpc_types::Header;
 
-pub fn header_to_header(header: Header) -> alloy::consensus::Header {
-    let header_alloy: alloy::consensus::Header = alloy::consensus::Header {
+pub fn header_to_header(header: Header) -> alloy_consensus::Header {
+    let header_alloy: alloy_consensus::Header = alloy_consensus::Header {
         parent_hash: header.parent_hash,
-        ommers_hash: header.uncles_hash,
+        ommers_hash: header.ommers_hash,
         state_root: header.state_root,
-        nonce: header.nonce.unwrap(),
-        mix_hash: header.mix_hash.unwrap(),
+        nonce: header.nonce,
+        mix_hash: header.mix_hash,
         transactions_root: header.transactions_root,
         receipts_root: header.receipts_root,
         logs_bloom: header.logs_bloom,
@@ -15,14 +15,14 @@ pub fn header_to_header(header: Header) -> alloy::consensus::Header {
         gas_limit: header.gas_limit,
         gas_used: header.gas_used,
         timestamp: header.timestamp,
-        extra_data: header.extra_data,
+        extra_data: header.extra_data.clone(),
         base_fee_per_gas: header.base_fee_per_gas,
         withdrawals_root: header.withdrawals_root,
         blob_gas_used: header.blob_gas_used,
         excess_blob_gas: header.excess_blob_gas,
         parent_beacon_block_root: header.parent_beacon_block_root,
         requests_hash: header.requests_hash,
-        beneficiary: header.miner,
+        beneficiary: header.beneficiary,
     };
     header_alloy
 }

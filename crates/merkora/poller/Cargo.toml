@@ -1,14 +1,14 @@
 [package]
-name = "merkora-db-poller"
+name = "twine-merkora-db-poller"
 version.workspace = true
 edition.workspace = true
 
 [dependencies]
 anyhow.workspace = true
-merkora-db.workspace = true
-merkora-ethereum.workspace = true
-merkora-solana.workspace = true
-merkora-types.workspace = true
+twine-db.workspace = true
+twine-merkora-ethereum.workspace = true
+twine-merkora-solana.workspace = true
+twine-merkora-types.workspace = true
 sqlx.workspace = true
 tokio.workspace = true
 tracing.workspace = true

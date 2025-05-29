@@ -1,7 +1,7 @@
 use std::time::Duration;
 
-use alloy::providers::Provider;
-use alloy::rpc::types::{Block, TransactionReceipt};
+use alloy_provider::Provider;
+use alloy_rpc_types::{Block, TransactionReceipt};
 use anyhow::{anyhow, Result};
 use tokio::time::{sleep, timeout};
 use tracing::warn;
@@ -41,8 +41,7 @@ impl EthereumProvider {
         loop {
             match timeout(
                 timeout_duration,
-                self.execution_provider
-                    .get_block_by_number(height.into(), true),
+                self.execution_provider.get_block_by_number(height.into()),
             )
             .await
             {

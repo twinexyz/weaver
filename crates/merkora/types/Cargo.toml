@@ -1,10 +1,11 @@
 [package]
-name = "merkora-types"
+name = "twine-merkora-types"
 version.workspace = true
 edition.workspace = true
 
 [dependencies]
-alloy = { version = "0.5.4", features = ["full"] }
+alloy-rpc-types.workspace = true
+alloy-primitives.workspace = true
 anyhow.workspace = true
 async-trait.workspace = true
 borsh.workspace = true

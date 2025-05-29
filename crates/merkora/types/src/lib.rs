@@ -1,5 +1,5 @@
-use alloy::primitives::{Bytes, FixedBytes};
-use alloy::rpc::types::TransactionReceipt;
+use alloy_primitives::{Bytes, FixedBytes};
+use alloy_rpc_types::TransactionReceipt;
 use borsh::{BorshDeserialize, BorshSerialize};
 use manager::{ChainIdentifier, ChainTyp};
 use serde::{Deserialize, Serialize};
@@ -78,7 +78,7 @@ impl SP1Proof {
     // only '#[cfg(feature = "zkproof")]' triggers a clippy error
     #[cfg(all(feature = "zkproof", not(feature = "dummy")))]
     pub fn bytes(&self) -> Vec<u8> {
-        use alloy::sol_types::SolValue;
+        use alloy_sol_types::SolValue;
         use twine_evm_contracts::evm::twine::l2_messenger::L2Messenger::VerifierInput;
 
         let vi = VerifierInput {

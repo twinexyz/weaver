@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 
-use alloy::rpc::types::TransactionReceipt;
+use alloy_eips::Encodable2718;
 use alloy_primitives::{Address, Bytes, FixedBytes};
+use alloy_rpc_types::TransactionReceipt;
 use alloy_sol_types::{sol_data, SolEvent, SolType};
 use alloy_trie::proof::{verify_proof, ProofNodes, ProofRetainer};
 use alloy_trie::{HashBuilder, Nibbles};
 use anyhow::Result;
-use reth_primitives::ReceiptWithBloom;
+use reth_primitives::{Receipt, ReceiptWithBloom};
 use twine_evm_contracts::L1MessageQueue::{QueueDepositTransaction, QueueWithdrawalTransaction};
 
 use super::utils::generate_receipt_with_bloom;
@@ -42,7 +43,8 @@ impl ReceiptsProof {
             return Ok((Vec::new(), Vec::new()));
         }
 
-        let rwb: Vec<ReceiptWithBloom> = receipts.iter().map(generate_receipt_with_bloom).collect();
+        let rwb: Vec<ReceiptWithBloom<Receipt>> =
+            receipts.iter().map(generate_receipt_with_bloom).collect();
 
         let txns_size = receipts.len();
 
@@ -69,7 +71,7 @@ impl ReceiptsProof {
             txn_proof_keys.push(idx_nibble.clone());
 
             let mut out = vec![];
-            rwb[idx as usize].encode_inner(&mut out, false);
+            rwb[idx as usize].encode_2718(&mut out);
             tnx_proofs.insert(idx_nibble, out);
         }
 
@@ -78,7 +80,7 @@ impl ReceiptsProof {
         let retainer = ProofRetainer::from_iter(la_txns);
         let hb = HashBuilder::default().with_proof_retainer(retainer);
 
-        let mut mpt = ordered_trie_root_with_encoder(&rwb, |r, buf| r.encode_inner(buf, false), hb);
+        let mut mpt = ordered_trie_root_with_encoder(&rwb, |r, buf| r.encode_2718(buf), hb);
 
         let root = mpt.root();
         assert_eq!(
