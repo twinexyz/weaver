@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::convert::Infallible;
 use std::sync::Arc;
 
@@ -21,9 +22,12 @@ pub struct TwineEvmConfig {
 }
 
 impl TwineEvmConfig {
-    pub fn new(chain_spec: Arc<ChainSpec>) -> Self {
+    pub fn new(chain_spec: Arc<ChainSpec>, validator_sets: HashMap<String, String>) -> Self {
         Self {
-            inner: EthEvmConfig::new_with_evm_factory(chain_spec, TwineEvmFactory {}),
+            inner: EthEvmConfig::new_with_evm_factory(
+                chain_spec,
+                TwineEvmFactory::new(validator_sets),
+            ),
         }
     }
 }

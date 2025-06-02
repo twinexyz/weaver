@@ -11031,6 +11031,7 @@ name = "twine-l1-consensus-verifier-precompile"
 version = "0.1.0"
 dependencies = [
  "alloy-primitives",
+ "alloy-sol-types",
  "reth-revm",
  "reth-tracing",
  "revm-context",
