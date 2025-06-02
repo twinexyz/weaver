@@ -11199,6 +11199,10 @@ dependencies = [
  "reth-revm",
  "reth-tracing",
  "revm-context",
+ "serde_json",
+ "twine-constants",
+ "twine-ethereum-consensus-prover-lib",
+ "twine-l1-utils",
 ]
 
 [[package]]
