@@ -9,3 +9,7 @@ alloy-sol-types.workspace = true
 reth-revm.workspace = true
 reth-tracing.workspace = true
 revm-context.workspace = true
+serde_json.workspace = true
+twine-constants.workspace = true
+twine-ethereum-consensus-prover-lib.workspace = true
+twine-l1-utils.workspace = true

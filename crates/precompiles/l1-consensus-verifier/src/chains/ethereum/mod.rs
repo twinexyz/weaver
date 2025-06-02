@@ -1,1 +1,1 @@
-//! ethereum consensus verifier precompile
+pub mod verifier;
