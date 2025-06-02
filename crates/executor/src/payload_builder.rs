@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use reth::builder::components::PayloadBuilderBuilder;
 use reth::builder::BuilderContext;
 use reth::payload::{EthBuiltPayload, EthPayloadBuilderAttributes};
@@ -15,6 +17,16 @@ use crate::evm_config::TwineEvmConfig;
 #[non_exhaustive]
 pub struct TwinePayloadBuilder {
     inner: EthereumPayloadBuilder,
+    validator_sets: HashMap<String, String>,
+}
+
+impl TwinePayloadBuilder {
+    pub fn new(validator_sets: HashMap<String, String>) -> Self {
+        Self {
+            validator_sets,
+            ..Default::default()
+        }
+    }
 }
 
 impl<Types, Node, Pool> PayloadBuilderBuilder<Node, Pool> for TwinePayloadBuilder
@@ -38,7 +50,10 @@ where
         ctx: &BuilderContext<Node>,
         pool: Pool,
     ) -> eyre::Result<Self::PayloadBuilder> {
-        self.inner
-            .build(TwineEvmConfig::new(ctx.chain_spec()), ctx, pool)
+        self.inner.build(
+            TwineEvmConfig::new(ctx.chain_spec(), self.validator_sets),
+            ctx,
+            pool,
+        )
     }
 }
