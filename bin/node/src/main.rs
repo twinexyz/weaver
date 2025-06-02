@@ -1,5 +1,4 @@
-use std::path::PathBuf;
-use std::sync::Arc;
+use std::collections::HashMap;
 
 use reth::builder::components::BasicPayloadServiceBuilder;
 use reth::chainspec::Chain;
@@ -21,6 +20,7 @@ fn generate_batch_store_path(parsed: &Cli) -> PathBuf {
 
 fn main() -> eyre::Result<()> {
     let parsed = Cli::parse_args();
+    let validator_sets = HashMap::new();
 
     #[cfg(feature = "twine-batch")]
     let batch_store_path = generate_batch_store_path(&parsed);
@@ -31,10 +31,10 @@ fn main() -> eyre::Result<()> {
             // 1. The executor: The code which verifies the block and executes the transactions.
             // 2. The payload builder: The code which builds the block and creates the payload.
             EthereumNode::components()
-                .executor(TwineExecutorBuilder::default())
-                .payload(BasicPayloadServiceBuilder::new(
-                    TwinePayloadBuilder::default(),
-                )),
+                .executor(TwineExecutorBuilder::new(validator_sets.clone()))
+                .payload(BasicPayloadServiceBuilder::new(TwinePayloadBuilder::new(
+                    validator_sets,
+                ))),
         );
 
         let mut twine_node = twine_added_ethereum_node.with_add_ons(EthereumAddOns::default());
