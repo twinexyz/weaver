@@ -225,6 +225,7 @@ mod deposit_test {
             wait_after: None,
         }))
     }
+
     fn build_contracts_step(contract_path: &PathBuf) -> eyre::Result<TestStep> {
         let path = contract_path.clone();
         Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {

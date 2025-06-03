@@ -381,7 +381,11 @@ impl Service for SubProcessService {
         }
 
         let command = (&self.cmd_gen)(ctx);
-        info!("Executing service {} with command {:?}", self.name, command);
+        info!(
+            "Executing service {} with command {:?}",
+            self.name,
+            command.join(" ")
+        );
         let mut cmd = Command::new(&command[0]);
         cmd.args(&command[1..]);
 

@@ -1,4 +1,5 @@
 //! Integration tests for twine
+use log::info;
 pub(crate) mod config;
 mod deposit;
 
@@ -6,9 +7,9 @@ mod deposit;
 pub fn remove_dir_if_exists(path: &str) -> eyre::Result<()> {
     if std::path::Path::new(path).exists() {
         std::fs::remove_dir_all(path)?;
-        println!("Successfully removed directory: {}", path);
+        info!("Successfully removed directory: {}", path);
     } else {
-        println!("Directory does not exist, skipping: {}", path);
+        info!("Directory does not exist, skipping: {}", path);
     }
     Ok(())
 }
