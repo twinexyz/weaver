@@ -15,6 +15,7 @@ members = [
   "crates/ethereum-consensus-prover-lib",
   "crates/evm-contracts",
   "crates/executor",
+  "crates/integration-tests",
   "crates/l1-utils",
   "crates/precompiles/l1-consensus-verifier",
   "crates/precompiles/l1-transactions",
@@ -52,6 +53,7 @@ reqwest = { version = "0.11", features = ["json"] }
 serde = { version = "1.0.210", features = ["derive"] }
 serde_bytes = "0.11.14"
 serde_json = "1.0.132"
+serde_yaml = "0.9.34"
 sha2 = "0.9"
 ssz_types = "0.11.0"
 thiserror = "2.0.12"
@@ -90,10 +92,12 @@ reth-tracing = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.10
 
 revm-context = { version = "3.0.0", default-features = false }
 
+test-harness = { path = "crates/test-harness" }
 twine-constants = { path = "crates/constants" }
 twine-ethereum-consensus-prover-lib = { path = "crates/ethereum-consensus-prover-lib" }
 twine-evm-contracts = { path = "crates/evm-contracts" }
 twine-executor = { path = "crates/executor" }
+twine-integration-tests = { path = "crates/integration-tests" }
 twine-l1-consensus-verifier-precompile = { path = "crates/precompiles/l1-consensus-verifier" }
 twine-l1-transactions-precompile = { path = "crates/precompiles/l1-transactions" }
 twine-l1-utils = { path = "crates/l1-utils" }
