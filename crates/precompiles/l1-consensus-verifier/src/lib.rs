@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
-use alloy_primitives::hex::FromHex;
-use alloy_primitives::{Address, Bytes};
+use alloy_primitives::Address;
 use alloy_sol_types::{sol_data, SolType};
 use chains::ethereum::verifier::EthereumConsensusVerifier;
 use chains::Chains;
@@ -14,16 +13,35 @@ pub mod chains;
 pub type PrecompileInput = (sol_data::Uint<256>, sol_data::Bytes);
 
 #[derive(Debug)]
-pub struct ConsensusVerifierPrecompile {}
+pub struct ConsensusVerifierPrecompile {
+    pub chains: HashMap<u64, Box<dyn Chains>>,
+}
 
 impl ConsensusVerifierPrecompile {
+    pub fn new(validator_sets: HashMap<String, String>) -> Self {
+        let mut chains: HashMap<u64, Box<dyn Chains>> = HashMap::new();
+        for (chain_id, validator_set) in validator_sets {
+            let chain_id = chain_id.parse().unwrap_or(0u64);
+            let chain_type = get_chain_type(chain_id).expect("chain type not found");
+            match chain_type {
+                L1ChainType::Ethereum => {
+                    let ethereum_consensus_verifier =
+                        EthereumConsensusVerifier::new(chain_id, &validator_set);
+                    chains.insert(chain_id, Box::new(ethereum_consensus_verifier));
+                }
+                L1ChainType::Solana => todo!(),
+            }
+        }
+        Self { chains }
+    }
+
     pub fn run<CTX: ContextTr>(
+        &self,
         _context: &mut CTX,
         _address: &Address,
         _inputs: &InputsImpl,
         _is_static: bool,
         gas_limit: u64,
-        validator_sets: HashMap<String, String>,
     ) -> Result<Option<InterpreterResult>, String> {
         let (chain_id, verifying_inputs) =
             match PrecompileInput::abi_decode_sequence(&_inputs.input) {
@@ -31,24 +49,18 @@ impl ConsensusVerifierPrecompile {
                 Err(e) => return Err(format!("decode error: {e}")),
             };
 
-        let chain_type = get_chain_type(chain_id.to())
-            .ok_or_else(|| return String::from("invalid chain type"))?;
-
-        match chain_type {
-            L1ChainType::Ethereum => {
-                let validator_keys = validator_sets
-                    .get(&chain_id.to_string())
-                    .ok_or_else(|| return String::from("validator keys not found"))?;
-                let ethereum_consensus_verifier =
-                    EthereumConsensusVerifier::new(chain_id.to(), &validator_keys);
-                ethereum_consensus_verifier.verify(verifying_inputs.clone())?;
-            }
-            L1ChainType::Solana => todo!(),
-        }
+        let chain_id: u64 = chain_id.to();
+        let precompile_output = self
+            .chains
+            .get(&chain_id)
+            .ok_or_else(|| {
+                format!("chain type with chain id: {chain_id} not registered in precompiles")
+            })?
+            .verify(verifying_inputs.clone())?;
 
         Ok(Some(InterpreterResult {
             result: reth_revm::interpreter::InstructionResult::Return,
-            output: Bytes::from_hex("0x1a1b1c1d1e1f").unwrap(),
+            output: precompile_output,
             gas: Gas::new(gas_limit - 1000),
         }))
     }
