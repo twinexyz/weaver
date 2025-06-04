@@ -90,14 +90,10 @@ impl<CTX: ContextTr> PrecompileProvider<CTX> for TwineCustomPrecompile {
         #[cfg(feature = "twine-l1-consensus-verifier-precompile")]
         {
             if address.eq(&self.twine_precompiles.consensus_precompile) {
-                return ConsensusVerifierPrecompile::run(
-                    context,
-                    address,
-                    inputs,
-                    is_static,
-                    gas_limit,
-                    self.validator_sets.clone(),
-                );
+                let consensus_verifier_precompile =
+                    ConsensusVerifierPrecompile::new(self.validator_sets.clone());
+                return consensus_verifier_precompile
+                    .run(context, address, inputs, is_static, gas_limit);
             }
         }
 
