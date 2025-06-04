@@ -7,5 +7,5 @@ use alloy_primitives::Bytes;
 
 pub trait Chains: Debug {
     fn name(&self) -> String;
-    fn verify(&self, verifying_input: Bytes) -> Result<(), String>;
+    fn verify(&self, verifying_input: Bytes) -> Result<Bytes, String>;
 }
