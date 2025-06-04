@@ -1,0 +1,12 @@
+# path to genesis file to spawn l2
+genesis_path: /path/to/bin/node/res/dev-genesis.json
+# postgres database connection string
+database_path: /postgres/database/connection/string
+# contracts path
+contracts_path: /path/to/twine/weaver/testing/twine-solidity-contracts
+# binary for merkora
+merkora_binary: /path/to/merkora/binary
+# binary for twine-node
+twine_node_binary: twine-node
+# binary for ethereum L1
+ethereum_binary: reth

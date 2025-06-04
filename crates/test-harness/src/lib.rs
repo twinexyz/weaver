@@ -175,7 +175,7 @@ impl ServiceStepExecutor for SubProcessServiceStarter {
         services: &mut [Box<dyn Service<ServiceError = eyre::Error>>],
     ) -> Result<(), Self::StepError> {
         // Implementation of the step execution logic
-        assert!(services.len() == 1, "Expected exactly one service");
+        // assert!(services.len() == 1, "Expected exactly one service");
         let service = &mut services[self.service_idx];
         if service.is_running() {
             return Err(eyre::eyre!(format!(
@@ -299,8 +299,8 @@ impl ServiceStepExecutor for SubProcessServiceStopper {
         services: &mut [Box<dyn Service<ServiceError = eyre::Error>>],
     ) -> Result<(), Self::StepError> {
         // Implementation of the step execution logic
-        assert!(services.len() == 1, "Expected exactly one service");
-        let service = &mut services[0];
+        // assert!(services.len() == 1, "Expected exactly one service");
+        let service = &mut services[self.service_idx];
         if !service.is_running() {
             return Err(eyre::eyre!(format!(
                 "Service '{}' is not running",
@@ -381,6 +381,11 @@ impl Service for SubProcessService {
         }
 
         let command = (&self.cmd_gen)(ctx);
+        info!(
+            "Executing service {} with command {:?}",
+            self.name,
+            command.join(" ")
+        );
         let mut cmd = Command::new(&command[0]);
         cmd.args(&command[1..]);
 
