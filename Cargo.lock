@@ -11030,12 +11030,17 @@ dependencies = [
 name = "twine-l1-consensus-verifier-precompile"
 version = "0.1.0"
 dependencies = [
+ "alloy-consensus",
  "alloy-primitives",
  "alloy-sol-types",
+ "ethereum_ssz",
+ "ethereum_ssz_derive",
  "reth-revm",
  "reth-tracing",
  "revm-context",
+ "serde",
  "serde_json",
+ "ssz_types",
  "twine-constants",
  "twine-ethereum-consensus-prover-lib",
  "twine-l1-utils",
