@@ -11,25 +11,25 @@ members = [
   "bin/devtest",
   "bin/merkora",
   "bin/node",
+  "crates/config",
   "crates/constants",
+  "crates/db",
+  "crates/ethereum",
   "crates/ethereum-consensus-prover",
   "crates/evm-contracts",
   "crates/executor",
   "crates/integration-tests",
+  "crates/json-rpc-server",
   "crates/l1-utils",
-  "crates/config",
-  "crates/db",
-  "crates/merkora/json-rpc-server",
-  "crates/merkora/ethereum",
-  "crates/merkora/poller",
-  "crates/merkora/solana",
-  "crates/merkora/twine",
-  "crates/merkora/types",
+  "crates/merkora-types",
+  "crates/poller",
   "crates/precompiles/l1-consensus-verifier",
   "crates/precompiles/l1-transactions",
+  "crates/solana",
   "crates/solana-consensus-prover",
   "crates/solana-sdk",
   "crates/test-harness",
+  "crates/twine",
 ]
 resolver = "3"
 
@@ -46,13 +46,13 @@ alloy-network-primitives = { version = "0.14.0", default-features = false }
 alloy-primitives = { version = "1.0.0", default-features = false, features = ["map-foldhash"] }
 alloy-provider = { version = "0.14.0", features = ["reqwest"], default-features = false }
 alloy-pubsub = { version = "0.14.0", default-features = false }
-alloy-sol-types = { version = "1.0.0", default-features = false, features = ["json"] }
-alloy-trie = { version = "0.8.1", default-features = false }
 alloy-rlp = { version = "0.3.10", default-features = false, features = ["core-net"] }
 alloy-rpc-types = { version = "0.14.0", features = ["eth"], default-features = false }
 alloy-signer-local = { version = "0.14.0", default-features = false }
 alloy-sol-macro = "1.0.0"
+alloy-sol-types = { version = "1.0.0", default-features = false, features = ["json"] }
 alloy-transport-http = { version = "0.14.0", features = ["reqwest-rustls-tls"], default-features = false }
+alloy-trie = { version = "0.8.1", default-features = false }
 
 anyhow = "1.0.93"
 async-trait = "0.1.86"
@@ -77,10 +77,7 @@ serde_bytes = "0.11.14"
 serde_json = "1.0.132"
 serde_yaml = "0.9.34"
 sha2 = "0.9"
-sqlx = { version = "0.6", features = [
-    "postgres",
-    "runtime-async-std-native-tls",
-] }
+sqlx = { version = "0.6", features = ["postgres", "runtime-async-std-native-tls"] }
 ssz_types = "0.11.0"
 thiserror = "2.0.12"
 tokio = { version = "1.40.0", features = ["full"] }
@@ -121,26 +118,24 @@ reth-tracing = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.10
 revm-context = { version = "3.0.0", default-features = false }
 
 test-harness = { path = "crates/test-harness" }
+twine-config = { path = "crates/config" }
 twine-constants = { path = "crates/constants" }
+twine-db = { path = "crates/db" }
+twine-db-poller = { path = "crates/poller" }
+twine-ethereum = { path = "crates/ethereum" }
 twine-ethereum-consensus-prover-lib = { path = "crates/ethereum-consensus-prover" }
 twine-evm-contracts = { path = "crates/evm-contracts" }
 twine-executor = { path = "crates/executor" }
 twine-integration-tests = { path = "crates/integration-tests" }
+twine-json-rpc-server = { path = "crates/json-rpc-server" }
 twine-l1-consensus-verifier-precompile = { path = "crates/precompiles/l1-consensus-verifier" }
 twine-l1-transactions-precompile = { path = "crates/precompiles/l1-transactions" }
 twine-l1-utils = { path = "crates/l1-utils" }
+twine-merkora-types = { path = "crates/merkora-types" }
+twine-solana = { path = "crates/solana" }
 twine-solana-consensus-prover-lib = { path = "crates/solana-consensus-prover" }
 twine-solana-sdk = { path = "crates/solana-sdk" }
-
-merkora-config = { path = "crates/merkora/config" }
-merkora-db = { path = "crates/merkora/db" }
-merkora-db-poller = { path = "crates/merkora/poller" }
-merkora-ethereum = { path = "crates/merkora/ethereum" }
-merkora-json-rpc-server = { path = "crates/merkora/json-rpc-server" }
-merkora-solana = { path = "crates/merkora/solana" }
-merkora-supported-chains = { path = "crates/merkora/supported-chains" }
-merkora-twine = { path = "crates/merkora/twine" }
-merkora-types = { path = "crates/merkora/types" }
+twine-twine = { path = "crates/twine" }
 
 [patch.crates-io]
 # The following is required since we would like to remove

@@ -2,7 +2,7 @@ use std::str::FromStr;
 use std::time::Duration;
 
 use alloy_primitives::{Address, Bytes, FixedBytes};
-use alloy_provider::{DynProvider, Provider, ProviderBuilder, WsConnect};
+use alloy_provider::{DynProvider, ProviderBuilder, WsConnect};
 use alloy_rlp::{RlpDecodable, RlpEncodable};
 use alloy_sol_types::SolType;
 use anyhow::anyhow;
@@ -23,16 +23,23 @@ use utils::TransactionData;
 
 pub mod beacon;
 mod header;
-mod query;
-mod stream;
+pub mod query;
+pub mod stream;
 mod transactions;
-mod utils;
+pub mod utils;
 
 pub(crate) const MAX_RETRIES: u32 = 20;
 pub(crate) const INITIAL_BACKOFF: Duration = Duration::from_secs(1);
 
 pub struct EthereumProviderConfig {
     cfg: EthereumConfig,
+}
+
+#[derive(Clone)]
+pub struct ContractAddresses {
+    // TODO: Add more contract addresses as needed, currently this suffices.
+    pub l1_message_queue: Address,
+    pub l1_twine_dvn: Address,
 }
 
 #[derive(Clone)]
@@ -44,7 +51,7 @@ pub struct EthereumProvider {
     pub chain_id: u64,
     pub chain_type: ChainTyp,
     pub receipt_proofs: ReceiptsProof,
-    pub message_queue: Address,
+    pub contracts: ContractAddresses,
 }
 
 #[derive(Debug, RlpDecodable, RlpEncodable)]
@@ -77,6 +84,11 @@ impl EthereumProviderConfig {
         let l1_twine_dvn =
             Address::from_str(&self.cfg.l1_twine_dvn).expect("Invalid l1 twine dvn address");
 
+        let contracts = ContractAddresses {
+            l1_message_queue,
+            l1_twine_dvn,
+        };
+
         EthereumProvider {
             execution_provider,
             ws_provider: wss_provider,
@@ -85,7 +97,7 @@ impl EthereumProviderConfig {
             chain_id: self.cfg.chain_id,
             chain_type: ChainTyp::Ethereum,
             receipt_proofs: ReceiptsProof::new(l1_message_queue, l1_twine_dvn),
-            message_queue: l1_message_queue,
+            contracts,
         }
     }
 }

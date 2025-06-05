@@ -1,20 +1,15 @@
 [package]
-name = "twine-merkora-types"
+name = "twine-json-rpc-server"
 version.workspace = true
 edition.workspace = true
 
 [dependencies]
-alloy-rpc-types.workspace = true
-alloy-primitives.workspace = true
+twine-merkora-types.workspace = true
+
 anyhow.workspace = true
 async-trait.workspace = true
-borsh.workspace = true
+jsonrpsee = { version = "0.24.4", features = ["http-client", "jsonrpsee-proc-macros", "server", "tracing"] }
 serde.workspace = true
 serde_json.workspace = true
-sqlx.workspace = true
 tokio.workspace = true
-
-[features]
-default = ["dummy"]
-zkproof = []
-dummy = []
+tracing.workspace = true

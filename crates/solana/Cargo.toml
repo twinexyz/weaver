@@ -1,5 +1,5 @@
 [package]
-name = "twine-merkora-solana"
+name = "twine-solana"
 version.workspace = true
 edition.workspace = true
 
@@ -7,11 +7,9 @@ edition.workspace = true
 twine-config.workspace = true
 twine-merkora-types.workspace = true
 
-alloy-network.workspace = true
 alloy-primitives.workspace = true
-alloy-provider.workspace = true
-alloy-sol-types.workspace = true
 alloy-rpc-types.workspace = true
+alloy-sol-types.workspace = true
 anyhow.workspace = true
 async-trait.workspace = true
 serde.workspace = true

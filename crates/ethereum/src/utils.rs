@@ -50,8 +50,7 @@ pub fn ordered_trie_root_with_encoder<T, F>(
     mut hb: HashBuilder,
 ) -> HashBuilder
 where
-    F: FnMut(&T, &mut Vec<u8>),
-{
+    F: FnMut(&T, &mut Vec<u8>), {
     let mut value_buffer = Vec::new();
 
     let items_len = items.len();

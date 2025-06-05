@@ -4,17 +4,31 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-anyhow.workspace = true
-clap.workspace = true
-futures = "0.3.31"
 twine-config.workspace = true
 twine-db.workspace = true
-twine-merkora-db-poller.workspace = true
-twine-merkora-ethereum.workspace = true
-twine-merkora-json-rpc-server.workspace = true
-twine-merkora-solana.workspace = true
-twine-merkora-twine.workspace = true
+twine-db-poller.workspace = true
+twine-ethereum.workspace = true
+twine-evm-contracts.workspace = true
+twine-json-rpc-server.workspace = true
 twine-merkora-types.workspace = true
+twine-solana.workspace = true
+twine-twine.workspace = true
+
+alloy-consensus.workspace = true
+alloy-eips.workspace = true
+alloy-primitives.workspace = true
+alloy-provider.workspace = true
+alloy-pubsub.workspace = true
+alloy-rlp.workspace = true
+alloy-rpc-types.workspace = true
+alloy-sol-types.workspace = true
+alloy-transport-http.workspace = true
+alloy-trie.workspace = true
+anyhow.workspace = true
+async-trait.workspace = true
+clap.workspace = true
+futures = "0.3.31"
+reth-primitives.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
@@ -26,7 +40,7 @@ path = "src/main.rs"
 [features]
 default = ["event_websocket"]
 
-polling = ["twine-merkora-ethereum/polling"]
-block_websocket = ["twine-merkora-ethereum/block_websocket"]
-event_websocket = ["twine-merkora-ethereum/event_websocket"]
-zkmode = ["twine-merkora-db-poller/zkmode"]
+polling = ["twine-ethereum/polling"]
+block_websocket = ["twine-ethereum/block_websocket"]
+event_websocket = ["twine-ethereum/event_websocket"]
+zkmode = ["twine-db-poller/zkmode"]

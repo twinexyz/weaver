@@ -1,3 +1,4 @@
+mod block_processing;
 mod logging;
 
 use std::path::PathBuf;
@@ -5,6 +6,7 @@ use std::process;
 use std::sync::Arc;
 
 use anyhow::Context;
+use block_processing::L1MessageProcessor;
 use clap::{Parser, Subcommand};
 use futures::stream::FuturesUnordered;
 use futures::StreamExt;
@@ -12,13 +14,13 @@ use logging::init_logger;
 use tokio::sync::{mpsc, Notify};
 use tracing::info;
 use twine_config::{default_config_path, load_and_validate_config, Config};
-use twine_merkora_ethereum::EthereumProviderConfig;
-use twine_merkora_json_rpc_server::JsonRpcServer;
-use twine_merkora_solana::SolanaProvider;
-use twine_merkora_twine::provider::TwineProvider;
+use twine_ethereum::EthereumProviderConfig;
+use twine_json_rpc_server::JsonRpcServer;
 use twine_merkora_types::db::L1MessageDetails;
 use twine_merkora_types::manager::{ChainIdentifier, ChainManager, ChainTyp};
 use twine_merkora_types::traits::ChainProvider;
+use twine_solana::SolanaProvider;
+use twine_twine::provider::TwineProvider;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -176,10 +178,12 @@ async fn run(cfg: Config) -> anyhow::Result<()> {
             tracing::info!("start block streamer from height {}", start_height);
             {
                 let eth = ethereum.clone();
+
+                let processor = L1MessageProcessor::new((*eth).clone());
                 let l1_msg_to_db_sender = l1_msg_tx.clone();
                 let eth_receipt_poller = tokio::spawn(async move {
                     if let Err(error) = eth
-                        .stream_receipts_l2(l1_msg_to_db_sender, start_height)
+                        .stream_receipts_l2(l1_msg_to_db_sender, start_height, processor)
                         .await
                     {
                         tracing::error!(?error, "Error streaming receipts");
@@ -250,7 +254,7 @@ async fn run(cfg: Config) -> anyhow::Result<()> {
         let tx_clone = txns_params_tx.clone();
         let notify_clone = notify.clone();
         let handle = tokio::spawn(async move {
-            twine_merkora_db_poller::poll_next_message(&db_clone, tx_clone, notify_clone).await
+            twine_db_poller::poll_next_message(&db_clone, tx_clone, notify_clone).await
         });
         handles.push(handle);
     }
@@ -265,7 +269,7 @@ async fn run(cfg: Config) -> anyhow::Result<()> {
         let notify_clone = notify.clone();
         let handle = tokio::spawn(async move {
             while let Some(block_height) = block_height_rx.recv().await {
-                if let Err(err) = twine_merkora_db_poller::process_messages_up_to_height(
+                if let Err(err) = twine_db_poller::process_messages_up_to_height(
                     &db_clone,
                     tx_clone.clone(),
                     notify_clone.clone(),

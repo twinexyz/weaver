@@ -1,16 +1,12 @@
 use std::sync::Arc;
 
 use alloy_eips::BlockId;
-use alloy_network::{Ethereum, EthereumWallet};
+use alloy_network::EthereumWallet;
 use alloy_primitives::hex::FromHex;
 use alloy_primitives::{Address, B256, U256};
-use alloy_provider::fillers::{
-    BlobGasFiller, ChainIdFiller, FillProvider, GasFiller, JoinFill, NonceFiller, WalletFiller,
-};
-use alloy_provider::{Identity, Provider, ProviderBuilder, RootProvider};
+use alloy_provider::{Provider, ProviderBuilder};
 use alloy_rpc_types::{Block, TransactionReceipt, TransactionRequest};
 use alloy_signer_local::PrivateKeySigner;
-use alloy_transport_http::{reqwest, Http};
 use anyhow::{Error, Result};
 use sqlx::PgPool;
 use tokio::sync::mpsc::Receiver;
@@ -20,23 +16,6 @@ use twine_merkora_types::TwineInputParams;
 use crate::L2Messenger;
 
 static MAX_RETRIES: i32 = 10;
-
-type HttpClient = Http<reqwest::Client>;
-type Fillers = JoinFill<
-    JoinFill<
-        Identity,
-        JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>,
-    >,
-    WalletFiller<EthereumWallet>,
->;
-type FullProvider = FillProvider<Fillers, RootProvider<HttpClient>, Ethereum>;
-type Messenger = L2Messenger::L2MessengerInstance<HttpClient, FullProvider>;
-
-// #[derive(Debug, Clone)]
-// pub struct TwineProvider {
-//     pub provider: FullProvider,
-//     pub l2_messenger: Messenger,
-// }
 
 pub type AlloyProvider = alloy_provider::fillers::FillProvider<
     alloy_provider::fillers::JoinFill<

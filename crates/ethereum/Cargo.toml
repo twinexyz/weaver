@@ -1,13 +1,13 @@
 [package]
-name = "twine-merkora-ethereum"
+name = "twine-ethereum"
 version.workspace = true
 edition.workspace = true
 
 [dependencies]
 twine-config.workspace = true
-twine-merkora-types.workspace = true
-twine-evm-contracts.workspace = true
 twine-ethereum-consensus-prover-lib.workspace = true
+twine-evm-contracts.workspace = true
+twine-merkora-types.workspace = true
 
 alloy-consensus.workspace = true
 alloy-eips.workspace = true
@@ -32,7 +32,6 @@ sqlx.workspace = true
 ssz_types.workspace = true
 tokio.workspace = true
 tracing.workspace = true
-
 
 [features]
 event_websocket = []
