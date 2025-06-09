@@ -6,6 +6,8 @@
 //! the bridge contract on L2 and helps in deserializing relevant transaction
 //! data and verifying its integrity.
 
+use std::str::FromStr;
+
 use alloy_consensus::ReceiptEnvelope;
 use alloy_eips::Decodable2718;
 use alloy_primitives::{keccak256, Address, Bytes, FixedBytes, Log, U256};
@@ -18,7 +20,10 @@ use reth_revm::context::{ContextTr, JournalTr};
 use reth_revm::interpreter::{Gas, InputsImpl, InstructionResult, InterpreterResult};
 use reth_tracing::tracing;
 use sol::{L1Txns, MerkleParamType, TokenTxn, VerifierInput};
+use solana_consensus_prover_lib::{AccountDeltaProof, PublicValuesStruct};
 use twine_constants::precompiles::TWINE_SYSTEM_STORAGE_CONTRACT;
+use twine_constants::solana_pda::{DEPOSIT_PDA_ADDRESS, WIHTDRAW_PDA_ADDRESS};
+use twine_evm_contracts::ITwineSystemStorageContract::L1TxnType;
 use twine_evm_contracts::L1MessageQueue::{QueueDepositTransaction, QueueWithdrawalTransaction};
 use twine_l1_utils::{get_chain_type, whitelisted_contract, L1ChainType};
 
@@ -81,7 +86,7 @@ pub fn handle_ethereum_event<CTX: ContextTr>(
         }
     }
 
-    Err(TransactionPrecompileError::DecodeVerifierInput)
+    Err(TransactionPrecompileError::NoTransactionToExecute)
 }
 
 /// Decodes the transaction and proof sequence from the input data.
@@ -332,128 +337,118 @@ impl L1Log for WrappedWithdrawal {
     fn amount(&self) -> U256 { self.0.amount }
 
     fn message(&self) -> Bytes { Bytes::new() }
+}
 
 /// Handles a l1 message stores in solana PDA
 ///
 /// This function is responsible for decoding the provided `data` into
 /// transactions and performing any necessary processing for the given
 /// PDA to handle them on twine
-///
-/// # Arguments
-///
-/// * `chain_id` - The identifier of the chain associated with the PDA
-/// * `proof` - The public values pertaining to solana consensus verifier. It
-///   contains information held by relevant PDAs
-/// * `evmctx` - A mutable reference to the EVM context. This provides access to
-///   the database and other contextual information required for processing the
-///   event.
-pub fn handle_solana_proof<DB: Database>(
+pub fn handle_solana_proof<CTX: ContextTr>(
     chain_id: U256,
     proof: Bytes,
-    evmctx: &mut reth::revm::InnerEvmContext<DB>,
-) -> PrecompileResult {
+    evmctx: &mut CTX,
+) -> Result<InterpreterResult, TransactionPrecompileError> {
     tracing::debug!("Reached in handle_solana_proof");
 
-    let proof_vec = proof.to_vec();
-    let sliced_proof = proof_vec.as_slice();
+    let public_values = parse_public_values(proof)?;
 
-    let public_value: PublicValuesStruct = match serde_json::from_slice(sliced_proof) {
-        Ok(public_value) => public_value,
-        Err(_) => {
-            return Err(TransactionPrecompileError::DecodeSolanaPublicValueStruct.into());
-        }
-    };
-
-    let complete_proof = public_value.package;
-
-    for (_, proofs) in complete_proof.proofs {
+    for (_, proofs) in public_values.package.proofs {
         for proof in proofs {
-            let transaction_data = proof.1 .0.account.data;
-            // first 8 bytes are appended during anchorserialization
-            let mut transaction_data = &transaction_data[8..];
-            let transaction_info: PDA = match BorshDeserialize::deserialize(&mut transaction_data) {
-                Ok(transaction_info) => transaction_info,
-                Err(_) => {
-                    tracing::debug!("borsh deserialize failed");
-                    return Err(TransactionPrecompileError::DecodePDAFailed.into());
-                }
-            };
+            let transaction_info = parse_transaction_data(&proof)?;
 
-            // TODO: For other types of messages, handle here
-            let mint = proof.0.to_string() == DEPOSIT_PDA_ADDRESS;
+            let txn_type = validate_and_get_txn_type(&proof)?;
+            let is_mint = txn_type.clone().into_underlying() == 0u8;
+            let nonce = get_last_handed_nonce(chain_id, txn_type, evmctx)?;
 
-            if !mint && proof.0.to_string() != WIHTDRAW_PDA_ADDRESS {
-                tracing::debug!("Invalid PDA address");
-                return Err(TransactionPrecompileError::InvalidPDA.into());
-            }
-            let nonce = if mint {
-                let nonce = get_last_handled_nonce(chain_id, L1TxnType::from(0), evmctx)?;
-                nonce
-            } else {
-                let nonce = get_last_handled_nonce(chain_id, L1TxnType::from(1), evmctx)?;
-                nonce
-            };
-
-            for l1_message in transaction_info.messages {
-                // Transaction of this nonce was handled already, so skip this
-                // and try for next iteration
-                let next_nonce_to_handle = nonce.saturating_add(Uint::ONE).to::<u64>();
-
-                if l1_message.nonce < next_nonce_to_handle {
-                    tracing::debug!("nonce already handled");
-                    continue;
-                }
-
-                if l1_message.nonce > next_nonce_to_handle {
-                    tracing::debug!("txns should be handled in sequential order");
-                    continue;
-                }
-
-                if l1_message.nonce == next_nonce_to_handle {
-                    // handle
-
-                    let l2_token = match Address::from_str(&l1_message.l2_token) {
-                        Ok(addr) => addr,
-                        Err(_) => return Err(TransactionPrecompileError::InvalidAddress.into()),
-                    };
-
-                    let l2_user_address = match Address::from_str(&l1_message.to_twine_address) {
-                        Ok(addr) => addr,
-                        Err(_) => return Err(TransactionPrecompileError::InvalidAddress.into()),
-                    };
-
-                    let amount = match U256::from_str(&l1_message.amount) {
-                        Ok(value) => value,
-                        Err(e) =>
-                            return Err(TransactionPrecompileError::InvalidAmountError(format!(
-                                "{e:?}"
-                            ))
-                            .into()),
-                    };
-
-                    // Construct the L1 transaction object
-                    let l1_txn = L1Txns {
-                        nonce: U256::from(l1_message.nonce),
-                        tokenTxn: TokenTxn {
-                            token: l2_token,
-                            to: l2_user_address,
-                            value: amount,
-                            mint,
-                        },
-                        forcedTxn: Vec::new(),
-                    };
-
-                    return Ok(PrecompileOutput {
-                        gas_used: 0,
-                        bytes: l1_txn.abi_encode().into(),
-                    });
-                }
+            if let Some(result) =
+                process_solana_messages(&transaction_info.messages, nonce.into(), is_mint)?
+            {
+                return Ok(result);
             }
         }
     }
 
-    // If no valid transaction is processed, return an error
-    Err(TransactionPrecompileError::NoTransactionToExecute().into())
+    Err(TransactionPrecompileError::NoTransactionToExecute)
+}
+
+/// Parses the public values from the proof bytes
+fn parse_public_values(proof: Bytes) -> Result<PublicValuesStruct, TransactionPrecompileError> {
+    let proof_vec = proof.to_vec();
+    serde_json::from_slice(proof_vec.as_slice())
+        .map_err(|_| TransactionPrecompileError::DecodeSolanaPublicValueStruct.into())
+}
+
+/// Parses transaction data from proof
+fn parse_transaction_data(proof: &AccountDeltaProof) -> Result<PDA, TransactionPrecompileError> {
+    let mut transaction_data = &proof.1 .0.account.data[8..]; // Skip first 8 bytes
+    BorshDeserialize::deserialize(&mut transaction_data).map_err(|_| {
+        tracing::debug!("borsh deserialize failed");
+        TransactionPrecompileError::DecodePDAFailed.into()
+    })
+}
+
+/// Validates the PDA address and determines transaction type
+fn validate_and_get_txn_type(
+    proof: &AccountDeltaProof,
+) -> Result<L1TxnType, TransactionPrecompileError> {
+    let pda_address = proof.0.to_string();
+
+    if pda_address == DEPOSIT_PDA_ADDRESS {
+        Ok(L1TxnType::from(0))
+    } else if pda_address == WIHTDRAW_PDA_ADDRESS {
+        Ok(L1TxnType::from(1))
+    } else {
+        tracing::debug!("Invalid PDA address");
+        Err(TransactionPrecompileError::InvalidPDA.into())
+    }
+}
+
+/// Processes messages and returns the first valid one to handle
+fn process_solana_messages(
+    messages: &[TransactionData],
+    current_nonce: U256,
+    is_mint: bool,
+) -> Result<Option<InterpreterResult>, TransactionPrecompileError> {
+    for message in messages {
+        let next_nonce_to_handle = current_nonce.saturating_add(U256::ONE).to::<u64>();
+
+        if message.nonce < next_nonce_to_handle {
+            tracing::info!("nonce already handled");
+            continue;
+        }
+
+        if message.nonce > next_nonce_to_handle {
+            tracing::info!("txns should be handled in sequential order");
+            continue;
+        }
+
+        let l2_token = Address::from_str(&message.l2_token)
+            .map_err(|_| TransactionPrecompileError::InvalidAddress)?;
+        let l2_user_address = Address::from_str(&message.to_twine_address)
+            .map_err(|_| TransactionPrecompileError::InvalidAddress)?;
+        let amount = U256::from_str(&message.amount)
+            .map_err(|e| TransactionPrecompileError::InvalidAmountError(format!("{e:?}")))?;
+
+        let l1_txn = L1Txns {
+            nonce: U256::from(message.nonce),
+            tokenTxn: TokenTxn {
+                token: l2_token,
+                to: l2_user_address,
+                value: amount,
+                mint: is_mint,
+            },
+            contractCallData: Bytes::new(),
+        };
+
+        return Ok(Some(InterpreterResult {
+            result: InstructionResult::Return,
+            output: l1_txn.abi_encode().into(),
+            gas: Gas::new(0),
+        }));
+    }
+
+    return Ok(None);
 }
 
 /// Solana related PDAs
@@ -475,4 +470,40 @@ pub struct TransactionData {
     pub l1_token: String,
     pub l2_token: String,
     pub amount: String,
+}
+
+/// Queries the storage of system contract to retrieve the handled nonce count
+pub fn get_last_handed_nonce<CTX: ContextTr>(
+    chain_id: U256,
+    txn_type: L1TxnType,
+    evmctx: &mut CTX,
+) -> Result<FixedBytes<32>, TransactionPrecompileError> {
+    let nonce_slot =
+        calculate_nonce_slot_position(chain_id, U256::from(txn_type.into_underlying()));
+    evmctx.journal().warm_account(TWINE_SYSTEM_STORAGE_CONTRACT);
+
+    match evmctx
+        .journal()
+        .sload(TWINE_SYSTEM_STORAGE_CONTRACT, nonce_slot)
+    {
+        Ok(root) => Ok(FixedBytes::from(root.data)),
+        Err(_) => Err(TransactionPrecompileError::QueryEvmFailed.into()),
+    }
+}
+
+/// Computes the slot in storage where the nonce is located.
+pub fn calculate_nonce_slot_position(outer_key: U256, inner_key: U256) -> U256 {
+    let mut outer_key_encoded = vec![];
+    outer_key_encoded.extend_from_slice(&outer_key.to_be_bytes_vec());
+
+    let receipt_slot = U256::from(2);
+    outer_key_encoded.extend_from_slice(&receipt_slot.to_be_bytes_vec());
+
+    let outer_mapping_slot_hash = keccak256(&outer_key_encoded);
+
+    let mut inner_key_encoded = vec![];
+    inner_key_encoded.extend_from_slice(&inner_key.to_be_bytes_vec());
+    inner_key_encoded.extend_from_slice(outer_mapping_slot_hash.as_slice());
+
+    U256::from_be_slice(keccak256(&inner_key_encoded).as_ref())
 }

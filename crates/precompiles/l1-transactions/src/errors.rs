@@ -35,7 +35,7 @@ pub enum TransactionPrecompileError {
     #[error("invalid amount. failed to parse string to uint256. `{0}`")]
     InvalidAmountError(String),
     #[error("no transaction to execute")]
-    NoTransactionToExecute(),
+    NoTransactionToExecute,
     #[error("unknown error:  `{0}`")]
     Other(String),
 }
