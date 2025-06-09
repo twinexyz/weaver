@@ -1,12 +1,26 @@
-# path to genesis file to spawn l2
-genesis_path: /path/to/bin/node/res/dev-genesis.json
-# postgres database connection string
-database_path: /postgres/database/connection/string
-# contracts path
-contracts_path: /path/to/twine/weaver/testing/twine-solidity-contracts
-# binary for merkora
-merkora_binary: /path/to/merkora/binary
-# binary for twine-node
-twine_node_binary: twine-node
-# binary for ethereum L1
-ethereum_binary: reth
+# Replace with your local genesis JSON
+genesis_path: /path/to/dev-genesis.json
+
+# Postgres database connection string
+# Format: postgresql://<user>:<password>@<host>:<port>/<db>?sslmode=require
+database_path: postgresql://<user>:<password>@<host>:<port>/<database>
+
+# Path to your Solidity contracts directory
+contracts_path: /path/to/twine-solidity-contracts
+
+# Paths to required binaries (ensure they are in your $PATH or specify full paths)
+merkora_binary: /path/to/merkora
+twine_node_binary: /path/to/twine-node
+ethereum_binary: /path/to/reth
+
+# Solana test validator binary
+solana_binary: /path/to/solana-test-validator
+
+# Geyser plugin configuration for Solana
+geyser_config: /path/to/solana-geyser/config.json
+
+# Directory containing your Solana programs
+solana_program_path: /path/to/twine-solana-programs
+
+# Solana consensus prover binary
+solana_consensus_prover: /path/to/consensus-prover

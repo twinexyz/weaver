@@ -61,7 +61,7 @@ impl TransactionPrecompile {
                     .map_err(|e| e.to_string())
             }
             L1ChainType::Solana => {
-                tracing::debug!("Solana chain transaction not supported");
+                tracing::info!("Solana chain transaction not supported");
                 Err(
                     TransactionPrecompileError::Other("Solana Chain Transaction".into())
                         .to_string(),

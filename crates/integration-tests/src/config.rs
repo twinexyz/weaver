@@ -6,6 +6,8 @@ use eyre::Context;
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 
+use crate::twine::scripts::TwineContracts;
+
 /// Application configuration loaded from a file.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct AppConfig {
@@ -15,6 +17,10 @@ pub(crate) struct AppConfig {
     pub merkora_binary: Option<String>,
     pub twine_node_binary: Option<String>,
     pub ethereum_binary: Option<String>,
+    pub solana_binary: Option<String>,
+    pub solana_program_path: Option<String>,
+    pub geyser_config: Option<String>,
+    pub solana_consensus_prover: Option<String>,
 }
 
 /// Loads application configuration from the specified YAML file path.
@@ -114,30 +120,6 @@ pub(crate) struct Dev1Contracts {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub(crate) struct TwineContracts {
-    #[serde(rename = "ETHToken")]
-    pub eth_token: String,
-    #[serde(rename = "FauxCoin")]
-    pub faux_coin: String,
-    #[serde(rename = "L2CustomERC20Gateway")]
-    pub l2_custom_erc20_gateway: String,
-    #[serde(rename = "L2ETHGateway")]
-    pub l2_eth_gateway: String,
-    #[serde(rename = "L2GatewayRouter")]
-    pub l2_gateway_router: String,
-    #[serde(rename = "L2MsgExecutor")]
-    pub l2_msg_executor: String,
-    #[serde(rename = "L2RoleManager")]
-    pub l2_role_manager: String,
-    #[serde(rename = "L2TwineMessenger")]
-    pub l2_twine_messenger: String,
-    #[serde(rename = "L2XERC20Gateway")]
-    pub l2_xerc20_gateway: String,
-    #[serde(rename = "SolToken")]
-    pub sol_token: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct ContractAddresses {
     #[serde(rename = "Dev1")]
     pub dev1: Dev1Contracts,
@@ -201,9 +183,17 @@ pub(crate) struct EthereumConfig {
     pub l1_twine_dvn: String,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct SolanaConfig {
+    pub name: String,
+    #[serde(rename = "chain-id")]
+    pub chain_id: u64,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct L1Config {
     pub ethereum: Vec<EthereumConfig>,
+    pub solana: Vec<SolanaConfig>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -211,6 +201,33 @@ pub(crate) struct MerkoraConfig {
     pub global: GlobalConfig,
     pub twine: TwineConfig,
     pub l1s: L1Config,
+}
+
+pub(crate) fn generate_merkora_config_twine_solana(
+    db_path: String,
+    l2_messenger: String,
+    l2_rpc: String,
+) -> MerkoraConfig {
+    MerkoraConfig {
+        global: GlobalConfig {
+            port: 5555,
+            log: "info".to_string(),
+            db_path,
+        },
+        twine: TwineConfig {
+            l2_messenger_contract: l2_messenger,
+            rpc: l2_rpc,
+            private_key: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+                .to_string(),
+        },
+        l1s: L1Config {
+            ethereum: Vec::new(),
+            solana: vec![SolanaConfig {
+                name: "solana-localnet".to_string(),
+                chain_id: 900,
+            }],
+        },
+    }
 }
 
 pub(crate) fn generate_merkora_config(
@@ -244,6 +261,7 @@ pub(crate) fn generate_merkora_config(
                 l1_message_queue: l1_message_queue.clone(),
                 l1_twine_dvn: l1_message_queue,
             }],
+            solana: Vec::new(),
         },
     }
 }
