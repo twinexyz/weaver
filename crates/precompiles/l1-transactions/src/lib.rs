@@ -20,12 +20,12 @@ use reth_revm::context::{ContextTr, JournalTr};
 use reth_revm::interpreter::{Gas, InputsImpl, InstructionResult, InterpreterResult};
 use reth_tracing::tracing;
 use sol::{L1Txns, MerkleParamType, TokenTxn, VerifierInput};
+use solana_consensus_prover_lib::{AccountDeltaProof, PublicValuesStruct};
 use twine_constants::precompiles::TWINE_SYSTEM_STORAGE_CONTRACT;
 use twine_constants::solana_pda::{DEPOSIT_PDA_ADDRESS, WIHTDRAW_PDA_ADDRESS};
 use twine_evm_contracts::ITwineSystemStorageContract::L1TxnType;
 use twine_evm_contracts::L1MessageQueue::{QueueDepositTransaction, QueueWithdrawalTransaction};
 use twine_l1_utils::{get_chain_type, whitelisted_contract, L1ChainType};
-use twine_solana_consensus_prover_lib::{AccountDeltaProof, PublicValuesStruct};
 
 mod errors;
 mod sol;
@@ -337,149 +337,6 @@ impl L1Log for WrappedWithdrawal {
     fn amount(&self) -> U256 { self.0.amount }
 
     fn message(&self) -> Bytes { Bytes::new() }
-
-/// Handles a l1 message stores in solana PDA
-///
-/// This function is responsible for decoding the provided `data` into
-/// transactions and performing any necessary processing for the given
-/// PDA to handle them on twine
-///
-/// # Arguments
-///
-/// * `chain_id` - The identifier of the chain associated with the PDA
-/// * `proof` - The public values pertaining to solana consensus verifier. It
-///   contains information held by relevant PDAs
-/// * `evmctx` - A mutable reference to the EVM context. This provides access to
-///   the database and other contextual information required for processing the
-///   event.
-pub fn handle_solana_proof<DB: Database>(
-    chain_id: U256,
-    proof: Bytes,
-    evmctx: &mut reth::revm::InnerEvmContext<DB>,
-) -> PrecompileResult {
-    tracing::debug!("Reached in handle_solana_proof");
-
-    let proof_vec = proof.to_vec();
-    let sliced_proof = proof_vec.as_slice();
-
-    let public_value: PublicValuesStruct = match serde_json::from_slice(sliced_proof) {
-        Ok(public_value) => public_value,
-        Err(_) => {
-            return Err(TransactionPrecompileError::DecodeSolanaPublicValueStruct.into());
-        }
-    };
-
-    let complete_proof = public_value.package;
-
-    for (_, proofs) in complete_proof.proofs {
-        for proof in proofs {
-            let transaction_data = proof.1 .0.account.data;
-            // first 8 bytes are appended during anchorserialization
-            let mut transaction_data = &transaction_data[8..];
-            let transaction_info: PDA = match BorshDeserialize::deserialize(&mut transaction_data) {
-                Ok(transaction_info) => transaction_info,
-                Err(_) => {
-                    tracing::debug!("borsh deserialize failed");
-                    return Err(TransactionPrecompileError::DecodePDAFailed.into());
-                }
-            };
-
-            // TODO: For other types of messages, handle here
-            let mint = proof.0.to_string() == DEPOSIT_PDA_ADDRESS;
-
-            if !mint && proof.0.to_string() != WIHTDRAW_PDA_ADDRESS {
-                tracing::debug!("Invalid PDA address");
-                return Err(TransactionPrecompileError::InvalidPDA.into());
-            }
-            let nonce = if mint {
-                let nonce = get_last_handled_nonce(chain_id, L1TxnType::from(0), evmctx)?;
-                nonce
-            } else {
-                let nonce = get_last_handled_nonce(chain_id, L1TxnType::from(1), evmctx)?;
-                nonce
-            };
-
-            for l1_message in transaction_info.messages {
-                // Transaction of this nonce was handled already, so skip this
-                // and try for next iteration
-                let next_nonce_to_handle = nonce.saturating_add(Uint::ONE).to::<u64>();
-
-                if l1_message.nonce < next_nonce_to_handle {
-                    tracing::debug!("nonce already handled");
-                    continue;
-                }
-
-                if l1_message.nonce > next_nonce_to_handle {
-                    tracing::debug!("txns should be handled in sequential order");
-                    continue;
-                }
-
-                if l1_message.nonce == next_nonce_to_handle {
-                    // handle
-
-                    let l2_token = match Address::from_str(&l1_message.l2_token) {
-                        Ok(addr) => addr,
-                        Err(_) => return Err(TransactionPrecompileError::InvalidAddress.into()),
-                    };
-
-                    let l2_user_address = match Address::from_str(&l1_message.to_twine_address) {
-                        Ok(addr) => addr,
-                        Err(_) => return Err(TransactionPrecompileError::InvalidAddress.into()),
-                    };
-
-                    let amount = match U256::from_str(&l1_message.amount) {
-                        Ok(value) => value,
-                        Err(e) =>
-                            return Err(TransactionPrecompileError::InvalidAmountError(format!(
-                                "{e:?}"
-                            ))
-                            .into()),
-                    };
-
-                    // Construct the L1 transaction object
-                    let l1_txn = L1Txns {
-                        nonce: U256::from(l1_message.nonce),
-                        tokenTxn: TokenTxn {
-                            token: l2_token,
-                            to: l2_user_address,
-                            value: amount,
-                            mint,
-                        },
-                        forcedTxn: Vec::new(),
-                    };
-
-                    return Ok(PrecompileOutput {
-                        gas_used: 0,
-                        bytes: l1_txn.abi_encode().into(),
-                    });
-                }
-            }
-        }
-    }
-
-    // If no valid transaction is processed, return an error
-    Err(TransactionPrecompileError::NoTransactionToExecute().into())
-}
-
-/// Solana related PDAs
-#[allow(missing_docs)]
-#[derive(Debug, BorshSerialize, BorshDeserialize)]
-pub struct PDA {
-    pub nonce: u64,
-    pub messages: Vec<TransactionData>,
-}
-
-#[allow(missing_docs)]
-#[derive(Debug, BorshSerialize, BorshDeserialize)]
-pub struct TransactionData {
-    pub nonce: u64,
-    pub chain_id: u64,
-    pub slot_number: u64,
-    pub from_l1_pubkey: String,
-    pub to_twine_address: String,
-    pub l1_token: String,
-    pub l2_token: String,
-    pub amount: String,
 }
 
 /// Handles a l1 message stores in solana PDA
