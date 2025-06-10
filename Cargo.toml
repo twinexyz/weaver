@@ -12,13 +12,14 @@ members = [
   "bin/node",
 
   "crates/constants",
-  "crates/ethereum-consensus-prover-lib",
+  "crates/ethereum-consensus-prover",
   "crates/evm-contracts",
   "crates/executor",
   "crates/integration-tests",
   "crates/l1-utils",
   "crates/precompiles/l1-consensus-verifier",
   "crates/precompiles/l1-transactions",
+  "crates/solana-consensus-prover",
   "crates/solana-sdk",
   "crates/test-harness",
 ]
@@ -74,6 +75,7 @@ num-derive = "0.4"
 num-traits = { version = "0.2", features = ["i128"] }
 sha2_solana = { package = "sha2", git = "https://github.com/sp1-patches/RustCrypto-hashes", tag = "patch-0.10.8-sp1-4.0.0-rc.3" }
 smallvec = "1.13.2"
+solana-short-vec = "2.2.1"
 
 # RETH
 reth = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.10" }
@@ -94,13 +96,15 @@ revm-context = { version = "3.0.0", default-features = false }
 
 test-harness = { path = "crates/test-harness" }
 twine-constants = { path = "crates/constants" }
-twine-ethereum-consensus-prover-lib = { path = "crates/ethereum-consensus-prover-lib" }
+twine-ethereum-consensus-prover-lib = { path = "crates/ethereum-consensus-prover" }
 twine-evm-contracts = { path = "crates/evm-contracts" }
 twine-executor = { path = "crates/executor" }
 twine-integration-tests = { path = "crates/integration-tests" }
 twine-l1-consensus-verifier-precompile = { path = "crates/precompiles/l1-consensus-verifier" }
 twine-l1-transactions-precompile = { path = "crates/precompiles/l1-transactions" }
 twine-l1-utils = { path = "crates/l1-utils" }
+twine-solana-consensus-prover-lib = { path = "crates/solana-consensus-prover" }
+twine-solana-sdk = { path = "crates/solana-sdk" }
 
 [patch.crates-io]
 # The following is required since we would like to remove
