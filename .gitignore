@@ -2,3 +2,6 @@ target/
 **/out/
 **/cache/
 **/broadcast/
+
+test-ledger
+geyser.*
