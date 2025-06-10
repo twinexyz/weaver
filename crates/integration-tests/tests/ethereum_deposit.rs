@@ -1,5 +1,7 @@
+//! Deposit eth from  Ethereum to Twine
+
 #[cfg(test)]
-mod deposit_test {
+mod ethereum_deposit_test {
     use std::path::{Path, PathBuf};
     use std::process::{Command, Stdio};
     use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -10,11 +12,10 @@ mod deposit_test {
         AsyncFnStep, SubProcessService, SubProcessServiceStarter, SubProcessServiceStopper,
         TestHarness, TestStep,
     };
-
-    use crate::config::{
-        generate_merkora_config, load_app_config, load_contract_addresses, save_yaml_to_file,
+    use twine_integration_tests::config::{
+        load_app_config, load_contract_addresses, save_yaml_to_file, MerkoraConfigBuilder,
     };
-    use crate::remove_dir_if_exists;
+    use twine_integration_tests::remove_dir_if_exists;
 
     // Constants to be used through depoosit tests
     mod constants {
@@ -47,7 +48,7 @@ mod deposit_test {
     }
 
     impl TestServices {
-        fn new(app_config: &crate::config::AppConfig) -> Self {
+        fn new(app_config: &twine_integration_tests::config::AppConfig) -> Self {
             Self {
                 twine_node: SubProcessService {
                     name: "Twine Node".into(),
@@ -304,7 +305,9 @@ mod deposit_test {
         })))
     }
 
-    fn configure_merkora_step(cfg: &crate::config::AppConfig) -> eyre::Result<TestStep> {
+    fn configure_merkora_step(
+        cfg: &twine_integration_tests::config::AppConfig,
+    ) -> eyre::Result<TestStep> {
         let db_path = cfg.database_path.clone();
         Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
             name: "Configure Merkora".to_string(),
@@ -312,21 +315,29 @@ mod deposit_test {
             futurefn: Box::new(move |ctx| {
                 Box::new(async move {
                     let c = ctx.borrow();
-                    let l2 = c.get(ctx_keys::L2_MESSENGER).unwrap().clone();
-                    let l1 = c.get(ctx_keys::L1_MESSAGE_QUEUE).unwrap().clone();
-                    let config = generate_merkora_config(
-                        db_path.clone(),
-                        l2,
-                        l1,
+                    let l2_messenger = c.get(ctx_keys::L2_MESSENGER).unwrap().clone();
+                    let l1_message_queue = c.get(ctx_keys::L1_MESSAGE_QUEUE).unwrap().clone();
+
+                    let config = MerkoraConfigBuilder::new(
+                        db_path,
+                        l2_messenger,
                         constants::TWINE_RPC_URL.to_string(),
+                    )
+                    .with_ethereum(
+                        "ethereum".to_string(),
+                        17000,
                         constants::RETH_RPC_URL.to_string(),
                         constants::RETH_WS_URL.to_string(),
-                    );
+                        l1_message_queue,
+                    )
+                    .build();
+
                     save_yaml_to_file(&config, constants::MERKORA_CONFIG)
                 })
             }),
         })))
     }
+
     fn deposit_eth_step() -> eyre::Result<TestStep> {
         Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
             name: "Deposit ETH".to_string(),

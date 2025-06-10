@@ -9,7 +9,7 @@ use crate::solana::{self, constants, ctx_keys};
 use crate::{generate_random_eth_address, twine};
 
 /// Set solana config
-pub(crate) fn set_solana_config_step() -> eyre::Result<TestStep> {
+pub fn set_solana_config_step() -> eyre::Result<TestStep> {
     Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
         name: "Set Solana Config".to_string(),
         description: "Configure solana to use localnet".to_string(),
@@ -17,7 +17,7 @@ pub(crate) fn set_solana_config_step() -> eyre::Result<TestStep> {
             Box::new(async move {
                 // Set solana config to localnet
                 let status = Command::new("solana")
-                    .args(&["config", "set", "--url", "localnet"])
+                    .args(&["config", "set", "--url", "localhost"])
                     .status()?;
 
                 if !status.success() {
@@ -34,7 +34,7 @@ pub(crate) fn set_solana_config_step() -> eyre::Result<TestStep> {
 }
 
 /// Load solana address to context
-pub(crate) fn get_solana_address_step() -> eyre::Result<TestStep> {
+pub fn get_solana_address_step() -> eyre::Result<TestStep> {
     Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
         name: "Get Solana Address".to_string(),
         description: "Get solana address and store in context".to_string(),
@@ -58,7 +58,7 @@ pub(crate) fn get_solana_address_step() -> eyre::Result<TestStep> {
 
 /// Update admin on solana programs
 /// Replace the INITIAL_CHAIN_ADMIN constant in the Solana program
-pub(crate) fn update_solana_program_step(program_path: PathBuf) -> eyre::Result<TestStep> {
+pub fn update_solana_program_step(program_path: PathBuf) -> eyre::Result<TestStep> {
     Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
         name: "Update Solana Program".to_string(),
         description: "Update program ID and build".to_string(),
@@ -114,7 +114,7 @@ pub(crate) fn update_solana_program_step(program_path: PathBuf) -> eyre::Result<
 }
 
 /// Build anchor programs
-pub(crate) fn build_solana_program_step(program_path: PathBuf) -> eyre::Result<TestStep> {
+pub fn build_solana_program_step(program_path: PathBuf) -> eyre::Result<TestStep> {
     Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
         name: "Build Solana Program".to_string(),
         description: "Build the Solana program".to_string(),
@@ -159,7 +159,7 @@ pub(crate) fn build_solana_program_step(program_path: PathBuf) -> eyre::Result<T
 }
 
 /// Deploy solana programs
-pub(crate) fn deploy_solana_program_step(program_path: PathBuf) -> eyre::Result<TestStep> {
+pub fn deploy_solana_program_step(program_path: PathBuf) -> eyre::Result<TestStep> {
     Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
         name: "Deploy Solana Program".to_string(),
         description: "Deploy the Solana program".to_string(),
@@ -187,7 +187,7 @@ pub(crate) fn deploy_solana_program_step(program_path: PathBuf) -> eyre::Result<
 }
 
 /// Initialize solana programs
-pub(crate) fn initialize_solana_program_step(program_path: PathBuf) -> eyre::Result<TestStep> {
+pub fn initialize_solana_program_step(program_path: PathBuf) -> eyre::Result<TestStep> {
     Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
         name: "Initialize Solana Program".to_string(),
         description: "Initialize the Solana program".to_string(),
@@ -209,7 +209,7 @@ pub(crate) fn initialize_solana_program_step(program_path: PathBuf) -> eyre::Res
 }
 
 /// Load program addresses
-pub(crate) fn load_program_addresses_step(program_path: PathBuf) -> eyre::Result<TestStep> {
+pub fn load_program_addresses_step(program_path: PathBuf) -> eyre::Result<TestStep> {
     let mut path = program_path.clone();
     path.push("solanaPrograms.json");
     Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
@@ -225,7 +225,7 @@ pub(crate) fn load_program_addresses_step(program_path: PathBuf) -> eyre::Result
 }
 
 /// Update token mapping on solana
-pub(crate) fn update_token_mapping(program_path: PathBuf) -> eyre::Result<TestStep> {
+pub fn update_token_mapping(program_path: PathBuf) -> eyre::Result<TestStep> {
     Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
         name: "Update token mapping on solana".to_string(),
         description: "Update token mapping with address deployed on twine".to_string(),
@@ -260,7 +260,7 @@ pub(crate) fn update_token_mapping(program_path: PathBuf) -> eyre::Result<TestSt
 }
 
 /// Deposit solana token
-pub(crate) fn deposit_sol_step(program_path: PathBuf) -> eyre::Result<TestStep> {
+pub fn deposit_sol_step(program_path: PathBuf) -> eyre::Result<TestStep> {
     Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
         name: "Deposit SOL".to_string(),
         description: "Deposit SOL from solana to twine".to_string(),

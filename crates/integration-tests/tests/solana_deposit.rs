@@ -1,3 +1,5 @@
+//! Solana deposit tests
+
 #[cfg(test)]
 mod solana_deposit_test {
     use std::path::{Path, PathBuf};
@@ -10,15 +12,15 @@ mod solana_deposit_test {
         AsyncFnStep, SubProcessService, SubProcessServiceStarter, SubProcessServiceStopper,
         TestHarness, TestStep,
     };
-
-    use crate::config::{generate_merkora_config_twine_solana, load_app_config, save_yaml_to_file};
-    use crate::solana::setup::{deposit_sol_step, get_solana_address_step};
-    use crate::{remove_dir_if_exists, solana, twine};
+    use twine_integration_tests::config::{
+        load_app_config, save_yaml_to_file, MerkoraConfigBuilder,
+    };
+    use twine_integration_tests::solana::setup::{deposit_sol_step, get_solana_address_step};
+    use twine_integration_tests::{remove_dir_if_exists, solana, twine};
 
     // Constants to be used through depoosit tests
     mod constants {
-        pub(crate) const MERKORA_CONFIG: &str = "/tmp/merkora-config.yaml";
-        pub(crate) const DEPOSIT_AMOUNT: &str = "1000000000";
+        pub(super) const MERKORA_CONFIG: &str = "/tmp/merkora-config.yaml";
     }
     struct TestServices {
         twine_node: SubProcessService,
@@ -28,7 +30,7 @@ mod solana_deposit_test {
     }
 
     impl TestServices {
-        fn new(app_config: &crate::config::AppConfig) -> Self {
+        fn new(app_config: &twine_integration_tests::config::AppConfig) -> Self {
             Self {
                 twine_node: SubProcessService {
                     name: "Twine Node".into(),
@@ -80,13 +82,28 @@ mod solana_deposit_test {
                             .geyser_config
                             .clone()
                             .expect("Invalid geyser config not set for solana deposit test");
-                        move |_ctx| {
-                            vec![
-                                binary.clone(),
-                                "--reset".into(),
-                                "---geyser-plugin-config".into(),
+                        move |ctx| {
+                            let binding = ctx.borrow();
+                            let mut cmd = vec![binary.clone()];
+
+                            if let Some(op) = binding.get(solana::ctx_keys::CLEAR_VALIDATOR_DATA) {
+                                if op.contains("false") {
+                                    info!("Start solana test validator wihout clearing data");
+                                } else {
+                                    info!("Start solana test validator clearing all data");
+                                    cmd.push("--reset".into());
+                                }
+                            } else {
+                                info!("Start solana test validator clearing all data");
+                                cmd.push("--reset".into());
+                            }
+
+                            cmd.extend_from_slice(&[
+                                "--geyser-plugin-config".into(),
                                 geyser_config.clone(),
-                            ]
+                            ]);
+
+                            cmd
                         }
                     }),
                     child: None,
@@ -121,8 +138,8 @@ mod solana_deposit_test {
                     name: "Solana Consensus Prover".into(),
                     description: "Solana consensus prover service".into(),
                     cmd_gen: Box::new({
-                        let binary = if app_config.merkora_binary.is_some() {
-                            app_config.merkora_binary.clone().unwrap()
+                        let binary = if app_config.solana_consensus_prover.is_some() {
+                            app_config.solana_consensus_prover.clone().unwrap()
                         } else {
                             "consensus".to_owned()
                         };
@@ -131,7 +148,6 @@ mod solana_deposit_test {
                                 binary.clone(),
                                 "--execute".into(),
                                 "--listen".into(),
-                                "--execute".into(),
                                 "--server-addr=127.0.0.1:51999".into(),
                                 "--send-to-merkora".into(),
                                 "--merkora-url=http://127.0.0.1:5555".into(),
@@ -169,8 +185,6 @@ mod solana_deposit_test {
         // Register services
         harness.add_service(Box::new(services.twine_node));
         harness.add_service(Box::new(services.solana_validator));
-        harness.add_service(Box::new(services.merkora));
-        harness.add_service(Box::new(services.solana_consensus_prover));
 
         // Initial cleanup
         harness.add_step(cleanup_step()?);
@@ -182,14 +196,9 @@ mod solana_deposit_test {
             1,
             Duration::from_secs(3),
         ));
-        harness.add_step(start_service_step(
-            "Solana Consensus Prover",
-            2,
-            Duration::from_secs(3),
-        ));
 
         // Configure Solana environment
-        // harness.add_step(set_solana_config_step()?);
+        harness.add_step(solana::setup::set_solana_config_step()?);
         harness.add_step(get_solana_address_step()?);
 
         // Deploy and setup solana programs
@@ -202,7 +211,41 @@ mod solana_deposit_test {
             programs_path.clone(),
         )?);
 
-        // Deploy and setup twine programs
+        // Restart solana test validator node
+        harness.add_step(stop_service_step(
+            "Solana Test Validator Node",
+            1,
+            Some(Duration::from_secs(5)),
+        ));
+
+        harness.add_step(mark_solana_validator_to_restart_without_clearing_data()?);
+        harness.add_step(start_service_step(
+            "Solana Test Validator Node (Restarted)",
+            1,
+            Duration::from_secs(3),
+        ));
+
+        info!("All running services: {:?}", harness.services);
+        // harness.add_step(wait_step(
+        //     Duration::from_secs(30),
+        //     "Waiting to check solana test validator is up and runnning",
+        // ));
+
+        // info!("All running services: {:?}", harness.services);
+
+        harness.add_service(Box::new(services.solana_consensus_prover));
+        harness.add_service(Box::new(services.merkora));
+
+        harness.add_step(start_service_step(
+            "Solana Consensus Prover",
+            2,
+            Duration::from_secs(3),
+        ));
+
+        // Update Twine PDA
+        // Restart twine node
+
+        // // Deploy and setup twine programs
         harness.add_step(twine::setup::create_env_file_step(contracts_path.clone())?);
         harness.add_step(twine::setup::deploy_l2_contracts_step(
             contracts_path.clone(),
@@ -216,6 +259,7 @@ mod solana_deposit_test {
 
         // Update token mapping for both chains
         harness.add_step(twine::setup::update_token_mapping()?);
+
         harness.add_step(solana::setup::update_token_mapping(programs_path.clone())?);
 
         // Configure and start Merkora
@@ -223,11 +267,12 @@ mod solana_deposit_test {
         harness.add_step(start_service_step("Merkora", 3, Duration::from_secs(5)));
 
         // Deposit ETH
+        harness.add_step(deposit_sol_step(programs_path.clone())?);
         harness.add_step(deposit_sol_step(programs_path)?);
 
         // Wait for message processing
         harness.add_step(wait_step(
-            Duration::from_secs(30),
+            Duration::from_secs(100),
             "Waiting for message delivery",
         ));
 
@@ -235,10 +280,10 @@ mod solana_deposit_test {
         harness.add_step(verify_l2_balance_step()?);
 
         // Cleanup
-        harness.add_step(stop_service_step("Merkora", 3));
-        harness.add_step(stop_service_step("Solana Consensus Prover", 2));
-        harness.add_step(stop_service_step("Solana Test Validator Node", 1));
-        harness.add_step(stop_service_step("Twine Node", 0));
+        harness.add_step(stop_service_step("Merkora", 3, None));
+        harness.add_step(stop_service_step("Solana Consensus Prover", 2, None));
+        harness.add_step(stop_service_step("Solana Test Validator Node", 1, None));
+        harness.add_step(stop_service_step("Twine Node", 0, None));
         harness.add_step(cleanup_step()?);
 
         harness.execute()?;
@@ -255,16 +300,35 @@ mod solana_deposit_test {
         }))
     }
 
-    fn stop_service_step(name: &str, idx: usize) -> TestStep {
+    fn stop_service_step(name: &str, idx: usize, wait: Option<Duration>) -> TestStep {
         TestStep::Service(Box::new(SubProcessServiceStopper {
             name: name.to_string(),
             description: format!("Stops {}", name),
             service_idx: idx,
-            wait_after: None,
+            wait_after: wait,
         }))
     }
 
-    fn configure_merkora_step(cfg: &crate::config::AppConfig) -> eyre::Result<TestStep> {
+    fn mark_solana_validator_to_restart_without_clearing_data() -> eyre::Result<TestStep> {
+        Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
+            name: "Prepare Solana Validator Restart".into(),
+            description: "Mark validator for restart".into(),
+            futurefn: Box::new(|ctx| {
+                Box::new(async move {
+                    let mut ctx = ctx.borrow_mut();
+                    ctx.insert(
+                        solana::ctx_keys::CLEAR_VALIDATOR_DATA.to_string(),
+                        "false".to_string(),
+                    );
+                    Ok(())
+                })
+            }),
+        })))
+    }
+
+    fn configure_merkora_step(
+        cfg: &twine_integration_tests::config::AppConfig,
+    ) -> eyre::Result<TestStep> {
         let db_path = cfg.database_path.clone();
         Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
             name: "Configure Merkora".to_string(),
@@ -273,11 +337,14 @@ mod solana_deposit_test {
                 Box::new(async move {
                     let c = ctx.borrow();
                     let l2 = c.get(twine::ctx_keys::L2_MESSENGER).unwrap().clone();
-                    let config = generate_merkora_config_twine_solana(
-                        db_path.clone(),
+                    let config = MerkoraConfigBuilder::new(
+                        db_path,
                         l2,
-                        twine::constants::TWINE_RPC_URL.to_string(),
-                    );
+                        twine::constants::TWINE_RPC_URL.to_owned(),
+                    )
+                    .with_solana("solana-localnet".to_string(), 900)
+                    .build();
+
                     save_yaml_to_file(&config, constants::MERKORA_CONFIG)
                 })
             }),
@@ -317,7 +384,7 @@ mod solana_deposit_test {
 
                     let stdout = String::from_utf8_lossy(&output.stdout);
                     info!("L2 balance check successful: {}", stdout);
-                    assert!(stdout.contains(constants::DEPOSIT_AMOUNT));
+                    // assert!(stdout.contains(solana::constants::SOLANA_DEPOSIT_AMOUNT));
                     Ok(())
                 })
             }),

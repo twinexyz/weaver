@@ -5,7 +5,7 @@ use log::{error, info};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
-pub(crate) struct TwineContracts {
+pub struct TwineContracts {
     #[serde(rename = "ETHToken")]
     pub eth_token: String,
     #[serde(rename = "FauxCoin")]
@@ -29,7 +29,7 @@ pub(crate) struct TwineContracts {
 }
 
 /// load twine contracts
-pub(crate) fn load_twine_addresses(addresses_path: &PathBuf) -> eyre::Result<TwineContracts> {
+pub fn load_twine_addresses(addresses_path: &PathBuf) -> eyre::Result<TwineContracts> {
     info!(
         "Loading application configuration from JSON file: {:?}",
         addresses_path

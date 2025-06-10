@@ -9,7 +9,7 @@ use crate::twine::scripts::load_twine_addresses;
 use crate::twine::{constants, ctx_keys};
 
 /// Create a .env file in contracts folder
-pub(crate) fn create_env_file_step(target_dir: PathBuf) -> eyre::Result<TestStep> {
+pub fn create_env_file_step(target_dir: PathBuf) -> eyre::Result<TestStep> {
     Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
         name: "Create Env File".to_string(),
         description: "Create .env file with private key".to_string(),
@@ -25,7 +25,7 @@ pub(crate) fn create_env_file_step(target_dir: PathBuf) -> eyre::Result<TestStep
 }
 
 /// Deploy L2 contracts
-pub(crate) fn deploy_l2_contracts_step(contracts_dir: PathBuf) -> eyre::Result<TestStep> {
+pub fn deploy_l2_contracts_step(contracts_dir: PathBuf) -> eyre::Result<TestStep> {
     Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
         name: "Deploy L2 Contracts".to_string(),
         description: "Deploy L2 contracts using forge".to_string(),
@@ -63,7 +63,7 @@ pub(crate) fn deploy_l2_contracts_step(contracts_dir: PathBuf) -> eyre::Result<T
 }
 
 /// Setup L2 contracts
-pub(crate) fn setup_l2_contracts_step(contracts_dir: PathBuf) -> eyre::Result<TestStep> {
+pub fn setup_l2_contracts_step(contracts_dir: PathBuf) -> eyre::Result<TestStep> {
     Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
         name: "Setup L2 Contracts".to_string(),
         description: "Setup L2 contracts using forge".to_string(),
@@ -92,7 +92,7 @@ pub(crate) fn setup_l2_contracts_step(contracts_dir: PathBuf) -> eyre::Result<Te
 }
 
 /// Load required contract addresses to context
-pub(crate) fn load_contract_addresses_step(contract_path: &PathBuf) -> eyre::Result<TestStep> {
+pub fn load_contract_addresses_step(contract_path: &PathBuf) -> eyre::Result<TestStep> {
     let mut path = contract_path.clone();
     path.push("script/utils/twineAddresses.json");
     Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
@@ -116,7 +116,7 @@ pub(crate) fn load_contract_addresses_step(contract_path: &PathBuf) -> eyre::Res
 }
 
 /// Update token mapping on twine
-pub(crate) fn update_token_mapping() -> eyre::Result<TestStep> {
+pub fn update_token_mapping() -> eyre::Result<TestStep> {
     Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
         name: "Update token mapping on twine".to_string(),
         description: "Update token mapping with address deployed on solana".to_string(),

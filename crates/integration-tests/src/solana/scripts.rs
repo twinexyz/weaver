@@ -5,21 +5,19 @@ use log::{error, info};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
-pub(crate) struct Programs {
-    pub(crate) sp_verifier: String,
-    pub(crate) tokens_gateway: String,
-    pub(crate) twine_chain: String,
+pub struct Programs {
+    pub sp_verifier: String,
+    pub tokens_gateway: String,
+    pub twine_chain: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub(crate) struct SolanaPrograms {
-    pub(crate) programs: Programs,
+pub struct SolanaPrograms {
+    pub programs: Programs,
 }
 
 /// load solana program details
-pub(crate) fn load_solana_program_pubkeys(
-    addresses_path: &PathBuf,
-) -> eyre::Result<SolanaPrograms> {
+pub fn load_solana_program_pubkeys(addresses_path: &PathBuf) -> eyre::Result<SolanaPrograms> {
     info!(
         "Loading application configuration from JSON file: {:?}",
         addresses_path

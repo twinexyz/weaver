@@ -1,16 +1,15 @@
-//! Integration tests for twine
-
+//! Test helper methods for twine integration tests
+#![allow(missing_docs)]
+#![allow(dead_code)]
+#![allow(unused_imports)]
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use log::info;
 
-pub(crate) mod config;
-pub(crate) mod evm;
-pub(crate) mod solana;
-pub(crate) mod twine;
-
-mod deposit;
-mod solana_deposit;
+pub mod config;
+pub mod evm;
+pub mod solana;
+pub mod twine;
 
 /// Utility function to remove a folder or file
 pub fn remove_dir_if_exists(path: &str) -> eyre::Result<()> {
