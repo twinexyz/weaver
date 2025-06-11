@@ -215,7 +215,7 @@ pub fn load_program_addresses_step(program_path: PathBuf) -> eyre::Result<TestSt
     Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
         name: "Load Solana Addresses".to_string(),
         description: "Load deployed solana program addresses into context".to_string(),
-        futurefn: Box::new(move |ctx| {
+        futurefn: Box::new(move |_ctx| {
             Box::new(async move {
                 let _addresses = load_solana_program_pubkeys(&path)?;
                 Ok(())

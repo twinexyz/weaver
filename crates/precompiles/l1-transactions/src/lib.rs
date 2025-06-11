@@ -20,12 +20,12 @@ use reth_revm::context::{ContextTr, JournalTr};
 use reth_revm::interpreter::{Gas, InputsImpl, InstructionResult, InterpreterResult};
 use reth_tracing::tracing;
 use sol::{L1Txns, MerkleParamType, TokenTxn, VerifierInput};
-use solana_consensus_prover_lib::{AccountDeltaProof, PublicValuesStruct};
 use twine_constants::precompiles::TWINE_SYSTEM_STORAGE_CONTRACT;
 use twine_constants::solana_pda::{DEPOSIT_PDA_ADDRESS, WIHTDRAW_PDA_ADDRESS};
 use twine_evm_contracts::ITwineSystemStorageContract::L1TxnType;
 use twine_evm_contracts::L1MessageQueue::{QueueDepositTransaction, QueueWithdrawalTransaction};
 use twine_l1_utils::{get_chain_type, whitelisted_contract, L1ChainType};
+use twine_solana_consensus_prover_lib::{AccountDeltaProof, PublicValuesStruct};
 
 mod errors;
 mod sol;
