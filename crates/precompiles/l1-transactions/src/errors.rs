@@ -24,6 +24,18 @@ pub enum TransactionPrecompileError {
     MerkleVerifierError(String),
     #[error("failed to decode key path and proofs")]
     DecodeKeyPathAndProof,
+    #[error("failed to decode public value struct")]
+    DecodeSolanaPublicValueStruct,
+    #[error("failed to decode bytes to PDA")]
+    DecodePDAFailed,
+    #[error("invalid PDA. not a PDA to be handled by twine precompile")]
+    InvalidPDA,
+    #[error("invalid ethereum address")]
+    InvalidAddress,
+    #[error("invalid amount. failed to parse string to uint256. `{0}`")]
+    InvalidAmountError(String),
+    #[error("no transaction to execute")]
+    NoTransactionToExecute,
     #[error("unknown error:  `{0}`")]
     Other(String),
 }
