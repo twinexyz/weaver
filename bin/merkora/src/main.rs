@@ -6,7 +6,7 @@ use std::process;
 use std::sync::Arc;
 
 use anyhow::Context;
-use block_processing::L1MessageProcessor;
+use block_processing::L1EvmMessageProcessor;
 use clap::{Parser, Subcommand};
 use futures::stream::FuturesUnordered;
 use futures::StreamExt;
@@ -179,11 +179,11 @@ async fn run(cfg: Config) -> anyhow::Result<()> {
             {
                 let eth = ethereum.clone();
 
-                let processor = L1MessageProcessor::new((*eth).clone());
+                let msg_processor = L1EvmMessageProcessor::new((*eth).clone());
                 let l1_msg_to_db_sender = l1_msg_tx.clone();
                 let eth_receipt_poller = tokio::spawn(async move {
                     if let Err(error) = eth
-                        .stream_receipts_l2(l1_msg_to_db_sender, start_height, processor)
+                        .stream_receipts_l2(l1_msg_to_db_sender, start_height, msg_processor)
                         .await
                     {
                         tracing::error!(?error, "Error streaming receipts");

@@ -16,11 +16,17 @@ static CONCURRENCY_LIMIT: usize = 20;
 /// `T` is decoded messages that are extracted from the block.
 #[async_trait::async_trait]
 pub trait BlockProcessor<T>: Send + Sync {
+    /// Returns the filter to use when listening for relevant events.
     fn event_filter(&self) -> Filter;
+
+    /// Fetches the block at given height and filters the receipts
+    /// and logs based on filters defined in the `event_filter`.
     async fn fetch_block_with_filtered_data(
         &self,
         height: u64,
     ) -> Result<Option<(Block, Vec<(TransactionReceipt, Vec<Bytes>, Vec<Log>)>)>>;
+
+    /// Processes a block and extract decoded messages of type `T`.
     async fn process_block(&self, height: u64) -> Result<Option<Vec<T>>>;
 }
 

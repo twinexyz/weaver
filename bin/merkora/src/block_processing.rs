@@ -19,18 +19,19 @@ use twine_merkora_types::db::L1MessageDetails;
 
 type MerklePatriciaProofVerifyParams = (sol_data::Bytes, sol_data::Array<sol_data::Bytes>);
 
-// Processor for L0MessageDetails that implements BlockProcessor
+/// Helper type to process Ethereum events, filter them
+/// and produce L1MessageDetails.
 #[derive(Clone)]
-pub struct L1MessageProcessor {
+pub struct L1EvmMessageProcessor {
     pub provider: EthereumProvider,
 }
 
-impl L1MessageProcessor {
+impl L1EvmMessageProcessor {
     pub fn new(provider: EthereumProvider) -> Self { Self { provider } }
 }
 
 #[async_trait::async_trait]
-impl BlockProcessor<L1MessageDetails> for L1MessageProcessor {
+impl BlockProcessor<L1MessageDetails> for L1EvmMessageProcessor {
     fn event_filter(&self) -> Filter {
         let events = vec![
             QueueDepositTransaction::SIGNATURE_HASH,
