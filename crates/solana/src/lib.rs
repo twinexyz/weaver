@@ -2,13 +2,13 @@ use alloy_primitives::{Bytes, FixedBytes, U256};
 use alloy_sol_types::SolValue;
 use async_trait::async_trait;
 use borsh::BorshDeserialize;
-use solana_consensus_prover_lib::{AccountDeltaProof, PublicValuesStruct};
 use tokio::sync::mpsc;
 use twine_config::SolanaConfig;
 use twine_merkora_types::db::{L1MessageDetails, L1MessageType};
 use twine_merkora_types::manager::ChainTyp;
 use twine_merkora_types::traits::{ChainProvider, ChainTypeHandler};
 use twine_merkora_types::{TwineInputParams, PDA};
+use twine_solana_consensus_prover_lib::{AccountDeltaProof, PublicValuesStruct};
 
 pub struct SolanaProvider {
     pub cfg: SolanaConfig,
