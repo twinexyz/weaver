@@ -14,6 +14,8 @@ use logging::init_logger;
 use tokio::sync::{mpsc, Notify};
 use tracing::info;
 use twine_config::{default_config_path, load_and_validate_config, Config};
+use twine_db::connect_db;
+use twine_db::merkora::{fetch_latest_processed_slot_or_block_number, process_l1_message_to_db};
 use twine_ethereum_utils::EthereumProviderConfig;
 use twine_json_rpc_server::JsonRpcServer;
 use twine_merkora_types::db::L1MessageDetails;
@@ -100,7 +102,7 @@ async fn run(cfg: Config) -> anyhow::Result<()> {
     let notify = Arc::new(Notify::new());
 
     // DB from db crate
-    let db = twine_db::merkora::connect(&db_path)
+    let db = connect_db(&db_path)
         .await
         .context("failed to connect to db")?;
 
@@ -145,11 +147,7 @@ async fn run(cfg: Config) -> anyhow::Result<()> {
             );
 
             let db_last_processed: Result<u64, anyhow::Error> =
-                twine_db::merkora::fetch_oldest_unprocessed_slot_or_block_number(
-                    &db,
-                    ethereum_chain.chain_id,
-                )
-                .await;
+                fetch_latest_processed_slot_or_block_number(&db, ethereum_chain.chain_id).await;
 
             let start_height = match (db_last_processed, ethereum_chain.start_height) {
                 // If `db_last_processed` is Ok and greater than `start_height`, use it.
@@ -292,7 +290,7 @@ async fn run(cfg: Config) -> anyhow::Result<()> {
     {
         let db_clone = db.clone();
         let db_handle = tokio::spawn(async move {
-            twine_db::merkora::run(db_clone, &mut l1_msg_rx).await;
+            process_l1_message_to_db(db_clone, &mut l1_msg_rx).await;
         });
         handles.push(db_handle);
     }
