@@ -11,9 +11,9 @@ use anyhow::Result;
 use reth_primitives::{Receipt, ReceiptWithBloom};
 // use serde_json::de;
 // use sqlx::decode;
-use twine_ethereum::stream::BlockProcessor;
-use twine_ethereum::utils::*;
-use twine_ethereum::EthereumProvider;
+use twine_ethereum_utils::stream::BlockProcessor;
+use twine_ethereum_utils::utils::*;
+use twine_ethereum_utils::EthereumProvider;
 use twine_evm_contracts::L1MessageQueue::{QueueDepositTransaction, QueueWithdrawalTransaction};
 use twine_merkora_types::db::L1MessageDetails;
 

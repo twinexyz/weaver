@@ -7,11 +7,11 @@ edition = "2021"
 twine-config.workspace = true
 twine-db.workspace = true
 twine-db-poller.workspace = true
-twine-ethereum.workspace = true
+twine-ethereum-utils.workspace = true
 twine-evm-contracts.workspace = true
 twine-json-rpc-server.workspace = true
 twine-merkora-types.workspace = true
-twine-solana.workspace = true
+twine-solana-utils.workspace = true
 twine-twine.workspace = true
 
 alloy-consensus.workspace = true
@@ -40,7 +40,7 @@ path = "src/main.rs"
 [features]
 default = ["event_websocket"]
 
-polling = ["twine-ethereum/polling"]
-block_websocket = ["twine-ethereum/block_websocket"]
-event_websocket = ["twine-ethereum/event_websocket"]
+polling = ["twine-ethereum-utils/polling"]
+block_websocket = ["twine-ethereum-utils/block_websocket"]
+event_websocket = ["twine-ethereum-utils/event_websocket"]
 zkmode = ["twine-db-poller/zkmode"]

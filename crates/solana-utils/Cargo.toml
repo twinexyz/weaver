@@ -1,5 +1,5 @@
 [package]
-name = "twine-solana"
+name = "twine-solana-utils"
 version.workspace = true
 edition.workspace = true
 

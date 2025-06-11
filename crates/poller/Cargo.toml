@@ -5,9 +5,9 @@ edition.workspace = true
 
 [dependencies]
 twine-db.workspace = true
-twine-ethereum.workspace = true
+twine-ethereum-utils.workspace = true
 twine-merkora-types.workspace = true
-twine-solana.workspace = true
+twine-solana-utils.workspace = true
 
 anyhow.workspace = true
 sqlx.workspace = true

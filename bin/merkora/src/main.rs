@@ -14,12 +14,12 @@ use logging::init_logger;
 use tokio::sync::{mpsc, Notify};
 use tracing::info;
 use twine_config::{default_config_path, load_and_validate_config, Config};
-use twine_ethereum::EthereumProviderConfig;
+use twine_ethereum_utils::EthereumProviderConfig;
 use twine_json_rpc_server::JsonRpcServer;
 use twine_merkora_types::db::L1MessageDetails;
 use twine_merkora_types::manager::{ChainIdentifier, ChainManager, ChainTyp};
 use twine_merkora_types::traits::ChainProvider;
-use twine_solana::SolanaProvider;
+use twine_solana_utils::SolanaProvider;
 use twine_twine::provider::TwineProvider;
 
 #[derive(Parser, Debug)]

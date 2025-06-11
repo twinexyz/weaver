@@ -5354,11 +5354,11 @@ dependencies = [
  "twine-config",
  "twine-db",
  "twine-db-poller",
- "twine-ethereum",
+ "twine-ethereum-utils",
  "twine-evm-contracts",
  "twine-json-rpc-server",
  "twine-merkora-types",
- "twine-solana",
+ "twine-solana-utils",
  "twine-twine",
 ]
 
@@ -11382,9 +11382,9 @@ dependencies = [
  "tokio",
  "tracing",
  "twine-db",
- "twine-ethereum",
+ "twine-ethereum-utils",
  "twine-merkora-types",
- "twine-solana",
+ "twine-solana-utils",
 ]
 
 [[package]]
@@ -11399,7 +11399,26 @@ dependencies = [
 ]
 
 [[package]]
-name = "twine-ethereum"
+name = "twine-ethereum-consensus-prover-lib"
+version = "0.1.0"
+dependencies = [
+ "alloy-primitives",
+ "bls12_381",
+ "ethereum_ssz",
+ "ethereum_ssz_derive",
+ "eyre",
+ "hex",
+ "serde",
+ "serde_json",
+ "sha2 0.9.9",
+ "ssz_types",
+ "tree_hash",
+ "tree_hash_derive",
+ "typenum",
+]
+
+[[package]]
+name = "twine-ethereum-utils"
 version = "0.1.0"
 dependencies = [
  "alloy-consensus",
@@ -11429,25 +11448,6 @@ dependencies = [
  "twine-ethereum-consensus-prover-lib",
  "twine-evm-contracts",
  "twine-merkora-types",
-]
-
-[[package]]
-name = "twine-ethereum-consensus-prover-lib"
-version = "0.1.0"
-dependencies = [
- "alloy-primitives",
- "bls12_381",
- "ethereum_ssz",
- "ethereum_ssz_derive",
- "eyre",
- "hex",
- "serde",
- "serde_json",
- "sha2 0.9.9",
- "ssz_types",
- "tree_hash",
- "tree_hash_derive",
- "typenum",
 ]
 
 [[package]]
@@ -11586,26 +11586,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "twine-solana"
-version = "0.1.0"
-dependencies = [
- "alloy-primitives",
- "alloy-rpc-types",
- "alloy-sol-types",
- "anyhow",
- "async-trait",
- "bincode",
- "borsh 1.5.7",
- "serde",
- "serde_json",
- "tokio",
- "tracing",
- "twine-config",
- "twine-merkora-types",
- "twine-solana-consensus-prover-lib",
-]
-
-[[package]]
 name = "twine-solana-consensus-prover-lib"
 version = "0.1.0"
 dependencies = [
@@ -11643,6 +11623,26 @@ dependencies = [
  "sha2 0.10.8",
  "smallvec",
  "thiserror 2.0.12",
+]
+
+[[package]]
+name = "twine-solana-utils"
+version = "0.1.0"
+dependencies = [
+ "alloy-primitives",
+ "alloy-rpc-types",
+ "alloy-sol-types",
+ "anyhow",
+ "async-trait",
+ "bincode",
+ "borsh 1.5.7",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "twine-config",
+ "twine-merkora-types",
+ "twine-solana-consensus-prover-lib",
 ]
 
 [[package]]
