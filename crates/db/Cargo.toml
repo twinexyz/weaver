@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-twine-merkora-types.workspace = true
+twine-types.workspace = true
 
 eyre.workspace = true
 serde.workspace = true

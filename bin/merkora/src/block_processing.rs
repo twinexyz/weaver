@@ -15,7 +15,7 @@ use twine_ethereum_utils::stream::BlockProcessor;
 use twine_ethereum_utils::utils::*;
 use twine_ethereum_utils::EthereumProvider;
 use twine_evm_contracts::L1MessageQueue::{QueueDepositTransaction, QueueWithdrawalTransaction};
-use twine_merkora_types::db::L1MessageDetails;
+use twine_types::db::L1MessageDetails;
 
 type MerklePatriciaProofVerifyParams = (sol_data::Bytes, sol_data::Array<sol_data::Bytes>);
 
@@ -145,7 +145,7 @@ impl BlockProcessor<L1MessageDetails> for L1EvmMessageProcessor {
                                 results.push(L1MessageDetails {
                                     nonce: decoded.nonce,
                                     chain_id: decoded.chainId,
-                                    message_type: twine_merkora_types::db::L1MessageType::Deposit,
+                                    message_type: twine_types::db::L1MessageType::Deposit,
                                     block_number: decoded.blockNumber,
                                     receipt_root: block.header.receipts_root.0,
                                     public_values: serialized_receipt.clone(),
@@ -159,7 +159,7 @@ impl BlockProcessor<L1MessageDetails> for L1EvmMessageProcessor {
                                 results.push(L1MessageDetails {
                                     nonce: decoded.nonce,
                                     chain_id: decoded.chainId,
-                                    message_type: twine_merkora_types::db::L1MessageType::Withdraw,
+                                    message_type: twine_types::db::L1MessageType::Withdraw,
                                     block_number: decoded.blockNumber,
                                     receipt_root: block.header.receipts_root.0,
                                     public_values: serialized_receipt.clone(),

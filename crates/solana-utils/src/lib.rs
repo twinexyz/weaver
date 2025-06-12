@@ -5,11 +5,11 @@ use borsh::BorshDeserialize;
 use tokio::sync::mpsc;
 use twine_config::merkora::SolanaConfig;
 use twine_constants::pda::{DEPOSIT_PDA_BYTES, WITHDRAW_PDA_BYTES};
-use twine_merkora_types::db::{L1MessageDetails, L1MessageType};
-use twine_merkora_types::manager::ChainTyp;
-use twine_merkora_types::traits::{ChainProvider, ChainTypeHandler};
-use twine_merkora_types::{TwineInputParams, PDA};
 use twine_solana_consensus_prover_lib::{AccountDeltaProof, PublicValuesStruct};
+use twine_types::db::{L1MessageDetails, L1MessageType};
+use twine_types::manager::ChainTyp;
+use twine_types::traits::{ChainProvider, ChainTypeHandler};
+use twine_types::{TwineInputParams, PDA};
 
 pub struct SolanaProvider {
     pub cfg: SolanaConfig,

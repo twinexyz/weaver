@@ -15,10 +15,10 @@ use tokio::sync::mpsc;
 use transactions::ReceiptsProof;
 use twine_config::merkora::EthereumConfig;
 use twine_ethereum_consensus_prover_lib::eth::EthPublicValuesStruct;
-use twine_merkora_types::db::L1MessageDetails;
-use twine_merkora_types::manager::ChainTyp;
-use twine_merkora_types::traits::{ChainProvider, ChainTypeHandler};
-use twine_merkora_types::TwineInputParams;
+use twine_types::db::L1MessageDetails;
+use twine_types::manager::ChainTyp;
+use twine_types::traits::{ChainProvider, ChainTypeHandler};
+use twine_types::TwineInputParams;
 use utils::TransactionData;
 
 pub mod beacon;
@@ -140,7 +140,7 @@ impl ChainProvider for EthereumProvider {
 
     async fn generate_input_params(
         r: L1MessageDetails,
-        tx: mpsc::Sender<twine_merkora_types::TwineInputParams>,
+        tx: mpsc::Sender<twine_types::TwineInputParams>,
     ) -> eyre::Result<()> {
         let receipt_root = FixedBytes::from_slice(&r.receipt_root);
         let msg_nonce = r.nonce;
@@ -189,7 +189,7 @@ impl EthereumProvider {
     async fn generate_contract_params<T>(
         &self,
         chain_details: T,
-        tx: mpsc::Sender<twine_merkora_types::TwineInputParams>,
+        tx: mpsc::Sender<twine_types::TwineInputParams>,
     ) -> eyre::Result<()>
     where
         T: ChainTypeHandler + Send, {

@@ -5358,9 +5358,9 @@ dependencies = [
  "twine-ethereum-utils",
  "twine-evm-contracts",
  "twine-json-rpc-server",
- "twine-merkora-types",
  "twine-solana-utils",
  "twine-twine",
+ "twine-types",
 ]
 
 [[package]]
@@ -11372,7 +11372,7 @@ dependencies = [
  "sqlx",
  "tokio",
  "tracing",
- "twine-merkora-types",
+ "twine-types",
 ]
 
 [[package]]
@@ -11385,8 +11385,8 @@ dependencies = [
  "tracing",
  "twine-db",
  "twine-ethereum-utils",
- "twine-merkora-types",
  "twine-solana-utils",
+ "twine-types",
 ]
 
 [[package]]
@@ -11449,7 +11449,7 @@ dependencies = [
  "twine-config",
  "twine-ethereum-consensus-prover-lib",
  "twine-evm-contracts",
- "twine-merkora-types",
+ "twine-types",
 ]
 
 [[package]]
@@ -11511,7 +11511,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "tracing",
- "twine-merkora-types",
+ "twine-types",
 ]
 
 [[package]]
@@ -11547,26 +11547,6 @@ version = "0.1.0"
 dependencies = [
  "reth-revm",
  "twine-constants",
-]
-
-[[package]]
-name = "twine-merkora-types"
-version = "0.1.0"
-dependencies = [
- "alloy-consensus",
- "alloy-eips",
- "alloy-primitives",
- "alloy-rlp",
- "alloy-rpc-types",
- "alloy-sol-types",
- "alloy-trie",
- "async-trait",
- "borsh 1.5.7",
- "eyre",
- "serde",
- "serde_json",
- "sqlx",
- "tokio",
 ]
 
 [[package]]
@@ -11644,8 +11624,8 @@ dependencies = [
  "tracing",
  "twine-config",
  "twine-constants",
- "twine-merkora-types",
  "twine-solana-consensus-prover-lib",
+ "twine-types",
 ]
 
 [[package]]
@@ -11669,7 +11649,27 @@ dependencies = [
  "tokio",
  "tracing",
  "twine-db",
- "twine-merkora-types",
+ "twine-types",
+]
+
+[[package]]
+name = "twine-types"
+version = "0.1.0"
+dependencies = [
+ "alloy-consensus",
+ "alloy-eips",
+ "alloy-primitives",
+ "alloy-rlp",
+ "alloy-rpc-types",
+ "alloy-sol-types",
+ "alloy-trie",
+ "async-trait",
+ "borsh 1.5.7",
+ "eyre",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tokio",
 ]
 
 [[package]]

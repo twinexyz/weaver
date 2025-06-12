@@ -2,8 +2,8 @@ use async_trait::async_trait;
 use jsonrpsee::proc_macros::rpc;
 use jsonrpsee::server::Server;
 use jsonrpsee::types::{ErrorCode, ErrorObject, ErrorObjectOwned};
-use twine_merkora_types::manager::ChainManager;
-use twine_merkora_types::ChainType;
+use twine_types::manager::ChainManager;
+use twine_types::ChainType;
 
 pub struct JsonRpcServer {
     manager: ChainManager,

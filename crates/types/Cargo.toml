@@ -1,5 +1,5 @@
 [package]
-name = "twine-merkora-types"
+name = "twine-types"
 version.workspace = true
 edition.workspace = true
 

@@ -11,9 +11,9 @@ twine-db-poller.workspace = true
 twine-ethereum-utils.workspace = true
 twine-evm-contracts.workspace = true
 twine-json-rpc-server.workspace = true
-twine-merkora-types.workspace = true
 twine-solana-utils.workspace = true
 twine-twine.workspace = true
+twine-types.workspace = true
 
 alloy-consensus.workspace = true
 alloy-eips.workspace = true

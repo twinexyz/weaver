@@ -2,7 +2,7 @@ use eyre::{Context, Result};
 use sqlx::{query_scalar, PgPool};
 use tokio::sync::mpsc;
 use tracing::{debug, info};
-use twine_merkora_types::db::{L1MessageDetails, L1MessageDetailsDB};
+use twine_types::db::{L1MessageDetails, L1MessageDetailsDB};
 
 /// Running process of the db component
 ///

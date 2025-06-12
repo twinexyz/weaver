@@ -18,11 +18,11 @@ use twine_db::connect_db;
 use twine_db::merkora::{fetch_latest_processed_slot_or_block_number, process_l1_message_to_db};
 use twine_ethereum_utils::EthereumProviderConfig;
 use twine_json_rpc_server::JsonRpcServer;
-use twine_merkora_types::db::L1MessageDetails;
-use twine_merkora_types::manager::{ChainIdentifier, ChainManager, ChainTyp};
-use twine_merkora_types::traits::ChainProvider;
 use twine_solana_utils::SolanaProvider;
 use twine_twine::provider::TwineProvider;
+use twine_types::db::L1MessageDetails;
+use twine_types::manager::{ChainIdentifier, ChainManager, ChainTyp};
+use twine_types::traits::ChainProvider;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]

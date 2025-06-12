@@ -11,7 +11,7 @@ use eyre::{Error, Result};
 use sqlx::PgPool;
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::Notify;
-use twine_merkora_types::TwineInputParams;
+use twine_types::TwineInputParams;
 
 use crate::L2Messenger;
 
@@ -123,7 +123,7 @@ impl TwineProvider {
         while let Some(rx) = receiver.recv().await {
             let chain_id = rx.chain_id;
             match rx.chain_type {
-                twine_merkora_types::manager::ChainTyp::Solana => {
+                twine_types::manager::ChainTyp::Solana => {
                     if let Some(solana_params) = rx.account_info {
                         let tx = self
                             .l2_messenger
@@ -147,7 +147,7 @@ impl TwineProvider {
                         }
                     }
                 }
-                twine_merkora_types::manager::ChainTyp::Ethereum => {
+                twine_types::manager::ChainTyp::Ethereum => {
                     if let Some(eth_params) = rx.transactions {
                         if let Some(eth_consensus) = rx.verifier {
                             let height = rx.block_height.unwrap();

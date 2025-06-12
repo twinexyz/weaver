@@ -7,7 +7,7 @@ edition.workspace = true
 twine-config.workspace = true
 twine-ethereum-consensus-prover-lib.workspace = true
 twine-evm-contracts.workspace = true
-twine-merkora-types.workspace = true
+twine-types.workspace = true
 
 alloy-consensus.workspace = true
 alloy-eips.workspace = true

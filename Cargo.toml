@@ -21,7 +21,6 @@ members = [
   "crates/integration-tests",
   "crates/json-rpc-server",
   "crates/l1-utils",
-  "crates/merkora-types",
   "crates/poller",
   "crates/precompiles/l1-consensus-verifier",
   "crates/precompiles/l1-transactions",
@@ -30,6 +29,7 @@ members = [
   "crates/solana-utils",
   "crates/test-harness",
   "crates/twine",
+  "crates/types",
 ]
 resolver = "3"
 
@@ -130,11 +130,11 @@ twine-json-rpc-server = { path = "crates/json-rpc-server" }
 twine-l1-consensus-verifier-precompile = { path = "crates/precompiles/l1-consensus-verifier" }
 twine-l1-transactions-precompile = { path = "crates/precompiles/l1-transactions" }
 twine-l1-utils = { path = "crates/l1-utils" }
-twine-merkora-types = { path = "crates/merkora-types" }
 twine-solana-consensus-prover-lib = { path = "crates/solana-consensus-prover" }
 twine-solana-sdk = { path = "crates/solana-sdk" }
 twine-solana-utils = { path = "crates/solana-utils" }
 twine-twine = { path = "crates/twine" }
+twine-types = { path = "crates/types" }
 
 [patch.crates-io]
 # The following is required since we would like to remove
