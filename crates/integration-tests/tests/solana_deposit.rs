@@ -259,6 +259,15 @@ mod solana_deposit_test {
         harness.add_step(twine::setup::update_token_mapping()?);
         harness.add_step(solana::setup::update_token_mapping(programs_path.clone())?);
 
+        harness.add_service(Box::new(services.solana_consensus_prover));
+        harness.add_service(Box::new(services.merkora));
+
+        harness.add_step(start_service_step(
+            "Solana Consensus Prover",
+            2,
+            Duration::from_secs(3),
+        ));
+
         // Configure and start Merkora
         harness.add_step(configure_merkora_step(&app_config)?);
         harness.add_step(start_service_step("Merkora", 3, Duration::from_secs(5)));
