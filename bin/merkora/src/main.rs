@@ -13,7 +13,7 @@ use futures::StreamExt;
 use logging::init_logger;
 use tokio::sync::{mpsc, Notify};
 use tracing::info;
-use twine_config::{default_config_path, load_and_validate_config, Config};
+use twine_config::merkora::{default_config_path, load_and_validate_config, Config};
 use twine_db::connect_db;
 use twine_db::merkora::{fetch_latest_processed_slot_or_block_number, process_l1_message_to_db};
 use twine_ethereum_utils::EthereumProviderConfig;

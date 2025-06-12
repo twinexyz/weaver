@@ -4,6 +4,8 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
+twine-constants.workspace = true
+
 anyhow.workspace = true
 home.workspace = true
 serde.workspace = true

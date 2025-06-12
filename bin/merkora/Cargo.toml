@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 twine-config.workspace = true
+twine-constants.workspace = true
 twine-db.workspace = true
 twine-db-poller.workspace = true
 twine-ethereum-utils.workspace = true

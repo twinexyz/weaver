@@ -13,7 +13,7 @@ use sqlx::PgPool;
 use ssz::Encode;
 use tokio::sync::mpsc;
 use transactions::ReceiptsProof;
-use twine_config::EthereumConfig;
+use twine_config::merkora::EthereumConfig;
 use twine_ethereum_consensus_prover_lib::eth::EthPublicValuesStruct;
 use twine_merkora_types::db::L1MessageDetails;
 use twine_merkora_types::manager::ChainTyp;

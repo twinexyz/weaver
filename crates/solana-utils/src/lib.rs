@@ -3,7 +3,8 @@ use alloy_sol_types::SolValue;
 use async_trait::async_trait;
 use borsh::BorshDeserialize;
 use tokio::sync::mpsc;
-use twine_config::SolanaConfig;
+use twine_config::merkora::SolanaConfig;
+use twine_constants::pda::{DEPOSIT_PDA_BYTES, WITHDRAW_PDA_BYTES};
 use twine_merkora_types::db::{L1MessageDetails, L1MessageType};
 use twine_merkora_types::manager::ChainTyp;
 use twine_merkora_types::traits::{ChainProvider, ChainTypeHandler};
@@ -17,9 +18,6 @@ pub struct SolanaProvider {
 impl SolanaProvider {
     pub fn new(cfg: SolanaConfig) -> Self { Self { cfg } }
 }
-
-pub const DEPOSIT_PDA_BYTES: &str = "64USSz2BeKC7wAxC3Upi6jhrmowwNviA9A75bvJH5grq";
-pub const WITHDRAW_PDA_BYTES: &str = "8WQ7YGhQRmSfo6yF95RY82TKc888767FfQRsqy2YUf75";
 
 #[async_trait]
 impl ChainProvider for SolanaProvider {

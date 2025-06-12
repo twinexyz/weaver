@@ -1,0 +1,2 @@
+pub const DEPOSIT_PDA_BYTES: &str = "64USSz2BeKC7wAxC3Upi6jhrmowwNviA9A75bvJH5grq";
+pub const WITHDRAW_PDA_BYTES: &str = "8WQ7YGhQRmSfo6yF95RY82TKc888767FfQRsqy2YUf75";

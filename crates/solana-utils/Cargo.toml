@@ -5,6 +5,7 @@ edition.workspace = true
 
 [dependencies]
 twine-config.workspace = true
+twine-constants.workspace = true
 twine-merkora-types.workspace = true
 twine-solana-consensus-prover-lib.workspace = true
 

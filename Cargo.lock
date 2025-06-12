@@ -5352,6 +5352,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber 0.3.19",
  "twine-config",
+ "twine-constants",
  "twine-db",
  "twine-db-poller",
  "twine-ethereum-utils",
@@ -11351,6 +11352,7 @@ dependencies = [
  "home",
  "serde",
  "serde_yaml",
+ "twine-constants",
 ]
 
 [[package]]
@@ -11641,6 +11643,7 @@ dependencies = [
  "tokio",
  "tracing",
  "twine-config",
+ "twine-constants",
  "twine-merkora-types",
  "twine-solana-consensus-prover-lib",
 ]
