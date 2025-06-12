@@ -93,7 +93,7 @@ impl SP1Proof {
 }
 
 impl ChainTypeHandler for ChainType {
-    fn get_consensus_proof(&self) -> anyhow::Result<&SP1Proof> {
+    fn get_consensus_proof(&self) -> eyre::Result<&SP1Proof> {
         match self {
             ChainType::Ethereum {
                 consensus_proof, ..

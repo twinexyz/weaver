@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use anyhow::anyhow;
+use eyre::eyre;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 
@@ -46,14 +46,14 @@ pub enum ChainTyp {
 }
 
 impl TryFrom<u64> for ChainTyp {
-    type Error = anyhow::Error;
+    type Error = eyre::Error;
 
     fn try_from(value: u64) -> Result<Self, Self::Error> {
         // Add validation logic here if needed
         match value {
             1 | 17000 | 11155111 => Ok(ChainTyp::Ethereum),
             900 => Ok(ChainTyp::Solana),
-            _ => Err(anyhow!("Invalid chain id")),
+            _ => Err(eyre!("Invalid chain id")),
         }
     }
 }

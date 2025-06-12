@@ -6,8 +6,8 @@ edition.workspace = true
 [dependencies]
 twine-merkora-types.workspace = true
 
-anyhow.workspace = true
 async-trait.workspace = true
+eyre.workspace = true
 jsonrpsee = { version = "0.24.4", features = ["http-client", "jsonrpsee-proc-macros", "server", "tracing"] }
 serde.workspace = true
 serde_json.workspace = true

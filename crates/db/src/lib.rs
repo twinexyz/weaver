@@ -1,6 +1,6 @@
 pub mod merkora;
 
-use anyhow::Result;
+use eyre::Result;
 use merkora::ensure_messages_table;
 use sqlx::PgPool;
 

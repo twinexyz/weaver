@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use alloy_provider::Provider;
 use alloy_rpc_types::{Block, TransactionReceipt};
-use anyhow::{anyhow, Result};
+use eyre::{eyre, Result};
 use tokio::time::{sleep, timeout};
 use tracing::warn;
 
@@ -20,14 +20,14 @@ impl EthereumProvider {
                     warn!(error = ?e, "failed to fetch latest block from rpc");
                     retries += 1;
                     if retries >= MAX_RETRIES {
-                        return Err(anyhow!("max retries reached: rpc error"));
+                        return Err(eyre!("max retries reached: rpc error"));
                     }
                 }
                 Err(_) => {
                     warn!("rpc call timed out");
                     retries += 1;
                     if retries >= MAX_RETRIES {
-                        return Err(anyhow!("max retries reached: rpc timeout"));
+                        return Err(eyre!("max retries reached: rpc timeout"));
                     }
                 }
             }
@@ -51,14 +51,14 @@ impl EthereumProvider {
                         warn!(height, "block not made yet");
                         retries += 1;
                         if retries >= MAX_RETRIES {
-                            return Err(anyhow!("max retries reached: block not generated yet"));
+                            return Err(eyre!("max retries reached: block not generated yet"));
                         }
                     }
                     Err(e) => {
                         warn!(height, error = ?e, "failed to fetch block from rpc");
                         retries += 1;
                         if retries >= MAX_RETRIES {
-                            return Err(anyhow!("max retries reached: rpc error"));
+                            return Err(eyre!("max retries reached: rpc error"));
                         }
                     }
                 },
@@ -66,7 +66,7 @@ impl EthereumProvider {
                     warn!(height, "rpc call timed out");
                     retries += 1;
                     if retries >= MAX_RETRIES {
-                        return Err(anyhow!("max retries reached: rpc timeout"));
+                        return Err(eyre!("max retries reached: rpc timeout"));
                     }
                 }
             }
@@ -99,7 +99,7 @@ impl EthereumProvider {
                         warn!(height, "no receipts found for block");
                         retries += 1;
                         if retries >= MAX_RETRIES {
-                            return Err(anyhow!("max retries reached: no receipts found"));
+                            return Err(eyre!("max retries reached: no receipts found"));
                         }
                     }
                     Err(e) => {
@@ -114,7 +114,7 @@ impl EthereumProvider {
                     warn!(height, "rpc call timed out");
                     retries += 1;
                     if retries >= MAX_RETRIES {
-                        return Err(anyhow!("max retries reached: rpc timeout"));
+                        return Err(eyre!("max retries reached: rpc timeout"));
                     }
                 }
             }

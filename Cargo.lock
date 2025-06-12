@@ -5343,9 +5343,9 @@ dependencies = [
  "alloy-sol-types",
  "alloy-transport-http",
  "alloy-trie",
- "anyhow",
  "async-trait",
  "clap",
+ "eyre",
  "futures",
  "reth-primitives",
  "tokio",
@@ -11348,7 +11348,7 @@ dependencies = [
 name = "twine-config"
 version = "0.1.0"
 dependencies = [
- "anyhow",
+ "eyre",
  "home",
  "serde",
  "serde_yaml",
@@ -11366,7 +11366,7 @@ dependencies = [
 name = "twine-db"
 version = "0.1.0"
 dependencies = [
- "anyhow",
+ "eyre",
  "serde",
  "serde_json",
  "sqlx",
@@ -11379,7 +11379,7 @@ dependencies = [
 name = "twine-db-poller"
 version = "0.1.0"
 dependencies = [
- "anyhow",
+ "eyre",
  "sqlx",
  "tokio",
  "tracing",
@@ -11433,10 +11433,10 @@ dependencies = [
  "alloy-sol-types",
  "alloy-transport-http",
  "alloy-trie",
- "anyhow",
  "async-trait",
  "ethereum_ssz",
  "ethereum_ssz_derive",
+ "eyre",
  "futures-util",
  "lru 0.13.0",
  "reqwest 0.11.27",
@@ -11504,8 +11504,8 @@ dependencies = [
 name = "twine-json-rpc-server"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "async-trait",
+ "eyre",
  "jsonrpsee",
  "serde",
  "serde_json",
@@ -11560,9 +11560,9 @@ dependencies = [
  "alloy-rpc-types",
  "alloy-sol-types",
  "alloy-trie",
- "anyhow",
  "async-trait",
  "borsh 1.5.7",
+ "eyre",
  "serde",
  "serde_json",
  "sqlx",
@@ -11634,10 +11634,10 @@ dependencies = [
  "alloy-primitives",
  "alloy-rpc-types",
  "alloy-sol-types",
- "anyhow",
  "async-trait",
  "bincode",
  "borsh 1.5.7",
+ "eyre",
  "serde",
  "serde_json",
  "tokio",
@@ -11663,7 +11663,7 @@ dependencies = [
  "alloy-sol-macro",
  "alloy-sol-types",
  "alloy-transport-http",
- "anyhow",
+ "eyre",
  "serde_json",
  "sqlx",
  "tokio",

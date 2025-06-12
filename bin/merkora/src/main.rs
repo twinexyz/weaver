@@ -5,9 +5,9 @@ use std::path::PathBuf;
 use std::process;
 use std::sync::Arc;
 
-use anyhow::Context;
 use block_processing::L1EvmMessageProcessor;
 use clap::{Parser, Subcommand};
+use eyre::{Context, Result};
 use futures::stream::FuturesUnordered;
 use futures::StreamExt;
 use logging::init_logger;
@@ -41,7 +41,7 @@ pub enum Commands {
 }
 
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn main() -> eyre::Result<()> {
     // if std::env::var_os("RUST_BACKTRACE").is_none() {
     //     std::env::set_var("RUST_BACKTRACE", "1");
     // }
@@ -74,7 +74,7 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn run(cfg: Config) -> anyhow::Result<()> {
+async fn run(cfg: Config) -> eyre::Result<()> {
     let twine_rpc = cfg.twine.rpc.clone();
     let twine_messenger = cfg.twine.l2_messenger_contract.clone();
     let twine_pk = cfg.twine.private_key.clone();
@@ -146,7 +146,7 @@ async fn run(cfg: Config) -> anyhow::Result<()> {
                     .await,
             );
 
-            let db_last_processed: Result<u64, anyhow::Error> =
+            let db_last_processed: Result<u64, eyre::Error> =
                 fetch_latest_processed_slot_or_block_number(&db, ethereum_chain.chain_id).await;
 
             let start_height = match (db_last_processed, ethereum_chain.start_height) {
@@ -304,7 +304,7 @@ async fn run(cfg: Config) -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn process_handles(handles: Vec<tokio::task::JoinHandle<()>>) -> anyhow::Result<()> {
+async fn process_handles(handles: Vec<tokio::task::JoinHandle<()>>) -> eyre::Result<()> {
     let mut futures = handles.into_iter().collect::<FuturesUnordered<_>>();
 
     while let Some(result) = futures.next().await {

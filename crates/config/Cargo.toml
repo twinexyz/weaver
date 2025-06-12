@@ -6,7 +6,7 @@ edition.workspace = true
 [dependencies]
 twine-constants.workspace = true
 
-anyhow.workspace = true
+eyre.workspace = true
 home.workspace = true
 serde.workspace = true
 serde_yaml.workspace = true

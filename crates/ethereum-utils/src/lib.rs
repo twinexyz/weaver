@@ -5,9 +5,9 @@ use alloy_primitives::{Address, Bytes, FixedBytes};
 use alloy_provider::{DynProvider, ProviderBuilder, WsConnect};
 use alloy_rlp::{RlpDecodable, RlpEncodable};
 use alloy_sol_types::SolType;
-use anyhow::anyhow;
 use async_trait::async_trait;
 use beacon::BeaconProvider;
+use eyre::eyre;
 use header::header_to_header;
 use sqlx::PgPool;
 use ssz::Encode;
@@ -112,7 +112,7 @@ impl ChainProvider for EthereumProvider {
         &self,
         chain_details: T,
         tx: mpsc::Sender<Self::ProofArtifact>,
-    ) -> anyhow::Result<()>
+    ) -> eyre::Result<()>
     where
         T: ChainTypeHandler + Send, {
         tracing::info!("Ethereum consensus proof processing");
@@ -141,7 +141,7 @@ impl ChainProvider for EthereumProvider {
     async fn generate_input_params(
         r: L1MessageDetails,
         tx: mpsc::Sender<twine_merkora_types::TwineInputParams>,
-    ) -> anyhow::Result<()> {
+    ) -> eyre::Result<()> {
         let receipt_root = FixedBytes::from_slice(&r.receipt_root);
         let msg_nonce = r.nonce;
         let block_number = r.block_number;
@@ -190,7 +190,7 @@ impl EthereumProvider {
         &self,
         chain_details: T,
         tx: mpsc::Sender<twine_merkora_types::TwineInputParams>,
-    ) -> anyhow::Result<()>
+    ) -> eyre::Result<()>
     where
         T: ChainTypeHandler + Send, {
         tracing::info!("Ethereum proof processing");
@@ -252,7 +252,7 @@ impl EthereumProvider {
             Ok(receipt) => receipt,
             Err(_) => {
                 tracing::error!("Did not get response from rpc");
-                return Err(anyhow!("Failed rpc query"));
+                return Err(eyre!("Failed rpc query"));
             }
         };
 

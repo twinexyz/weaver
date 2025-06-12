@@ -9,7 +9,7 @@ twine-ethereum-utils.workspace = true
 twine-merkora-types.workspace = true
 twine-solana-utils.workspace = true
 
-anyhow.workspace = true
+eyre.workspace = true
 sqlx.workspace = true
 tokio.workspace = true
 tracing.workspace = true

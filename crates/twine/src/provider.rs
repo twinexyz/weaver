@@ -7,7 +7,7 @@ use alloy_primitives::{Address, B256, U256};
 use alloy_provider::{Provider, ProviderBuilder};
 use alloy_rpc_types::{Block, TransactionReceipt, TransactionRequest};
 use alloy_signer_local::PrivateKeySigner;
-use anyhow::{Error, Result};
+use eyre::{Error, Result};
 use sqlx::PgPool;
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::Notify;

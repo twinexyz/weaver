@@ -27,7 +27,7 @@ impl ChainProvider for SolanaProvider {
         &self,
         chain_details: T,
         tx: mpsc::Sender<Self::ProofArtifact>,
-    ) -> anyhow::Result<()>
+    ) -> eyre::Result<()>
     where
         T: ChainTypeHandler + Send, {
         let consensus_proof = T::get_consensus_proof(&chain_details)?;
@@ -57,7 +57,7 @@ impl ChainProvider for SolanaProvider {
         for (_, proofs) in public_values.package.proofs {
             for AccountDeltaProof(pubkey, (account_data, merkle_proof)) in proofs {
                 let proof_bytes = serde_json::to_vec(&merkle_proof).map_err(|e| {
-                    anyhow::anyhow!("failed to serialize Merkle proof to a Vec<u8> : {}", e)
+                    eyre::eyre!("failed to serialize Merkle proof to a Vec<u8> : {}", e)
                 })?;
 
                 // skip first 8 bytes which are appended during anchor serialization
@@ -96,7 +96,7 @@ impl ChainProvider for SolanaProvider {
     async fn generate_input_params(
         r: L1MessageDetails,
         tx: mpsc::Sender<TwineInputParams>,
-    ) -> anyhow::Result<()> {
+    ) -> eyre::Result<()> {
         let receipt_root = FixedBytes::from_slice(&r.receipt_root);
         let svu = generate_verifier_input(U256::from(r.chain_id), r.public_values.into());
         let input_params = TwineInputParams {

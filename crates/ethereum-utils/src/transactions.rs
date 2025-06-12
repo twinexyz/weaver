@@ -6,7 +6,7 @@ use alloy_rpc_types::TransactionReceipt;
 use alloy_sol_types::{sol_data, SolEvent, SolType};
 use alloy_trie::proof::{verify_proof, ProofNodes, ProofRetainer};
 use alloy_trie::{HashBuilder, Nibbles};
-use anyhow::Result;
+use eyre::Result;
 use reth_primitives::{Receipt, ReceiptWithBloom};
 use twine_evm_contracts::L1MessageQueue::{QueueDepositTransaction, QueueWithdrawalTransaction};
 

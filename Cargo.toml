@@ -54,7 +54,6 @@ alloy-sol-types = { version = "1.0.0", default-features = false, features = ["js
 alloy-transport-http = { version = "0.14.0", features = ["reqwest-rustls-tls"], default-features = false }
 alloy-trie = { version = "0.8.1", default-features = false }
 
-anyhow = "1.0.93"
 async-trait = "0.1.86"
 bls12_381 = { git = "https://github.com/sp1-patches/bls12_381", branch = "patch-v0.8.0", features = ["experimental"] }
 clap = { version = "4.5.21", features = ["derive", "string"] }

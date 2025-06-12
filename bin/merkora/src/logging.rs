@@ -1,6 +1,6 @@
 use std::env;
 
-use anyhow::Result;
+use eyre::Result;
 use tracing_subscriber::filter::Directive;
 use tracing_subscriber::EnvFilter;
 

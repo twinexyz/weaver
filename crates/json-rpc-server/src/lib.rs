@@ -45,7 +45,7 @@ impl RpcServer for JsonRpcServer {
 impl JsonRpcServer {
     pub fn new(manager: ChainManager) -> JsonRpcServer { JsonRpcServer { manager } }
 
-    pub async fn run(self, port: u64) -> anyhow::Result<()> {
+    pub async fn run(self, port: u64) -> eyre::Result<()> {
         let addr = format!("0.0.0.0:{}", port);
         tracing::info!("JSON RPC server running at {}", addr);
         let server = Server::builder().build(addr).await?;

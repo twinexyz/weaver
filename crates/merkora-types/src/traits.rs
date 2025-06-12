@@ -14,7 +14,7 @@ pub trait ChainProvider {
         &self,
         chain_details: T,
         tx: mpsc::Sender<Self::ProofArtifact>,
-    ) -> anyhow::Result<()>
+    ) -> eyre::Result<()>
     where
         T: ChainTypeHandler + Send;
 
@@ -24,9 +24,9 @@ pub trait ChainProvider {
     async fn generate_input_params(
         r: L1MessageDetails,
         tx: mpsc::Sender<TwineInputParams>,
-    ) -> anyhow::Result<()>;
+    ) -> eyre::Result<()>;
 }
 
 pub trait ChainTypeHandler {
-    fn get_consensus_proof(&self) -> anyhow::Result<&crate::SP1Proof>;
+    fn get_consensus_proof(&self) -> eyre::Result<&crate::SP1Proof>;
 }

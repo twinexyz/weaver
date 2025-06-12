@@ -2,6 +2,7 @@ use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
 
+use eyre::Result;
 use serde::{Deserialize, Serialize};
 use twine_constants::config_path::DEFAULT_CONFIG_DIR;
 
@@ -64,14 +65,14 @@ pub fn default_config_path() -> PathBuf {
         .expect("Failed to get home directory")
 }
 
-fn load_config(config_path: PathBuf) -> anyhow::Result<String> {
+fn load_config(config_path: PathBuf) -> Result<String> {
     let mut file = File::open(config_path)?;
     let mut contents = String::new();
     file.read_to_string(&mut contents)?;
     Ok(contents)
 }
 
-pub fn load_and_validate_config(config_path: PathBuf) -> anyhow::Result<Config> {
+pub fn load_and_validate_config(config_path: PathBuf) -> Result<Config> {
     let config_content = load_config(config_path)?;
 
     let cfg: Config = serde_yaml::from_str(&config_content)?;

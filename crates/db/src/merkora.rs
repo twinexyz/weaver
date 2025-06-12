@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use eyre::{Context, Result};
 use sqlx::{query_scalar, PgPool};
 use tokio::sync::mpsc;
 use tracing::{debug, info};
@@ -37,7 +37,7 @@ pub(crate) async fn ensure_messages_table(pool: &PgPool) -> Result<()> {
     .context("Failed to check for the `messages` table")?;
 
     if !exists {
-        anyhow::bail!("`messages` table does not exist in the database");
+        eyre::bail!("`messages` table does not exist in the database");
     }
 
     Ok(())

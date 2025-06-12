@@ -7,7 +7,7 @@ use alloy_rpc_types::{Block, Filter, Log, TransactionReceipt};
 use alloy_sol_types::{sol_data, SolEvent, SolType};
 use alloy_trie::proof::ProofRetainer;
 use alloy_trie::HashBuilder;
-use anyhow::Result;
+use eyre::Result;
 use reth_primitives::{Receipt, ReceiptWithBloom};
 // use serde_json::de;
 // use sqlx::decode;

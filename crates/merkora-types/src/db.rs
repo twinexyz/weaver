@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use eyre::{eyre, Result};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize, Default, sqlx::FromRow)]
@@ -24,7 +24,7 @@ pub struct L1MessageDetails {
 }
 
 impl TryFrom<L1MessageDetailsDB> for L1MessageDetails {
-    type Error = anyhow::Error;
+    type Error = eyre::Error;
 
     fn try_from(db: L1MessageDetailsDB) -> std::result::Result<Self, Self::Error> {
         let receipt_root = if db.receipt_root.len() == 32 {
@@ -32,7 +32,7 @@ impl TryFrom<L1MessageDetailsDB> for L1MessageDetails {
             arr.copy_from_slice(&db.receipt_root);
             arr
         } else {
-            return Err(anyhow!("Invalid receipt_root length: expected 32 bytes"));
+            return Err(eyre!("Invalid receipt_root length: expected 32 bytes"));
         };
         let message_type = L1MessageType::try_from(db.message_type)?;
 
@@ -72,7 +72,7 @@ impl std::fmt::Display for L1MessageType {
 }
 
 impl TryFrom<String> for L1MessageType {
-    type Error = anyhow::Error;
+    type Error = eyre::Error;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         match value.as_str() {
@@ -80,7 +80,7 @@ impl TryFrom<String> for L1MessageType {
             "withdraw" => Ok(L1MessageType::Withdraw),
             "layer_zero" => Ok(L1MessageType::LayerZero),
             "general_message" => Ok(L1MessageType::GeneralMessage),
-            _ => Err(anyhow!("invalid message type")),
+            _ => Err(eyre!("invalid message type")),
         }
     }
 }

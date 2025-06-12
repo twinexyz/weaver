@@ -5,7 +5,7 @@ use alloy_primitives::Bytes;
 use alloy_provider::Provider;
 use alloy_pubsub::SubscriptionStream;
 use alloy_rpc_types::{Block, Filter, Log, TransactionReceipt};
-use anyhow::{anyhow, Context, Result};
+use eyre::{eyre, Context, Result};
 use tokio::sync::{mpsc, Semaphore};
 
 use crate::EthereumProvider;
@@ -316,7 +316,7 @@ impl EthereumProvider {
             .map(|sub| sub.into_stream())
             .map_err(|e| {
                 tracing::error!("Websocket connection error: {}", e);
-                anyhow!("Websocket connection failed")
+                eyre!("Websocket connection failed")
             })
     }
 
@@ -328,7 +328,7 @@ impl EthereumProvider {
             .map(|sub| sub.into_stream())
             .map_err(|e| {
                 tracing::error!("Websocket connection error: {}", e);
-                anyhow!("Websocket connection failed")
+                eyre!("Websocket connection failed")
             })
     }
 }

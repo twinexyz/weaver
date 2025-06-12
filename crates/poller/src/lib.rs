@@ -46,7 +46,7 @@ pub async fn process_messages_up_to_height(
     l2_tx_params: mpsc::Sender<TwineInputParams>,
     notify: Arc<Notify>,
     target_height: u64,
-) -> anyhow::Result<()> {
+) -> eyre::Result<()> {
     tracing::debug!("Starting zkproof processing up to block {}", target_height);
 
     // there’s nothing to do.
@@ -78,7 +78,7 @@ pub async fn process_messages_up_to_height(
 async fn dispatch_message(
     message: L1MessageDetails,
     l2_tx_params: mpsc::Sender<TwineInputParams>,
-) -> anyhow::Result<()> {
+) -> eyre::Result<()> {
     match ChainTyp::try_from(message.chain_id) {
         Ok(chain_id) => match chain_id {
             ChainTyp::Solana => SolanaProvider::generate_input_params(message, l2_tx_params).await,
