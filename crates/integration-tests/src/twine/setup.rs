@@ -50,6 +50,8 @@ pub fn deploy_l2_contracts_step(contracts_dir: PathBuf) -> eyre::Result<TestStep
                         "-vv",
                     ])
                     .current_dir(&contracts_dir)
+                    .stdout(Stdio::null())
+                    .stderr(Stdio::inherit())
                     .status()?;
 
                 if !status.success() {
@@ -79,6 +81,8 @@ pub fn setup_l2_contracts_step(contracts_dir: PathBuf) -> eyre::Result<TestStep>
                         "-vv",
                     ])
                     .current_dir(&contracts_dir)
+                    .stdout(Stdio::null())
+                    .stderr(Stdio::inherit())
                     .status()?;
 
                 if !status.success() {

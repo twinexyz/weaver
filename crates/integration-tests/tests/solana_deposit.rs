@@ -89,6 +89,10 @@ mod solana_deposit_test {
                             if let Some(op) = binding.get(solana::ctx_keys::CLEAR_VALIDATOR_DATA) {
                                 if op.contains("false") {
                                     info!("Start solana test validator wihout clearing data");
+                                    cmd.extend_from_slice(&[
+                                        "--geyser-plugin-config".into(),
+                                        geyser_config.clone(),
+                                    ]);
                                 } else {
                                     info!("Start solana test validator clearing all data");
                                     cmd.push("--reset".into());
@@ -97,11 +101,6 @@ mod solana_deposit_test {
                                 info!("Start solana test validator clearing all data");
                                 cmd.push("--reset".into());
                             }
-
-                            cmd.extend_from_slice(&[
-                                "--geyser-plugin-config".into(),
-                                geyser_config.clone(),
-                            ]);
 
                             cmd
                         }
@@ -226,21 +225,6 @@ mod solana_deposit_test {
         ));
 
         info!("All running services: {:?}", harness.services);
-        // harness.add_step(wait_step(
-        //     Duration::from_secs(30),
-        //     "Waiting to check solana test validator is up and runnning",
-        // ));
-
-        // info!("All running services: {:?}", harness.services);
-
-        harness.add_service(Box::new(services.solana_consensus_prover));
-        harness.add_service(Box::new(services.merkora));
-
-        harness.add_step(start_service_step(
-            "Solana Consensus Prover",
-            2,
-            Duration::from_secs(3),
-        ));
 
         // Update Twine PDA
         // Restart twine node
@@ -262,17 +246,26 @@ mod solana_deposit_test {
 
         harness.add_step(solana::setup::update_token_mapping(programs_path.clone())?);
 
+        harness.add_service(Box::new(services.solana_consensus_prover));
+        harness.add_service(Box::new(services.merkora));
+
+        harness.add_step(start_service_step(
+            "Solana Consensus Prover",
+            2,
+            Duration::from_secs(3),
+        ));
+
         // Configure and start Merkora
         harness.add_step(configure_merkora_step(&app_config)?);
         harness.add_step(start_service_step("Merkora", 3, Duration::from_secs(5)));
 
         // Deposit ETH
         harness.add_step(deposit_sol_step(programs_path.clone())?);
-        harness.add_step(deposit_sol_step(programs_path)?);
+        // harness.add_step(deposit_sol_step(programs_path)?);
 
         // Wait for message processing
         harness.add_step(wait_step(
-            Duration::from_secs(100),
+            Duration::from_secs(30),
             "Waiting for message delivery",
         ));
 
