@@ -61,11 +61,10 @@ impl TransactionPrecompile {
                     .map_err(|e| e.to_string())
             }
             L1ChainType::Solana => {
-                tracing::info!("Solana chain transaction not supported");
-                Err(
-                    TransactionPrecompileError::Other("Solana Chain Transaction".into())
-                        .to_string(),
-                )
+                tracing::info!("Solana chain transaction");
+                handle_solana_proof(chain_id, data, context)
+                    .map(Some)
+                    .map_err(|e| e.to_string())
             }
         }
     }
@@ -369,6 +368,8 @@ pub fn handle_solana_proof<CTX: ContextTr>(
         }
     }
 
+    tracing::info!("No transactions to execute");
+
     Err(TransactionPrecompileError::NoTransactionToExecute)
 }
 
@@ -383,7 +384,7 @@ fn parse_public_values(proof: Bytes) -> Result<PublicValuesStruct, TransactionPr
 fn parse_transaction_data(proof: &AccountDeltaProof) -> Result<PDA, TransactionPrecompileError> {
     let mut transaction_data = &proof.1 .0.account.data[8..]; // Skip first 8 bytes
     BorshDeserialize::deserialize(&mut transaction_data).map_err(|_| {
-        tracing::debug!("borsh deserialize failed");
+        tracing::info!("borsh deserialize failed");
         TransactionPrecompileError::DecodePDAFailed.into()
     })
 }
@@ -399,7 +400,7 @@ fn validate_and_get_txn_type(
     } else if pda_address == WIHTDRAW_PDA_ADDRESS {
         Ok(L1TxnType::from(1))
     } else {
-        tracing::debug!("Invalid PDA address");
+        tracing::info!("Invalid PDA address");
         Err(TransactionPrecompileError::InvalidPDA.into())
     }
 }
@@ -477,18 +478,22 @@ pub fn get_last_handed_nonce<CTX: ContextTr>(
     chain_id: U256,
     txn_type: L1TxnType,
     evmctx: &mut CTX,
-) -> Result<FixedBytes<32>, TransactionPrecompileError> {
+) -> Result<U256, TransactionPrecompileError> {
     let nonce_slot =
         calculate_nonce_slot_position(chain_id, U256::from(txn_type.into_underlying()));
     evmctx.journal().warm_account(TWINE_SYSTEM_STORAGE_CONTRACT);
 
-    match evmctx
+    // match evmctx
+    //     .journal()
+    //     .sload(TWINE_SYSTEM_STORAGE_CONTRACT, nonce_slot)
+    // {
+    //     Ok(root) => Ok(FixedBytes::from(root.data)),
+    //     Err(_) => Err(TransactionPrecompileError::QueryEvmFailed.into()),
+    // }
+
+    Ok(evmctx
         .journal()
-        .sload(TWINE_SYSTEM_STORAGE_CONTRACT, nonce_slot)
-    {
-        Ok(root) => Ok(FixedBytes::from(root.data)),
-        Err(_) => Err(TransactionPrecompileError::QueryEvmFailed.into()),
-    }
+        .tload(TWINE_SYSTEM_STORAGE_CONTRACT, nonce_slot))
 }
 
 /// Computes the slot in storage where the nonce is located.
