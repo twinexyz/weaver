@@ -265,7 +265,7 @@ mod solana_deposit_test {
 
         // Wait for message processing
         harness.add_step(wait_step(
-            Duration::from_secs(30),
+            Duration::from_secs(45),
             "Waiting for message delivery",
         ));
 
