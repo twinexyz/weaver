@@ -11,16 +11,16 @@ use twine_types::manager::ChainTyp;
 use twine_types::traits::{ChainProvider, ChainTypeHandler};
 use twine_types::{TwineInputParams, PDA};
 
-pub struct SolanaProvider {
+pub struct SolanaContext {
     pub cfg: SolanaConfig,
 }
 
-impl SolanaProvider {
+impl SolanaContext {
     pub fn new(cfg: SolanaConfig) -> Self { Self { cfg } }
 }
 
 #[async_trait]
-impl ChainProvider for SolanaProvider {
+impl ChainProvider for SolanaContext {
     type ProofArtifact = L1MessageDetails;
 
     async fn accept_consensus_proofs<T>(

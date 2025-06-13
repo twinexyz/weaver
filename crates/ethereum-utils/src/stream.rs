@@ -8,7 +8,7 @@ use alloy_rpc_types::{Block, Filter, Log, TransactionReceipt};
 use eyre::{eyre, Context, Result};
 use tokio::sync::{mpsc, Semaphore};
 
-use crate::EthereumProvider;
+use crate::EthereumContext;
 
 static CONCURRENCY_LIMIT: usize = 20;
 
@@ -30,7 +30,7 @@ pub trait BlockProcessor<T>: Send + Sync {
     async fn process_block(&self, height: u64) -> Result<Option<Vec<T>>>;
 }
 
-impl EthereumProvider {
+impl EthereumContext {
     pub async fn stream_receipts_l2<T, P>(
         &self,
         block_sender: mpsc::Sender<T>,
@@ -42,7 +42,7 @@ impl EthereumProvider {
         P: BlockProcessor<T> + Clone + Send + Sync + 'static, {
         let mut current_block_height = l2_start_height;
 
-        let latest_height = self.execution_provider.get_block_number().await?;
+        let latest_height = self.get_latest_block().await?;
         if latest_height >= current_block_height {
             tracing::info!("Polling to sync up");
             current_block_height = self
@@ -310,7 +310,8 @@ impl EthereumProvider {
 
     #[cfg(feature = "block_websocket")]
     async fn subscribe_to_blocks(&self) -> Result<SubscriptionStream<alloy_rpc_types::Header>> {
-        self.ws_provider
+        self.provider
+            .ws_provider
             .subscribe_blocks()
             .await
             .map(|sub| sub.into_stream())
@@ -322,7 +323,8 @@ impl EthereumProvider {
 
     #[cfg(feature = "event_websocket")]
     async fn subscribe_to_events(&self, event_filter: Filter) -> Result<SubscriptionStream<Log>> {
-        self.ws_provider
+        self.provider
+            .ws_provider
             .subscribe_logs(&event_filter)
             .await
             .map(|sub| sub.into_stream())

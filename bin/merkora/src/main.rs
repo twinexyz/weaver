@@ -16,9 +16,9 @@ use tracing::info;
 use twine_config::merkora::{default_config_path, load_and_validate_config, Config};
 use twine_db::connect_db;
 use twine_db::merkora::{fetch_latest_processed_slot_or_block_number, process_l1_message_to_db};
-use twine_ethereum_utils::EthereumProviderConfig;
+use twine_ethereum_utils::EthereumContextConfig;
 use twine_json_rpc_server::JsonRpcServer;
-use twine_solana_utils::SolanaProvider;
+use twine_solana_utils::SolanaContext;
 use twine_twine::provider::TwineProvider;
 use twine_types::db::L1MessageDetails;
 use twine_types::manager::{ChainIdentifier, ChainManager, ChainTyp};
@@ -116,7 +116,7 @@ async fn run(cfg: Config) -> eyre::Result<()> {
             // Json Rpc Server
             manager.register_chain(identifier.clone(), tx);
 
-            let solana = SolanaProvider::new(solana_chain);
+            let solana = SolanaContext::new(solana_chain);
 
             // rx receives the consensus proof structure received at json rpc server
             let l1_msg_to_db_tx = l1_msg_tx.clone();
@@ -141,7 +141,7 @@ async fn run(cfg: Config) -> eyre::Result<()> {
         for ethereum_chain in ethereum_chains {
             // db is internally arc cloned
             let ethereum = Arc::new(
-                EthereumProviderConfig::new(ethereum_chain.clone())
+                EthereumContextConfig::new(ethereum_chain.clone())
                     .build(db.clone())
                     .await,
             );

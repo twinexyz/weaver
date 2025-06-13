@@ -1,20 +1,33 @@
 use std::time::Duration;
 
-use alloy_provider::Provider;
+use alloy_provider::{DynProvider, Provider};
 use alloy_rpc_types::{Block, TransactionReceipt};
 use eyre::{eyre, Result};
 use tokio::time::{sleep, timeout};
 use tracing::warn;
 
-use crate::{EthereumProvider, INITIAL_BACKOFF, MAX_RETRIES};
+use crate::{INITIAL_BACKOFF, MAX_RETRIES};
 
-impl EthereumProvider {
+#[derive(Clone)]
+pub struct EvmProvider {
+    pub http_provider: DynProvider,
+    pub ws_provider: DynProvider,
+}
+
+impl EvmProvider {
+    pub fn new(http_provider: DynProvider, ws_provider: DynProvider) -> Self {
+        Self {
+            http_provider,
+            ws_provider,
+        }
+    }
+
     pub async fn get_latest_block(&self) -> Result<u64> {
         let timeout_duration = Duration::from_secs(15);
         let mut retries = 0;
 
         loop {
-            match timeout(timeout_duration, self.execution_provider.get_block_number()).await {
+            match timeout(timeout_duration, self.http_provider.get_block_number()).await {
                 Ok(Ok(number)) => return Ok(number),
                 Ok(Err(e)) => {
                     warn!(error = ?e, "failed to fetch latest block from rpc");
@@ -41,7 +54,7 @@ impl EthereumProvider {
         loop {
             match timeout(
                 timeout_duration,
-                self.execution_provider.get_block_by_number(height.into()),
+                self.http_provider.get_block_by_number(height.into()),
             )
             .await
             {
@@ -89,7 +102,7 @@ impl EthereumProvider {
         loop {
             match timeout(
                 timeout_duration,
-                self.execution_provider.get_block_receipts(height.into()),
+                self.http_provider.get_block_receipts(height.into()),
             )
             .await
             {

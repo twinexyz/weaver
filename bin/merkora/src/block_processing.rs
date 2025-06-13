@@ -13,7 +13,7 @@ use reth_primitives::{Receipt, ReceiptWithBloom};
 // use sqlx::decode;
 use twine_ethereum_utils::stream::BlockProcessor;
 use twine_ethereum_utils::utils::*;
-use twine_ethereum_utils::EthereumProvider;
+use twine_ethereum_utils::EthereumContext;
 use twine_evm_contracts::L1MessageQueue::{QueueDepositTransaction, QueueWithdrawalTransaction};
 use twine_types::db::L1MessageDetails;
 
@@ -23,11 +23,11 @@ type MerklePatriciaProofVerifyParams = (sol_data::Bytes, sol_data::Array<sol_dat
 /// and produce L1MessageDetails.
 #[derive(Clone)]
 pub struct L1EvmMessageProcessor {
-    pub provider: EthereumProvider,
+    pub provider: EthereumContext,
 }
 
 impl L1EvmMessageProcessor {
-    pub fn new(provider: EthereumProvider) -> Self { Self { provider } }
+    pub fn new(provider: EthereumContext) -> Self { Self { provider } }
 }
 
 #[async_trait::async_trait]

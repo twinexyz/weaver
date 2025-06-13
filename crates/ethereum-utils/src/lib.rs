@@ -4,10 +4,11 @@ use std::time::Duration;
 use alloy_primitives::{Address, Bytes, FixedBytes};
 use alloy_provider::{DynProvider, ProviderBuilder, WsConnect};
 use alloy_rlp::{RlpDecodable, RlpEncodable};
+use alloy_rpc_types::{Block, TransactionReceipt};
 use alloy_sol_types::SolType;
 use async_trait::async_trait;
 use beacon::BeaconProvider;
-use eyre::eyre;
+use eyre::{eyre, Result};
 use header::header_to_header;
 use sqlx::PgPool;
 use ssz::Encode;
@@ -23,15 +24,17 @@ use utils::TransactionData;
 
 pub mod beacon;
 mod header;
-pub mod query;
+pub mod provider;
 pub mod stream;
 mod transactions;
 pub mod utils;
 
+pub use provider::EvmProvider;
+
 pub(crate) const MAX_RETRIES: u32 = 20;
 pub(crate) const INITIAL_BACKOFF: Duration = Duration::from_secs(1);
 
-pub struct EthereumProviderConfig {
+pub struct EthereumContextConfig {
     cfg: EthereumConfig,
 }
 
@@ -43,9 +46,8 @@ pub struct ContractAddresses {
 }
 
 #[derive(Clone)]
-pub struct EthereumProvider {
-    pub execution_provider: DynProvider,
-    pub ws_provider: DynProvider,
+pub struct EthereumContext {
+    pub provider: EvmProvider,
     pub db: PgPool,
     pub beacon_provider: BeaconProvider,
     pub chain_id: u64,
@@ -64,10 +66,10 @@ pub struct PrecompileInput {
     pub headers: Vec<alloy_consensus::Header>,
 }
 
-impl EthereumProviderConfig {
+impl EthereumContextConfig {
     pub fn new(cfg: EthereumConfig) -> Self { Self { cfg } }
 
-    pub async fn build(&self, db: PgPool) -> EthereumProvider {
+    pub async fn build(&self, db: PgPool) -> EthereumContext {
         let http_rpc_url = self.cfg.rpc.parse().expect("Invalid RPC url");
         let http_provider = ProviderBuilder::new().on_http(http_rpc_url);
         let execution_provider = DynProvider::new(http_provider);
@@ -88,10 +90,10 @@ impl EthereumProviderConfig {
             l1_message_queue,
             l1_twine_dvn,
         };
+        let provider = EvmProvider::new(execution_provider.clone(), wss_provider.clone());
 
-        EthereumProvider {
-            execution_provider,
-            ws_provider: wss_provider,
+        EthereumContext {
+            provider,
             db,
             beacon_provider,
             chain_id: self.cfg.chain_id,
@@ -103,7 +105,7 @@ impl EthereumProviderConfig {
 }
 
 #[async_trait]
-impl ChainProvider for EthereumProvider {
+impl ChainProvider for EthereumContext {
     type ProofArtifact = u64;
 
     // just need the block number from the proof
@@ -177,7 +179,7 @@ impl ChainProvider for EthereumProvider {
     }
 }
 
-impl EthereumProvider {
+impl EthereumContext {
     /// This logic is just here for now
     /// On ethereum, we do not generate consensus proof for each block
     /// We generate a proof for a block, and with that, we'll assume
@@ -289,5 +291,16 @@ impl EthereumProvider {
         tx.send(input_params).await?;
 
         Ok(())
+    }
+
+    // Wrapper functions around the provider methods for cleaner api
+    pub async fn get_latest_block(&self) -> Result<u64> { self.provider.get_latest_block().await }
+
+    pub async fn get_block_by_number(&self, height: u64) -> Result<Block> {
+        self.provider.get_block_by_number(height).await
+    }
+
+    pub async fn get_block_receipts(&self, height: u64) -> Result<Vec<TransactionReceipt>> {
+        self.provider.get_block_receipts(height).await
     }
 }

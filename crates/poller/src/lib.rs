@@ -6,8 +6,8 @@ use tokio::sync::{mpsc, Notify};
 use tokio::time::sleep;
 use tracing::error;
 use twine_db::merkora::fetch_oldest_unprocessed_message;
-use twine_ethereum_utils::EthereumProvider;
-use twine_solana_utils::SolanaProvider;
+use twine_ethereum_utils::EthereumContext;
+use twine_solana_utils::SolanaContext;
 use twine_types::db::L1MessageDetails;
 use twine_types::manager::ChainTyp;
 use twine_types::traits::ChainProvider;
@@ -81,9 +81,9 @@ async fn dispatch_message(
 ) -> eyre::Result<()> {
     match ChainTyp::try_from(message.chain_id) {
         Ok(chain_id) => match chain_id {
-            ChainTyp::Solana => SolanaProvider::generate_input_params(message, l2_tx_params).await,
+            ChainTyp::Solana => SolanaContext::generate_input_params(message, l2_tx_params).await,
             ChainTyp::Ethereum =>
-                EthereumProvider::generate_input_params(message, l2_tx_params).await,
+                EthereumContext::generate_input_params(message, l2_tx_params).await,
         },
         Err(err) => {
             error!(chain_id = message.chain_id, %err, "failed to convert chain id to chain type");
