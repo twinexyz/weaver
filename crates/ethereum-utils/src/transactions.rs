@@ -16,12 +16,12 @@ use crate::utils::{adjust_index_for_rlp, get_index_nibble, ordered_trie_root_wit
 type MerklePatriciaProofVerifyParams = (sol_data::Bytes, sol_data::Array<sol_data::Bytes>);
 
 #[derive(Debug, Clone)]
-pub struct ReceiptsProof {
+pub struct EthL1ContractRegistry {
     pub l1_message_queue: Address,
     pub l1_twine_dvn: Address,
 }
 
-impl ReceiptsProof {
+impl EthL1ContractRegistry {
     pub fn new(l1_message_queue: Address, l1_twine_dvn: Address) -> Self {
         Self {
             l1_message_queue,

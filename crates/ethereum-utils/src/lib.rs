@@ -13,7 +13,7 @@ use header::header_to_header;
 use sqlx::PgPool;
 use ssz::Encode;
 use tokio::sync::mpsc;
-use transactions::ReceiptsProof;
+use transactions::EthL1ContractRegistry;
 use twine_config::merkora::EthereumConfig;
 use twine_ethereum_consensus_prover_lib::eth::EthPublicValuesStruct;
 use twine_types::db::L1MessageDetails;
@@ -52,7 +52,7 @@ pub struct EthereumContext {
     pub beacon_provider: BeaconProvider,
     pub chain_id: u64,
     pub chain_type: ChainTyp,
-    pub receipt_proofs: ReceiptsProof,
+    pub receipt_proofs: EthL1ContractRegistry,
     pub contracts: ContractAddresses,
 }
 
@@ -98,7 +98,7 @@ impl EthereumContextConfig {
             beacon_provider,
             chain_id: self.cfg.chain_id,
             chain_type: ChainTyp::Ethereum,
-            receipt_proofs: ReceiptsProof::new(l1_message_queue, l1_twine_dvn),
+            receipt_proofs: EthL1ContractRegistry::new(l1_message_queue, l1_twine_dvn),
             contracts,
         }
     }
