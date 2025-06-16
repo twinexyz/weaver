@@ -11,7 +11,12 @@ members = [
   "bin/devtest",
   "bin/node",
 
+  "crates/common",
   "crates/constants",
+  "crates/database",
+  "crates/eth/sender",
+  "crates/eth/tx-manager",
+  "crates/eth/watcher",
   "crates/ethereum-consensus-prover",
   "crates/evm-contracts",
   "crates/executor",
@@ -23,6 +28,7 @@ members = [
   "crates/solana-consensus-prover",
   "crates/solana-sdk",
   "crates/test-harness",
+  "crates/types",
 ]
 resolver = "3"
 
@@ -34,16 +40,25 @@ alloy-contract = { version = "0.14.0", default-features = false }
 # needed to implement `encode_2718` function which comes from `use alloy_eips::Encodable2718;`
 alloy-eips = { version = "0.14.0", default-features = false }
 alloy-genesis = { version = "0.14.0", default-features = false }
+alloy-node-bindings = { version = "0.14.0" }
 alloy-primitives = { version = "1.0.0", default-features = false, features = ["map-foldhash"] }
+alloy-provider = { version = "0.14.0", features = ["reqwest", "ws"], default-features = false }
+alloy-pubsub = { version = "0.14.0", default-features = false }
+alloy-rlp = { version = "0.3.10", default-features = false, features = ["core-net"] }
+alloy-rpc-types = { version = "0.14.0", features = ["eth"], default-features = false }
+alloy-signer-local = { version = "0.14.0", default-features = false }
 alloy-sol-types = { version = "1.0.0", default-features = false, features = ["json"] }
+alloy-transport-http = { version = "0.14.0", features = ["reqwest-rustls-tls"], default-features = false }
 alloy-trie = { version = "0.8.1", default-features = false }
 
-bls12_381 = { git = "https://github.com/sp1-patches/bls12_381", branch = "n/release-latest", features = ["experimental"], package = "sp1_bls12_381" }
+async-trait = "0.1.86"
+bls12_381 = { git = "https://github.com/sp1-patches/bls12_381", branch = "patch-v0.8.0", features = ["experimental"] }
 
 env_logger = "0.11.7"
 ethereum_ssz = "0.9.0"
 ethereum_ssz_derive = "0.9.0"
 eyre = "0.6"
+futures-util = "0.3.31"
 git2 = "0.20.1"
 hex = "0.4.3"
 log = "0.4.26"
@@ -58,9 +73,11 @@ serde_bytes = "0.11.14"
 serde_json = "1.0.132"
 serde_yaml = "0.9.34"
 sha2 = "0.10.8"
+sqlx = { version = "0.8", features = ["runtime-tokio", "postgres"] }
 ssz_types = "0.11.0"
 thiserror = "2.0.12"
 tokio = { version = "1.40.0", features = ["full"] }
+tracing = "0.1.41"
 tree_hash = "0.10.0"
 tree_hash_derive = "0.10.0"
 typenum = "1.12.0"
@@ -99,7 +116,12 @@ reth-tracing = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.10
 revm-context = { version = "3.0.0", default-features = false }
 
 test-harness = { path = "crates/test-harness" }
+twine-common = { path = "crates/common" }
 twine-constants = { path = "crates/constants" }
+twine-database = { path = "crates/database" }
+twine-eth-sender = { path = "crates/eth/sender" }
+twine-eth-tx-manager = { path = "crates/eth/tx-manager" }
+twine-eth-watcher = { path = "crates/eth/watcher" }
 twine-ethereum-consensus-prover-lib = { path = "crates/ethereum-consensus-prover" }
 twine-evm-contracts = { path = "crates/evm-contracts" }
 twine-executor = { path = "crates/executor" }
@@ -107,8 +129,10 @@ twine-integration-tests = { path = "crates/integration-tests" }
 twine-l1-consensus-verifier-precompile = { path = "crates/precompiles/l1-consensus-verifier" }
 twine-l1-transactions-precompile = { path = "crates/precompiles/l1-transactions" }
 twine-l1-utils = { path = "crates/l1-utils" }
+twine-rollup = { path = "crates/rollup" }
 twine-solana-consensus-prover-lib = { path = "crates/solana-consensus-prover" }
 twine-solana-sdk = { path = "crates/solana-sdk" }
+twine-types = { path = "crates/types" }
 twine-zstd-precompile = { path = "crates/precompiles/zstd" }
 
 [patch.crates-io]

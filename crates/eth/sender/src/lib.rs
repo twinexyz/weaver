@@ -1,0 +1,104 @@
+//! Ethereum transaction sender with async support
+
+use std::sync::Arc;
+
+use alloy_primitives::hex::FromHex;
+use alloy_primitives::{Bytes, TxHash, B256};
+use alloy_provider::{DynProvider, Provider, ProviderBuilder};
+use alloy_rpc_types::{TransactionReceipt, TransactionRequest};
+use alloy_signer_local::PrivateKeySigner;
+use eyre::{eyre, Context};
+
+/// Ethereum Transactions Sender
+#[derive(Debug, Clone)]
+pub struct EthSender {
+    /// Provider to send transactions
+    pub provider: Arc<DynProvider>,
+}
+
+impl EthSender {
+    /// Get chain id
+    pub async fn get_chain_id(&self) -> eyre::Result<u64> {
+        Ok(self
+            .provider
+            .get_chain_id()
+            .await
+            .context("Failed to get chain id")?)
+    }
+
+    /// Create a new ETH sender
+    pub fn new(private_key: &str, rpc_url: &str) -> eyre::Result<Self> {
+        let signer = PrivateKeySigner::from_bytes(
+            &B256::from_hex(private_key).context("Invalid private key")?,
+        )
+        .context("Failed building signer")?;
+
+        let provider = ProviderBuilder::new()
+            .wallet(signer)
+            .on_http(rpc_url.parse().context("Invalid RPC URL")?);
+
+        Ok(Self {
+            provider: Arc::new(DynProvider::new(provider)),
+        })
+    }
+
+    /// Send a transaction with typed parameters
+    pub async fn send_transaction(&self, request: TransactionRequest) -> eyre::Result<TxHash> {
+        self.provider
+            .send_transaction(request)
+            .await
+            .map(|pending_tx| pending_tx.tx_hash().clone())
+            .map_err(|e| eyre!("Failed sending transaction: {}", e))
+    }
+
+    /// Send raw transaction bytes
+    pub async fn send_raw_transaction(&self, raw_tx: Bytes) -> eyre::Result<B256> {
+        self.provider
+            .send_raw_transaction(&raw_tx)
+            .await
+            .map(|pending_tx| pending_tx.tx_hash().clone())
+            .map_err(|e| eyre!("Failed sending transaction: {}", e))
+    }
+
+    /// Send transaction and wait for receipt
+    pub async fn send_transaction_and_wait(
+        &self,
+        request: TransactionRequest,
+    ) -> eyre::Result<TransactionReceipt> {
+        let pending_tx = self
+            .provider
+            .send_transaction(request)
+            .await
+            .wrap_err("Failed to send transaction")?;
+
+        pending_tx
+            .get_receipt()
+            .await
+            .wrap_err("Failed while waiting for receipt")
+    }
+
+    /// Send raw transaction and wait for receipt
+    pub async fn send_raw_transaction_and_wait(
+        &self,
+        raw_tx: Bytes,
+    ) -> eyre::Result<TransactionReceipt> {
+        let pending_tx = self
+            .provider
+            .send_raw_transaction(&raw_tx)
+            .await
+            .wrap_err("Failed to send transaction")?;
+
+        pending_tx
+            .get_receipt()
+            .await
+            .wrap_err("Failed while waiting for receipt")
+    }
+
+    /// Get transaction receipt (non-blocking)
+    pub async fn get_receipt(&self, tx_hash: B256) -> eyre::Result<Option<TransactionReceipt>> {
+        self.provider
+            .get_transaction_receipt(tx_hash)
+            .await
+            .context("Failed to fetch receipt")
+    }
+}

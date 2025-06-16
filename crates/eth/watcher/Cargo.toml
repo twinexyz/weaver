@@ -1,0 +1,28 @@
+[package]
+name = "twine-eth-watcher"
+version.workspace = true
+edition.workspace = true
+exclude.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+twine-common.workspace = true
+twine-ethereum-consensus-prover-lib.workspace = true
+
+alloy-eips.workspace = true
+alloy-primitives.workspace = true
+alloy-provider.workspace = true
+alloy-pubsub.workspace = true
+alloy-rpc-types.workspace = true
+async-trait.workspace = true
+eyre.workspace = true
+futures-util.workspace = true
+reqwest.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+
+[lints]
+workspace = true

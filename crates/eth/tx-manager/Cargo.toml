@@ -1,0 +1,32 @@
+[package]
+name = "twine-eth-tx-manager"
+version.workspace = true
+edition.workspace = true
+exclude.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+twine-database.workspace = true
+twine-eth-sender.workspace = true
+twine-evm-contracts.workspace = true
+twine-rollup.workspace = true
+twine-types.workspace = true
+
+alloy-consensus.workspace = true
+alloy-primitives.workspace = true
+alloy-rpc-types.workspace = true
+
+async-trait.workspace = true
+eyre.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+alloy-node-bindings.workspace = true
+env_logger.workspace = true
+
+[lints]
+workspace = true

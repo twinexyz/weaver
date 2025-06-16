@@ -1,0 +1,20 @@
+[package]
+name = "twine-rollup"
+version.workspace = true
+edition.workspace = true
+exclude.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+twine-evm-contracts.workspace = true
+twine-types.workspace = true
+
+alloy-primitives.workspace = true
+
+async-trait.workspace = true
+eyre.workspace = true
+
+[lints]
+workspace = true

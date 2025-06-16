@@ -6,3 +6,4 @@ target/
 test-ledger
 geyser.*
 .DS_Store
+.sqlx
