@@ -1,75 +1,53 @@
 use std::sync::Arc;
 
-use alloy_eips::BlockId;
 use alloy_network::EthereumWallet;
 use alloy_primitives::hex::FromHex;
 use alloy_primitives::{Address, B256, U256};
-use alloy_provider::{Provider, ProviderBuilder};
-use alloy_rpc_types::{Block, TransactionReceipt, TransactionRequest};
+use alloy_provider::fillers::{
+    BlobGasFiller, ChainIdFiller, FillProvider, GasFiller, JoinFill, NonceFiller, WalletFiller,
+};
+use alloy_provider::{DynProvider, Identity, ProviderBuilder, RootProvider};
+use alloy_rpc_types::{Block, TransactionReceipt};
 use alloy_signer_local::PrivateKeySigner;
 use eyre::{Error, Result};
 use sqlx::PgPool;
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::Notify;
+use twine_ethereum_utils::EvmProvider;
 use twine_types::TwineInputParams;
 
 use crate::L2Messenger;
 
-static MAX_RETRIES: i32 = 10;
-
-pub type AlloyProvider = alloy_provider::fillers::FillProvider<
-    alloy_provider::fillers::JoinFill<
-        alloy_provider::fillers::JoinFill<
-            alloy_provider::Identity,
-            alloy_provider::fillers::JoinFill<
-                alloy_provider::fillers::GasFiller,
-                alloy_provider::fillers::JoinFill<
-                    alloy_provider::fillers::BlobGasFiller,
-                    alloy_provider::fillers::JoinFill<
-                        alloy_provider::fillers::NonceFiller,
-                        alloy_provider::fillers::ChainIdFiller,
-                    >,
-                >,
-            >,
+pub type AlloyProvider = FillProvider<
+    JoinFill<
+        JoinFill<
+            Identity,
+            JoinFill<GasFiller, JoinFill<BlobGasFiller, JoinFill<NonceFiller, ChainIdFiller>>>,
         >,
-        alloy_provider::fillers::WalletFiller<EthereumWallet>,
+        WalletFiller<EthereumWallet>,
     >,
-    alloy_provider::RootProvider,
+    RootProvider,
 >;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct TwineProvider {
-    pub provider: AlloyProvider,
-    pub l2_messenger: L2Messenger::L2MessengerInstance<
-        alloy_provider::fillers::FillProvider<
-            alloy_provider::fillers::JoinFill<
-                alloy_provider::fillers::JoinFill<
-                    alloy_provider::Identity,
-                    alloy_provider::fillers::JoinFill<
-                        alloy_provider::fillers::GasFiller,
-                        alloy_provider::fillers::JoinFill<
-                            alloy_provider::fillers::BlobGasFiller,
-                            alloy_provider::fillers::JoinFill<
-                                alloy_provider::fillers::NonceFiller,
-                                alloy_provider::fillers::ChainIdFiller,
-                            >,
-                        >,
-                    >,
-                >,
-                alloy_provider::fillers::WalletFiller<EthereumWallet>,
-            >,
-            alloy_provider::RootProvider,
-        >,
-    >,
+    pub provider: EvmProvider,
+    pub l2_messenger: L2Messenger::L2MessengerInstance<AlloyProvider>,
 }
 
 impl TwineProvider {
     pub fn new(url: &str, wallet: EthereumWallet, l2_messenger_addr: Address) -> Self {
-        let provider = ProviderBuilder::new()
+        let alloy_provider = ProviderBuilder::new()
             .wallet(wallet.clone())
             .on_http(url.parse().unwrap());
+        let http_provider = DynProvider::new(alloy_provider.clone());
 
-        let l2_messenger = L2Messenger::new(l2_messenger_addr, provider.clone());
+        let provider = EvmProvider {
+            http_provider: http_provider.clone(),
+            ws_provider: None,
+        };
+
+        let l2_messenger = L2Messenger::new(l2_messenger_addr, alloy_provider.clone());
 
         Self {
             provider,
@@ -85,30 +63,14 @@ impl TwineProvider {
         TwineProvider::new(url, wallet, l2_messenger)
     }
 
-    pub async fn get_block_by_number(&self, block_number: u64) -> Option<Block> {
-        let block = self.provider.get_block_by_number(block_number.into()).await;
-        block.unwrap_or_default()
+    pub async fn get_block_by_number(&self, height: u64) -> Result<Block> {
+        let block = self.provider.get_block_by_number(height.into()).await?;
+        Ok(block)
     }
 
-    pub async fn get_block_receipts(&self, block_number: u64) -> Result<Vec<TransactionReceipt>> {
-        for i in 0..10 {
-            match self
-                .provider
-                .get_block_receipts(BlockId::number(block_number))
-                .await
-            {
-                Ok(blk_rec) =>
-                    if let Some(b) = blk_rec {
-                        return Ok(b);
-                    } else {
-                        tracing::info!("Got None in block receipts ");
-                    },
-                Err(e) => {
-                    tracing::error!("Error querying receipts: {i}/10 error: {}", e.to_string());
-                }
-            }
-        }
-        Err(Error::msg("Failed to query block receipts"))
+    pub async fn get_block_receipts(&self, height: u64) -> Result<Vec<TransactionReceipt>> {
+        let receipts = self.provider.get_block_receipts(height.into()).await?;
+        Ok(receipts)
     }
 
     /// - Wallet and network configuration in self
@@ -129,7 +91,7 @@ impl TwineProvider {
                             .l2_messenger
                             .handleSolanaTransactions(U256::from(chain_id), solana_params)
                             .into_transaction_request();
-                        if let Err(_e) = self.send_transaction(tx).await {
+                        if let Err(_e) = self.provider.send_transaction(tx).await {
                             tracing::error!("Failed to handle solana transactions");
                             notify.notify_one();
                         } else {
@@ -171,7 +133,7 @@ impl TwineProvider {
                                     eth_params,
                                 )
                                 .into_transaction_request();
-                            if let Err(e) = self.send_transaction(tx).await {
+                            if let Err(e) = self.provider.send_transaction(tx).await {
                                 tracing::error!(error=?e, "Failed to handle ethereum transactions");
                                 notify.notify_one();
                             } else {
@@ -198,45 +160,5 @@ impl TwineProvider {
             }
         }
         Err(Error::msg("Receive loop terminated"))
-    }
-
-    pub async fn send_transaction(&self, request: TransactionRequest) -> Result<()> {
-        let mut attempt = 0;
-        loop {
-            let pending_tx = self.provider.send_transaction(request.clone()).await?;
-
-            tracing::info!("Pending transaction hash: {}", pending_tx.tx_hash());
-
-            match pending_tx.get_receipt().await {
-                Ok(receipt) => {
-                    let txn_hash = receipt.transaction_hash.to_string();
-                    if receipt.status() {
-                        tracing::info!("Transaction Successful! txn_hash: {}", txn_hash);
-                    } else {
-                        tracing::warn!("Transaction Failed! txn_hash: {}", txn_hash);
-                    }
-                    return Ok(());
-                }
-                Err(e) => {
-                    attempt += 1;
-                    if attempt >= MAX_RETRIES {
-                        tracing::warn!(
-                            "Transaction failed after {} attempts. Error: {}",
-                            attempt,
-                            e
-                        );
-                        return Err(e.into());
-                    }
-
-                    tracing::error!(
-                        "Transaction Failed! Error: {}. Retrying ({}/{})",
-                        e,
-                        attempt,
-                        MAX_RETRIES
-                    );
-                    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
-                }
-            }
-        }
     }
 }

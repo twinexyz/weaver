@@ -90,7 +90,7 @@ impl EthereumContextConfig {
             l1_message_queue,
             l1_twine_dvn,
         };
-        let provider = EvmProvider::new(execution_provider.clone(), wss_provider.clone());
+        let provider = EvmProvider::new(execution_provider.clone(), Some(wss_provider.clone()));
 
         EthereumContext {
             provider,

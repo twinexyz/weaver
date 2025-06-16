@@ -5,6 +5,7 @@ edition.workspace = true
 
 [dependencies]
 twine-db.workspace = true
+twine-ethereum-utils.workspace = true
 twine-types.workspace = true
 
 alloy-contract.workspace = true

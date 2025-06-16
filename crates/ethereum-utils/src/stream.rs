@@ -312,6 +312,8 @@ impl EthereumContext {
     async fn subscribe_to_blocks(&self) -> Result<SubscriptionStream<alloy_rpc_types::Header>> {
         self.provider
             .ws_provider
+            .as_ref()
+            .expect("WebSocket provider must be available to subscribe to blocks")
             .subscribe_blocks()
             .await
             .map(|sub| sub.into_stream())
@@ -325,12 +327,14 @@ impl EthereumContext {
     async fn subscribe_to_events(&self, event_filter: Filter) -> Result<SubscriptionStream<Log>> {
         self.provider
             .ws_provider
+            .as_ref()
+            .expect("WebSocket provider must be available to subscribe to events")
             .subscribe_logs(&event_filter)
             .await
             .map(|sub| sub.into_stream())
             .map_err(|e| {
-                tracing::error!("Websocket connection error: {}", e);
-                eyre!("Websocket connection failed")
+                tracing::error!("WebSocket connection error: {}", e);
+                eyre!("WebSocket connection failed")
             })
     }
 }
