@@ -102,6 +102,9 @@ mod solana_deposit_test {
                                 cmd.push("--reset".into());
                             }
 
+                            cmd.push("--ledger".to_string());
+                            cmd.push(solana::constants::SOLANA_DATA_DIR.to_string());
+
                             cmd
                         }
                     }),
@@ -210,6 +213,12 @@ mod solana_deposit_test {
             programs_path.clone(),
         )?);
 
+        // Wait for slot to get rooted before stopping
+        harness.add_step(wait_step(
+            Duration::from_secs(30),
+            "Waiting for slot to get rooted before exiting ",
+        ));
+
         // Restart solana test validator node
         harness.add_step(stop_service_step(
             "Solana Test Validator Node",
@@ -217,19 +226,7 @@ mod solana_deposit_test {
             Some(Duration::from_secs(5)),
         ));
 
-        harness.add_step(mark_solana_validator_to_restart_without_clearing_data()?);
-        harness.add_step(start_service_step(
-            "Solana Test Validator Node (Restarted)",
-            1,
-            Duration::from_secs(3),
-        ));
-
-        info!("All running services: {:?}", harness.services);
-
-        // Update Twine PDA
-        // Restart twine node
-
-        // // Deploy and setup twine programs
+        // Deploy and setup twine programs
         harness.add_step(twine::setup::create_env_file_step(contracts_path.clone())?);
         harness.add_step(twine::setup::deploy_l2_contracts_step(
             contracts_path.clone(),
@@ -241,10 +238,13 @@ mod solana_deposit_test {
         // Load contract addresses
         harness.add_step(twine::setup::load_contract_addresses_step(&contracts_path)?);
 
-        // Update token mapping for both chains
-        harness.add_step(twine::setup::update_token_mapping()?);
-
-        harness.add_step(solana::setup::update_token_mapping(programs_path.clone())?);
+        // Restart solana test validator node with geyser plugin
+        harness.add_step(mark_solana_validator_to_restart_without_clearing_data()?);
+        harness.add_step(start_service_step(
+            "Solana Test Validator Node (Restarted)",
+            1,
+            Duration::from_secs(5),
+        ));
 
         harness.add_service(Box::new(services.solana_consensus_prover));
         harness.add_service(Box::new(services.merkora));
@@ -255,17 +255,20 @@ mod solana_deposit_test {
             Duration::from_secs(3),
         ));
 
+        // Update token mapping for both chains
+        harness.add_step(twine::setup::update_token_mapping()?);
+        harness.add_step(solana::setup::update_token_mapping(programs_path.clone())?);
+
         // Configure and start Merkora
         harness.add_step(configure_merkora_step(&app_config)?);
         harness.add_step(start_service_step("Merkora", 3, Duration::from_secs(5)));
 
         // Deposit ETH
         harness.add_step(deposit_sol_step(programs_path.clone())?);
-        // harness.add_step(deposit_sol_step(programs_path)?);
 
         // Wait for message processing
         harness.add_step(wait_step(
-            Duration::from_secs(45),
+            Duration::from_secs(60),
             "Waiting for message delivery",
         ));
 
@@ -347,21 +350,21 @@ mod solana_deposit_test {
     fn verify_l2_balance_step() -> eyre::Result<TestStep> {
         Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
             name: "Verify L2 balance".into(),
-            description: "Check ETH balance on L2".into(),
+            description: "Check SOL balance on L2".into(),
             futurefn: Box::new(|ctx| {
                 Box::new(async move {
                     let ctx = ctx.borrow();
                     let random_address = ctx
                         .get(twine::ctx_keys::L2_RANDOM_ADDRESS)
                         .ok_or_else(|| eyre!("Random address not found in context"))?;
-                    let l2_eth_token = ctx
-                        .get(twine::ctx_keys::L2_ETH_TOKEN)
-                        .ok_or_else(|| eyre!("L2 ETH token address not found in context"))?;
+                    let l2_sol_token = ctx
+                        .get(twine::ctx_keys::L2_SOL_TOKEN)
+                        .ok_or_else(|| eyre!("L2 SOL token address not found in context"))?;
 
                     let output = Command::new("cast")
                         .args(&[
                             "call",
-                            l2_eth_token,
+                            l2_sol_token,
                             "balanceOf(address)(uint256)",
                             random_address,
                             "--rpc-url",
@@ -377,7 +380,7 @@ mod solana_deposit_test {
 
                     let stdout = String::from_utf8_lossy(&output.stdout);
                     info!("L2 balance check successful: {}", stdout);
-                    // assert!(stdout.contains(solana::constants::SOLANA_DEPOSIT_AMOUNT));
+                    assert!(stdout.contains(solana::constants::SOLANA_DEPOSIT_AMOUNT));
                     Ok(())
                 })
             }),
@@ -405,6 +408,7 @@ mod solana_deposit_test {
                 Box::new(async move {
                     remove_dir_if_exists("/tmp/twine")?;
                     remove_dir_if_exists("/tmp/reth")?;
+                    remove_dir_if_exists(solana::constants::SOLANA_DATA_DIR)?;
                     Ok(())
                 })
             }),

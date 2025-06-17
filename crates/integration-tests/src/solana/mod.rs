@@ -7,6 +7,7 @@ pub mod constants {
     pub const SOLANA_CHAIN_ID: &str = "900";
     pub const SOLANA_NATIVECOIN: &str = "11111111111111111111111111111111";
     pub const SOLANA_DEPOSIT_AMOUNT: &str = "1000000000";
+    pub const SOLANA_DATA_DIR: &str = "/tmp/solana-test-ledger";
 }
 
 pub mod ctx_keys {
