@@ -5,15 +5,18 @@ use reth::revm::interpreter::{InputsImpl, InterpreterResult};
 use reth::revm::precompile::Precompiles;
 use twine_constants::precompiles::{
     TWINE_CONSENSUS_VERIFIER_PRECOMPILE_ADDRESS, TWINE_TRANSACTION_PRECOMPILE_ADDRESS,
+    TWINE_ZSTD_PRECOMPILE_ADDRESS,
 };
 use twine_l1_consensus_verifier_precompile::ConsensusVerifierPrecompile;
 use twine_l1_transactions_precompile::TransactionPrecompile;
+use twine_zstd_precompile::ZStdPrecompile;
 
 /// Twine specific precompiles
 #[derive(Clone, Debug)]
 pub struct TwinePrecompiles {
     pub transaction_precompile: Address,
     pub consensus_precompile: Address,
+    pub zstd_precompile: Address,
 }
 
 impl TwinePrecompiles {
@@ -28,6 +31,11 @@ impl TwinePrecompiles {
             return true;
         }
 
+        #[cfg(feature = "twine-zstd-precompile")]
+        if self.zstd_precompile.eq(address) {
+            return true;
+        }
+
         false
     }
 }
@@ -37,6 +45,7 @@ impl Default for TwinePrecompiles {
         Self {
             transaction_precompile: TWINE_TRANSACTION_PRECOMPILE_ADDRESS,
             consensus_precompile: TWINE_CONSENSUS_VERIFIER_PRECOMPILE_ADDRESS,
+            zstd_precompile: TWINE_ZSTD_PRECOMPILE_ADDRESS,
         }
     }
 }
@@ -84,6 +93,13 @@ impl<CTX: ContextTr> PrecompileProvider<CTX> for TwineCustomPrecompile {
             }
         }
 
+        #[cfg(feature = "twine-zstd-precompile")]
+        {
+            if address.eq(&self.twine_precompiles.zstd_precompile) {
+                return ZStdPrecompile::run(context, address, inputs, is_static, gas_limit);
+            }
+        }
+
         self.inner
             .run(context, address, inputs, is_static, gas_limit)
     }
@@ -97,6 +113,9 @@ impl<CTX: ContextTr> PrecompileProvider<CTX> for TwineCustomPrecompile {
 
         #[cfg(feature = "twine-l1-transactions-precompile")]
         let addresses = addresses.chain(std::iter::once(TWINE_TRANSACTION_PRECOMPILE_ADDRESS));
+
+        #[cfg(feature = "twine-zstd-precompile")]
+        let addresses = addresses.chain(std::iter::once(TWINE_ZSTD_PRECOMPILE_ADDRESS));
 
         Box::new(addresses)
     }

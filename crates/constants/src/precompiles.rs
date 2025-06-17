@@ -9,6 +9,9 @@ pub const TWINE_TRANSACTION_PRECOMPILE_ADDRESS: Address = u64_to_address(0x16);
 /// Twine System Storage Contract
 pub const TWINE_SYSTEM_STORAGE_CONTRACT: Address = u64_to_address(0x17);
 
+/// Twine ZSTD Compression and Uncompression Library
+pub const TWINE_ZSTD_PRECOMPILE_ADDRESS: Address = u64_to_address(0x18);
+
 /// Const function for making an address by concatenating the bytes from two
 /// given numbers.
 ///
