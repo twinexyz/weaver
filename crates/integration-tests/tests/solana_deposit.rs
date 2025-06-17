@@ -268,6 +268,10 @@ mod solana_deposit_test {
             Duration::from_secs(3),
         ));
 
+        // Update token mapping for both chains
+        harness.add_step(twine::setup::update_token_mapping()?);
+        harness.add_step(solana::setup::update_token_mapping(programs_path.clone())?);
+
         // Configure and start Merkora
         harness.add_step(configure_merkora_step(&app_config)?);
         harness.add_step(start_service_step("Merkora", 3, Duration::from_secs(5)));
