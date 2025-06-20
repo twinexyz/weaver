@@ -1,0 +1,20 @@
+[package]
+name = "twine-zstd-precompile"
+version.workspace = true
+edition.workspace = true
+exclude.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+reth-revm.workspace = true
+reth-tracing.workspace = true
+
+alloy-primitives.workspace = true
+alloy-sol-types.workspace = true
+
+ruzstd.workspace = true
+
+[lints]
+workspace = true

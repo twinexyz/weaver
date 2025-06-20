@@ -19,6 +19,7 @@ members = [
   "crates/l1-utils",
   "crates/precompiles/l1-consensus-verifier",
   "crates/precompiles/l1-transactions",
+  "crates/precompiles/zstd",
   "crates/solana-consensus-prover",
   "crates/solana-sdk",
   "crates/test-harness",
@@ -51,6 +52,7 @@ parking_lot = "0.12"
 rand = "0.8.5"
 regex = "1.11.1"
 reqwest = { version = "0.11", features = ["json"] }
+ruzstd = "0.8.1"
 serde = { version = "1.0.210", features = ["derive"] }
 serde_bytes = "0.11.14"
 serde_json = "1.0.132"
@@ -107,6 +109,7 @@ twine-l1-transactions-precompile = { path = "crates/precompiles/l1-transactions"
 twine-l1-utils = { path = "crates/l1-utils" }
 twine-solana-consensus-prover-lib = { path = "crates/solana-consensus-prover" }
 twine-solana-sdk = { path = "crates/solana-sdk" }
+twine-zstd-precompile = { path = "crates/precompiles/zstd" }
 
 [patch.crates-io]
 # The following is required since we would like to remove

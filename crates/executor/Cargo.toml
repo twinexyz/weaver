@@ -24,13 +24,16 @@ tokio.workspace = true
 twine-constants = { workspace = true }
 twine-l1-consensus-verifier-precompile = { workspace = true, optional = true }
 twine-l1-transactions-precompile = { workspace = true }
+twine-zstd-precompile = { workspace = true }
 
 [features]
 default = [
   "twine-l1-consensus-verifier-precompile",
   "twine-l1-transactions-precompile",
+  "twine-zstd-precompile",
 ]
 twine-l1-consensus-verifier-precompile = [
   "dep:twine-l1-consensus-verifier-precompile",
 ]
 twine-l1-transactions-precompile = []
+twine-zstd-precompile = []
