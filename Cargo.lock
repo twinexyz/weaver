@@ -10864,9 +10864,13 @@ dependencies = [
 name = "twine-integration-tests"
 version = "0.1.0"
 dependencies = [
+ "alloy-primitives",
+ "alloy-sol-types",
  "env_logger",
  "eyre",
+ "git2",
  "log",
+ "ruzstd",
  "serde",
  "serde_json",
  "serde_yaml",

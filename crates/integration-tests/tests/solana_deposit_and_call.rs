@@ -1,7 +1,7 @@
 //! Solana deposit tests
 
 #[cfg(test)]
-mod solana_deposit {
+mod solana_deposit_and_call_test {
     use std::path::{Path, PathBuf};
     use std::process::Command;
     use std::time::Duration;
@@ -165,7 +165,7 @@ mod solana_deposit {
     }
 
     #[test]
-    fn test_deposit() -> eyre::Result<()> {
+    fn test_deposit_and_call() -> eyre::Result<()> {
         let _ = env_logger::try_init();
         let app_config = load_app_config(Path::new("./res/config.yaml"))
             .context("Failed to load application config")?;
@@ -259,6 +259,9 @@ mod solana_deposit {
             Duration::from_secs(3),
         ));
 
+        // Deploys a cat contract to the destination
+        harness.add_step(twine::setup::deploy_cat_contract(repo_root)?);
+
         // Update token mapping for both chains
         harness.add_step(twine::setup::update_sol_token_mapping()?);
         harness.add_step(solana::setup::update_sol_token_mapping(
@@ -280,6 +283,7 @@ mod solana_deposit {
 
         // Verify L2 balance
         harness.add_step(verify_l2_sol_balance_step()?);
+        harness.add_step(verify_call_executed()?);
 
         // Cleanup
         harness.add_step(stop_service_step("Merkora", 3, None));

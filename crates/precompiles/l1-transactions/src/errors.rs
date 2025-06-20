@@ -36,6 +36,8 @@ pub enum TransactionPrecompileError {
     InvalidAmountError(String),
     #[error("no transaction to execute")]
     NoTransactionToExecute,
+    #[error("failed to decode hex: `{0}`")]
+    DecodeHex(String),
     #[error("unknown error:  `{0}`")]
     Other(String),
 }

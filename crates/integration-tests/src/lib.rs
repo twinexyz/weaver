@@ -4,8 +4,12 @@
 #![allow(unused_imports)]
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use alloy_primitives::hex::FromHex;
+use alloy_primitives::Bytes;
 use log::info;
+use ruzstd::encoding::{compress_to_vec, CompressionLevel};
 
+pub mod common;
 pub mod config;
 pub mod evm;
 pub mod solana;
@@ -51,4 +55,11 @@ pub fn generate_random_eth_address() -> String {
             .map(|b| format!("{:02x}", b))
             .collect::<String>()
     )
+}
+
+fn zstd_compress(original: &str) -> Bytes {
+    let source = Bytes::from_hex(original).expect("Invalid hex bytes");
+    let k = source.0.iter().as_slice();
+    let compressed = compress_to_vec(k, CompressionLevel::Fastest);
+    compressed.into()
 }

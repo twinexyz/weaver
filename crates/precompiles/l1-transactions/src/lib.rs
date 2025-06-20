@@ -348,7 +348,7 @@ pub fn handle_solana_proof<CTX: ContextTr>(
     proof: Bytes,
     evmctx: &mut CTX,
 ) -> Result<InterpreterResult, TransactionPrecompileError> {
-    tracing::debug!("Reached in handle_solana_proof");
+    tracing::info!("Reached in handle_solana_proof");
 
     let public_values = parse_public_values(proof)?;
 
@@ -359,6 +359,7 @@ pub fn handle_solana_proof<CTX: ContextTr>(
             let txn_type = validate_and_get_txn_type(&proof)?;
             let is_mint = txn_type.clone().into_underlying() == 0u8;
             let nonce = get_last_handed_nonce(chain_id, txn_type, evmctx)?;
+            tracing::info!("Last handled nonce is: {}", nonce);
 
             if let Some(result) =
                 process_solana_messages(&transaction_info.messages, nonce.into(), is_mint)?
@@ -430,6 +431,8 @@ fn process_solana_messages(
             .map_err(|_| TransactionPrecompileError::InvalidAddress)?;
         let amount = U256::from_str(&message.amount)
             .map_err(|e| TransactionPrecompileError::InvalidAmountError(format!("{e:?}")))?;
+        let call_data = Bytes::from_str(&message.data)
+            .map_err(|_e| TransactionPrecompileError::DecodeHex("Solana Data".to_string()))?;
 
         let l1_txn = L1Txns {
             nonce: U256::from(message.nonce),
@@ -439,7 +442,7 @@ fn process_solana_messages(
                 value: amount,
                 mint: is_mint,
             },
-            contractCallData: Bytes::new(),
+            contractCallData: call_data,
         };
 
         return Ok(Some(InterpreterResult {
@@ -471,6 +474,7 @@ pub struct TransactionData {
     pub l1_token: String,
     pub l2_token: String,
     pub amount: String,
+    pub data: String,
 }
 
 /// Queries the storage of system contract to retrieve the handled nonce count
