@@ -1,12 +1,16 @@
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
+use std::str::FromStr;
 
-use eyre::{eyre, ContextCompat};
+use alloy_primitives::{Address, Bytes};
+use alloy_sol_types::{sol, SolValue};
+use eyre::{eyre, Context, ContextCompat};
+use log::info;
 use test_harness::{AsyncFnStep, TestStep};
 
-use crate::solana;
 use crate::twine::scripts::load_twine_addresses;
-use crate::twine::{constants, ctx_keys};
+use crate::twine::{action, constants, ctx_keys};
+use crate::{solana, zstd_compress};
 
 /// Create a .env file in contracts folder
 pub fn create_env_file_step(target_dir: PathBuf) -> eyre::Result<TestStep> {
@@ -120,7 +124,7 @@ pub fn load_contract_addresses_step(contract_path: &PathBuf) -> eyre::Result<Tes
 }
 
 /// Update token mapping on twine
-pub fn update_token_mapping() -> eyre::Result<TestStep> {
+pub fn update_sol_token_mapping() -> eyre::Result<TestStep> {
     Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
         name: "Update token mapping on twine".to_string(),
         description: "Update token mapping with address deployed on solana".to_string(),
@@ -154,6 +158,28 @@ pub fn update_token_mapping() -> eyre::Result<TestStep> {
                 if !status.success() {
                     return Err(eyre!("L2 Update token mapping for SOL Token failed"));
                 }
+
+                Ok(())
+            })
+        }),
+    })))
+}
+
+/// Deploy a test contract to try deposit and call
+/// Param: contracts_dir: point to testing/
+pub fn deploy_cat_contract(contracts_dir: PathBuf) -> eyre::Result<TestStep> {
+    Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
+        name: "Deploy Cat Contract".to_string(),
+        description: "Deploy Cat contract using forge".to_string(),
+        futurefn: Box::new(move |ctx| {
+            Box::new(async move {
+                // Define the setter value once at the start
+                const SETTER_VALUE: &str = "0x7b565656565656565656565656565656567d";
+
+                let cat_address = action::deploy_contract(&contracts_dir).await?;
+                info!("Cat deployed at address: {}", cat_address);
+                let call_params = action::get_call_params(&cat_address, SETTER_VALUE).await?;
+                action::prepare_and_store_call_data(&cat_address, &call_params, SETTER_VALUE, ctx)?;
 
                 Ok(())
             })

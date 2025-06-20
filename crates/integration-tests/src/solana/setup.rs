@@ -225,7 +225,7 @@ pub fn load_program_addresses_step(program_path: PathBuf) -> eyre::Result<TestSt
 }
 
 /// Update token mapping on solana
-pub fn update_token_mapping(program_path: PathBuf) -> eyre::Result<TestStep> {
+pub fn update_sol_token_mapping(program_path: PathBuf) -> eyre::Result<TestStep> {
     Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
         name: "Update token mapping on solana".to_string(),
         description: "Update token mapping with address deployed on twine".to_string(),
@@ -277,6 +277,9 @@ pub fn deposit_sol_step(program_path: PathBuf) -> eyre::Result<TestStep> {
                 let l2_token = binding
                     .get(twine::ctx_keys::L2_SOL_TOKEN)
                     .context("L2 sol token not in context")?;
+                let call_data = binding
+                    .get(twine::ctx_keys::L2_CALL_PARAM_COMPRESSED)
+                    .context("L2 sol token not in context")?;
 
                 let status = Command::new("make")
                     .args(&[
@@ -284,6 +287,7 @@ pub fn deposit_sol_step(program_path: PathBuf) -> eyre::Result<TestStep> {
                         &format!("amount={}", solana::constants::SOLANA_DEPOSIT_AMOUNT),
                         &format!("receiver_address={}", ethereum_address),
                         &format!("l2_token={}", l2_token),
+                        &format!("data={}", call_data),
                     ])
                     .current_dir(program_path)
                     .stderr(Stdio::inherit())

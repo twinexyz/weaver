@@ -1,3 +1,4 @@
+pub(crate) mod action;
 pub mod scripts;
 pub mod setup;
 
@@ -14,4 +15,7 @@ pub mod ctx_keys {
     pub const L2_ETH_TOKEN: &str = "l2_eth_token";
     pub const L2_SOL_TOKEN: &str = "l2_sol_token";
     pub const L2_RANDOM_ADDRESS: &str = "l2_random_address";
+    pub const L2_CAT_CONTRACT: &str = "l2_cat_contract";
+    pub const L2_CALL_PARAM_COMPRESSED: &str = "l2_call_param_compressed";
+    pub const SETTER_VALUE: &str = "setter_value";
 }
