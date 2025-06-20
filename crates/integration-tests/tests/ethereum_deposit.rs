@@ -184,7 +184,7 @@ mod ethereum_deposit_test {
 
         // Configure and start Merkora
         harness.add_step(configure_merkora_step(&app_config)?);
-        harness.add_step(start_service_step("Merkora", 2, Duration::from_secs(5)));
+        harness.add_step(start_service_step("Merkora", 2, Duration::from_secs(10)));
 
         // Deposit ETH
         harness.add_step(deposit_eth_step()?);
@@ -234,6 +234,17 @@ mod ethereum_deposit_test {
             description: "Compile solidity contracts".to_string(),
             futurefn: Box::new(move |_ctx| {
                 Box::new(async move {
+                    let status = Command::new("forge")
+                        .arg("clean")
+                        .current_dir(&path)
+                        .stdout(Stdio::null())
+                        .stderr(Stdio::inherit())
+                        .status()?;
+
+                    if !status.success() {
+                        return Err(eyre!("Forge clean failed"));
+                    }
+
                     let status = Command::new("sh")
                         .arg("./script/updateSp1Version.sh")
                         .current_dir(&path)
@@ -439,9 +450,13 @@ mod ethereum_deposit_test {
                     }
 
                     let stdout = String::from_utf8_lossy(&output.stdout);
-                    info!("L2 balance check successful: {}", stdout);
-                    assert!(stdout.contains(constants::DEPOSIT_AMOUNT));
-                    Ok(())
+
+                    if stdout.contains(constants::DEPOSIT_AMOUNT) {
+                        info!("L2 balance check successful: {}", stdout);
+                        return Ok(());
+                    }
+
+                    return Err(eyre!("Failed to verify balance"));
                 })
             }),
         })))
