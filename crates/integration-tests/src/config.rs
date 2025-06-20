@@ -6,19 +6,25 @@ use eyre::Context;
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 
+use crate::twine::scripts::TwineContracts;
+
 /// Application configuration loaded from a file.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub(crate) struct AppConfig {
+pub struct AppConfig {
     pub genesis_path: String,
     pub database_path: String,
     pub contracts_path: PathBuf,
     pub merkora_binary: Option<String>,
     pub twine_node_binary: Option<String>,
     pub ethereum_binary: Option<String>,
+    pub solana_binary: Option<String>,
+    pub solana_program_path: Option<String>,
+    pub geyser_config: Option<String>,
+    pub solana_consensus_prover: Option<String>,
 }
 
 /// Loads application configuration from the specified YAML file path.
-pub(crate) fn load_app_config(config_file_path: &Path) -> eyre::Result<AppConfig> {
+pub fn load_app_config(config_file_path: &Path) -> eyre::Result<AppConfig> {
     info!(
         "Loading application configuration from YAML file: {:?}",
         config_file_path
@@ -84,7 +90,7 @@ pub(crate) fn load_app_config(config_file_path: &Path) -> eyre::Result<AppConfig
 
 /// Contracts config
 #[derive(Debug, Serialize, Deserialize)]
-pub(crate) struct Dev1Contracts {
+pub struct Dev1Contracts {
     #[serde(rename = "FauxCoin")]
     pub faux_coin: String,
     #[serde(rename = "L1CustomERC20Gateway")]
@@ -114,31 +120,7 @@ pub(crate) struct Dev1Contracts {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub(crate) struct TwineContracts {
-    #[serde(rename = "ETHToken")]
-    pub eth_token: String,
-    #[serde(rename = "FauxCoin")]
-    pub faux_coin: String,
-    #[serde(rename = "L2CustomERC20Gateway")]
-    pub l2_custom_erc20_gateway: String,
-    #[serde(rename = "L2ETHGateway")]
-    pub l2_eth_gateway: String,
-    #[serde(rename = "L2GatewayRouter")]
-    pub l2_gateway_router: String,
-    #[serde(rename = "L2MsgExecutor")]
-    pub l2_msg_executor: String,
-    #[serde(rename = "L2RoleManager")]
-    pub l2_role_manager: String,
-    #[serde(rename = "L2TwineMessenger")]
-    pub l2_twine_messenger: String,
-    #[serde(rename = "L2XERC20Gateway")]
-    pub l2_xerc20_gateway: String,
-    #[serde(rename = "SolToken")]
-    pub sol_token: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub(crate) struct ContractAddresses {
+pub struct ContractAddresses {
     #[serde(rename = "Dev1")]
     pub dev1: Dev1Contracts,
     #[serde(rename = "Twine")]
@@ -146,7 +128,7 @@ pub(crate) struct ContractAddresses {
 }
 
 // Helper function to parse the JSON
-pub(crate) fn load_contract_addresses(addresses_path: &Path) -> eyre::Result<ContractAddresses> {
+pub fn load_contract_addresses(addresses_path: &Path) -> eyre::Result<ContractAddresses> {
     info!(
         "Loading application configuration from JSON file: {:?}",
         addresses_path
@@ -168,7 +150,7 @@ pub(crate) fn load_contract_addresses(addresses_path: &Path) -> eyre::Result<Con
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub(crate) struct GlobalConfig {
+pub struct GlobalConfig {
     pub port: u16,
     pub log: String,
     #[serde(rename = "db-path")]
@@ -176,7 +158,7 @@ pub(crate) struct GlobalConfig {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub(crate) struct TwineConfig {
+pub struct TwineConfig {
     #[serde(rename = "l2-messenger-contract")]
     pub l2_messenger_contract: String,
     pub rpc: String,
@@ -185,7 +167,7 @@ pub(crate) struct TwineConfig {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub(crate) struct EthereumConfig {
+pub struct EthereumConfig {
     pub name: String,
     #[serde(rename = "chain-id")]
     pub chain_id: u64,
@@ -201,54 +183,101 @@ pub(crate) struct EthereumConfig {
     pub l1_twine_dvn: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub(crate) struct L1Config {
-    pub ethereum: Vec<EthereumConfig>,
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct SolanaConfig {
+    pub name: String,
+    #[serde(rename = "chain-id")]
+    pub chain_id: u64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub(crate) struct MerkoraConfig {
+pub struct L1Config {
+    pub ethereum: Vec<EthereumConfig>,
+    pub solana: Vec<SolanaConfig>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MerkoraConfig {
     pub global: GlobalConfig,
     pub twine: TwineConfig,
     pub l1s: L1Config,
 }
 
-pub(crate) fn generate_merkora_config(
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MerkoraConfigBuilder {
     db_path: String,
     l2_messenger: String,
-    l1_message_queue: String,
     l2_rpc: String,
-    l1_rpc: String,
-    l1_ws: String,
-) -> MerkoraConfig {
-    MerkoraConfig {
-        global: GlobalConfig {
-            port: 5555,
-            log: "info".to_string(),
+    private_key: Option<String>,
+    port: Option<u16>,
+    log_level: Option<String>,
+    ethereum_configs: Vec<EthereumConfig>,
+    solana_configs: Vec<SolanaConfig>,
+}
+
+impl MerkoraConfigBuilder {
+    pub fn new(db_path: String, l2_messenger: String, l2_rpc: String) -> Self {
+        Self {
             db_path,
-        },
-        twine: TwineConfig {
-            l2_messenger_contract: l2_messenger,
-            rpc: l2_rpc,
-            private_key: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
-                .to_string(),
-        },
-        l1s: L1Config {
-            ethereum: vec![EthereumConfig {
-                name: "ethereum".to_string(),
-                chain_id: 17000,
-                rpc: l1_rpc,
-                wss: l1_ws,
-                start_height: 0,
-                beacon_rpc: String::new(),
-                l1_message_queue: l1_message_queue.clone(),
-                l1_twine_dvn: l1_message_queue,
-            }],
-        },
+            l2_messenger,
+            l2_rpc,
+            private_key: None,
+            port: None,
+            log_level: None,
+            ethereum_configs: Vec::new(),
+            solana_configs: Vec::new(),
+        }
+    }
+
+    pub fn with_solana(mut self, name: String, chain_id: u64) -> Self {
+        self.solana_configs.push(SolanaConfig { name, chain_id });
+        self
+    }
+
+    pub fn with_ethereum(
+        mut self,
+        name: String,
+        chain_id: u64,
+        rpc: String,
+        wss: String,
+        message_queue: String,
+    ) -> Self {
+        self.ethereum_configs.push(EthereumConfig {
+            name,
+            chain_id,
+            rpc,
+            wss,
+            start_height: 0,
+            beacon_rpc: String::new(),
+            l1_message_queue: message_queue.clone(),
+            l1_twine_dvn: message_queue,
+        });
+        self
+    }
+
+    pub fn build(self) -> MerkoraConfig {
+        MerkoraConfig {
+            global: GlobalConfig {
+                port: self.port.unwrap_or(5555),
+                log: self.log_level.unwrap_or_else(|| "info".to_string()),
+                db_path: self.db_path,
+            },
+            twine: TwineConfig {
+                l2_messenger_contract: self.l2_messenger,
+                rpc: self.l2_rpc,
+                private_key: self.private_key.unwrap_or_else(|| {
+                    "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80".to_string()
+                }),
+            },
+            l1s: L1Config {
+                ethereum: self.ethereum_configs,
+                solana: self.solana_configs,
+            },
+        }
     }
 }
 
-pub(crate) fn save_yaml_to_file<T>(config: &T, path: &str) -> eyre::Result<()>
+pub fn save_yaml_to_file<T>(config: &T, path: &str) -> eyre::Result<()>
 where
     T: Serialize, {
     // Serialize the config to YAML string

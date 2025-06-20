@@ -77,6 +77,8 @@ sha2_solana = { package = "sha2", git = "https://github.com/sp1-patches/RustCryp
 smallvec = "1.13.2"
 solana-short-vec = "2.2.1"
 
+solana-consensus-prover-lib = { git = "ssh://git@github.com/twinexyz/solana-consensus-prover" }
+
 # RETH
 reth = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.10" }
 reth-chainspec = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.10" }
