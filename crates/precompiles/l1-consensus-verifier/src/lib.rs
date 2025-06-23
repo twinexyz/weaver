@@ -6,7 +6,7 @@ use chains::ethereum::verifier::EthereumConsensusVerifier;
 use chains::Chains;
 use reth_revm::interpreter::{Gas, InputsImpl, InterpreterResult};
 use revm_context::ContextTr;
-use twine_l1_utils::{get_chain_type, L1ChainType};
+use twine_l1_utils::{get_chain_id, get_chain_type, L1ChainType};
 
 pub mod chains;
 
@@ -20,8 +20,8 @@ pub struct ConsensusVerifierPrecompile {
 impl ConsensusVerifierPrecompile {
     pub fn new(validator_sets: HashMap<String, String>) -> Self {
         let mut chains: HashMap<u64, Box<dyn Chains>> = HashMap::new();
-        for (chain_id, validator_set) in validator_sets {
-            let chain_id = chain_id.parse().unwrap_or(0u64);
+        for (chain, validator_set) in validator_sets {
+            let chain_id = get_chain_id(&chain);
             let chain_type = get_chain_type(chain_id).expect("chain type not found");
             match chain_type {
                 L1ChainType::Ethereum => {
