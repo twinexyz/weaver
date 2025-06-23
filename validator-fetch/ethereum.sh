@@ -11,8 +11,8 @@ NETWORK=""
 HEIGHT=""
 
 # API keys for each network (replace with your actual API keys)
-HOLESKY_API_KEY="c84e62a1ef4145f9edce1ca433a7901d"
-SEPOLIA_API_KEY="055210506346de4c6b4db8792ebb17db"
+HOLESKY_API_KEY=""
+SEPOLIA_API_KEY=""
 
 # Parse command-line arguments
 for arg in "$@"; do
