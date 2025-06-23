@@ -5,7 +5,8 @@ use std::collections::HashSet;
 
 use reth_revm::primitives::{Address, U256};
 use twine_constants::chains::{
-    ETHEREUM_CHAIN_ID, ETHEREUM_HOLESKY_CHAIN_ID, ETHEREUM_SEPOLIA_CHAIN_ID, SOLANA_CHAIN_ID,
+    ETHEREUM, ETHEREUM_CHAIN_ID, ETHEREUM_HOLESKY, ETHEREUM_HOLESKY_CHAIN_ID, ETHEREUM_SEPOLIA,
+    ETHEREUM_SEPOLIA_CHAIN_ID, SOLANA, SOLANA_CHAIN_ID,
 };
 use twine_constants::eth_contracts::{
     ETHEREUM_HOLESKY_MESSAGE_QUEUE, ETHEREUM_HOLESKY_TWINE_DVN, ETHEREUM_MESSAGE_QUEUE,
@@ -29,6 +30,17 @@ pub fn get_chain_type(chain_id: u64) -> Option<L1ChainType> {
         ETHEREUM_SEPOLIA_CHAIN_ID => Some(L1ChainType::Ethereum),
         SOLANA_CHAIN_ID => Some(L1ChainType::Solana),
         _ => None,
+    }
+}
+
+/// Get chain id from chain name
+pub fn get_chain_id(chain: &str) -> u64 {
+    match chain {
+        ETHEREUM => ETHEREUM_CHAIN_ID,
+        SOLANA => SOLANA_CHAIN_ID,
+        ETHEREUM_HOLESKY => ETHEREUM_HOLESKY_CHAIN_ID,
+        ETHEREUM_SEPOLIA => ETHEREUM_SEPOLIA_CHAIN_ID,
+        _ => 0,
     }
 }
 

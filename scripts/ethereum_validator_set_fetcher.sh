@@ -57,6 +57,6 @@ fi
 echo "Fetching updates for $NETWORK at height $HEIGHT..."
 curl -X 'GET' \
   "$BASE_URL/beacon/${API_KEY}/eth/v1/beacon/light_client/updates?start_period=$HEIGHT&count=1" \
-  -H 'accept: application/json' > "${NETWORK}_updates.json"
+  -H 'accept: application/json' > "ethereum_${NETWORK}.json"
 
-echo "Updates saved to ${NETWORK}_updates.json"
+echo "Updates saved to $ethereum_{NETWORK}.json"
