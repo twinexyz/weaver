@@ -9,6 +9,7 @@ sh scripts/generate_evm_contract_artifacts.sh
 
 ## Running a Twine node
 ```sh
+L1_VALIDATOR_SET_PATH=<path_to_base_directory_containing_validator_sets>
 cargo run --bin twine-node -- \
     node \
     --dev \
@@ -24,6 +25,12 @@ cargo run --bin twine-node -- \
     --rpc.proof-permits 1000 \
     --dev.block-time 5sec
 ```
+
+## Naming convention for files contain validator sets info
+1. Ethereum mainnet: `ethereum.json`
+2. Ethereum holesky: `ethereum_holesky.json`
+3. Ethereum sepolia: `ethereum_sepolia.json`
+4. Solana          : `solana.json`
 
 ## Running devtests
 ```sh

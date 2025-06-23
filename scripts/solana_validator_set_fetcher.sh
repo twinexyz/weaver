@@ -5,7 +5,7 @@ set -e
 RPC_URL="https://api.mainnet-beta.solana.com"
 
 TARGET_SLOT=$1
-OUTPUT_FILE="./proof_data/validator_set.json"
+OUTPUT_FILE="solana.json"
 
 # Check if TARGET_SLOT is provided
 if [ -z "$TARGET_SLOT" ]; then
