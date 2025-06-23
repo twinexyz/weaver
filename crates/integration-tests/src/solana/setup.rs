@@ -277,6 +277,13 @@ pub fn deposit_sol_step(program_path: PathBuf) -> eyre::Result<TestStep> {
                 let l2_token = binding
                     .get(twine::ctx_keys::L2_SOL_TOKEN)
                     .context("L2 sol token not in context")?;
+                let compressed_calldata = binding.get(twine::ctx_keys::L2_CALL_PARAM_COMPRESSED);
+
+                let data_arg = if let Some(calldata) = compressed_calldata {
+                    format!("data={}", calldata)
+                } else {
+                    "data=\"\"".to_string()
+                };
 
                 let status = Command::new("make")
                     .args(&[
@@ -284,7 +291,7 @@ pub fn deposit_sol_step(program_path: PathBuf) -> eyre::Result<TestStep> {
                         &format!("amount={}", solana::constants::SOLANA_DEPOSIT_AMOUNT),
                         &format!("receiver_address={}", ethereum_address),
                         &format!("l2_token={}", l2_token),
-                        &format!("data=\"\""),
+                        &data_arg,
                     ])
                     .current_dir(program_path)
                     .stderr(Stdio::inherit())
