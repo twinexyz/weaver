@@ -7,7 +7,6 @@ mod solana_deposit {
     use std::time::Duration;
 
     use eyre::{eyre, Context, ContextCompat};
-    use git2::Repository;
     use log::{error, info};
     use test_harness::{AsyncFnStep, SubProcessService, TestHarness, TestStep};
     use twine_integration_tests::common::{start_service_step, stop_service_step};
@@ -169,12 +168,6 @@ mod solana_deposit {
         let _ = env_logger::try_init();
         let app_config = load_app_config(Path::new("./res/config.yaml"))
             .context("Failed to load application config")?;
-
-        let repo = Repository::discover(".")?;
-        let repo_root = repo
-            .workdir()
-            .ok_or_else(|| eyre::eyre!("No working directory found"))?
-            .to_path_buf();
 
         let programs_path_ = app_config
             .clone()
@@ -370,48 +363,6 @@ mod solana_deposit {
                     if !(stdout.contains(solana::constants::SOLANA_DEPOSIT_AMOUNT)) {
                         error!("Balance not minted to address");
                         return Err(eyre!("Balance check failed"));
-                    }
-                    Ok(())
-                })
-            }),
-        })))
-    }
-
-    fn verify_call_executed() -> eyre::Result<TestStep> {
-        Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
-            name: "Verify L2 balance".into(),
-            description: "Check SOL balance on L2".into(),
-            futurefn: Box::new(|ctx| {
-                Box::new(async move {
-                    let ctx = ctx.borrow();
-                    let cat_address = ctx
-                        .get(twine::ctx_keys::L2_CAT_CONTRACT)
-                        .ok_or_else(|| eyre!("Cat address not found in context"))?;
-                    let expected_value = ctx
-                        .get(twine::ctx_keys::SETTER_VALUE)
-                        .ok_or_else(|| eyre!("L2 call param not found in context"))?;
-
-                    let output = Command::new("cast")
-                        .args(&[
-                            "call",
-                            cat_address,
-                            "getRecording()(bytes)",
-                            "--rpc-url",
-                            twine::constants::TWINE_RPC_URL,
-                        ])
-                        .output()
-                        .context("Failed to check L2 balance")?;
-
-                    if !output.status.success() {
-                        let stderr = String::from_utf8_lossy(&output.stderr);
-                        return Err(eyre!("Balance check failed: {}", stderr));
-                    }
-
-                    let stdout = String::from_utf8_lossy(&output.stdout);
-                    info!("Value written to contract: {}", stdout);
-                    if !(stdout.contains(expected_value)) {
-                        error!("Contract Call Failed!");
-                        return Err(eyre!("Contract call failed"));
                     }
                     Ok(())
                 })
