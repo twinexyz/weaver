@@ -18,7 +18,7 @@ use borsh::{BorshDeserialize, BorshSerialize};
 use errors::TransactionPrecompileError;
 use reth_revm::context::{ContextTr, JournalTr};
 use reth_revm::interpreter::{Gas, InputsImpl, InstructionResult, InterpreterResult};
-use reth_tracing::tracing;
+use reth_tracing::tracing::{self, info};
 use sol::{L1Txns, MerkleParamType, TokenTxn, VerifierInput};
 use twine_constants::precompiles::TWINE_SYSTEM_STORAGE_CONTRACT;
 use twine_constants::solana_pda::{DEPOSIT_PDA_ADDRESS, WIHTDRAW_PDA_ADDRESS};
@@ -26,6 +26,8 @@ use twine_evm_contracts::ITwineSystemStorageContract::L1TxnType;
 use twine_evm_contracts::L1MessageQueue::{QueueDepositTransaction, QueueWithdrawalTransaction};
 use twine_l1_utils::{get_chain_type, whitelisted_contract, L1ChainType};
 use twine_solana_consensus_prover_lib::{AccountDeltaProof, PublicValuesStruct};
+
+use crate::sol::L1Metadata;
 
 mod errors;
 mod sol;
@@ -189,12 +191,17 @@ fn process_l1_transaction<CTX: ContextTr>(
     verify_merkle_proof_for_txn(txn, proof, receipt_root)?;
 
     let l1_txn = L1Txns {
-        nonce: U256::from(l1_log.nonce()),
+        nonce: l1_log.nonce(),
         tokenTxn: TokenTxn {
             token: l1_log.token(),
             to: l1_log.to_address(),
             value: l1_log.amount(),
             mint,
+        },
+        l1Metadata: L1Metadata {
+            blockHeight: l1_log.block_number(),
+            fromAddress: l1_log.from_address(),
+            l1Token: l1_log.from_token(),
         },
         contractCallData: l1_log.message(),
     };
@@ -285,6 +292,12 @@ pub trait L1Log {
     /// L1 contract nonce
     fn nonce(&self) -> u64;
 
+    /// Source chain address
+    fn from_address(&self) -> String;
+
+    /// Source token address
+    fn from_token(&self) -> String;
+
     /// Token to mint or burn
     fn token(&self) -> Address;
 
@@ -316,6 +329,10 @@ impl L1Log for WrappedDeposit {
     fn amount(&self) -> U256 { self.0.amount }
 
     fn message(&self) -> Bytes { self.0.message.clone() }
+
+    fn from_address(&self) -> String { self.0.from.to_string() }
+
+    fn from_token(&self) -> String { self.0.l1Token.to_string() }
 }
 
 /// Wrapper over withdraw logs for `L1Log` abstraction.
@@ -336,6 +353,10 @@ impl L1Log for WrappedWithdrawal {
     fn amount(&self) -> U256 { self.0.amount }
 
     fn message(&self) -> Bytes { Bytes::new() }
+
+    fn from_address(&self) -> String { self.0.from.to_string() }
+
+    fn from_token(&self) -> String { self.0.l1Token.to_string() }
 }
 
 /// Handles a l1 message stores in solana PDA
@@ -433,17 +454,27 @@ fn process_solana_messages(
             .map_err(|e| TransactionPrecompileError::InvalidAmountError(format!("{e:?}")))?;
         let call_data = Bytes::from_str(&message.data)
             .map_err(|_e| TransactionPrecompileError::DecodeHex("Solana Data".to_string()))?;
+        let slot_number = message.slot_number;
+        let from_address = message.from_l1_pubkey.clone();
+        let l1_token = message.l1_token.clone();
 
         let l1_txn = L1Txns {
-            nonce: U256::from(message.nonce),
+            nonce: message.nonce,
             tokenTxn: TokenTxn {
                 token: l2_token,
                 to: l2_user_address,
                 value: amount,
                 mint: is_mint,
             },
+            l1Metadata: L1Metadata {
+                blockHeight: slot_number,
+                fromAddress: from_address,
+                l1Token: l1_token,
+            },
             contractCallData: call_data,
         };
+
+        info!("Before returning to contract: {:#?}", l1_txn);
 
         return Ok(Some(InterpreterResult {
             result: InstructionResult::Return,
@@ -485,19 +516,27 @@ pub fn get_last_handed_nonce<CTX: ContextTr>(
 ) -> Result<U256, TransactionPrecompileError> {
     let nonce_slot =
         calculate_nonce_slot_position(chain_id, U256::from(txn_type.into_underlying()));
-    evmctx.journal().warm_account(TWINE_SYSTEM_STORAGE_CONTRACT);
 
-    // match evmctx
-    //     .journal()
-    //     .sload(TWINE_SYSTEM_STORAGE_CONTRACT, nonce_slot)
-    // {
-    //     Ok(root) => Ok(FixedBytes::from(root.data)),
-    //     Err(_) => Err(TransactionPrecompileError::QueryEvmFailed.into()),
-    // }
+    tracing::info!("Deposit nonce is located at slot number: {}", nonce_slot);
 
-    Ok(evmctx
+    if let Err(e) = evmctx
         .journal()
-        .tload(TWINE_SYSTEM_STORAGE_CONTRACT, nonce_slot))
+        .warm_account_and_storage(TWINE_SYSTEM_STORAGE_CONTRACT, vec![nonce_slot])
+    {
+        tracing::error!("Failed to get storage warmed {}", e);
+        return Err(TransactionPrecompileError::AccountNotWarmed);
+    }
+
+    match evmctx
+        .journal()
+        .sload(TWINE_SYSTEM_STORAGE_CONTRACT, nonce_slot)
+    {
+        Ok(root) => {
+            tracing::info!("The value at nonce slot is: {}", root.data);
+            Ok(U256::from(root.data))
+        }
+        Err(_) => Err(TransactionPrecompileError::QueryEvmFailed.into()),
+    }
 }
 
 /// Computes the slot in storage where the nonce is located.

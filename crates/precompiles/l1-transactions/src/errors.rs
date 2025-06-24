@@ -38,6 +38,8 @@ pub enum TransactionPrecompileError {
     NoTransactionToExecute,
     #[error("failed to decode hex: `{0}`")]
     DecodeHex(String),
+    #[error("account not warmed")]
+    AccountNotWarmed,
     #[error("unknown error:  `{0}`")]
     Other(String),
 }
