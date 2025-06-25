@@ -474,7 +474,7 @@ fn process_solana_messages(
             contractCallData: call_data,
         };
 
-        info!("Before returning to contract: {:#?}", l1_txn);
+        tracing::debug!("Before returning to contract: {:#?}", l1_txn);
 
         return Ok(Some(InterpreterResult {
             result: InstructionResult::Return,
@@ -516,8 +516,6 @@ pub fn get_last_handed_nonce<CTX: ContextTr>(
 ) -> Result<U256, TransactionPrecompileError> {
     let nonce_slot =
         calculate_nonce_slot_position(chain_id, U256::from(txn_type.into_underlying()));
-
-    tracing::info!("Deposit nonce is located at slot number: {}", nonce_slot);
 
     if let Err(e) = evmctx
         .journal()
