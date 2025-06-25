@@ -10,16 +10,24 @@ pub(crate) type MerkleParamType = (
 sol!(
     #[derive(Debug)]
     struct TokenTxn{
-        uint256 value;
         address token;
         address to;
         bool mint;
+        uint256 value;
+    }
+
+    #[derive(Debug)]
+    struct L1Metadata {
+        uint64 blockHeight;
+        string fromAddress;
+        string l1Token;
     }
 
     #[derive(Debug)]
     struct L1Txns {
-        uint256 nonce;
+        uint64 nonce;
         TokenTxn tokenTxn;
+        L1Metadata l1Metadata;
         bytes contractCallData;
     }
 );
