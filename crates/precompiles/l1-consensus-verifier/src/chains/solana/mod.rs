@@ -16,9 +16,19 @@ pub struct SolanaVerifierPrecompileInput {
 }
 
 impl SolanaVerifierPrecompileInput {
-    /// check if the list of signed validators in the public value
-    /// is the present in the validator set loaded into the twine
-    /// precompile.
+    /// 1. check if the list of signed validators in the public value is the
+    ///    present in the validator set loaded into the twine precompile.
+    /// 2. check if the total cumulative stake of the validators reaches the
+    ///    threshold votes
+    ///
+    /// ## Arguments
+    /// 1. `total_stake` - total cumulative stake of all registered validators
+    ///    in the specified epoch
+    /// 2. `validator_set` - HashMap mapping the validator public key to the
+    ///    validator information.
+    ///
+    /// ## Returns
+    /// Result<(), String> - Ok or Error string
     pub fn verify_validator_validity(
         &self,
         total_stake: u64,
