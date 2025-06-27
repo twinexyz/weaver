@@ -11216,6 +11216,8 @@ dependencies = [
  "twine-constants",
  "twine-ethereum-consensus-prover-lib",
  "twine-l1-utils",
+ "twine-solana-consensus-prover-lib",
+ "twine-solana-sdk",
 ]
 
 [[package]]
