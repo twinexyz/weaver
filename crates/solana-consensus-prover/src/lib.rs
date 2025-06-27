@@ -445,3 +445,21 @@ pub struct DepositMessageInfo {
     pub l2_token: String,
     pub amount: String,
 }
+
+/// Information of a validator for a specified epoch
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ValidatorInfo {
+    #[serde(rename = "identity_pubkey")]
+    pub identity_pubkey: String,
+    #[serde(rename = "vote_account_pubkey")]
+    pub vote_account_pubkey: String,
+    pub stake: u64,
+    pub commission: u8,
+}
+
+/// Information about all validators of a specified epoch
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ValidatorSet {
+    pub epoch: String,
+    pub validators: Vec<ValidatorInfo>,
+}
