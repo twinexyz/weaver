@@ -18,7 +18,7 @@ use borsh::{BorshDeserialize, BorshSerialize};
 use errors::TransactionPrecompileError;
 use reth_revm::context::{ContextTr, JournalTr};
 use reth_revm::interpreter::{Gas, InputsImpl, InstructionResult, InterpreterResult};
-use reth_tracing::tracing::{self, info};
+use reth_tracing::tracing::{self};
 use sol::{L1Txns, MerkleParamType, TokenTxn, VerifierInput};
 use twine_constants::precompiles::TWINE_SYSTEM_STORAGE_CONTRACT;
 use twine_constants::solana_pda::{DEPOSIT_PDA_ADDRESS, WIHTDRAW_PDA_ADDRESS};

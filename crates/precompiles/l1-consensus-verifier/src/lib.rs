@@ -8,6 +8,8 @@ use reth_revm::interpreter::{Gas, InputsImpl, InterpreterResult};
 use revm_context::ContextTr;
 use twine_l1_utils::{get_chain_id, get_chain_type, L1ChainType};
 
+use crate::chains::solana::verifier::SolanaConsensusVerifier;
+
 pub mod chains;
 
 pub type PrecompileInput = (sol_data::Uint<256>, sol_data::Bytes);
@@ -29,7 +31,11 @@ impl ConsensusVerifierPrecompile {
                         EthereumConsensusVerifier::new(chain_id, &validator_set);
                     chains.insert(chain_id, Box::new(ethereum_consensus_verifier));
                 }
-                L1ChainType::Solana => todo!(),
+                L1ChainType::Solana => {
+                    let solana_consensus_verifier =
+                        SolanaConsensusVerifier::new(chain_id, &validator_set);
+                    chains.insert(chain_id, Box::new(solana_consensus_verifier));
+                }
             }
         }
         Self { chains }
