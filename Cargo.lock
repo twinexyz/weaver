@@ -9750,6 +9750,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ruzstd"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3640bec8aad418d7d03c72ea2de10d5c646a598f9883c7babc160d91e3c1b26c"
+dependencies = [
+ "twox-hash",
+]
+
+[[package]]
 name = "ryu"
 version = "1.0.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -11503,15 +11512,20 @@ dependencies = [
  "twine-constants",
  "twine-l1-consensus-verifier-precompile",
  "twine-l1-transactions-precompile",
+ "twine-zstd-precompile",
 ]
 
 [[package]]
 name = "twine-integration-tests"
 version = "0.1.0"
 dependencies = [
+ "alloy-primitives",
+ "alloy-sol-types",
  "env_logger",
  "eyre",
+ "git2",
  "log",
+ "ruzstd",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -11634,6 +11648,23 @@ dependencies = [
  "serde",
  "sqlx",
 ]
+
+[[package]]
+name = "twine-zstd-precompile"
+version = "0.1.0"
+dependencies = [
+ "alloy-primitives",
+ "alloy-sol-types",
+ "reth-revm",
+ "reth-tracing",
+ "ruzstd",
+]
+
+[[package]]
+name = "twox-hash"
+version = "2.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b907da542cbced5261bd3256de1b3a1bf340a3d37f93425a07362a1d687de56"
 
 [[package]]
 name = "typenum"
