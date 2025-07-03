@@ -281,7 +281,6 @@ impl Chains for EthereumConsensusVerifier {
 #[cfg(test)]
 mod tests {
     use alloy_primitives::Bytes;
-    use twine_ethereum_consensus_prover_lib::eth::EthPublicValuesStruct;
 
     use crate::chains::ethereum::verifier::{EthereumConsensusVerifier, SP1ProofComponent};
     use crate::chains::ethereum::EthereumVerifierPrecompileInput;
