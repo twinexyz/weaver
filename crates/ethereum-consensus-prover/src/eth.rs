@@ -9,7 +9,7 @@ use tree_hash_derive::TreeHash;
 use crate::bls::*;
 use crate::bytes::{ByteList, ByteVector};
 
-#[derive(Deserialize, Encode, Decode, Serialize, Clone, Debug)]
+#[derive(Deserialize, Encode, Decode, Serialize, Clone, Debug, Default)]
 /// The public values encoded as a struct that can be easily deserialized inside
 /// Solidity.
 pub struct EthPublicValuesStruct {
