@@ -260,11 +260,8 @@ impl Chains for EthereumConsensusVerifier {
                 .map_err(|e| format!("where is that error from {e}"))?;
 
         ethereum_verifier_precompile_input.verify_input_correctness()?;
-        println!("must also reach here");
         let verified_receipt_roots =
             ethereum_verifier_precompile_input.verify_header_chain(None)?;
-
-        println!("haeder chain also verified");
 
         let sol_proof_components =
             ethereum_verifier_precompile_input.verify_zkproof_public_value(&self.validator_keys)?;
@@ -280,104 +277,110 @@ impl Chains for EthereumConsensusVerifier {
 
 #[cfg(test)]
 mod tests {
+    use alloy_consensus::Header;
     use alloy_primitives::Bytes;
+    use alloy_sol_types::SolType;
+    use ssz::ssz_encode;
+    use ssz_types::{typenum, BitVector};
+    use twine_ethereum_consensus_prover_lib::bls::{BlsPublicKey, BlsSignature};
+    use twine_ethereum_consensus_prover_lib::eth::EthPublicValuesStruct;
 
-    use crate::chains::ethereum::verifier::{EthereumConsensusVerifier, SP1ProofComponent};
-    use crate::chains::ethereum::EthereumVerifierPrecompileInput;
+    use crate::chains::ethereum::verifier::{
+        BlockZKProof, EthereumConsensusVerifier, SP1ProofComponent, ZKProofComponent,
+    };
+    use crate::chains::ethereum::{
+        EthereumVerifierPrecompileInput, EthereumVerifierPrecompileOutput,
+    };
     use crate::chains::Chains;
 
-    fn make_precompile_input() -> EthereumVerifierPrecompileInput<SP1ProofComponent> {
-        let serialized_input = [
-            123, 34, 98, 97, 115, 101, 100, 95, 112, 114, 111, 111, 102, 34, 58, 116, 114, 117,
-            101, 44, 34, 112, 114, 111, 111, 102, 95, 99, 111, 109, 112, 111, 110, 101, 110, 116,
-            115, 34, 58, 91, 123, 34, 66, 108, 111, 99, 107, 90, 107, 80, 114, 111, 111, 102, 34,
-            58, 123, 34, 122, 107, 95, 112, 114, 111, 111, 102, 95, 99, 111, 109, 112, 111, 110,
-            101, 110, 116, 34, 58, 123, 34, 112, 114, 111, 111, 102, 34, 58, 91, 93, 44, 34, 112,
-            117, 98, 108, 105, 99, 95, 118, 97, 108, 117, 101, 34, 58, 91, 93, 125, 44, 34, 118,
-            97, 108, 105, 100, 97, 116, 111, 114, 95, 98, 105, 116, 109, 97, 112, 34, 58, 91, 93,
-            44, 34, 104, 101, 97, 100, 101, 114, 34, 58, 123, 34, 112, 97, 114, 101, 110, 116, 72,
-            97, 115, 104, 34, 58, 34, 48, 120, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
-            48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
-            48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
-            48, 48, 48, 48, 48, 48, 48, 34, 44, 34, 111, 109, 109, 101, 114, 115, 72, 97, 115, 104,
-            34, 58, 34, 48, 120, 49, 100, 99, 99, 52, 100, 101, 56, 100, 101, 99, 55, 53, 100, 55,
-            97, 97, 98, 56, 53, 98, 53, 54, 55, 98, 54, 99, 99, 100, 52, 49, 97, 100, 51, 49, 50,
-            52, 53, 49, 98, 57, 52, 56, 97, 55, 52, 49, 51, 102, 48, 97, 49, 52, 50, 102, 100, 52,
-            48, 100, 52, 57, 51, 52, 55, 34, 44, 34, 98, 101, 110, 101, 102, 105, 99, 105, 97, 114,
-            121, 34, 58, 34, 48, 120, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
-            48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
-            48, 48, 48, 34, 44, 34, 115, 116, 97, 116, 101, 82, 111, 111, 116, 34, 58, 34, 48, 120,
-            53, 54, 101, 56, 49, 102, 49, 55, 49, 98, 99, 99, 53, 53, 97, 54, 102, 102, 56, 51, 52,
-            53, 101, 54, 57, 50, 99, 48, 102, 56, 54, 101, 53, 98, 52, 56, 101, 48, 49, 98, 57, 57,
-            54, 99, 97, 100, 99, 48, 48, 49, 54, 50, 50, 102, 98, 53, 101, 51, 54, 51, 98, 52, 50,
-            49, 34, 44, 34, 116, 114, 97, 110, 115, 97, 99, 116, 105, 111, 110, 115, 82, 111, 111,
-            116, 34, 58, 34, 48, 120, 53, 54, 101, 56, 49, 102, 49, 55, 49, 98, 99, 99, 53, 53, 97,
-            54, 102, 102, 56, 51, 52, 53, 101, 54, 57, 50, 99, 48, 102, 56, 54, 101, 53, 98, 52,
-            56, 101, 48, 49, 98, 57, 57, 54, 99, 97, 100, 99, 48, 48, 49, 54, 50, 50, 102, 98, 53,
-            101, 51, 54, 51, 98, 52, 50, 49, 34, 44, 34, 114, 101, 99, 101, 105, 112, 116, 115, 82,
-            111, 111, 116, 34, 58, 34, 48, 120, 53, 54, 101, 56, 49, 102, 49, 55, 49, 98, 99, 99,
-            53, 53, 97, 54, 102, 102, 56, 51, 52, 53, 101, 54, 57, 50, 99, 48, 102, 56, 54, 101,
-            53, 98, 52, 56, 101, 48, 49, 98, 57, 57, 54, 99, 97, 100, 99, 48, 48, 49, 54, 50, 50,
-            102, 98, 53, 101, 51, 54, 51, 98, 52, 50, 49, 34, 44, 34, 108, 111, 103, 115, 66, 108,
-            111, 111, 109, 34, 58, 34, 48, 120, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
-            48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
-            48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
-            48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
-            48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
-            48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
-            48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
-            48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
-            48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
-            48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
-            48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
-            48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
-            48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
-            48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
-            48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
-            48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
-            48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
-            48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
-            48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
-            48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
-            48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
-            48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
-            48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
-            48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 34, 44, 34, 100, 105, 102,
-            102, 105, 99, 117, 108, 116, 121, 34, 58, 34, 48, 120, 48, 34, 44, 34, 110, 117, 109,
-            98, 101, 114, 34, 58, 34, 48, 120, 48, 34, 44, 34, 103, 97, 115, 76, 105, 109, 105,
-            116, 34, 58, 34, 48, 120, 48, 34, 44, 34, 103, 97, 115, 85, 115, 101, 100, 34, 58, 34,
-            48, 120, 48, 34, 44, 34, 116, 105, 109, 101, 115, 116, 97, 109, 112, 34, 58, 34, 48,
-            120, 48, 34, 44, 34, 109, 105, 120, 72, 97, 115, 104, 34, 58, 34, 48, 120, 48, 48, 48,
-            48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
-            48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
-            48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 34, 44, 34, 110,
-            111, 110, 99, 101, 34, 58, 34, 48, 120, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
-            48, 48, 48, 48, 34, 44, 34, 101, 120, 116, 114, 97, 68, 97, 116, 97, 34, 58, 34, 48,
-            120, 34, 125, 125, 125, 93, 125,
-        ];
-        let ethereum_precompile_input: EthereumVerifierPrecompileInput<SP1ProofComponent> =
-            match serde_json::from_slice(&serialized_input) {
-                Ok(input) => input,
-                Err(e) => panic!("deserialize failed {e}"),
+    fn make_eth_complete_proof_package(
+        participant_validators: Vec<BlsPublicKey>,
+    ) -> (Vec<u8>, Vec<u8>, Vec<u8>) {
+        let eth_public_value = EthPublicValuesStruct {
+            beacon_block_number: 1,
+            previous_block_number: 0,
+            execution_block_number: 2,
+            execution_header_hash: Header::default().hash_slow().0,
+            results: vec![true],
+            participating_keys: vec![participant_validators],
+            sync_committee_signature: vec![BlsSignature::default()],
+            sync_committee_message_root: [2; 32],
+        };
+
+        let public_value = ssz_encode(&eth_public_value);
+        let proof: Vec<u8> = vec![3];
+
+        type Bitvector512 = BitVector<typenum::U512>;
+
+        let mut bit_vector = Bitvector512::new();
+
+        for i in 0..bit_vector.len() {
+            bit_vector.set(i, true).unwrap();
+        }
+
+        let bit_map = ssz_encode(&bit_vector);
+
+        let precompile_input: EthereumVerifierPrecompileInput<SP1ProofComponent> =
+            EthereumVerifierPrecompileInput {
+                based_proof: false,
+                proof_components: vec![SP1ProofComponent::BlockZkProof(BlockZKProof {
+                    zk_proof_component: ZKProofComponent {
+                        proof: proof.clone(),
+                        public_value: public_value.clone(),
+                    },
+                    validator_bitmap: bit_map,
+                    header: Header::default(),
+                })],
             };
 
-        ethereum_precompile_input
+        (
+            serde_json::to_vec(&precompile_input).unwrap(),
+            public_value,
+            proof,
+        )
     }
 
     #[test]
-    fn test_verify() {
-        let eth_consensus_verifier = EthereumConsensusVerifier {
-            chain_id: 0,
-            validator_keys: vec![],
-        };
+    fn test_input_deserialization() {
+        let validator_key_file = include_str!("res/test/holesky_updates.json");
+        let eth_consensus_verifier = EthereumConsensusVerifier::new(17000, validator_key_file);
+        let (precompile_input, public_value, proof) =
+            make_eth_complete_proof_package(eth_consensus_verifier.validator_keys.clone());
 
-        // let precompile_input = make_precompile_input();
+        let precompile_input = Bytes::copy_from_slice(&precompile_input);
 
-        match eth_consensus_verifier.verify(Bytes::copy_from_slice(
-            &serde_json::to_vec(&make_precompile_input()).unwrap(),
-        )) {
-            Ok(output) => println!("{:#?}", output),
-            Err(e) => println!("{e}"),
-        }
+        let result = eth_consensus_verifier.verify(precompile_input.clone());
+
+        assert!(result.is_ok());
+
+        let precompile_output =
+            EthereumVerifierPrecompileOutput::abi_decode(&result.unwrap().to_vec());
+        assert!(precompile_output.is_ok());
+
+        let precompile_output = precompile_output.unwrap();
+
+        assert_eq!(
+            Header::default().receipts_root,
+            precompile_output.verified_receipt_roots[0].receipt_root
+        );
+        assert_eq!(
+            Header::default().number,
+            precompile_output.verified_receipt_roots[0].height
+        );
+
+        assert_eq!(
+            Header::default().hash_slow(),
+            precompile_output.sol_proof_components[0].header_hash
+        );
+        assert_eq!(
+            public_value,
+            precompile_output.sol_proof_components[0]
+                .public_value
+                .to_vec()
+        );
+        assert_eq!(
+            proof,
+            precompile_output.sol_proof_components[0].proof.to_vec()
+        );
     }
 }
