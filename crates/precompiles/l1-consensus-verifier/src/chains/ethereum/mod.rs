@@ -24,8 +24,9 @@ where
     /// if based_proof = false,
     /// the proof components should have the header information and consens-
     /// us proofs of the first and last entry of proof components
-    based_proof: bool,
-    proof_components: Vec<P>,
+    pub based_proof: bool,
+    pub previous_saved_header: Option<[u8; 32]>,
+    pub proof_components: Vec<P>,
 }
 
 sol!(
