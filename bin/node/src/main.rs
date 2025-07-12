@@ -21,6 +21,10 @@ fn main() -> eyre::Result<()> {
         let twine_node_with_l1_additions =
             twine_added_ethereum_node.with_add_ons(EthereumAddOns::default());
 
+        #[cfg(feature = "twine-batch")]
+        let twine_node_with_l1_additions =
+            twine_node_with_l1_additions.install_exex("BatchMaker", twine_exex::batcher::exex_init);
+
         twine_node_with_l1_additions
             .launch()
             .await

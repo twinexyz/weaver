@@ -12,14 +12,17 @@ members = [
   "bin/node",
 
   "crates/constants",
+  "crates/db/batch",
   "crates/ethereum-consensus-prover",
   "crates/evm-contracts",
   "crates/executor",
+  "crates/exex",
   "crates/integration-tests",
   "crates/l1-utils",
   "crates/precompiles/l1-consensus-verifier",
   "crates/precompiles/l1-transactions",
   "crates/precompiles/zstd",
+  "crates/rpc",
   "crates/solana-consensus-prover",
   "crates/solana-sdk",
   "crates/test-harness",
@@ -44,6 +47,7 @@ env_logger = "0.11.7"
 ethereum_ssz = "0.9.0"
 ethereum_ssz_derive = "0.9.0"
 eyre = "0.6"
+futures-util = "0.3"
 git2 = "0.20.1"
 hex = "0.4.3"
 log = "0.4.26"
@@ -52,6 +56,7 @@ parking_lot = "0.12"
 rand = "0.8.5"
 regex = "1.11.1"
 reqwest = { version = "0.11", features = ["json"] }
+rocksdb = "0.23.0"
 ruzstd = "0.8.1"
 serde = { version = "1.0.210", features = ["derive"] }
 serde_bytes = "0.11.14"
@@ -100,13 +105,16 @@ revm-context = { version = "3.0.0", default-features = false }
 
 test-harness = { path = "crates/test-harness" }
 twine-constants = { path = "crates/constants" }
+twine-db-batch = { path = "crates/db/batch" }
 twine-ethereum-consensus-prover-lib = { path = "crates/ethereum-consensus-prover" }
 twine-evm-contracts = { path = "crates/evm-contracts" }
 twine-executor = { path = "crates/executor" }
+twine-exex = { path = "crates/exex" }
 twine-integration-tests = { path = "crates/integration-tests" }
 twine-l1-consensus-verifier-precompile = { path = "crates/precompiles/l1-consensus-verifier" }
 twine-l1-transactions-precompile = { path = "crates/precompiles/l1-transactions" }
 twine-l1-utils = { path = "crates/l1-utils" }
+twine-rpc = { path = "crates/rpc" }
 twine-solana-consensus-prover-lib = { path = "crates/solana-consensus-prover" }
 twine-solana-sdk = { path = "crates/solana-sdk" }
 twine-zstd-precompile = { path = "crates/precompiles/zstd" }
