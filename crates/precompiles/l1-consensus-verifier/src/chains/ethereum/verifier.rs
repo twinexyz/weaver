@@ -300,6 +300,7 @@ mod tests {
         number_of_headers: u8,
         header_chain_maintained: bool,
         valid_input_params: bool,
+        make_first_data_invalid: bool,
     }
 
     impl Default for Config {
@@ -310,6 +311,7 @@ mod tests {
                 number_of_headers: 1,
                 header_chain_maintained: true,
                 valid_input_params: true,
+                make_first_data_invalid: false,
             }
         }
     }
@@ -327,6 +329,12 @@ mod tests {
 
         fn with_invalid_input(mut self) -> Self {
             self.valid_input_params = false;
+            self
+        }
+
+        fn with_first_data_invalid(mut self) -> Self {
+            assert!(!self.valid_input_params);
+            self.make_first_data_invalid = true;
             self
         }
 
@@ -377,7 +385,7 @@ mod tests {
             }
 
             let bit_map = ssz_encode(&bit_vector);
-            if i == 0 && !config.based_proof {
+            if i == 0 && !config.based_proof && !config.make_first_data_invalid {
                 let proof_component = SP1ProofComponent::BlockZkProof(BlockZKProof {
                     zk_proof_component: ZKProofComponent {
                         proof: vec![3],
@@ -476,6 +484,18 @@ mod tests {
         assert_eq!(
             Err(String::from(
                 "last proof component should be a BlockZKProof"
+            )),
+            result
+        );
+        // multiple headers, valid precompile input = false, make first invalid = true
+        let config = Config::default()
+            .with_invalid_input()
+            .with_first_data_invalid()
+            .with_number_of_headers(5);
+        let result = verify(config);
+        assert_eq!(
+            Err(String::from(
+                "first proof component should be a BlockZKProof in case of based proof"
             )),
             result
         );
