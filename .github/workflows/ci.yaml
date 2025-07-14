@@ -18,6 +18,7 @@ jobs:
       with:
         toolchain: stable
         profile: minimal
+        override: true
     - name: Add rustfmt (nightly)
       run: rustup component add --toolchain nightly rustfmt
     - name: Cache cargo-udeps
