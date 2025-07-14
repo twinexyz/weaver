@@ -12,17 +12,18 @@ jobs:
       group: ${{ github.ref }}-${{ github.workflow }}
       cancel-in-progress: true
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4.2.2
     - name: Set up Rust
       uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
         profile: minimal
+        components: rustfmt, clippy, rustup
     - name: Add rustfmt (nightly)
       run: rustup component add --toolchain nightly rustfmt
     - name: Cache cargo-udeps
       id: cache-cargo-udeps
-      uses: actions/cache@v4
+      uses: actions/cache@v4.2.3
       env:
         ACTIONS_RESULTS_URL: ${{ secrets.CACHE_SERVER_URL }}
       with:
