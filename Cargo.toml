@@ -4,7 +4,7 @@ edition = "2021"
 exclude = [".github/"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/twinexyz/weaver"
-rust-version = "1.85"
+rust-version = "1.86"
 
 [workspace]
 members = [
