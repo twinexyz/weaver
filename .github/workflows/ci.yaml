@@ -12,17 +12,18 @@ jobs:
       group: ${{ github.ref }}-${{ github.workflow }}
       cancel-in-progress: true
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4.2.2
     - name: Set up Rust
       uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
         profile: minimal
+        override: true
     - name: Add rustfmt (nightly)
-      run: rustup component add --toolchain nightly rustfmt
+      run: rustup component add --toolchain nightly rustfmt clippy
     - name: Cache cargo-udeps
       id: cache-cargo-udeps
-      uses: actions/cache@v4
+      uses: actions/cache@v4.2.3
       env:
         ACTIONS_RESULTS_URL: ${{ secrets.CACHE_SERVER_URL }}
       with:
@@ -33,6 +34,7 @@ jobs:
           ${{ runner.os }}-cargo-udeps-
     - if: ${{ steps.cache-cargo-udeps.outputs.cache-hit != 'true' }}
       name: Install cargo-udeps
-      run: cargo install cargo-udeps
+      run: cargo install cargo-udeps --locked --force
     - uses: actions/setup-python@v3
+    - run: rustup component add clippy
     - uses: pre-commit/action@v3.0.1

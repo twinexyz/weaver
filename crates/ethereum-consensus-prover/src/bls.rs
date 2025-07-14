@@ -1,6 +1,6 @@
 use std::any::Any;
 
-use bls12_381::hash_to_curve::{ExpandMsgXmd, HashToCurve};
+use bls12_381::hash_to_curve::{ExpandMsgXmd, HashToCurve, Message};
 use bls12_381::{
     multi_miller_loop, G1Affine, G1Projective, G2Affine, G2Prepared, G2Projective, Gt, Scalar,
 };
@@ -80,7 +80,7 @@ impl Signature for BlsSignature {
         }
 
         // Points must be affine for pairing
-        let msg_hash = G2Affine::from(bls_hash_to_curve(msg));
+        let msg_hash = G2Affine::from(bls_hash_to_curve(&[msg]));
         // Faster ate2 evaluation checks e(S, -G1) * e(H, PK) == 1
         bls_evaluate_sig_eq(
             sig_point
@@ -146,9 +146,17 @@ fn bls_evaluate_sig_eq(
     pairing.final_exponentiation() == Gt::identity()
 }
 
-fn bls_hash_to_curve(msg: &[u8]) -> G2Projective {
+fn bls_hash_to_curve(msg: &[&[u8]]) -> G2Projective {
     const DST: &[u8] = b"BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_";
     <G2Projective as HashToCurve<ExpandMsgXmd<sha2::Sha256>>>::hash_to_curve(msg, DST)
+}
+
+pub struct HashToCurveMessage {
+    message: Vec<u8>,
+}
+
+impl Message for HashToCurveMessage {
+    fn input_message(self, mut f: impl FnMut(&[u8])) { f(self.message.as_ref()) }
 }
 
 fn bls_hex_to_scalar(hex: &str) -> Option<Scalar> {

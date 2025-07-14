@@ -14,7 +14,6 @@ use crate::bytes::{ByteList, ByteVector};
 /// Solidity.
 pub struct EthPublicValuesStruct {
     pub beacon_block_number: u64,
-    pub previous_block_number: u64,
     pub execution_block_number: u64,
     pub execution_header_hash: [u8; 32],
     pub results: Vec<bool>,
@@ -237,8 +236,8 @@ pub struct EthBeaconBlockBody {
     pub eth1_data: Eth1Data,
     pub graffiti: B256,
     pub proposer_slashings: VariableList<EthProposerSlashing, typenum::U16>,
-    pub attester_slashings: VariableList<EthAttesterSlashing, typenum::U2>,
-    pub attestations: VariableList<EthAttestation, typenum::U128>,
+    pub attester_slashings: VariableList<EthAttesterSlashing, typenum::U1>,
+    pub attestations: VariableList<EthAttestation, typenum::U8>,
     pub deposits: VariableList<EthDeposit, typenum::U16>,
     pub voluntary_exits: VariableList<EthVoluntaryExit, typenum::U16>,
     //#[tree_hash(skip_hashing)]
@@ -247,6 +246,40 @@ pub struct EthBeaconBlockBody {
     pub execution_payload: EthExecutionPayload,
     pub bls_to_execution_changes: VariableList<EthBlsToExecutionChange, typenum::U16>,
     pub blob_kzg_commitments: VariableList<ByteVector<typenum::U48>, typenum::U4096>,
+    pub execution_requests: EthExecutionRequests,
+}
+
+#[derive(Deserialize, Encode, Decode, TreeHash, Serialize, Clone, Debug)]
+pub struct EthExecutionRequests {
+    pub deposits: VariableList<EthDepositRequest, typenum::U8192>,
+    pub withdrawals: VariableList<EthWithdrawalRequest, typenum::U16>,
+    pub consolidations: VariableList<EthConsolidationRequest, typenum::U2>,
+}
+
+#[derive(Deserialize, Encode, Decode, TreeHash, Serialize, Clone, Debug)]
+pub struct EthDepositRequest {
+    pub pubkey: BlsPublicKey,
+    pub withdrawal_credentials: B256,
+    #[serde(deserialize_with = "deserialize_u64_from_string")]
+    pub amount: u64,
+    pub signature: BlsSignature,
+    #[serde(deserialize_with = "deserialize_u64_from_string")]
+    pub index: u64,
+}
+
+#[derive(Deserialize, Encode, Decode, TreeHash, Serialize, Clone, Debug)]
+pub struct EthWithdrawalRequest {
+    pub source_address: ByteVector<typenum::U20>,
+    pub validator_pubkey: BlsPublicKey,
+    #[serde(deserialize_with = "deserialize_u64_from_string")]
+    pub amount: u64,
+}
+
+#[derive(Deserialize, Encode, Decode, TreeHash, Serialize, Clone, Debug)]
+pub struct EthConsolidationRequest {
+    pub source_address: ByteVector<typenum::U20>,
+    pub source_pubkey: BlsPublicKey,
+    pub target_pubkey: BlsPublicKey,
 }
 
 #[derive(Deserialize, Encode, Decode, TreeHash, Serialize, Clone, Debug)]
@@ -285,7 +318,7 @@ pub struct EthAttesterSlashing {
 
 #[derive(Deserialize, Encode, Decode, TreeHash, Serialize, Clone, Debug)]
 pub struct EthIndexedAttestation {
-    pub attesting_indices: VariableList<u64, typenum::U2048>,
+    pub attesting_indices: VariableList<u64, typenum::U131072>,
     pub data: EthAttestationData,
     pub signature: BlsSignature,
 }
@@ -307,6 +340,7 @@ pub struct EthDepositData {
     pub pubkey: BlsPublicKey,
     pub withdrawal_credentials: B256,
     pub amount: u64,
+    pub signature: BlsSignature,
 }
 
 #[derive(Deserialize, Encode, Decode, TreeHash, Serialize, Clone, Debug)]
@@ -352,9 +386,10 @@ pub struct EthWithdrawal {
 pub struct EthAttestation {
     // Bitlist of 1024 bits should be enough for now
     // TODO: deal with it a better way
-    pub aggregation_bits: BitList<typenum::U2048>,
+    pub aggregation_bits: BitList<typenum::U131072>,
     pub data: EthAttestationData,
     pub signature: BlsSignature,
+    pub committee_bits: BitVector<typenum::U64>,
 }
 
 #[derive(Deserialize, Encode, Decode, Serialize, TreeHash, Clone, Debug)]
