@@ -26,6 +26,7 @@ members = [
   "crates/solana-consensus-prover",
   "crates/solana-sdk",
   "crates/test-harness",
+  "crates/types",
 ]
 resolver = "3"
 
@@ -37,7 +38,8 @@ alloy-contract = { version = "0.14.0", default-features = false }
 # needed to implement `encode_2718` function which comes from `use alloy_eips::Encodable2718;`
 alloy-eips = { version = "0.14.0", default-features = false }
 alloy-genesis = { version = "0.14.0", default-features = false }
-alloy-primitives = { version = "1.0.0", default-features = false, features = ["map-foldhash"] }
+alloy-primitives = { version = "1.0.0", default-features = false, features = ["map-foldhash", "serde"] }
+alloy-rpc-types = { version = "0.14.0", features = ["eth"], default-features = false }
 alloy-sol-types = { version = "1.0.0", default-features = false, features = ["json"] }
 alloy-trie = { version = "0.8.1", default-features = false }
 
@@ -50,6 +52,7 @@ eyre = "0.6"
 futures-util = "0.3"
 git2 = "0.20.1"
 hex = "0.4.3"
+jsonrpsee = { version = "0.24", features = ["jsonrpsee-proc-macros", "tracing", "server"] }
 log = "0.4.26"
 
 parking_lot = "0.12"
@@ -83,6 +86,7 @@ num-traits = { version = "0.2", features = ["i128"] }
 sha2_solana = { package = "sha2", git = "https://github.com/sp1-patches/RustCrypto-hashes", tag = "patch-0.10.8-sp1-4.0.0-rc.3" }
 smallvec = "1.13.2"
 solana-short-vec = "2.2.1"
+tempfile = "3.10"
 
 solana-consensus-prover-lib = { git = "ssh://git@github.com/twinexyz/solana-consensus-prover" }
 
@@ -98,6 +102,7 @@ reth-node-api = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.1
 reth-node-core = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.10" }
 reth-node-ethereum = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.10", features = ["test-utils"] }
 reth-primitives = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.10", default-features = false, features = ["alloy-compat", "std"] }
+reth-provider = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.10", default-features = false }
 reth-revm = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.10", default-features = false, features = ["std"] }
 reth-tracing = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.10" }
 
@@ -117,6 +122,7 @@ twine-l1-utils = { path = "crates/l1-utils" }
 twine-rpc = { path = "crates/rpc" }
 twine-solana-consensus-prover-lib = { path = "crates/solana-consensus-prover" }
 twine-solana-sdk = { path = "crates/solana-sdk" }
+twine-types = { path = "crates/types" }
 twine-zstd-precompile = { path = "crates/precompiles/zstd" }
 
 [patch.crates-io]

@@ -1,43 +1,12 @@
-use std::future::Future;
-use std::sync::mpsc;
-
-use alloy_primitives::{BlockNumber, Keccak256, B256};
+use alloy_consensus::Block;
+use alloy_rpc_types::BlockNumHash;
 use futures_util::TryStreamExt;
 use reth_exex::{ExExContext, ExExEvent};
-use reth_node_api::FullNodeComponents;
+use reth_node_api::{FullNodeComponents, NodeTypes};
+use reth_primitives::{EthPrimitives, TransactionSigned};
+use reth_provider::{BlockReader, Chain};
 use twine_db_batch::BatchStore;
-
-#[derive(Debug)]
-struct ActiveBatch {
-    batch_number: u64,
-    start_block: BlockNumber,
-    block_hashes: Vec<B256>,
-    state_roots: Vec<B256>,
-}
-
-impl ActiveBatch {
-    fn new(start_block: BlockNumber) -> Self {
-        Self {
-            batch_number: 0,
-            start_block,
-            block_hashes: Vec::new(),
-            state_roots: Vec::new(),
-        }
-    }
-
-    fn compute_hash(&self, prev_batch_hash: Option<B256>) -> B256 {
-        let mut state_hasher = Keccak256::new();
-        for root in &self.state_roots {
-            state_hasher.update(root);
-        }
-        let state_roots_hash = B256::from(state_hasher.finalize());
-
-        let mut final_hasher = Keccak256::new();
-        final_hasher.update(prev_batch_hash.unwrap_or_default());
-        final_hasher.update(state_roots_hash);
-        B256::from(final_hasher.finalize())
-    }
-}
+use twine_types::ActiveBatch;
 
 /// Batch sealing configuration
 #[derive(Debug, Clone)]
@@ -63,32 +32,45 @@ pub struct TwineBatchingExEx<Node: FullNodeComponents> {
     _phantom: std::marker::PhantomData<Node>,
 }
 
-impl<Node: FullNodeComponents> TwineBatchingExEx<Node> {
-    /// iniitalize twine batching exex
+impl<Node> TwineBatchingExEx<Node>
+where
+    Node: FullNodeComponents<Types: NodeTypes<Primitives = EthPrimitives>>,
+{
+    /// initialize twine batching exex
     pub fn new(
         ctx: ExExContext<Node>,
         store: BatchStore,
         config: BatchConfig,
     ) -> eyre::Result<Self> {
+        let next_batch_number = store.next_batch_number()?;
+
+        let current_batch = if let Some(mut open) = store.load_open()? {
+            // resume the batch we were building when we crashed
+            open.batch_number = next_batch_number;
+            Some(open)
+        } else {
+            // no open batch → we’ll create one on the first block
+            None
+        };
+
         Ok(Self {
-            next_batch_number: store.next_batch_number()?,
+            next_batch_number,
             store,
-            current_batch: None,
+            current_batch,
             config,
             ctx,
             _phantom: std::marker::PhantomData,
         })
     }
 
-    async fn start(mut self) -> eyre::Result<()> {
+    /// start batchmaker execution extension
+    pub async fn start(mut self) -> eyre::Result<()> {
         // Process all new chain state notifications
         while let Some(notification) = self.ctx.notifications.try_next().await? {
-            if let Some(reverted_chain) = notification.reverted_chain() {
-                // self.revert(&reverted_chain)?;
-            }
+            // TODO: Handle revert notifications too maybe
 
             if let Some(committed_chain) = notification.committed_chain() {
-                // self.commit(&committed_chain).await?;
+                self.commit(&committed_chain).await?;
                 self.ctx
                     .events
                     .send(ExExEvent::FinishedHeight(committed_chain.tip().num_hash()))?;
@@ -98,47 +80,75 @@ impl<Node: FullNodeComponents> TwineBatchingExEx<Node> {
         Ok(())
     }
 
-    // async fn process_block(&mut self, block: &SealedBlock) -> eyre::Result<()> {
-    //     let batch = self
-    //         .current_batch
-    //         .get_or_insert_with(|| ActiveBatch::new(block.number));
+    async fn commit(&mut self, chain: &Chain) -> eyre::Result<Option<BlockNumHash>> {
+        let mut finished_height = None;
+        let blocks = chain.blocks();
+        let bundles = chain.range().filter_map(|block_number| {
+            blocks
+                .get(&block_number)
+                .map(|block| block.hash())
+                .zip(chain.execution_outcome_at_block(block_number))
+        });
 
-    //     batch.block_hashes.push(block.header.hash_slow());
-    //     batch.state_roots.push(block.header.state_root);
+        for (block_hash, _) in bundles {
+            let current_block = self
+                .ctx
+                .provider()
+                .block_by_hash(block_hash)?
+                .ok_or_else(|| eyre::eyre!("block not found for hash {:?}", block_hash))?;
+            let block_index = current_block.number;
+            self.process_block(&current_block).await?;
 
-    //     if batch.block_hashes.len() >= self.config.max_blocks as usize {
-    //         self.seal_batch().await?;
-    //     }
+            finished_height = Some(BlockNumHash::new(block_index, block_hash));
+        }
 
-    //     Ok(())
-    // }
+        Ok(finished_height)
+    }
 
-    // async fn seal_batch(&mut self) -> eyre::Result<()> {
-    //     let batch = self
-    //         .current_batch
-    //         .take()
-    //         .expect("batch exists when sealing");
-    //     let batch_hash = batch.compute_hash();
+    async fn process_block(&mut self, block: &Block<TransactionSigned>) -> eyre::Result<()> {
+        let batch_number = self.next_batch_number;
+        let batch = self
+            .current_batch
+            .get_or_insert_with(|| ActiveBatch::new(batch_number, block.number));
 
-    //     self.store.seal_batch(
-    //         self.next_batch_number,
-    //         batch.start_block..(batch.start_block + batch.block_hashes.len() as
-    // u64),         batch_hash,
-    //     )?;
+        let block_hash = block.hash_slow();
 
-    //     if let Some(notifier) = &self.batch_notifier {
-    //         notifier.send(self.next_batch_number).await?;
-    //     }
+        batch.block_hashes.push(block_hash);
+        batch.state_roots.push(block.state_root);
 
-    //     self.next_batch_number += 1;
-    //     Ok(())
-    // }
+        // Decide if we have reached the limit.
+        if batch.block_hashes.len() >= self.config.max_blocks as usize {
+            self.seal_batch().await?;
+        }
+        Ok(())
+    }
+
+    async fn seal_batch(&mut self) -> eyre::Result<()> {
+        let batch = self
+            .current_batch
+            .take()
+            .expect("batch exists when sealing");
+
+        let prev_batch_hash = self
+            .store
+            .get_batch_hash(self.next_batch_number.saturating_sub(1));
+
+        let batch_hash = batch.compute_hash(prev_batch_hash);
+
+        self.store.seal_batch(
+            self.next_batch_number,
+            batch.start_block..(batch.start_block + batch.block_hashes.len() as u64),
+            batch_hash,
+        )?;
+
+        self.ctx
+            .events
+            .send(ExExEvent::FinishedHeight(BlockNumHash::new(
+                batch.start_block + batch.block_hashes.len() as u64 - 1,
+                *batch.block_hashes.last().expect("at least one block"),
+            )))?;
+
+        self.next_batch_number += 1;
+        Ok(())
+    }
 }
-
-pub async fn exex_init<Node: FullNodeComponents>(
-    ctx: ExExContext<Node>,
-) -> eyre::Result<impl Future<Output = eyre::Result<()>>> {
-    Ok(exex(ctx))
-}
-
-async fn exex<Node: FullNodeComponents>(mut ctx: ExExContext<Node>) -> eyre::Result<()> { Ok(()) }

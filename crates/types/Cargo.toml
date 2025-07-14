@@ -1,5 +1,5 @@
 [package]
-name = "twine-db-batch"
+name = "twine-types"
 version.workspace = true
 edition.workspace = true
 exclude.workspace = true
@@ -9,14 +9,7 @@ rust-version.workspace = true
 
 [dependencies]
 alloy-primitives.workspace = true
-bincode.workspace = true
-eyre.workspace = true
-rocksdb.workspace = true
 serde.workspace = true
-twine-types.workspace = true
-
-[dev-dependencies]
-tempfile.workspace = true
 
 [lints]
 workspace = true

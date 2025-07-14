@@ -8,6 +8,9 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+eyre.workspace = true
+jsonrpsee.workspace = true
+twine-db-batch.workspace = true
 
 [lints]
 workspace = true
