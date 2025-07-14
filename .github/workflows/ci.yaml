@@ -36,4 +36,5 @@ jobs:
       name: Install cargo-udeps
       run: cargo install cargo-udeps --locked --force
     - uses: actions/setup-python@v3
+    - run: rustup component add clippy
     - uses: pre-commit/action@v3.0.1
