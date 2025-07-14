@@ -20,7 +20,7 @@ jobs:
         profile: minimal
         override: true
     - name: Add rustfmt (nightly)
-      run: rustup component add --toolchain nightly rustfmt
+      run: rustup component add --toolchain nightly rustfmt clippy
     - name: Cache cargo-udeps
       id: cache-cargo-udeps
       uses: actions/cache@v4.2.3
