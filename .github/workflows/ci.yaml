@@ -18,7 +18,6 @@ jobs:
       with:
         toolchain: stable
         profile: minimal
-        components: rustfmt, clippy, rustup
     - name: Add rustfmt (nightly)
       run: rustup component add --toolchain nightly rustfmt
     - name: Cache cargo-udeps
