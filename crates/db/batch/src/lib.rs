@@ -17,6 +17,7 @@ const OPEN_BATCH: &str = "open_batch";
 const COLUMN_FAMILY_DESCRIPTORS: [&str; 4] = [BATCH_META, BATCH_HASHES, BLOCK_TO_BATCH, OPEN_BATCH];
 
 const OPEN_KEY: &[u8; 4] = b"open";
+const LAST_FINISHED_HEIGHT: &[u8; 17] = b"last_finished_hgt";
 
 #[derive(Serialize, Deserialize)]
 struct BatchMeta {
@@ -47,6 +48,33 @@ impl BatchStore {
         let db = DB::open_cf_descriptors(&opts, db_path, cfs)?;
 
         Ok(Self { db: Arc::new(db) })
+    }
+
+    /// Persist the highest block number that has already been **fully sealed**
+    pub fn save_last_height(&self, height: BlockNumber) -> eyre::Result<()> {
+        let cf = self
+            .db
+            .cf_handle(BATCH_META)
+            .expect("BATCH_META column family missing");
+        self.db
+            .put_cf(cf, LAST_FINISHED_HEIGHT, height.to_be_bytes())?;
+        Ok(())
+    }
+
+    /// Load the last height we marked as finished (None if DB empty)
+    pub fn load_last_height(&self) -> eyre::Result<Option<BlockNumber>> {
+        let cf = self
+            .db
+            .cf_handle(BATCH_META)
+            .expect("BATCH_META column family missing");
+        match self.db.get_cf(cf, LAST_FINISHED_HEIGHT)? {
+            Some(bytes) if bytes.len() == 8 => {
+                let mut buf = [0u8; 8];
+                buf.copy_from_slice(&bytes);
+                Ok(Some(u64::from_be_bytes(buf)))
+            }
+            _ => Ok(None),
+        }
     }
 
     /// Write the still-unfinished batch to disk
@@ -111,23 +139,17 @@ impl BatchStore {
 
     /// Get next batch
     pub fn next_batch_number(&self) -> Result<u64, eyre::Error> {
-        let cf_batch_meta = self.db.cf_handle(BATCH_META).unwrap();
-        let mut iter = self
-            .db
-            .iterator_cf(cf_batch_meta, rocksdb::IteratorMode::End);
+        let cf = self.db.cf_handle(BATCH_META).unwrap();
+        let mut iter = self.db.iterator_cf(cf, rocksdb::IteratorMode::End);
 
-        match iter.next() {
-            Some(Ok((key, _))) =>
-                if key.len() == 8 {
-                    let mut bytes = [0u8; 8];
-                    bytes.copy_from_slice(&key);
-                    Ok(u64::from_be_bytes(bytes) + 1)
-                } else {
-                    return Err(eyre::eyre!("Invalid key"));
-                },
-            Some(Err(e)) => Err(e.into()),
-            None => Ok(0),
+        while let Some(Ok((key, _))) = iter.next() {
+            if key.len() == 8 {
+                let mut bytes = [0u8; 8];
+                bytes.copy_from_slice(&key);
+                return Ok(u64::from_be_bytes(bytes) + 1);
+            }
         }
+        Ok(0)
     }
 
     /// Get batch hash corresponding to batch

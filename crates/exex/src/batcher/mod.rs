@@ -5,6 +5,7 @@ use reth_exex::{ExExContext, ExExEvent};
 use reth_node_api::{FullNodeComponents, NodeTypes};
 use reth_primitives::{EthPrimitives, TransactionSigned};
 use reth_provider::{BlockReader, Chain};
+use reth_tracing::tracing::info;
 use twine_db_batch::BatchStore;
 use twine_types::ActiveBatch;
 
@@ -43,12 +44,15 @@ where
         config: BatchConfig,
     ) -> eyre::Result<Self> {
         let next_batch_number = store.next_batch_number()?;
+        info!("Next batch number is: {}", next_batch_number);
 
         let current_batch = if let Some(mut open) = store.load_open()? {
+            println!("Active Batch is: {:#?}", open);
             // resume the batch we were building when we crashed
             open.batch_number = next_batch_number;
             Some(open)
         } else {
+            info!("No active batch");
             // no open batch → we’ll create one on the first block
             None
         };
@@ -89,6 +93,7 @@ where
                 .map(|block| block.hash())
                 .zip(chain.execution_outcome_at_block(block_number))
         });
+        let last_processed = self.store.load_last_height()?.unwrap_or(0);
 
         for (block_hash, _) in bundles {
             let current_block = self
@@ -97,6 +102,9 @@ where
                 .block_by_hash(block_hash)?
                 .ok_or_else(|| eyre::eyre!("block not found for hash {:?}", block_hash))?;
             let block_index = current_block.number;
+            if block_index <= last_processed {
+                continue;
+            }
             self.process_block(&current_block).await?;
 
             finished_height = Some(BlockNumHash::new(block_index, block_hash));
@@ -115,6 +123,9 @@ where
 
         batch.block_hashes.push(block_hash);
         batch.state_roots.push(block.state_root);
+
+        // Persist current batch to database
+        self.store.write_open(batch)?;
 
         // Decide if we have reached the limit.
         if batch.block_hashes.len() >= self.config.max_blocks as usize {
@@ -141,12 +152,17 @@ where
             batch_hash,
         )?;
 
-        self.ctx
-            .events
-            .send(ExExEvent::FinishedHeight(BlockNumHash::new(
-                batch.start_block + batch.block_hashes.len() as u64 - 1,
-                *batch.block_hashes.last().expect("at least one block"),
-            )))?;
+        // After sealing, the current batch is cleared
+        self.store.clear_open()?;
+
+        let finished = BlockNumHash::new(
+            batch.start_block + batch.block_hashes.len() as u64 - 1,
+            *batch.block_hashes.last().unwrap(),
+        );
+        self.ctx.events.send(ExExEvent::FinishedHeight(finished))?;
+
+        // persist it
+        self.store.save_last_height(finished.number)?;
 
         self.next_batch_number += 1;
         Ok(())
