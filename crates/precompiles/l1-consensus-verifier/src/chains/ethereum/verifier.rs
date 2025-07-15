@@ -365,7 +365,6 @@ mod tests {
             header.parent_hash = last_header_hash;
             let eth_public_value = EthPublicValuesStruct {
                 beacon_block_number: 1,
-                previous_block_number: 0,
                 execution_block_number: 2,
                 execution_header_hash: header.hash_slow().0,
                 results: vec![true],
