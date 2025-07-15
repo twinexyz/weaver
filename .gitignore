@@ -6,4 +6,6 @@ target/
 test-ledger
 geyser.*
 .DS_Store
+
+rocksdb/
 *.bk
