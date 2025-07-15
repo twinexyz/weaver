@@ -7,7 +7,7 @@ use alloy_primitives::hex::FromHex;
 use alloy_primitives::{Address, U256};
 use tokio::time::sleep;
 use tracing::{error, info};
-use twine_database::DBConnection;
+use twine_db_postgresdb::DBConnection;
 use twine_eth_sender::EthSender;
 use twine_eth_tx_manager::{EthTxManager, L1Contracts};
 

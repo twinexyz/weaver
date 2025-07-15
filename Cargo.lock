@@ -11402,7 +11402,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "twine-database"
+name = "twine-db-postgresdb"
 version = "0.1.0"
 dependencies = [
  "alloy-primitives",
@@ -11447,7 +11447,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "tracing",
- "twine-database",
+ "twine-db-postgresdb",
  "twine-eth-sender",
  "twine-evm-contracts",
  "twine-rollup",

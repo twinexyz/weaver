@@ -1,5 +1,5 @@
 [package]
-name = "twine-database"
+name = "twine-db-postgresdb"
 version.workspace = true
 edition.workspace = true
 exclude.workspace = true

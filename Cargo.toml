@@ -13,7 +13,7 @@ members = [
 
   "crates/common",
   "crates/constants",
-  "crates/database",
+  "crates/db/postgres-db",
   "crates/eth/sender",
   "crates/eth/tx-manager",
   "crates/eth/watcher",
@@ -118,7 +118,7 @@ revm-context = { version = "3.0.0", default-features = false }
 test-harness = { path = "crates/test-harness" }
 twine-common = { path = "crates/common" }
 twine-constants = { path = "crates/constants" }
-twine-database = { path = "crates/database" }
+twine-db-postgresdb = { path = "crates/db/postgres-db" }
 twine-eth-sender = { path = "crates/eth/sender" }
 twine-eth-tx-manager = { path = "crates/eth/tx-manager" }
 twine-eth-watcher = { path = "crates/eth/watcher" }

@@ -4,7 +4,7 @@ use std::sync::Arc;
 use alloy_primitives::{Address, Bytes, U256};
 use alloy_rpc_types::TransactionRequest;
 use eyre::{Context, ContextCompat};
-use twine_database::DBConnection;
+use twine_db_postgresdb::DBConnection;
 use twine_eth_sender::EthSender;
 use twine_evm_contracts::ITwineChain::CommitBlockInfo;
 use twine_evm_contracts::TwineChain;

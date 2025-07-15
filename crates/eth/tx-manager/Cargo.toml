@@ -8,7 +8,7 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-twine-database.workspace = true
+twine-db-postgresdb.workspace = true
 twine-eth-sender.workspace = true
 twine-evm-contracts.workspace = true
 twine-rollup.workspace = true
