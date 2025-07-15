@@ -26,6 +26,7 @@ Now, run the migrations as
 ```sh
 cd crates/database
 sqlx migrate run
+cargo sqlx prepare
 ```
 
-Then, you should be able to build the project.
+Then, you should be able to build the project, or run tests associated with postgres databass.
