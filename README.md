@@ -27,10 +27,21 @@ cargo run --bin twine-node -- \
 ```
 
 ## Naming convention for files contain validator sets info
-1. Ethereum mainnet: `ethereum.json`
+1. Ethereum mainnet: `ethereum_mainnet.json`
 2. Ethereum holesky: `ethereum_holesky.json`
 3. Ethereum sepolia: `ethereum_sepolia.json`
 4. Solana          : `solana.json`
+
+## Downloading the comittee updates for all chains
+# Ethereum chains
+```sh
+# chain = {mainnet, holesky, sepolia}
+./scripts/ethereum_validator_set_fetcher.sh --<chain> --height=<slot_number>
+```
+# Solana
+```sh
+./scripts/solana_validator_set_fetcher.sh <target_slot>
+```
 
 ## Running devtests
 ```sh
