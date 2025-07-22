@@ -15,6 +15,7 @@ use twine_ethereum_consensus_prover_lib::eth::{EthLightClientUpdate, EthPublicVa
 use super::{EthereumVerifierPrecompileInput, ProofComponent, SolProofComponent};
 use crate::chains::ethereum::{EthereumVerifierPrecompileOutput, VerifiedReceipt};
 use crate::chains::Chains;
+use crate::errors::ConsensusPrecompileError;
 
 #[derive(Debug, Clone)]
 pub struct EthereumConsensusVerifier {
@@ -81,17 +82,17 @@ impl SP1ProofComponent {
 }
 
 impl EthereumVerifierPrecompileInput<SP1ProofComponent> {
-    fn verify_input_correctness(&self) -> Result<(), String> {
+    fn verify_input_correctness(&self) -> Result<(), ConsensusPrecompileError> {
         let proof_size = self.proof_components.len();
         if proof_size == 0 {
-            return Err(String::from("empty proof"));
+            return Err(ConsensusPrecompileError::EmptyProof);
         }
         if proof_size == 1 {
             if let Some(SP1ProofComponent::BlockZkProof(_)) = self.proof_components.first() {
                 return Ok(());
             }
-            return Err(String::from(
-                "must be a BlockZKProof when a single proof is provided",
+            return Err(ConsensusPrecompileError::Other(
+                "must be a BlockZKProof when a single proof is provided".into(),
             ));
         }
 
@@ -100,22 +101,22 @@ impl EthereumVerifierPrecompileInput<SP1ProofComponent> {
                 match self.proof_components.first() {
                     Some(proof_component) => match proof_component {
                         SP1ProofComponent::BlockZkProof(_) => {}
-                        SP1ProofComponent::BlockProof(_) => return Err(String::from(
-                            "first proof component should be a BlockZKProof in case of based proof",
+                        SP1ProofComponent::BlockProof(_) => return Err(ConsensusPrecompileError::Other(
+                            "first proof component should be a BlockZKProof in case of based proof".into(),
                         )),
                     },
-                    None => return Err(String::from("empty proof")),
+                    None => return Err(ConsensusPrecompileError::EmptyProof),
                 }
             }
             match self.proof_components.last() {
                 Some(proof_component) => match proof_component {
                     SP1ProofComponent::BlockZkProof(_) => {}
                     SP1ProofComponent::BlockProof(_) =>
-                        return Err(String::from(
-                            "last proof component should be a BlockZKProof",
+                        return Err(ConsensusPrecompileError::Other(
+                            "last proof component should be a BlockZKProof".into(),
                         )),
                 },
-                None => return Err(String::from("empty proof")),
+                None => return Err(ConsensusPrecompileError::Other("empty proof".into())),
             }
         }
         Ok(())
@@ -124,7 +125,7 @@ impl EthereumVerifierPrecompileInput<SP1ProofComponent> {
     pub fn verify_header_chain(
         &self,
         saved_header_hash: Option<[u8; 32]>,
-    ) -> Result<Vec<VerifiedReceipt>, String> {
+    ) -> Result<Vec<VerifiedReceipt>, ConsensusPrecompileError> {
         let mut verified_receipts = vec![];
         let saved_header_hash = match saved_header_hash {
             Some(previous_header_hash) => previous_header_hash,
@@ -141,18 +142,18 @@ impl EthereumVerifierPrecompileInput<SP1ProofComponent> {
                     header_i.parent_hash = FixedBytes::from_slice(&saved_header_hash);
                     let recalculated_hash = header_i.hash_slow();
                     if hash_i != recalculated_hash {
-                        return Err(String::from("header chain verification failed"));
+                        return Err(ConsensusPrecompileError::InvalidHeaderChain);
                     }
                     verified_receipts.push(VerifiedReceipt {
                         height: header_i.number,
-                        receipt_root: header_i.receipts_root,
+                        receiptRoot: header_i.receipts_root,
                     });
                     parent_hash = recalculated_hash.0;
                     continue;
                 } else {
                     verified_receipts.push(VerifiedReceipt {
                         height: header_i.number,
-                        receipt_root: header_i.receipts_root,
+                        receiptRoot: header_i.receipts_root,
                     });
                     parent_hash = header_i.hash_slow().0;
                     continue;
@@ -163,11 +164,11 @@ impl EthereumVerifierPrecompileInput<SP1ProofComponent> {
             let recalculated_hash_i = header_i.hash_slow();
 
             if hash_i != recalculated_hash_i {
-                return Err(String::from("header chain verification failed"));
+                return Err(ConsensusPrecompileError::InvalidHeaderChain);
             }
             verified_receipts.push(VerifiedReceipt {
                 height: header_i.number,
-                receipt_root: header_i.receipts_root,
+                receiptRoot: header_i.receipts_root,
             });
             parent_hash = recalculated_hash_i.0;
         }
@@ -177,25 +178,25 @@ impl EthereumVerifierPrecompileInput<SP1ProofComponent> {
     pub fn verify_zkproof_public_value(
         &self,
         validator_keys: &Vec<BlsPublicKey>,
-    ) -> Result<Vec<SolProofComponent>, String> {
+    ) -> Result<Vec<SolProofComponent>, ConsensusPrecompileError> {
         let mut proof_components = vec![];
         for proof in &self.proof_components {
             match proof {
                 SP1ProofComponent::BlockZkProof(block_zkproof) => {
                     let mut public_value: EthPublicValuesStruct =
                         ssz::Decode::from_ssz_bytes(&block_zkproof.zk_proof_component.public_value)
-                            .map_err(|e| format!("decode error: {e:?}"))?;
+                            .map_err(|e| ConsensusPrecompileError::DecodeError(format!("{e:?}")))?;
                     let header_hash = block_zkproof.header.hash_slow();
                     if public_value.execution_header_hash != header_hash {
-                        return Err(String::from(
-                            "wrong header provided for the associated proof",
-                        ));
+                        return Err(ConsensusPrecompileError::WrongHeader);
                     }
                     let participating_mask: BitVector<typenum::U512> =
                         match BitVector::from_ssz_bytes(&block_zkproof.validator_bitmap) {
                             Ok(participating_mask) => participating_mask,
                             Err(e) => {
-                                return Err(format!("decode error: {e:?}"));
+                                return Err(ConsensusPrecompileError::DecodeError(format!(
+                                    "{e:?}"
+                                )));
                             }
                         };
 
@@ -212,11 +213,11 @@ impl EthereumVerifierPrecompileInput<SP1ProofComponent> {
                     public_value.participating_keys = vec![participating_keys];
 
                     proof_components.push(SolProofComponent {
-                        public_value: Bytes::copy_from_slice(&public_value.as_ssz_bytes()),
+                        publicValue: Bytes::copy_from_slice(&public_value.as_ssz_bytes()),
                         proof: Bytes::copy_from_slice(
                             &block_zkproof.zk_proof_component.proof.clone(),
                         ),
-                        header_hash,
+                        headerHash: header_hash,
                     });
                 }
                 SP1ProofComponent::BlockProof(_) => {}
@@ -254,22 +255,22 @@ impl EthereumConsensusVerifier {
 impl Chains for EthereumConsensusVerifier {
     fn name(&self) -> String { self.chain_id_to_name().unwrap_or_default() }
 
-    fn verify(&self, verifying_input: Bytes) -> Result<Bytes, String> {
-        println!("verifier precompile called");
+    fn verify(&self, checkpoint_header: [u8; 32], verifying_input: Bytes) -> Result<Bytes, String> {
         let ethereum_verifier_precompile_input: EthereumVerifierPrecompileInput<SP1ProofComponent> =
             serde_json::from_slice(&verifying_input.to_vec())
-                .map_err(|e| format!("where is that error from {e}"))?;
+                .map_err(|e| ConsensusPrecompileError::DecodeError(format!("{e}")))?;
 
         ethereum_verifier_precompile_input.verify_input_correctness()?;
-        let verified_receipt_roots = ethereum_verifier_precompile_input
-            .verify_header_chain(ethereum_verifier_precompile_input.previous_saved_header)?;
+        let verified_receipt_roots =
+            ethereum_verifier_precompile_input.verify_header_chain(Some(checkpoint_header))?;
 
         let sol_proof_components =
             ethereum_verifier_precompile_input.verify_zkproof_public_value(&self.validator_keys)?;
 
         let precompile_output = EthereumVerifierPrecompileOutput {
-            sol_proof_components,
-            verified_receipt_roots,
+            solProofComponents: sol_proof_components,
+            verifiedReceiptRoots: verified_receipt_roots,
+            basedProof: ethereum_verifier_precompile_input.based_proof,
         };
 
         Ok(Bytes::copy_from_slice(&precompile_output.abi_encode()))
@@ -420,7 +421,6 @@ mod tests {
         let precompile_input: EthereumVerifierPrecompileInput<SP1ProofComponent> =
             EthereumVerifierPrecompileInput {
                 based_proof: config.based_proof,
-                previous_saved_header: Some(Header::default().parent_hash.0),
                 proof_components,
             };
 
@@ -435,7 +435,8 @@ mod tests {
 
         let precompile_input = Bytes::copy_from_slice(&precompile_input);
 
-        let result = eth_consensus_verifier.verify(precompile_input.clone());
+        let result = eth_consensus_verifier
+            .verify(Header::default().parent_hash.0, precompile_input.clone());
         result
     }
 
@@ -505,10 +506,9 @@ mod tests {
         let result = verify(config);
         let eth_precompile_output =
             EthereumVerifierPrecompileOutput::abi_decode(&result.unwrap().to_vec()).unwrap();
-        let public_value: EthPublicValuesStruct = ssz::Decode::from_ssz_bytes(
-            &eth_precompile_output.sol_proof_components[0].public_value,
-        )
-        .unwrap();
+        let public_value: EthPublicValuesStruct =
+            ssz::Decode::from_ssz_bytes(&eth_precompile_output.solProofComponents[0].publicValue)
+                .unwrap();
         assert_eq!(public_value.participating_keys[0].len(), 0usize);
     }
 }

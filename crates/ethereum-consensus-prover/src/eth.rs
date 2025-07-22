@@ -384,8 +384,6 @@ pub struct EthWithdrawal {
 
 #[derive(Deserialize, Encode, TreeHash, Decode, Serialize, Clone, Debug)]
 pub struct EthAttestation {
-    // Bitlist of 1024 bits should be enough for now
-    // TODO: deal with it a better way
     pub aggregation_bits: BitList<typenum::U131072>,
     pub data: EthAttestationData,
     pub signature: BlsSignature,
