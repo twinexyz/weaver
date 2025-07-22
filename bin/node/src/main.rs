@@ -80,7 +80,10 @@ fn main() -> eyre::Result<()> {
 }
 
 fn load_validator_sets() -> HashMap<String, String> {
-    let validator_set_base_path = env::var("L1_VALIDATOR_SET_PATH").expect("provide the base directory path that contains the validator set files for the chains you want to register in the precompiles");
+    let validator_set_base_path = match env::var("L1_VALIDATOR_SET_PATH") {
+        Ok(path) => path,
+        Err(_) => return HashMap::new(),
+    };
     let validator_set_files = fs::read_dir(validator_set_base_path).unwrap();
     let mut validator_set_hashmap = HashMap::new();
     () = validator_set_files

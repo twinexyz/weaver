@@ -24,24 +24,25 @@ where
     /// if based_proof = false,
     /// the proof components should have the header information and consens-
     /// us proofs of the first and last entry of proof components
-    based_proof: bool,
-    proof_components: Vec<P>,
+    pub based_proof: bool,
+    pub proof_components: Vec<P>,
 }
 
 sol!(
     struct EthereumVerifierPrecompileOutput {
-        SolProofComponent[] sol_proof_components;
-        VerifiedReceipt[] verified_receipt_roots;
+        SolProofComponent[] solProofComponents;
+        VerifiedReceipt[] verifiedReceiptRoots;
+        bool basedProof;
     }
 
     struct SolProofComponent {
-        bytes public_value;
+        bytes publicValue;
         bytes proof;
-        bytes32 header_hash;
+        bytes32 headerHash;
     }
 
     struct VerifiedReceipt {
         uint64 height;
-        bytes32 receipt_root;
+        bytes32 receiptRoot;
     }
 );
