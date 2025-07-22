@@ -11,6 +11,7 @@ NETWORK=""
 HEIGHT=""
 
 # API keys for each network (replace with your actual API keys)
+MAINNET_API_KEY=""
 HOLESKY_API_KEY=""
 SEPOLIA_API_KEY=""
 
@@ -22,6 +23,9 @@ for arg in "$@"; do
             ;;
         --sepolia)
             NETWORK="sepolia"
+            ;;
+        --mainnet)
+            NETWORK="mainnet"
             ;;
         --height=*)
             HEIGHT="${arg#*=}"
