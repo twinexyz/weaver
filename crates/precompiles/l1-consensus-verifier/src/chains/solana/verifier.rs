@@ -73,7 +73,11 @@ impl SolanaConsensusVerifier {
 impl Chains for SolanaConsensusVerifier {
     fn name(&self) -> String { self.chain_id_to_name().unwrap_or_default() }
 
-    fn verify(&self, verifying_input: Bytes) -> Result<Bytes, String> {
+    fn verify(
+        &self,
+        _checkpoint_header: [u8; 32],
+        verifying_input: Bytes,
+    ) -> Result<Bytes, String> {
         let solana_consensus_verifier_input: SolanaVerifierPrecompileInput =
             serde_json::from_slice(&verifying_input).map_err(|e| format!("{e}"))?;
 

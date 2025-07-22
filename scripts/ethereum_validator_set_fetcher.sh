@@ -55,8 +55,11 @@ fi
 
 # Execute the curl command
 echo "Fetching updates for $NETWORK at height $HEIGHT..."
+SYNC_EPOCH=$(($HEIGHT/32))
+CURRENT_SYNC_PERIOD=$(($SYNC_EPOCH/256))
+PREVIOUS_SYNC_PERIOD=$(($CURRENT_SYNC_PERIOD-1))
 curl -X 'GET' \
-  "$BASE_URL/beacon/${API_KEY}/eth/v1/beacon/light_client/updates?start_period=$HEIGHT&count=1" \
+  "$BASE_URL/beacon/${API_KEY}/eth/v1/beacon/light_client/updates?start_period=$PREVIOUS_SYNC_PERIOD&count=1" \
   -H 'accept: application/json' > "ethereum_${NETWORK}.json"
 
-echo "Updates saved to $ethereum_{NETWORK}.json"
+echo "Updates saved to ethereum_${NETWORK}.json"

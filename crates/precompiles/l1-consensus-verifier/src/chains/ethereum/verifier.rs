@@ -15,18 +15,19 @@ use twine_ethereum_consensus_prover_lib::eth::{EthLightClientUpdate, EthPublicVa
 use super::{EthereumVerifierPrecompileInput, ProofComponent, SolProofComponent};
 use crate::chains::ethereum::{EthereumVerifierPrecompileOutput, VerifiedReceipt};
 use crate::chains::Chains;
+use crate::errors::ConsensusPrecompileError;
 
 #[derive(Debug, Clone)]
 pub struct EthereumConsensusVerifier {
-    chain_id: u64,
-    validator_keys: Vec<BlsPublicKey>,
+    pub chain_id: u64,
+    pub validator_keys: Vec<BlsPublicKey>,
 }
 
 /// BlockZKProof is a structure that contains the proof of consensus for the
 /// L1 block. The supported proof system is sp1's Groth16 proof.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct BlockZKProof {
-    zk_proof_component: ZKProofComponent,
+    pub zk_proof_component: ZKProofComponent,
     /// bit map that represents what validator voted on the block.
     /// Participant validator is represented by 1 on the
     /// if there are three validators A, B, C and B didnot participate,
@@ -81,17 +82,17 @@ impl SP1ProofComponent {
 }
 
 impl EthereumVerifierPrecompileInput<SP1ProofComponent> {
-    fn verify_input_correctness(&self) -> Result<(), String> {
+    fn verify_input_correctness(&self) -> Result<(), ConsensusPrecompileError> {
         let proof_size = self.proof_components.len();
         if proof_size == 0 {
-            return Err(String::from("empty proof"));
+            return Err(ConsensusPrecompileError::EmptyProof);
         }
         if proof_size == 1 {
             if let Some(SP1ProofComponent::BlockZkProof(_)) = self.proof_components.first() {
                 return Ok(());
             }
-            return Err(String::from(
-                "must be a BlockZKProof when a single proof is provided",
+            return Err(ConsensusPrecompileError::Other(
+                "must be a BlockZKProof when a single proof is provided".into(),
             ));
         }
 
@@ -100,22 +101,22 @@ impl EthereumVerifierPrecompileInput<SP1ProofComponent> {
                 match self.proof_components.first() {
                     Some(proof_component) => match proof_component {
                         SP1ProofComponent::BlockZkProof(_) => {}
-                        SP1ProofComponent::BlockProof(_) => return Err(String::from(
-                            "first proof component should be a BlockZKProof in case of based proof",
+                        SP1ProofComponent::BlockProof(_) => return Err(ConsensusPrecompileError::Other(
+                            "first proof component should be a BlockZKProof in case of based proof".into(),
                         )),
                     },
-                    None => return Err(String::from("empty proof")),
+                    None => return Err(ConsensusPrecompileError::EmptyProof),
                 }
             }
             match self.proof_components.last() {
                 Some(proof_component) => match proof_component {
                     SP1ProofComponent::BlockZkProof(_) => {}
                     SP1ProofComponent::BlockProof(_) =>
-                        return Err(String::from(
-                            "last proof component should be a BlockZKProof in case of based proof",
+                        return Err(ConsensusPrecompileError::Other(
+                            "last proof component should be a BlockZKProof".into(),
                         )),
                 },
-                None => return Err(String::from("empty proof")),
+                None => return Err(ConsensusPrecompileError::Other("empty proof".into())),
             }
         }
         Ok(())
@@ -124,7 +125,7 @@ impl EthereumVerifierPrecompileInput<SP1ProofComponent> {
     pub fn verify_header_chain(
         &self,
         saved_header_hash: Option<[u8; 32]>,
-    ) -> Result<Vec<VerifiedReceipt>, String> {
+    ) -> Result<Vec<VerifiedReceipt>, ConsensusPrecompileError> {
         let mut verified_receipts = vec![];
         let saved_header_hash = match saved_header_hash {
             Some(previous_header_hash) => previous_header_hash,
@@ -141,18 +142,18 @@ impl EthereumVerifierPrecompileInput<SP1ProofComponent> {
                     header_i.parent_hash = FixedBytes::from_slice(&saved_header_hash);
                     let recalculated_hash = header_i.hash_slow();
                     if hash_i != recalculated_hash {
-                        return Err(String::from("header chain verification failed"));
+                        return Err(ConsensusPrecompileError::InvalidHeaderChain);
                     }
                     verified_receipts.push(VerifiedReceipt {
                         height: header_i.number,
-                        receipt_root: header_i.receipts_root,
+                        receiptRoot: header_i.receipts_root,
                     });
                     parent_hash = recalculated_hash.0;
                     continue;
                 } else {
                     verified_receipts.push(VerifiedReceipt {
                         height: header_i.number,
-                        receipt_root: header_i.receipts_root,
+                        receiptRoot: header_i.receipts_root,
                     });
                     parent_hash = header_i.hash_slow().0;
                     continue;
@@ -163,11 +164,11 @@ impl EthereumVerifierPrecompileInput<SP1ProofComponent> {
             let recalculated_hash_i = header_i.hash_slow();
 
             if hash_i != recalculated_hash_i {
-                return Err(String::from("header chain verification failed"));
+                return Err(ConsensusPrecompileError::InvalidHeaderChain);
             }
             verified_receipts.push(VerifiedReceipt {
                 height: header_i.number,
-                receipt_root: header_i.receipts_root,
+                receiptRoot: header_i.receipts_root,
             });
             parent_hash = recalculated_hash_i.0;
         }
@@ -177,25 +178,25 @@ impl EthereumVerifierPrecompileInput<SP1ProofComponent> {
     pub fn verify_zkproof_public_value(
         &self,
         validator_keys: &Vec<BlsPublicKey>,
-    ) -> Result<Vec<SolProofComponent>, String> {
+    ) -> Result<Vec<SolProofComponent>, ConsensusPrecompileError> {
         let mut proof_components = vec![];
         for proof in &self.proof_components {
             match proof {
                 SP1ProofComponent::BlockZkProof(block_zkproof) => {
                     let mut public_value: EthPublicValuesStruct =
                         ssz::Decode::from_ssz_bytes(&block_zkproof.zk_proof_component.public_value)
-                            .map_err(|e| format!("decode error: {e:?}"))?;
+                            .map_err(|e| ConsensusPrecompileError::DecodeError(format!("{e:?}")))?;
                     let header_hash = block_zkproof.header.hash_slow();
                     if public_value.execution_header_hash != header_hash {
-                        return Err(String::from(
-                            "wrong header provided for the associated proof",
-                        ));
+                        return Err(ConsensusPrecompileError::WrongHeader);
                     }
                     let participating_mask: BitVector<typenum::U512> =
                         match BitVector::from_ssz_bytes(&block_zkproof.validator_bitmap) {
                             Ok(participating_mask) => participating_mask,
                             Err(e) => {
-                                return Err(format!("decode error: {e:?}"));
+                                return Err(ConsensusPrecompileError::DecodeError(format!(
+                                    "{e:?}"
+                                )));
                             }
                         };
 
@@ -212,11 +213,11 @@ impl EthereumVerifierPrecompileInput<SP1ProofComponent> {
                     public_value.participating_keys = vec![participating_keys];
 
                     proof_components.push(SolProofComponent {
-                        public_value: Bytes::copy_from_slice(&public_value.as_ssz_bytes()),
+                        publicValue: Bytes::copy_from_slice(&public_value.as_ssz_bytes()),
                         proof: Bytes::copy_from_slice(
                             &block_zkproof.zk_proof_component.proof.clone(),
                         ),
-                        header_hash,
+                        headerHash: header_hash,
                     });
                 }
                 SP1ProofComponent::BlockProof(_) => {}
@@ -254,22 +255,260 @@ impl EthereumConsensusVerifier {
 impl Chains for EthereumConsensusVerifier {
     fn name(&self) -> String { self.chain_id_to_name().unwrap_or_default() }
 
-    fn verify(&self, verifying_input: Bytes) -> Result<Bytes, String> {
+    fn verify(&self, checkpoint_header: [u8; 32], verifying_input: Bytes) -> Result<Bytes, String> {
         let ethereum_verifier_precompile_input: EthereumVerifierPrecompileInput<SP1ProofComponent> =
-            serde_json::from_slice(&verifying_input.to_vec()).map_err(|e| format!("{e}"))?;
+            serde_json::from_slice(&verifying_input.to_vec())
+                .map_err(|e| ConsensusPrecompileError::DecodeError(format!("{e}")))?;
 
         ethereum_verifier_precompile_input.verify_input_correctness()?;
         let verified_receipt_roots =
-            ethereum_verifier_precompile_input.verify_header_chain(None)?;
+            ethereum_verifier_precompile_input.verify_header_chain(Some(checkpoint_header))?;
 
         let sol_proof_components =
             ethereum_verifier_precompile_input.verify_zkproof_public_value(&self.validator_keys)?;
 
         let precompile_output = EthereumVerifierPrecompileOutput {
-            sol_proof_components,
-            verified_receipt_roots,
+            solProofComponents: sol_proof_components,
+            verifiedReceiptRoots: verified_receipt_roots,
+            basedProof: ethereum_verifier_precompile_input.based_proof,
         };
 
         Ok(Bytes::copy_from_slice(&precompile_output.abi_encode()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use alloy_consensus::Header;
+    use alloy_primitives::Bytes;
+    use alloy_sol_types::SolType;
+    use ssz::ssz_encode;
+    use ssz_types::{typenum, BitVector};
+    use twine_ethereum_consensus_prover_lib::bls::{BlsPublicKey, BlsSignature};
+    use twine_ethereum_consensus_prover_lib::eth::EthPublicValuesStruct;
+
+    use crate::chains::ethereum::verifier::{
+        BlockProof, BlockZKProof, EthereumConsensusVerifier, SP1ProofComponent, ZKProofComponent,
+    };
+    use crate::chains::ethereum::{
+        EthereumVerifierPrecompileInput, EthereumVerifierPrecompileOutput,
+    };
+    use crate::chains::Chains;
+
+    struct Config {
+        based_proof: bool,
+        full_attestation: bool,
+        number_of_headers: u8,
+        header_chain_maintained: bool,
+        valid_input_params: bool,
+        make_first_data_invalid: bool,
+    }
+
+    impl Default for Config {
+        fn default() -> Self {
+            Self {
+                based_proof: false,
+                full_attestation: true,
+                number_of_headers: 1,
+                header_chain_maintained: true,
+                valid_input_params: true,
+                make_first_data_invalid: false,
+            }
+        }
+    }
+
+    impl Config {
+        fn with_based_proof(mut self) -> Self {
+            self.based_proof = true;
+            self
+        }
+
+        fn without_full_attestation(mut self) -> Self {
+            self.full_attestation = false;
+            self
+        }
+
+        fn with_invalid_input(mut self) -> Self {
+            self.valid_input_params = false;
+            self
+        }
+
+        fn with_first_data_invalid(mut self) -> Self {
+            assert!(!self.valid_input_params);
+            self.make_first_data_invalid = true;
+            self
+        }
+
+        fn without_header_chain(mut self) -> Self {
+            self.header_chain_maintained = false;
+            self
+        }
+
+        fn with_number_of_headers(mut self, number: u8) -> Self {
+            self.number_of_headers = number;
+            self
+        }
+    }
+
+    fn make_eth_complete_proof_package(
+        config: Config,
+        participant_validators: Vec<BlsPublicKey>,
+    ) -> Vec<u8> {
+        let participant_validators = match config.full_attestation {
+            true => participant_validators,
+            false => vec![],
+        };
+
+        let mut last_header_hash = Header::default().parent_hash;
+        let mut proof_components = vec![];
+        for i in 0..config.number_of_headers {
+            let mut header = Header::default();
+            header.parent_hash = last_header_hash;
+            let eth_public_value = EthPublicValuesStruct {
+                beacon_block_number: 1,
+                execution_block_number: 2,
+                execution_header_hash: header.hash_slow().0,
+                results: vec![true],
+                participating_keys: vec![participant_validators.clone()],
+                sync_committee_signature: vec![BlsSignature::default()],
+                sync_committee_message_root: [2; 32],
+            };
+
+            type Bitvector512 = BitVector<typenum::U512>;
+
+            let mut bit_vector = Bitvector512::new();
+
+            for i in 0..bit_vector.len() {
+                if config.full_attestation {
+                    bit_vector.set(i, true).unwrap();
+                }
+            }
+
+            let bit_map = ssz_encode(&bit_vector);
+            if i == 0 && !config.based_proof && !config.make_first_data_invalid {
+                let proof_component = SP1ProofComponent::BlockZkProof(BlockZKProof {
+                    zk_proof_component: ZKProofComponent {
+                        proof: vec![3],
+                        public_value: ssz_encode(&eth_public_value),
+                    },
+                    validator_bitmap: bit_map,
+                    header: header.clone(),
+                });
+                proof_components.push(proof_component);
+                if config.header_chain_maintained {
+                    last_header_hash = header.hash_slow();
+                }
+            } else if i == config.number_of_headers - 1 && config.valid_input_params {
+                let proof_component = SP1ProofComponent::BlockZkProof(BlockZKProof {
+                    zk_proof_component: ZKProofComponent {
+                        proof: vec![3],
+                        public_value: ssz_encode(&eth_public_value),
+                    },
+                    validator_bitmap: bit_map,
+                    header: header.clone(),
+                });
+                proof_components.push(proof_component);
+                last_header_hash = header.hash_slow();
+            } else {
+                let proof_component = SP1ProofComponent::BlockProof(BlockProof {
+                    header: header.clone(),
+                });
+                proof_components.push(proof_component);
+                last_header_hash = header.hash_slow();
+            }
+        }
+
+        let precompile_input: EthereumVerifierPrecompileInput<SP1ProofComponent> =
+            EthereumVerifierPrecompileInput {
+                based_proof: config.based_proof,
+                proof_components,
+            };
+
+        serde_json::to_vec(&precompile_input).unwrap()
+    }
+
+    fn verify(config: Config) -> Result<Bytes, String> {
+        let validator_key_file = include_str!("res/test/holesky_updates.json");
+        let eth_consensus_verifier = EthereumConsensusVerifier::new(17000, validator_key_file);
+        let precompile_input =
+            make_eth_complete_proof_package(config, eth_consensus_verifier.validator_keys.clone());
+
+        let precompile_input = Bytes::copy_from_slice(&precompile_input);
+
+        let result = eth_consensus_verifier
+            .verify(Header::default().parent_hash.0, precompile_input.clone());
+        result
+    }
+
+    #[test]
+    fn test_verify_with_different_config() {
+        // default config
+        let result = verify(Config::default());
+        assert!(result.is_ok());
+        // multiple headers, based proof = true
+        let config = Config::default()
+            .with_based_proof()
+            .with_number_of_headers(5);
+        let result = verify(config);
+        assert!(result.is_ok());
+        // multiple headers, based proof = false
+        let config = Config::default().with_number_of_headers(5);
+        let result = verify(config);
+        assert!(result.is_ok());
+        // multiple headers, header chain maintained = false
+        let config = Config::default()
+            .without_header_chain()
+            .with_number_of_headers(5);
+        let result = verify(config);
+        assert_eq!(
+            Err(String::from("header chain verification failed")),
+            result
+        );
+        // multiple headers, valid precompile input = false, based proof = false
+        let config = Config::default()
+            .with_invalid_input()
+            .with_number_of_headers(5);
+        let result = verify(config);
+        assert_eq!(
+            Err(String::from(
+                "last proof component should be a BlockZKProof"
+            )),
+            result
+        );
+        // multiple headers, valid precompile input = false, based proof = false
+        let config = Config::default()
+            .with_based_proof()
+            .with_invalid_input()
+            .with_number_of_headers(5);
+        let result = verify(config);
+        assert_eq!(
+            Err(String::from(
+                "last proof component should be a BlockZKProof"
+            )),
+            result
+        );
+        // multiple headers, valid precompile input = false, make first invalid = true
+        let config = Config::default()
+            .with_invalid_input()
+            .with_first_data_invalid()
+            .with_number_of_headers(5);
+        let result = verify(config);
+        assert_eq!(
+            Err(String::from(
+                "first proof component should be a BlockZKProof in case of based proof"
+            )),
+            result
+        );
+        // multiple headers, full attestation = false
+        let config = Config::default()
+            .without_full_attestation()
+            .with_number_of_headers(5);
+        let result = verify(config);
+        let eth_precompile_output =
+            EthereumVerifierPrecompileOutput::abi_decode(&result.unwrap().to_vec()).unwrap();
+        let public_value: EthPublicValuesStruct =
+            ssz::Decode::from_ssz_bytes(&eth_precompile_output.solProofComponents[0].publicValue)
+                .unwrap();
+        assert_eq!(public_value.participating_keys[0].len(), 0usize);
     }
 }

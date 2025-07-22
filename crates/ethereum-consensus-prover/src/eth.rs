@@ -9,7 +9,7 @@ use tree_hash_derive::TreeHash;
 use crate::bls::*;
 use crate::bytes::{ByteList, ByteVector};
 
-#[derive(Deserialize, Encode, Decode, Serialize, Clone, Debug)]
+#[derive(Deserialize, Encode, Decode, Serialize, Clone, Debug, Default)]
 /// The public values encoded as a struct that can be easily deserialized inside
 /// Solidity.
 pub struct EthPublicValuesStruct {
@@ -384,8 +384,6 @@ pub struct EthWithdrawal {
 
 #[derive(Deserialize, Encode, TreeHash, Decode, Serialize, Clone, Debug)]
 pub struct EthAttestation {
-    // Bitlist of 1024 bits should be enough for now
-    // TODO: deal with it a better way
     pub aggregation_bits: BitList<typenum::U131072>,
     pub data: EthAttestationData,
     pub signature: BlsSignature,

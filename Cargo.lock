@@ -11214,6 +11214,7 @@ dependencies = [
  "serde",
  "serde_json",
  "ssz_types",
+ "thiserror 2.0.12",
  "twine-constants",
  "twine-ethereum-consensus-prover-lib",
  "twine-l1-utils",
