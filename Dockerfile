@@ -1,7 +1,7 @@
 FROM rust:1.85 AS builder
 
-ARG GITHUB_TOKEN
-ENV GITHUB_TOKEN=${GITHUB_TOKEN}
+#ARG GITHUB_TOKEN
+#ENV GITHUB_TOKEN=${GITHUB_TOKEN}
 
 RUN apt-get update && \
     apt-get install -y build-essential clang libssl-dev pkg-config && \
