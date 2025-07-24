@@ -27,7 +27,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /app/target/release/twine-node /usr/local/bin/twine-node
-COPY --from=builder /app/bin/node/res/dev-genesis.json /root/genesis.json
 RUN chmod +x /usr/local/bin/twine-node
+COPY --from=builder /app/bin/node/res/dev-genesis.json /root/genesis.json
 
 ENTRYPOINT ["twine-node", "node", "--dev", "--chain /root/genesis.json", "--http", "--http.api debug,eth,net,trace,web3,rpc,reth,ots", "--http.port=8545", "--http.addr=0.0.0.0", "--http.corsdomain=*", "--rpc.eth-proof-window 100", "--rpc.proof-permits 1000", "--ws", "--ws.addr=0.0.0.0", "--ws.api admin,debug,eth,net,trace,txpool,web3,rpc,reth,ots", "--ws.origins 127.0.0.1", "--datadir /tmp/reth", "--dev.block-time 5sec]
