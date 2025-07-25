@@ -1,7 +1,44 @@
 //! Twine Types to be used throughout the project
 
+use std::ops::Range;
+
 use alloy_primitives::{BlockNumber, Keccak256, B256};
 use serde::{Deserialize, Serialize};
+
+/// Metadata for a block
+#[allow(missing_docs)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct BlockMetadata {
+    pub height: BlockNumber,
+    pub block_hash: B256,
+    pub state_root: B256,
+}
+
+/// Batch Meta, the content stored in db
+#[allow(missing_docs)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct BatchMeta {
+    pub block_range: Range<BlockNumber>,
+    pub created_at: u64,
+    pub prev_batch_hash: Option<B256>, // batch hash of previous block
+    pub batch_hash: Option<B256>,      // batch hash of current block
+    pub block_metadata: Vec<BlockMetadata>, // every hash in order
+}
+
+impl BatchMeta {
+    /// Get batch hash of this batch
+    pub fn get_batch_hash(&self) -> B256 {
+        // We're constructing active batch here, but only the prev batch hash and state
+        // roots are needed to compute hash of this batch
+        // so, other fields are discarded
+        let ab = ActiveBatch {
+            batch_number: 0,
+            start_block: 0,
+            blocks_metadata: self.block_metadata.clone(),
+        };
+        ab.compute_hash(self.prev_batch_hash)
+    }
+}
 
 /// Marker for active batch. Once it's ready, it'll be sealed
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -10,10 +47,18 @@ pub struct ActiveBatch {
     pub batch_number: u64,
     /// Start Block Number for Batch
     pub start_block: BlockNumber,
-    /// All block hashes of batch
-    pub block_hashes: Vec<B256>,
-    /// All state roots of batch
-    pub state_roots: Vec<B256>,
+    /// All block metadata of batch
+    pub blocks_metadata: Vec<BlockMetadata>,
+}
+
+impl Default for ActiveBatch {
+    fn default() -> Self {
+        Self {
+            batch_number: 0,
+            start_block: 1,
+            blocks_metadata: Default::default(),
+        }
+    }
 }
 
 impl ActiveBatch {
@@ -22,22 +67,33 @@ impl ActiveBatch {
         Self {
             batch_number,
             start_block,
-            block_hashes: Vec::new(),
-            state_roots: Vec::new(),
+            blocks_metadata: Vec::new(),
         }
     }
 
+    /// Twine Batch Domain For Uniqueness
+    pub fn batch_domain() -> &'static [u8] { b"TWINE-BATCH-v0" }
+
     /// Compute batch hash
     pub fn compute_hash(&self, prev_batch_hash: Option<B256>) -> B256 {
-        let mut state_hasher = Keccak256::new();
-        for root in &self.state_roots {
-            state_hasher.update(root);
-        }
-        let state_roots_hash = B256::from(state_hasher.finalize());
+        let mut hasher = Keccak256::new();
 
-        let mut final_hasher = Keccak256::new();
-        final_hasher.update(prev_batch_hash.unwrap_or_default());
-        final_hasher.update(state_roots_hash);
-        B256::from(final_hasher.finalize())
+        // 1. Domain separator
+        hasher.update(Self::batch_domain());
+
+        // 2. Previous batch hash
+        hasher.update(prev_batch_hash.unwrap_or_default());
+
+        // 3. Merkle root of state roots in this batch
+        let leaves: Vec<[u8; 32]> = self
+            .blocks_metadata
+            .iter()
+            .map(|r| r.state_root.0)
+            .collect();
+
+        let merkle_root = twine_utils::merkle_root(&leaves);
+        hasher.update(merkle_root);
+
+        B256::from(hasher.finalize())
     }
 }
