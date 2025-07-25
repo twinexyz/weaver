@@ -1,4 +1,4 @@
-//!  Batch DB
+//! Batch database
 
 use std::ops::Range;
 use std::path::PathBuf;
@@ -7,27 +7,29 @@ use std::time::SystemTime;
 
 use alloy_primitives::{BlockNumber, B256};
 use rocksdb::{ColumnFamilyDescriptor, Options, DB};
-use serde::{Deserialize, Serialize};
-use twine_types::ActiveBatch;
+use twine_types::{BatchMeta, BlockMetadata};
+
+mod bincode_utils;
 
 const BATCH_META: &str = "batch_meta";
 const BATCH_HASHES: &str = "batch_hashes";
 const BLOCK_TO_BATCH: &str = "block_to_batch";
-const OPEN_BATCH: &str = "open_batch";
-const COLUMN_FAMILY_DESCRIPTORS: [&str; 4] = [BATCH_META, BATCH_HASHES, BLOCK_TO_BATCH, OPEN_BATCH];
+const COLUMN_FAMILY_DESCRIPTORS: [&str; 3] = [BATCH_META, BATCH_HASHES, BLOCK_TO_BATCH];
 
-const OPEN_KEY: &[u8; 4] = b"open";
 const LAST_FINISHED_HEIGHT: &[u8; 17] = b"last_finished_hgt";
 
-#[derive(Serialize, Deserialize)]
-struct BatchMeta {
-    block_range: Range<BlockNumber>,
-    created_at: u64,
+#[repr(u8)]
+#[allow(missing_docs)]
+#[derive(Debug, Clone)]
+/// Version to serialize with
+pub enum ValueVersion {
+    V0 = 0x00,
 }
 
 /// Batch storage
 #[derive(Debug, Clone)]
 pub struct BatchStore {
+    // instance of rocksdb
     db: Arc<DB>,
 }
 
@@ -50,15 +52,25 @@ impl BatchStore {
         Ok(Self { db: Arc::new(db) })
     }
 
-    /// Persist the highest block number that has already been **fully sealed**
-    pub fn save_last_height(&self, height: BlockNumber) -> eyre::Result<()> {
-        let cf = self
-            .db
-            .cf_handle(BATCH_META)
-            .expect("BATCH_META column family missing");
-        self.db
-            .put_cf(cf, LAST_FINISHED_HEIGHT, height.to_be_bytes())?;
-        Ok(())
+    /// Get current batch
+    pub fn get_current_batch_number(&self) -> Result<u64, eyre::Error> {
+        let cf = self.db.cf_handle(BATCH_META).unwrap();
+        let mut iter = self.db.iterator_cf(cf, rocksdb::IteratorMode::End);
+
+        while let Some(Ok((key, _))) = iter.next() {
+            // length of u64 is 8 bytes
+            if key.len() == 8 {
+                let mut bytes = [0u8; 8];
+                bytes.copy_from_slice(&key);
+                return Ok(u64::from_be_bytes(bytes));
+            }
+        }
+        Ok(0)
+    }
+
+    /// Get next batch number
+    pub fn get_next_batch_number(&self) -> eyre::Result<u64> {
+        Ok(self.get_current_batch_number()?.saturating_add(1))
     }
 
     /// Load the last height we marked as finished (None if DB empty)
@@ -77,45 +89,51 @@ impl BatchStore {
         }
     }
 
-    /// Write the still-unfinished batch to disk
-    pub fn write_open(&self, batch: &ActiveBatch) -> eyre::Result<()> {
-        let cf = self.db.cf_handle(OPEN_BATCH).unwrap();
-        let bytes = bincode::serialize(batch)?;
-        self.db.put_cf(cf, OPEN_KEY, bytes)?;
-        Ok(())
-    }
+    /// Load batch metadata for batch_number
+    pub fn load_batch(&self, batch_number: u64) -> eyre::Result<BatchMeta> {
+        let cf = self
+            .db
+            .cf_handle(BATCH_META)
+            .expect("BATCH_META column family missing");
 
-    /// Load the open batch (if any)
-    pub fn load_open(&self) -> eyre::Result<Option<ActiveBatch>> {
-        let cf = self.db.cf_handle(OPEN_BATCH).unwrap();
-        match self.db.get_cf(cf, OPEN_KEY)? {
-            Some(bytes) => Ok(Some(bincode::deserialize(&bytes)?)),
-            None => Ok(None),
-        }
-    }
+        let bytes = self
+            .db
+            .get_cf(cf, batch_number.to_be_bytes())?
+            .ok_or_else(|| eyre::eyre!("batch {batch_number} not found"))?;
 
-    /// Remove the open batch once it has been sealed
-    pub fn clear_open(&self) -> eyre::Result<()> {
-        let cf = self.db.cf_handle(OPEN_BATCH).unwrap();
-        self.db.delete_cf(cf, OPEN_KEY)?;
-        Ok(())
+        let (_, payload) = bincode_utils::deserialize_versioned(&bytes)?;
+        Ok(bincode::deserialize(payload)?)
     }
 
     /// Seal a batch once ready and save to db
+    /// ```rs
+    /// batch_meta[batch_number] = metadata
+    /// batch_meta[LAST_FINISHED_HEIGHT] = range.end
+    /// batch_numbers[batch_number] = range
+    /// batch_hash[batch_number] = hash
+    /// ```
     pub fn seal_batch(
         &self,
         batch_number: u64,
         block_range: Range<BlockNumber>,
-        batch_hash: B256,
-    ) -> Result<(), eyre::Error> {
-        let meta = BatchMeta {
+        prev_batch_hash: Option<B256>,
+        block_metadata: Vec<BlockMetadata>,
+    ) -> eyre::Result<()> {
+        let end_block = block_range.end;
+        let mut meta = BatchMeta {
             block_range: block_range.clone(),
             created_at: SystemTime::now()
                 .duration_since(SystemTime::UNIX_EPOCH)
                 .unwrap()
                 .as_secs(),
+            prev_batch_hash,
+            batch_hash: None,
+            block_metadata,
         };
-        let serialized_value = bincode::serialize(&meta).unwrap();
+        let batch_hash = meta.get_batch_hash();
+        meta.batch_hash = Some(batch_hash);
+
+        let serialized_value = bincode_utils::serialize_versioned(&meta, ValueVersion::V0)?;
 
         let cf_batch = self.db.cf_handle(BATCH_META).unwrap();
         let cf_batch_hashes = self.db.cf_handle(BATCH_HASHES).unwrap();
@@ -134,22 +152,9 @@ impl BatchStore {
             );
         }
 
+        batch.put_cf(cf_batch, LAST_FINISHED_HEIGHT, end_block.to_be_bytes());
+
         Ok(self.db.write(batch)?)
-    }
-
-    /// Get next batch
-    pub fn next_batch_number(&self) -> Result<u64, eyre::Error> {
-        let cf = self.db.cf_handle(BATCH_META).unwrap();
-        let mut iter = self.db.iterator_cf(cf, rocksdb::IteratorMode::End);
-
-        while let Some(Ok((key, _))) = iter.next() {
-            if key.len() == 8 {
-                let mut bytes = [0u8; 8];
-                bytes.copy_from_slice(&key);
-                return Ok(u64::from_be_bytes(bytes) + 1);
-            }
-        }
-        Ok(0)
     }
 
     /// Get batch hash corresponding to batch
@@ -162,7 +167,7 @@ impl BatchStore {
     }
 
     /// Get batch number for a block number
-    pub fn find_block_batch(&self, block_number: BlockNumber) -> Option<u64> {
+    pub fn get_batch_number_for_block(&self, block_number: BlockNumber) -> Option<u64> {
         let cf_block_to_batch = self.db.cf_handle(BLOCK_TO_BATCH).unwrap();
         self.db
             .get_cf(cf_block_to_batch, block_number.to_be_bytes())
@@ -171,30 +176,29 @@ impl BatchStore {
     }
 
     /// Get blocks in a batch
-    pub fn get_batch_blocks(&self, batch_number: u64) -> Option<Range<BlockNumber>> {
-        self.db
-            .cf_handle(BATCH_META)
-            .and_then(|cf| self.db.get_cf(cf, batch_number.to_be_bytes()).ok()?)
-            .and_then(|v| bincode::deserialize::<BatchMeta>(&v).ok())
-            .map(|meta| meta.block_range)
+    pub fn get_blocks_in_batch(&self, batch_number: u64) -> Option<Range<BlockNumber>> {
+        let cf = self.db.cf_handle(BATCH_META)?;
+        let bytes = self.db.get_cf(cf, batch_number.to_be_bytes()).ok()??;
+        let (_, payload) = bincode_utils::deserialize_versioned(&bytes).ok()?;
+        bincode::deserialize::<BatchMeta>(payload)
+            .ok()
+            .map(|m| m.block_range)
     }
 }
 
 #[cfg(test)]
-mod tests {
+mod batch_db_tests {
+    use std::path::PathBuf;
+    use std::time::SystemTime;
+
     use alloy_primitives::B256;
     use tempfile::tempdir;
+    use twine_types::BlockMetadata;
 
-    use super::*;
-
-    /// Helper: open a throw-away store
-    fn temp_store() -> BatchStore {
-        let dir = tempdir().unwrap(); // unique dir every call
-        BatchStore::new(dir.path().to_path_buf()).unwrap()
-    }
+    use crate::BatchStore;
 
     /// Random bytes based on timestamp
-    fn get_random() -> B256 {
+    fn get_random_bytes32() -> B256 {
         let nanos = SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
@@ -209,96 +213,73 @@ mod tests {
     }
 
     #[test]
-    fn round_trip_open_batch() {
-        let store = temp_store();
+    fn test_batch_store_operations() -> eyre::Result<()> {
+        // Create a temporary directory for the RocksDB instance
+        let dir = tempdir()?;
+        let db_path = PathBuf::from(dir.path());
 
-        // 1. Nothing on disk yet
-        assert!(store.load_open().unwrap().is_none());
+        // Initialize the BatchStore
+        let store = BatchStore::new(db_path).expect("Failed to initialize BatchStore");
 
-        // 2. Write an open batch
-        let open = ActiveBatch {
-            batch_number: 42,
-            start_block: 100,
-            block_hashes: vec![get_random(), get_random()],
-            state_roots: vec![get_random()],
-        };
-        store.write_open(&open).unwrap();
+        // Test getting the current batch number
+        let current_batch = store.get_current_batch_number()?;
+        assert_eq!(current_batch, 0);
 
-        // 3. Reload it
-        let loaded = store.load_open().unwrap().unwrap();
-        assert_eq!(loaded.batch_number, 42);
-        assert_eq!(loaded.start_block, 100);
-        assert_eq!(loaded.block_hashes.len(), 2);
-        assert_eq!(loaded.state_roots.len(), 1);
+        // Test getting the next batch number
+        let next_batch = store.get_next_batch_number()?;
+        assert_eq!(next_batch, 1);
 
-        // 4. Clear it
-        store.clear_open().unwrap();
-        assert!(store.load_open().unwrap().is_none());
-    }
+        // Test loading the last height (should be None initially)
+        let last_height = store.load_last_height()?;
+        assert!(last_height.is_none());
 
-    #[test]
-    fn next_batch_number_empty_db() {
-        let store = temp_store();
-        assert_eq!(store.next_batch_number().unwrap(), 0);
-    }
+        // Test sealing a batch
+        let batch_number = 1;
+        let block_range = 1..10;
+        let prev_batch_hash = None;
+        let block_metadata: Vec<BlockMetadata> = (block_range.clone())
+            .map(|h| BlockMetadata {
+                height: h,
+                block_hash: get_random_bytes32(),
+                state_root: get_random_bytes32(),
+            })
+            .collect::<Vec<BlockMetadata>>();
 
-    #[test]
-    fn next_batch_number_after_seal() {
-        let store = temp_store();
+        store.seal_batch(
+            batch_number,
+            block_range.clone(),
+            prev_batch_hash,
+            block_metadata,
+        )?;
 
-        // Seal batch 0
-        store.seal_batch(0, 0..10, get_random()).unwrap();
-        assert_eq!(store.next_batch_number().unwrap(), 1);
+        // Test getting the current batch number after sealing a batch
+        let current_batch = store.get_current_batch_number()?;
+        assert_eq!(current_batch, 1);
 
-        // Seal batch 7
-        store.seal_batch(7, 10..20, get_random()).unwrap();
-        assert_eq!(store.next_batch_number().unwrap(), 8);
-    }
+        // Test getting the last height after sealing a batch
+        let last_height = store.load_last_height()?;
+        assert_eq!(last_height, Some(10));
 
-    #[test]
-    fn seal_and_query_meta() {
-        let store = temp_store();
-        let hash = get_random();
+        // Test loading a batch
+        let loaded_batch = store.load_batch(batch_number)?;
+        assert_eq!(loaded_batch.block_range, block_range);
 
-        store.seal_batch(5, 100..110, hash).unwrap();
+        // Test getting the batch hash
+        let batch_hash = store.get_batch_hash(batch_number);
+        assert!(batch_hash.is_some());
 
-        // range
-        assert_eq!(store.get_batch_blocks(5).unwrap(), 100..110);
+        // Test getting the batch number for a block
+        let block_number = 5;
+        let batch_number_for_block = store.get_batch_number_for_block(block_number);
+        assert_eq!(batch_number_for_block, Some(batch_number));
 
-        // hash
-        assert_eq!(store.get_batch_hash(5).unwrap(), hash);
+        // Test getting blocks in a batch
+        let blocks_in_batch = store.get_blocks_in_batch(batch_number);
+        assert_eq!(blocks_in_batch, Some(block_range));
 
-        // block → batch lookup
-        for b in 100..110 {
-            assert_eq!(store.find_block_batch(b).unwrap(), 5);
-        }
-        assert!(store.find_block_batch(99).is_none());
-        assert!(store.find_block_batch(110).is_none());
-    }
+        // Clean up the temporary directory
+        dir.close()?;
 
-    #[test]
-    fn open_batch_is_not_counted_in_next_batch_number() {
-        let store = temp_store();
-
-        // Persist an open batch
-        let open = ActiveBatch {
-            batch_number: 3,
-            start_block: 200,
-            block_hashes: vec![],
-            state_roots: vec![],
-        };
-        store.write_open(&open).unwrap();
-
-        // next_batch_number still reports 0 (only *sealed* batches count)
-        assert_eq!(store.next_batch_number().unwrap(), 0);
-    }
-
-    #[test]
-    fn column_families_created() {
-        let store = temp_store();
-        // cheap smoke test: all CF handles exist
-        for cf in COLUMN_FAMILY_DESCRIPTORS {
-            assert!(store.db.cf_handle(cf).is_some());
-        }
+        Ok(())
     }
 }
