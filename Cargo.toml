@@ -27,6 +27,7 @@ members = [
   "crates/solana-sdk",
   "crates/test-harness",
   "crates/types",
+  "crates/utils",
 ]
 resolver = "3"
 
@@ -123,6 +124,7 @@ twine-rpc = { path = "crates/rpc" }
 twine-solana-consensus-prover-lib = { path = "crates/solana-consensus-prover" }
 twine-solana-sdk = { path = "crates/solana-sdk" }
 twine-types = { path = "crates/types" }
+twine-utils = { path = "crates/utils" }
 twine-zstd-precompile = { path = "crates/precompiles/zstd" }
 
 [patch.crates-io]
