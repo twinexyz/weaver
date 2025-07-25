@@ -26,10 +26,10 @@ jobs:
       workflow_name: ${{ github.workflow }}
       run_url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
       job_status: started
-  #precommit:
-  #  needs: ["pre-notify"]
-  #  uses: twinexyz/workflows/.github/workflows/precommit.yml@main
-  #  secrets: inherit
+  precommit:
+    needs: ["pre-notify"]
+    uses: twinexyz/workflows/.github/workflows/precommit.yml@main
+    secrets: inherit
   #dependency-check:
   #  needs: ["pre-notify"] #, "precommit"]
   #  uses: twinexyz/workflows/.github/workflows/dependency-review.yml@main
