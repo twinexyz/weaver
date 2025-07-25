@@ -11082,6 +11082,7 @@ dependencies = [
  "serde",
  "tempfile",
  "twine-types",
+ "twine-utils",
 ]
 
 [[package]]
@@ -11255,6 +11256,7 @@ dependencies = [
  "eyre",
  "jsonrpsee",
  "twine-db-batch",
+ "twine-types",
 ]
 
 [[package]]
@@ -11303,6 +11305,14 @@ version = "0.1.0"
 dependencies = [
  "alloy-primitives",
  "serde",
+ "twine-utils",
+]
+
+[[package]]
+name = "twine-utils"
+version = "0.1.0"
+dependencies = [
+ "alloy-primitives",
 ]
 
 [[package]]
