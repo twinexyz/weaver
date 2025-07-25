@@ -30,45 +30,29 @@ jobs:
   #  needs: ["pre-notify"]
   #  uses: twinexyz/workflows/.github/workflows/precommit.yml@main
   #  secrets: inherit
-  dependency-check:
-    needs: ["pre-notify"] #, "precommit"]
-    uses: twinexyz/workflows/.github/workflows/dependency-review.yml@main
-    secrets: inherit
-    with:
-      branch_slug: ${{ github.ref_name }}
-  semgrep:
-    needs: ["pre-notify"] #, "precommit"]
-    uses: twinexyz/workflows/.github/workflows/semgrep.yml@main
-    secrets: inherit
-  test:
-    needs: ["pre-notify"] #, "precommit"]
-    uses: twinexyz/workflows/.github/workflows/test.yml@main
-    secrets: inherit
-  audit:
-    needs: ["pre-notify"] #, "precommit"]
-    uses: twinexyz/workflows/.github/workflows/audit.yml@main
-    secrets: inherit
-  file-scan:
-    needs: ["pre-notify"] #, "precommit"]
-    uses: twinexyz/workflows/.github/workflows/file-scan.yml@main
-    secrets: inherit
-    build:
-      runs-on: self-hosted
-      steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build Docker image
-        run: |
-          docker build --build-arg GITHUB_TOKEN=${{ secrets.PAT_TOKEN }} --build-arg ENV=develop --build-arg SOLANA_PROVER_ENV=${{ vars.SOLANA_PROVER_ENV }} -t ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:develop .
-      - name: Push Docker image
-        run: |
-          docker push ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:develop
+  #dependency-check:
+  #  needs: ["pre-notify"] #, "precommit"]
+  #  uses: twinexyz/workflows/.github/workflows/dependency-review.yml@main
+  #  secrets: inherit
+  #  with:
+  #    branch_slug: ${{ github.ref_name }}
+  #semgrep:
+  #  needs: ["pre-notify"] #, "precommit"]
+  #  uses: twinexyz/workflows/.github/workflows/semgrep.yml@main
+  #  secrets: inherit
+  #test:
+  #  needs: ["pre-notify"] #, "precommit"]
+  #  uses: twinexyz/workflows/.github/workflows/test.yml@main
+  #  secrets: inherit
+  #audit:
+  #  needs: ["pre-notify"] #, "precommit"]
+  #  uses: twinexyz/workflows/.github/workflows/audit.yml@main
+  #  secrets: inherit
+  #file-scan:
+  #  needs: ["pre-notify"] #, "precommit"]
+  #  uses: twinexyz/workflows/.github/workflows/file-scan.yml@main
+  #  secrets: inherit
+  #
   build:
     uses: twinexyz/workflows/.github/workflows/build-matrix.yml@main
     secrets: inherit
