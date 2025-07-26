@@ -53,7 +53,7 @@ eyre = "0.6"
 futures-util = "0.3"
 git2 = "0.20.1"
 hex = "0.4.3"
-jsonrpsee = { version = "0.24", features = ["jsonrpsee-proc-macros", "tracing", "server"] }
+jsonrpsee = { version = "0.24", features = ["client", "jsonrpsee-proc-macros", "tracing", "server"] }
 log = "0.4.26"
 
 parking_lot = "0.12"

@@ -8,7 +8,7 @@ use twine_types::BatchMeta;
 /// Twine batch related rpc definition
 pub mod batch;
 
-#[rpc(server, namespace = "twine")]
+#[rpc(client, server, namespace = "twine")]
 pub trait TwineBatchApi {
     /// Get latest batch
     #[method(name = "getLatestBatch")]
