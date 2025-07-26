@@ -76,15 +76,7 @@ impl ActiveBatch {
 
     /// Compute batch hash
     pub fn compute_hash(&self, prev_batch_hash: Option<B256>) -> B256 {
-        let mut hasher = Keccak256::new();
-
-        // 1. Domain separator
-        hasher.update(Self::batch_domain());
-
-        // 2. Previous batch hash
-        hasher.update(prev_batch_hash.unwrap_or_default());
-
-        // 3. Merkle root of state roots in this batch
+        // Fetch all state roots in the batch
         let leaves: Vec<[u8; 32]> = self
             .blocks_metadata
             .iter()
@@ -92,8 +84,23 @@ impl ActiveBatch {
             .collect();
 
         let merkle_root = twine_utils::merkle_root(&leaves);
-        hasher.update(merkle_root);
 
-        B256::from(hasher.finalize())
+        compute_batch_hash(merkle_root, prev_batch_hash)
     }
+}
+
+/// Utility to compute Batch Hash
+pub fn compute_batch_hash(merkle_root: B256, prev_batch_hash: Option<B256>) -> B256 {
+    let mut hasher = Keccak256::new();
+
+    // 1. Domain separator
+    hasher.update(ActiveBatch::batch_domain());
+
+    // 2. Previous batch hash
+    hasher.update(prev_batch_hash.unwrap_or_default());
+
+    // 3. Merkle root of states of current batch
+    hasher.update(merkle_root);
+
+    B256::from(hasher.finalize())
 }
