@@ -1,0 +1,15 @@
+docker-compose.yaml
+Dockerfile
+Dockerfile.bk
+dprint.json
+.git
+.github
+.gitignore
+LICENSE
+.pre-commit-config.yaml
+README.md
+requirements.txt
+rustfmt.toml
+rust-toolchain.toml
+scripts
+testing
