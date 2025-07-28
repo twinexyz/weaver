@@ -6,6 +6,8 @@ use alloy_sol_types::sol;
 use serde::{Deserialize, Serialize};
 use twine_solana_consensus_prover_lib::{PublicValuesStruct, ValidatorInfo, VoteOrTowerSync};
 
+use crate::errors::ConsensusPrecompileError;
+
 /// Solana Consensus Proof components
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SolanaVerifierPrecompileInput {
@@ -36,7 +38,7 @@ impl SolanaVerifierPrecompileInput {
     ) -> Result<(), String> {
         let vote_list = self.public_value.package.votes.clone();
         if vote_list.len() > validator_set.len() {
-            return Err(String::from("Invalid validators"));
+            return Err(ConsensusPrecompileError::InvalidValidators.into());
         }
         let threshold_votes = ((validator_set.len() * 2) / 3) as u64;
         let threshold_stake = (total_stake * 2) / 3;
@@ -62,7 +64,7 @@ impl SolanaVerifierPrecompileInput {
             .collect();
 
         if voters < threshold_votes || stake < threshold_stake {
-            return Err(String::from("unachieved threshold"));
+            return Err(ConsensusPrecompileError::UnAchievedThreshold.into());
         }
         Ok(())
     }
