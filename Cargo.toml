@@ -33,7 +33,6 @@ resolver = "3"
 [workspace.dependencies]
 # The versions of alloy related crates should be fetched from `reth`
 # https://github.com/paradigmxyz/reth/blob/{RETH_TAG}/Cargo.toml
-alloy = { version = "0.14.0", features = ["full"] }
 alloy-consensus = { version = "0.14.0", default-features = false }
 alloy-contract = { version = "0.14.0", default-features = false }
 # needed to implement `encode_2718` function which comes from `use alloy_eips::Encodable2718;`
