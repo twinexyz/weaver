@@ -12,6 +12,10 @@ pub enum ConsensusPrecompileError {
     InvalidHeaderChain,
     #[error("wrong header provided for associated proof")]
     WrongHeader,
+    #[error("invalid validator length")]
+    InvalidValidators,
+    #[error("unachieved threshold")]
+    UnAchievedThreshold,
     #[error("{0}")]
     Other(String),
 }
