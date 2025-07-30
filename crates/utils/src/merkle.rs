@@ -2,7 +2,8 @@
 //! The `MerkleProof` works to verify merkle proofs in solidity as well
 //! Using the open zeppelin merkle verifier library
 
-use alloy_primitives::{keccak256, Keccak256};
+use alloy_primitives::{keccak256, Keccak256, B256};
+use serde::{Deserialize, Serialize};
 
 /// Repr for [u8;32]
 pub type Hash = [u8; 32];
@@ -68,12 +69,15 @@ impl MerkleTree {
 }
 
 /// Merkle Proof structure
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MerkleProof {
     proof: Vec<Hash>,
 }
 
 impl MerkleProof {
+    /// Instantiate Merkle Proof
+    pub fn new(proof: Vec<Hash>) -> MerkleProof { MerkleProof { proof } }
+
     /// Verify merkle proof
     pub fn verify(&self, root: Hash, index: usize, leaf: Hash) -> bool {
         let mut computed = leaf;
@@ -89,6 +93,9 @@ impl MerkleProof {
         }
         computed == root
     }
+
+    /// Get proof as hex
+    pub fn as_hex(&self) -> Vec<B256> { self.proof.iter().map(|h| B256::from_slice(h)).collect() }
 }
 
 #[cfg(test)]

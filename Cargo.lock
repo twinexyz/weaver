@@ -11313,6 +11313,7 @@ name = "twine-utils"
 version = "0.1.0"
 dependencies = [
  "alloy-primitives",
+ "serde",
 ]
 
 [[package]]
