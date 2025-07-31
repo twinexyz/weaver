@@ -2,7 +2,7 @@
 
 use std::ops::Range;
 
-use alloy_primitives::{BlockNumber, Keccak256, B256};
+use alloy_primitives::{BlockNumber, Keccak256, B256, KECCAK256_EMPTY};
 use serde::{Deserialize, Serialize};
 
 /// Metadata for a block
@@ -97,7 +97,7 @@ pub fn compute_batch_hash(merkle_root: B256, prev_batch_hash: Option<B256>) -> B
     hasher.update(ActiveBatch::batch_domain());
 
     // 2. Previous batch hash
-    hasher.update(prev_batch_hash.unwrap_or_default());
+    hasher.update(prev_batch_hash.unwrap_or(KECCAK256_EMPTY));
 
     // 3. Merkle root of states of current batch
     hasher.update(merkle_root);

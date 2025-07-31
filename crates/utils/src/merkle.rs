@@ -2,7 +2,7 @@
 //! The `MerkleProof` works to verify merkle proofs in solidity as well
 //! Using the open zeppelin merkle verifier library
 
-use alloy_primitives::{keccak256, Keccak256, B256};
+use alloy_primitives::{keccak256, Keccak256, B256, KECCAK256_EMPTY};
 use serde::{Deserialize, Serialize};
 
 /// Repr for [u8;32]
@@ -51,8 +51,13 @@ impl MerkleTree {
         }
     }
 
-    /// If the tree is empty, it returns None
-    pub fn root(&self) -> Option<Hash> { self.layers.last().map(|l| l[0]) }
+    /// If the tree is empty, it returns keccak hash of empty byte
+    pub fn root(&self) -> Hash {
+        self.layers
+            .last()
+            .map(|l| l[0])
+            .unwrap_or(KECCAK256_EMPTY.0)
+    }
 
     /// Get merkle proof for leaf at index
     pub fn proof(&self, index: usize) -> MerkleProof {
@@ -117,7 +122,7 @@ mod tests {
     fn proof_roundtrip() {
         let leaves: &[&[u8]] = &[b"x", b"y", b"z"];
         let tree = MerkleTree::from_leaves(leaves);
-        let root = tree.root().unwrap();
+        let root = tree.root();
         let index = 1;
         let leaf_hash = keccak256(b"y").into();
 
