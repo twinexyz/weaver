@@ -1,6 +1,6 @@
 //! Twine Types to be used throughout the project
 
-use std::ops::{Range, RangeInclusive};
+use std::ops::RangeInclusive;
 
 use alloy_primitives::{BlockNumber, Keccak256, B256, KECCAK256_EMPTY};
 use serde::{Deserialize, Serialize};

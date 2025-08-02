@@ -11253,6 +11253,7 @@ dependencies = [
 name = "twine-rpc"
 version = "0.1.0"
 dependencies = [
+ "alloy-primitives",
  "eyre",
  "jsonrpsee",
  "twine-db-batch",

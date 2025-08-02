@@ -14,7 +14,9 @@ mod bincode_utils;
 const BATCH_META: &str = "batch_meta";
 const BATCH_HASHES: &str = "batch_hashes";
 const BLOCK_TO_BATCH: &str = "block_to_batch";
-const COLUMN_FAMILY_DESCRIPTORS: [&str; 3] = [BATCH_META, BATCH_HASHES, BLOCK_TO_BATCH];
+const HASH_TO_BATCH: &str = "hash_to_btch";
+const COLUMN_FAMILY_DESCRIPTORS: [&str; 4] =
+    [BATCH_META, BATCH_HASHES, BLOCK_TO_BATCH, HASH_TO_BATCH];
 
 const LAST_FINISHED_HEIGHT: &[u8; 17] = b"last_finished_hgt";
 
@@ -139,9 +141,12 @@ impl BatchStore {
         let cf_batch = self.db.cf_handle(BATCH_META).unwrap();
         let cf_batch_hashes = self.db.cf_handle(BATCH_HASHES).unwrap();
         let cf_block_to_batch = self.db.cf_handle(BLOCK_TO_BATCH).unwrap();
+        let cf_hash_to_batch = self.db.cf_handle(HASH_TO_BATCH).unwrap();
 
         let mut batch = rocksdb::WriteBatch::default();
         batch.put_cf(cf_batch, batch_number.to_be_bytes(), serialized_value);
+
+        batch.put_cf(cf_hash_to_batch, batch_hash.0, batch_number.to_be_bytes());
 
         batch.put_cf(cf_batch_hashes, batch_number.to_be_bytes(), batch_hash.0);
 
@@ -156,6 +161,15 @@ impl BatchStore {
         batch.put_cf(cf_batch, LAST_FINISHED_HEIGHT, end_block.to_be_bytes());
 
         Ok(self.db.write(batch)?)
+    }
+
+    /// Get batch number corresponding to batch hash
+    pub fn get_batch_number_for_hash(&self, hash: B256) -> Option<u64> {
+        let cf = self.db.cf_handle(HASH_TO_BATCH)?;
+        self.db
+            .get_cf(cf, hash.0)
+            .unwrap()
+            .map(|v| u64::from_be_bytes(v.try_into().unwrap()))
     }
 
     /// Get batch hash corresponding to batch

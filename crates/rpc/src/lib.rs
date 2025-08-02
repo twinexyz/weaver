@@ -1,12 +1,15 @@
 //! Add RPC Methods in twine for batch
 use std::ops::RangeInclusive;
 
+use alloy_primitives::B256;
 use jsonrpsee::core::RpcResult;
 use jsonrpsee::proc_macros::rpc;
 use twine_types::BatchMeta;
 
 /// Twine batch related rpc definition
 pub mod batch;
+/// Twine batch client
+pub mod client;
 
 #[rpc(client, server, namespace = "twine")]
 pub trait TwineBatchApi {
@@ -18,9 +21,13 @@ pub trait TwineBatchApi {
     #[method(name = "getFullBatch")]
     fn get_full_batch(&self, batch: u64) -> RpcResult<BatchMeta>;
 
-    /// Get batch hash for a batch identifier
+    /// Get batch hash for a batch number
     #[method(name = "getBatchHash")]
     fn get_batch_hash(&self, batch: u64) -> RpcResult<Option<String>>;
+
+    /// Get batch number for a batch hash
+    #[method(name = "getBatchNumber")]
+    fn get_batch_number(&self, batch_hash: B256) -> RpcResult<u64>;
 
     /// Get batch corresponding to a block
     #[method(name = "getBatchNumberForBlock")]
