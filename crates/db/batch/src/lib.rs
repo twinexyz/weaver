@@ -1,11 +1,11 @@
 //! Batch database
 
-use std::ops::Range;
+use std::ops::RangeInclusive;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::SystemTime;
 
-use alloy_primitives::{BlockNumber, B256};
+use alloy_primitives::{BlockNumber, B256, KECCAK256_EMPTY};
 use rocksdb::{ColumnFamilyDescriptor, Options, DB};
 use twine_types::{BatchMeta, BlockMetadata};
 
@@ -115,11 +115,12 @@ impl BatchStore {
     pub fn seal_batch(
         &self,
         batch_number: u64,
-        block_range: Range<BlockNumber>,
+        block_range: RangeInclusive<BlockNumber>,
         prev_batch_hash: Option<B256>,
         block_metadata: Vec<BlockMetadata>,
     ) -> eyre::Result<()> {
-        let end_block = block_range.end;
+        println!("The block range while sealing: {:?}", block_range.clone());
+        let end_block = block_range.end();
         let mut meta = BatchMeta {
             block_range: block_range.clone(),
             created_at: SystemTime::now()
@@ -144,7 +145,7 @@ impl BatchStore {
 
         batch.put_cf(cf_batch_hashes, batch_number.to_be_bytes(), batch_hash.0);
 
-        for block_num in block_range {
+        for block_num in meta.block_range {
             batch.put_cf(
                 cf_block_to_batch,
                 block_num.to_be_bytes(),
@@ -159,6 +160,9 @@ impl BatchStore {
 
     /// Get batch hash corresponding to batch
     pub fn get_batch_hash(&self, batch_number: u64) -> Option<B256> {
+        if batch_number == 0 {
+            return Some(KECCAK256_EMPTY);
+        }
         let cf_batch_hashes = self.db.cf_handle(BATCH_HASHES).unwrap();
         self.db
             .get_cf(cf_batch_hashes, batch_number.to_be_bytes())
@@ -176,7 +180,7 @@ impl BatchStore {
     }
 
     /// Get blocks in a batch
-    pub fn get_blocks_in_batch(&self, batch_number: u64) -> Option<Range<BlockNumber>> {
+    pub fn get_blocks_in_batch(&self, batch_number: u64) -> Option<RangeInclusive<BlockNumber>> {
         let cf = self.db.cf_handle(BATCH_META)?;
         let bytes = self.db.get_cf(cf, batch_number.to_be_bytes()).ok()??;
         let (_, payload) = bincode_utils::deserialize_versioned(&bytes).ok()?;
@@ -213,6 +217,102 @@ mod batch_db_tests {
     }
 
     #[test]
+    fn test_batch_number_block() -> eyre::Result<()> {
+        // Create a temporary directory for the RocksDB instance
+        let dir = tempdir()?;
+        let db_path = PathBuf::from(dir.path());
+
+        // Initialize the BatchStore
+        let store = BatchStore::new(db_path).expect("Failed to initialize BatchStore");
+
+        {
+            let batch_number = 1;
+            let block_range = 1..=10;
+            let prev_batch_hash = None;
+            let block_metadata: Vec<BlockMetadata> = (block_range.clone())
+                .map(|h| BlockMetadata {
+                    height: h,
+                    block_hash: get_random_bytes32(),
+                    state_root: get_random_bytes32(),
+                })
+                .collect::<Vec<BlockMetadata>>();
+
+            store.seal_batch(
+                batch_number,
+                block_range.clone(),
+                prev_batch_hash,
+                block_metadata,
+            )?;
+        }
+
+        {
+            let batch_number = 2;
+            let block_range = 11..=20;
+            let prev_batch_hash = None;
+            let block_metadata: Vec<BlockMetadata> = (block_range.clone())
+                .map(|h| BlockMetadata {
+                    height: h,
+                    block_hash: get_random_bytes32(),
+                    state_root: get_random_bytes32(),
+                })
+                .collect::<Vec<BlockMetadata>>();
+
+            store.seal_batch(
+                batch_number,
+                block_range.clone(),
+                prev_batch_hash,
+                block_metadata,
+            )?;
+        }
+
+        {
+            let batch_number = 3;
+            let block_range = 21..=30;
+            let prev_batch_hash = None;
+            let block_metadata: Vec<BlockMetadata> = (block_range.clone())
+                .map(|h| BlockMetadata {
+                    height: h,
+                    block_hash: get_random_bytes32(),
+                    state_root: get_random_bytes32(),
+                })
+                .collect::<Vec<BlockMetadata>>();
+
+            store.seal_batch(
+                batch_number,
+                block_range.clone(),
+                prev_batch_hash,
+                block_metadata,
+            )?;
+        }
+
+        {
+            let batch_number_for_block = store.get_batch_number_for_block(1);
+            assert_eq!(batch_number_for_block, Some(1));
+
+            let batch_number_for_block = store.get_batch_number_for_block(10);
+            assert_eq!(batch_number_for_block, Some(1));
+        }
+
+        {
+            let batch_number_for_block = store.get_batch_number_for_block(11);
+            assert_eq!(batch_number_for_block, Some(2));
+
+            let batch_number_for_block = store.get_batch_number_for_block(20);
+            assert_eq!(batch_number_for_block, Some(2));
+        }
+
+        {
+            let batch_number_for_block = store.get_batch_number_for_block(21);
+            assert_eq!(batch_number_for_block, Some(3));
+
+            let batch_number_for_block = store.get_batch_number_for_block(30);
+            assert_eq!(batch_number_for_block, Some(3));
+        }
+
+        Ok(())
+    }
+
+    #[test]
     fn test_batch_store_operations() -> eyre::Result<()> {
         // Create a temporary directory for the RocksDB instance
         let dir = tempdir()?;
@@ -235,7 +335,7 @@ mod batch_db_tests {
 
         // Test sealing a batch
         let batch_number = 1;
-        let block_range = 1..10;
+        let block_range = 1..=10;
         let prev_batch_hash = None;
         let block_metadata: Vec<BlockMetadata> = (block_range.clone())
             .map(|h| BlockMetadata {

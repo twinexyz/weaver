@@ -1,5 +1,5 @@
 //! Add RPC Methods in twine for batch
-use std::ops::Range;
+use std::ops::RangeInclusive;
 
 use jsonrpsee::core::RpcResult;
 use jsonrpsee::proc_macros::rpc;
@@ -28,5 +28,5 @@ pub trait TwineBatchApi {
 
     /// Get all blocks in given batch
     #[method(name = "getBlocksInBatch")]
-    fn get_blocks_in_batch(&self, batch: u64) -> RpcResult<Option<Range<u64>>>;
+    fn get_blocks_in_batch(&self, batch: u64) -> RpcResult<Option<RangeInclusive<u64>>>;
 }

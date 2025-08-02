@@ -1,4 +1,4 @@
-use std::ops::Range;
+use std::ops::RangeInclusive;
 
 use jsonrpsee::core::RpcResult;
 use jsonrpsee::types::{ErrorCode, ErrorObject};
@@ -32,7 +32,7 @@ impl TwineBatchApiServer for TwineBatchRPC {
         Ok(self.db.get_batch_number_for_block(block_number))
     }
 
-    fn get_blocks_in_batch(&self, batch_number: u64) -> RpcResult<Option<Range<u64>>> {
+    fn get_blocks_in_batch(&self, batch_number: u64) -> RpcResult<Option<RangeInclusive<u64>>> {
         Ok(self.db.get_blocks_in_batch(batch_number))
     }
 

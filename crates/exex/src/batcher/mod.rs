@@ -144,7 +144,7 @@ where
 
         self.store.seal_batch(
             next_batch_number,
-            start..end,
+            start..=end,
             prev_batch_hash,
             ab.blocks_metadata,
         )?;
