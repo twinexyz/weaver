@@ -2,14 +2,29 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use reth::builder::components::BasicPayloadServiceBuilder;
-use reth::cli::Cli;
+use reth::chainspec::Chain;
+use reth::cli::{Cli, Commands};
 use reth_node_ethereum::node::EthereumAddOns;
 use reth_node_ethereum::EthereumNode;
 use twine_executor::executor_builder::TwineExecutorBuilder;
 use twine_executor::payload_builder::TwinePayloadBuilder;
 
+fn generate_batch_store_path(parsed: &Cli) -> PathBuf {
+    if let Commands::Node(node_command) = &parsed.command {
+        let chain_id = node_command.chain.genesis.config.chain_id;
+        let twine_chain = Chain::from_id(chain_id);
+        let node_data_dir = node_command.datadir.clone().resolve_datadir(twine_chain);
+        return node_data_dir.data_dir().join("batch_db");
+    }
+    PathBuf::new()
+}
+
 fn main() -> eyre::Result<()> {
     let parsed = Cli::parse_args();
+
+    #[cfg(feature = "twine-batch")]
+    let batch_store_path = generate_batch_store_path(&parsed);
+
     parsed.run(|builder, _| async move {
         let twine_added_ethereum_node = builder.with_types::<EthereumNode>().with_components(
             // A custom EthereumNode requires custom EVM environment in two places:
@@ -25,7 +40,7 @@ fn main() -> eyre::Result<()> {
         let mut twine_node = twine_added_ethereum_node.with_add_ons(EthereumAddOns::default());
 
         #[cfg(feature = "twine-batch")]
-        let store = Arc::new(twine_db_batch::BatchStore::new(PathBuf::from("./")).unwrap());
+        let store = Arc::new(twine_db_batch::BatchStore::new(batch_store_path).unwrap());
 
         #[cfg(feature = "twine-batch")]
         {

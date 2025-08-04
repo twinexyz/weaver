@@ -37,10 +37,7 @@ pub struct BatchStore {
 
 impl BatchStore {
     /// Initialize a new batch store
-    pub fn new(path: PathBuf) -> Result<Self, eyre::Error> {
-        let mut db_path = path;
-        db_path.push("rocksdb");
-
+    pub fn new(db_path: PathBuf) -> Result<Self, eyre::Error> {
         let mut opts = Options::default();
         opts.create_if_missing(true);
         opts.create_missing_column_families(true);
