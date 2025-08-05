@@ -118,7 +118,6 @@ impl BatchStore {
         prev_batch_hash: Option<B256>,
         block_metadata: Vec<BlockMetadata>,
     ) -> eyre::Result<()> {
-        println!("The block range while sealing: {:?}", block_range.clone());
         let end_block = block_range.end();
         let mut meta = BatchMeta {
             block_range: block_range.clone(),
