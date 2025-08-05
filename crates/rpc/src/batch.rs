@@ -1,5 +1,6 @@
-use std::ops::Range;
+use std::ops::RangeInclusive;
 
+use alloy_primitives::B256;
 use jsonrpsee::core::RpcResult;
 use jsonrpsee::types::{ErrorCode, ErrorObject};
 use jsonrpsee::RpcModule;
@@ -32,7 +33,7 @@ impl TwineBatchApiServer for TwineBatchRPC {
         Ok(self.db.get_batch_number_for_block(block_number))
     }
 
-    fn get_blocks_in_batch(&self, batch_number: u64) -> RpcResult<Option<Range<u64>>> {
+    fn get_blocks_in_batch(&self, batch_number: u64) -> RpcResult<Option<RangeInclusive<u64>>> {
         Ok(self.db.get_blocks_in_batch(batch_number))
     }
 
@@ -42,6 +43,17 @@ impl TwineBatchApiServer for TwineBatchRPC {
             Err(e) => RpcResult::Err(ErrorObject::owned(
                 ErrorCode::InternalError.code(),
                 format!("{:?}", e),
+                Some(0),
+            )),
+        }
+    }
+
+    fn get_batch_number(&self, batch_hash: B256) -> RpcResult<u64> {
+        match self.db.get_batch_number_for_hash(batch_hash) {
+            Some(b) => Ok(b),
+            None => RpcResult::Err(ErrorObject::owned(
+                ErrorCode::InternalError.code(),
+                format!("Failed to find block number"),
                 Some(0),
             )),
         }

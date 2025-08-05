@@ -8,6 +8,7 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+alloy-primitives.workspace = true
 eyre.workspace = true
 jsonrpsee.workspace = true
 twine-db-batch.workspace = true

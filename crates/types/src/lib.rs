@@ -1,6 +1,6 @@
 //! Twine Types to be used throughout the project
 
-use std::ops::Range;
+use std::ops::RangeInclusive;
 
 use alloy_primitives::{BlockNumber, Keccak256, B256, KECCAK256_EMPTY};
 use serde::{Deserialize, Serialize};
@@ -18,7 +18,7 @@ pub struct BlockMetadata {
 #[allow(missing_docs)]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct BatchMeta {
-    pub block_range: Range<BlockNumber>,
+    pub block_range: RangeInclusive<BlockNumber>,
     pub created_at: u64,
     pub prev_batch_hash: Option<B256>, // batch hash of previous block
     pub batch_hash: Option<B256>,      // batch hash of current block
