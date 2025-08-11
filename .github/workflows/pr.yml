@@ -4,6 +4,10 @@ on:
   repository_dispatch:
     types: [trigger_changes] # Custom event type
 
+env:
+  REPO: twine-solidity-contracts
+  ORG: ${{ github.repository_owner }}
+
 jobs:
   run_pipeline:
     runs-on: [self-hosted, linux, x64]
@@ -11,8 +15,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4.2.2
 
+      - name: Checkout twine-soladitiy-contracts repo
+        uses: actions/checkout@v4
+        with:
+          repository: $REPO
+          path: /tmp/twine-solidaty-contracts
+          token: ${{ secrets.GH_ACTION_PAT }}
+
       - name: Run EVM Scripts
-        run: bash scripts/generate_evm_contract_artifacts.sh
+        run: |
+          cd /tmp/twine-solidity-contracts
+          ./script/updateSp1Version.sh
+
+      - name: Ensure changes are updated
+        run: |
+          cat /tmp/twine-solidity-contracts/out/L1MessageQueue.sol/L1MessageQueue.json | jq -r .abi > crates/evm-contracts/res/L1MessageQueue.json
+          cat /tmp/twine-solidity-contracts/out/TwineChain.sol/TwineChain.json | jq -r .abi > crates/evm-contracts/res/TwineChain.json
+          cat /tmp/twine-solidity-contracts/out/L2TwineMessenger.sol/L2TwineMessenger.json | jq -r .abi > crates/evm-contracts/res/L2TwineMessenger.json
+          cat /tmp/twine-solidity-contracts/out/TwineSystemStorageContract.sol/TwineSystemStorageContract.json | jq -r .abi > crates/evm-contracts/res/TwineSystemStorageContract.json
 
       - name: Commit changes
         run: |
