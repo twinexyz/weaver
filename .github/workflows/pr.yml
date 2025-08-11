@@ -18,7 +18,7 @@ jobs:
       - name: Checkout twine-soladitiy-contracts repo
         uses: actions/checkout@v4
         with:
-          repository: $REPO
+          repository: $ORG/$REPO
           path: /tmp/twine-solidaty-contracts
           token: ${{ secrets.GH_ACTION_PAT }}
 
