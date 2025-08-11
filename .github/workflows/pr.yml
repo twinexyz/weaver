@@ -40,8 +40,10 @@ jobs:
           cat twine-solidity-contracts/out/TwineSystemStorageContract.sol/TwineSystemStorageContract.json | jq -r .abi > crates/evm-contracts/artifacts/TwineSystemStorageContract.json
 
       - name: Commit changes
+        id: commit
         run: |
           BRANCH_NAME="auto-update-$(date +%s)"
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
           git checkout -b "$BRANCH_NAME"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -64,7 +66,7 @@ jobs:
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
         with:
-          branch: ${{ github.ref_name }}
+          branch: ${{ steps.commit.outputs.branch_name }}
           delete-branch: true
           base: main
           title: "evm contract updates from workflow"
