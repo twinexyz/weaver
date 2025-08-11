@@ -9,6 +9,8 @@ on:
       - 'revert/8846199'
     tags:
       - '**'  # This will trigger on all tags
+    paths-ignore:
+      - '.github/workflows/**'
   pull_request:
 
 jobs:
