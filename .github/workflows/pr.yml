@@ -21,6 +21,7 @@ jobs:
           repository: $ORG/$REPO
           path: $REPO
           token: ${{ secrets.GH_ACTION_PAT  }}
+          ref: main
 
       - name: Run EVM Scripts
         run: |
