@@ -23,6 +23,12 @@ jobs:
           token: ${{ secrets.GH_ACTION_PAT  }}
           ref: main
 
+      - name: Install Foundry
+        run: |
+          curl -L https://foundry.paradigm.xyz | bash
+          export PATH="$PATH:/home/runner/.foundry/bin"
+          foundryup
+
       - name: Run EVM Scripts
         run: |
           cd twine-solidity-contracts
