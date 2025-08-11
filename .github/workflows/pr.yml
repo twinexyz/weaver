@@ -24,10 +24,7 @@ jobs:
           ref: main
 
       - name: Install Foundry
-        run: |
-          curl -L https://foundry.paradigm.xyz | bash
-          export PATH="$PATH:/home/runner/.foundry/bin"
-          foundryup
+        uses: foundry-rs/foundry-toolchain@v1.4.0
 
       - name: Run EVM Scripts
         run: |
