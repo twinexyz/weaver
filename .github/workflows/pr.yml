@@ -1,0 +1,52 @@
+name: PipelineTriggerFromTwineSolidityContracts
+
+on:
+  repository_dispatch:
+    types: [run-external-pipeline] # Custom event type
+
+jobs:
+  run_pipeline:
+    runs-on: [self-hosted, linux, x64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Run EVM Scripts
+        run: bash scripts/generate_evm_contract_artifacts.sh
+
+      - name: Commit changes
+        run: |
+          BRANCH_NAME="auto-update-$(date +%s)"
+          git checkout -b "$BRANCH_NAME"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "Automated update from workflow"
+          git push origin "$BRANCH_NAME"
+
+      - name: Get commit diff
+        id: diff
+        run: |
+          echo '```diff' > changes.txt
+          git diff HEAD~1 HEAD >> changes.txt || true
+          echo '```' >> changes.txt
+          # Store as output for PR body
+          CHANGES=$(cat changes.txt)
+          echo "changes<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.REPO_B_PAT }}
+          branch: ${{ github.ref_name }}
+          delete-branch: true
+          base: main
+          title: "evm contract updates from workflow"
+          body: |
+            This PR was automatically created by a workflow triggered from Repo A.
+
+            **Changes:**
+            ${{ steps.diff.outputs.changes }}
+          commit-message: "changes for evm contracts"
