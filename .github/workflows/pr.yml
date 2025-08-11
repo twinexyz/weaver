@@ -64,7 +64,6 @@ jobs:
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
         with:
-          token: ${{ secrets.REPO_B_PAT }}
           branch: ${{ github.ref_name }}
           delete-branch: true
           base: main
