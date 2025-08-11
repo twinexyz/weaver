@@ -3,7 +3,11 @@ name: pre-commit
 on:
   pull_request:
   push:
-    branches: [main]
+    branches:
+      - 'main'
+    paths-ignore:
+      - '.github/workflows/**'
+
 
 jobs:
   fmt-and-udeps:

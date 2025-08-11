@@ -3,7 +3,12 @@ name: test-harness
 on:
   pull_request:
   push:
-    branches: [main]
+    branches:
+      - 'main'
+    paths-ignore:
+      - '.github/workflows/**'
+
+
 
 jobs:
    test-harness:
