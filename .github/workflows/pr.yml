@@ -2,7 +2,7 @@ name: PipelineTriggerFromTwineSolidityContracts
 
 on:
   repository_dispatch:
-    types: [run-external-pipeline] # Custom event type
+    types: [trigger_changes] # Custom event type
 
 jobs:
   run_pipeline:
