@@ -6,14 +6,15 @@ on:
       - 'main'
       - 'staging'
       - 'develop'
-      - 'revert/8846199'
     tags:
       - '**'  # This will trigger on all tags
     paths-ignore:
       - '.github/workflows/**'
   pull_request:
-    branches-ignore:
-      - 'auto-update-*'
+    branches:
+      - 'main'
+      - 'staging'
+      - 'develop'
 
 jobs:
   pre-notify:
