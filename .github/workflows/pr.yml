@@ -39,17 +39,17 @@ jobs:
           cat twine-solidity-contracts/out/L2TwineMessenger.sol/L2TwineMessenger.json | jq -r .abi > crates/evm-contracts/artifacts/L2TwineMessenger.json
           cat twine-solidity-contracts/out/TwineSystemStorageContract.sol/TwineSystemStorageContract.json | jq -r .abi > crates/evm-contracts/artifacts/TwineSystemStorageContract.json
 
-      - name: Commit changes
-        id: commit
-        run: |
-          BRANCH_NAME="auto-update-$(date +%s)"
-          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
-          git checkout -b "$BRANCH_NAME"
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .
-          git commit -m "Automated update from workflow"
-          git push origin "$BRANCH_NAME"
+      #- name: Commit changes
+      #  id: commit
+      #  run: |
+      #    BRANCH_NAME="auto-update-$(date +%s)"
+      #    echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+      #    git checkout -b "$BRANCH_NAME"
+      #    git config user.name "github-actions[bot]"
+      #    git config user.email "github-actions[bot]@users.noreply.github.com"
+      #    git add .
+      #    git commit -m "Automated update from workflow"
+      #    git push origin "$BRANCH_NAME"
 
       #- name: Get commit diff
       #  id: diff
