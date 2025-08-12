@@ -34,15 +34,37 @@ jobs:
         run: |
           BRANCH_NAME="auto-update-$(date +%s)"
           echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          CHANGED=false
+
           cd twine-solidity-contracts
           ./script/updateSp1Version.sh
           cd ../
-          cat twine-solidity-contracts/out/L1MessageQueue.sol/L1MessageQueue.json | jq -r .abi > crates/evm-contracts/artifacts/L1MessageQueue.json
-          cat twine-solidity-contracts/out/TwineChain.sol/TwineChain.json | jq -r .abi > crates/evm-contracts/artifacts/TwineChain.json
-          cat twine-solidity-contracts/out/L2TwineMessenger.sol/L2TwineMessenger.json | jq -r .abi > crates/evm-contracts/artifacts/L2TwineMessenger.json
-          cat twine-solidity-contracts/out/TwineSystemStorageContract.sol/TwineSystemStorageContract.json | jq -r .abi > crates/evm-contracts/artifacts/TwineSystemStorageContract.json
-          #cleanup
+
+          update_if_changed() {
+            local source="$1"
+            local dest="$2"
+            tmp_file=$(mktemp)
+            jq -r .abi "$source" > "$tmp_file"
+
+            if ! cmp -s "$tmp_file" "$dest"; then
+              echo "Updating $dest"
+              mv "$tmp_file" "$dest"
+              CHANGED=true
+            else
+              echo "No changes for $dest"
+              rm "$tmp_file"
+            fi
+          }
+
+          update_if_changed twine-solidity-contracts/out/L1MessageQueue.sol/L1MessageQueue.json crates/evm-contracts/artifacts/L1MessageQueue.json
+          update_if_changed twine-solidity-contracts/out/TwineChain.sol/TwineChain.json crates/evm-contracts/artifacts/TwineChain.json
+          update_if_changed twine-solidity-contracts/out/L2TwineMessenger.sol/L2TwineMessenger.json crates/evm-contracts/artifacts/L2TwineMessenger.json
+          update_if_changed twine-solidity-contracts/out/TwineSystemStorageContract.sol/TwineSystemStorageContract.json crates/evm-contracts/artifacts/TwineSystemStorageContract.json
+
+          # cleanup
           rm -rf twine-solidity-contracts
+
+          echo "changed=$CHANGED" >> $GITHUB_OUTPUT
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
