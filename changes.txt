@@ -1,0 +1,535 @@
+```diff
+diff --git a/crates/evm-contracts/artifacts/L2TwineMessenger.json b/crates/evm-contracts/artifacts/L2TwineMessenger.json
+index f95ac81..eb1189e 100644
+--- a/crates/evm-contracts/artifacts/L2TwineMessenger.json
++++ b/crates/evm-contracts/artifacts/L2TwineMessenger.json
+@@ -6,31 +6,20 @@
+   },
+   {
+     "type": "function",
+-    "name": "blockReceiptRoots",
+-    "inputs": [
+-      {
+-        "name": "",
+-        "type": "uint256",
+-        "internalType": "uint256"
+-      },
+-      {
+-        "name": "",
+-        "type": "uint256",
+-        "internalType": "uint256"
+-      }
+-    ],
++    "name": "bridgingPrecompileAddress",
++    "inputs": [],
+     "outputs": [
+       {
+         "name": "",
+-        "type": "bytes32",
+-        "internalType": "bytes32"
++        "type": "address",
++        "internalType": "address"
+       }
+     ],
+     "stateMutability": "view"
+   },
+   {
+     "type": "function",
+-    "name": "bridgingPrecompileAddress",
++    "name": "consensusPrecompileAddress",
+     "inputs": [],
+     "outputs": [
+       {
+@@ -43,8 +32,14 @@
+   },
+   {
+     "type": "function",
+-    "name": "consensusPrecompileAddress",
+-    "inputs": [],
++    "name": "counterpartMessenger",
++    "inputs": [
++      {
++        "name": "",
++        "type": "uint256",
++        "internalType": "uint256"
++      }
++    ],
+     "outputs": [
+       {
+         "name": "",
+@@ -123,12 +118,12 @@
+     "name": "initialize",
+     "inputs": [
+       {
+-        "name": "ethChaindId",
++        "name": "chaindId",
+         "type": "uint256",
+         "internalType": "uint256"
+       },
+       {
+-        "name": "ethCounterpart",
++        "name": "counterpartMessenger",
+         "type": "address",
+         "internalType": "address"
+       },
+@@ -136,6 +131,11 @@
+         "name": "roleManager",
+         "type": "address",
+         "internalType": "address"
++      },
++      {
++        "name": "msgExecutorAddress",
++        "type": "address",
++        "internalType": "address"
+       }
+     ],
+     "outputs": [],
+@@ -143,37 +143,59 @@
+   },
+   {
+     "type": "function",
+-    "name": "l1MessageExecutedCount",
+-    "inputs": [
++    "name": "messageCount",
++    "inputs": [],
++    "outputs": [
+       {
+         "name": "",
+         "type": "uint256",
+         "internalType": "uint256"
+-      },
+-      {
+-        "name": "",
+-        "type": "uint8",
+-        "internalType": "enum IL2TwineMessenger.L1TxnType"
+       }
+     ],
+-    "outputs": [
++    "stateMutability": "view"
++  },
++  {
++    "type": "function",
++    "name": "mintAndCall",
++    "inputs": [
+       {
+-        "name": "",
++        "name": "chainType",
++        "type": "uint8",
++        "internalType": "enum IL2TwineMessenger.ChainType"
++      },
++      {
++        "name": "token",
++        "type": "address",
++        "internalType": "address"
++      },
++      {
++        "name": "to",
++        "type": "address",
++        "internalType": "address"
++      },
++      {
++        "name": "amount",
+         "type": "uint256",
+         "internalType": "uint256"
++      },
++      {
++        "name": "contractCallData",
++        "type": "bytes",
++        "internalType": "bytes"
+       }
+     ],
+-    "stateMutability": "view"
++    "outputs": [],
++    "stateMutability": "nonpayable"
+   },
+   {
+     "type": "function",
+-    "name": "messageCount",
++    "name": "msgExecutor",
+     "inputs": [],
+     "outputs": [
+       {
+         "name": "",
+-        "type": "uint256",
+-        "internalType": "uint256"
++        "type": "address",
++        "internalType": "address"
+       }
+     ],
+     "stateMutability": "view"
+@@ -270,6 +292,19 @@
+     "outputs": [],
+     "stateMutability": "nonpayable"
+   },
++  {
++    "type": "function",
++    "name": "setMsgExecutorAddress",
++    "inputs": [
++      {
++        "name": "msgExecutorAddress",
++        "type": "address",
++        "internalType": "address"
++      }
++    ],
++    "outputs": [],
++    "stateMutability": "nonpayable"
++  },
+   {
+     "type": "function",
+     "name": "setPrecompileAddress",
+@@ -314,6 +349,42 @@
+     "outputs": [],
+     "stateMutability": "nonpayable"
+   },
++  {
++    "type": "function",
++    "name": "setSystemStorageContract",
++    "inputs": [
++      {
++        "name": "systemStorageContractAddress",
++        "type": "address",
++        "internalType": "address"
++      }
++    ],
++    "outputs": [],
++    "stateMutability": "nonpayable"
++  },
++  {
++    "type": "function",
++    "name": "setTokenGateWay",
++    "inputs": [
++      {
++        "name": "chainId",
++        "type": "uint256",
++        "internalType": "uint256"
++      },
++      {
++        "name": "l2Token",
++        "type": "address",
++        "internalType": "address"
++      },
++      {
++        "name": "gateway",
++        "type": "address",
++        "internalType": "address"
++      }
++    ],
++    "outputs": [],
++    "stateMutability": "nonpayable"
++  },
+   {
+     "type": "function",
+     "name": "setVkeys",
+@@ -373,7 +444,20 @@
+   },
+   {
+     "type": "function",
+-    "name": "tokenCounterpartGateWay",
++    "name": "systemStorageContract",
++    "inputs": [],
++    "outputs": [
++      {
++        "name": "",
++        "type": "address",
++        "internalType": "address"
++      }
++    ],
++    "stateMutability": "view"
++  },
++  {
++    "type": "function",
++    "name": "tokenGateWay",
+     "inputs": [
+       {
+         "name": "",
+@@ -382,15 +466,15 @@
+       },
+       {
+         "name": "",
+-        "type": "string",
+-        "internalType": "string"
++        "type": "address",
++        "internalType": "address"
+       }
+     ],
+     "outputs": [
+       {
+         "name": "",
+-        "type": "string",
+-        "internalType": "string"
++        "type": "address",
++        "internalType": "address"
+       }
+     ],
+     "stateMutability": "view"
+@@ -452,26 +536,44 @@
+   },
+   {
+     "type": "event",
+-    "name": "EthereumTransactionsHandled",
++    "name": "Initialized",
+     "inputs": [
+       {
+-        "name": "transactionOutput",
+-        "type": "bytes",
++        "name": "version",
++        "type": "uint64",
+         "indexed": false,
+-        "internalType": "bytes"
++        "internalType": "uint64"
+       }
+     ],
+     "anonymous": false
+   },
+   {
+     "type": "event",
+-    "name": "Initialized",
++    "name": "L1TransactionsHandled",
+     "inputs": [
+       {
+-        "name": "version",
+-        "type": "uint64",
++        "name": "chainId",
++        "type": "uint256",
+         "indexed": false,
+-        "internalType": "uint64"
++        "internalType": "uint256"
++      },
++      {
++        "name": "status",
++        "type": "uint8",
++        "indexed": false,
++        "internalType": "uint8"
++      },
++      {
++        "name": "nonce",
++        "type": "uint256",
++        "indexed": false,
++        "internalType": "uint256"
++      },
++      {
++        "name": "transactionOutput",
++        "type": "bytes",
++        "indexed": false,
++        "internalType": "bytes"
+       }
+     ],
+     "anonymous": false
+@@ -589,10 +691,10 @@
+   },
+   {
+     "type": "event",
+-    "name": "SolanaTransactionsHandled",
++    "name": "TransactionFailed",
+     "inputs": [
+       {
+-        "name": "transactionOutput",
++        "name": "reason",
+         "type": "bytes",
+         "indexed": false,
+         "internalType": "bytes"
+diff --git a/crates/evm-contracts/artifacts/TwineChain.json b/crates/evm-contracts/artifacts/TwineChain.json
+index 860ca32..4e384b4 100644
+--- a/crates/evm-contracts/artifacts/TwineChain.json
++++ b/crates/evm-contracts/artifacts/TwineChain.json
+@@ -551,6 +551,19 @@
+     ],
+     "stateMutability": "view"
+   },
++  {
++    "type": "function",
++    "name": "isGenesisBlockCommitted",
++    "inputs": [],
++    "outputs": [
++      {
++        "name": "",
++        "type": "bool",
++        "internalType": "bool"
++      }
++    ],
++    "stateMutability": "view"
++  },
+   {
+     "type": "function",
+     "name": "isWithdrawExecuted",
+@@ -667,6 +680,19 @@
+     ],
+     "stateMutability": "view"
+   },
++  {
++    "type": "function",
++    "name": "roleManager",
++    "inputs": [],
++    "outputs": [
++      {
++        "name": "",
++        "type": "address",
++        "internalType": "address"
++      }
++    ],
++    "stateMutability": "view"
++  },
+   {
+     "type": "function",
+     "name": "setChainId",
+diff --git a/crates/evm-contracts/artifacts/TwineSystemStorageContract.json b/crates/evm-contracts/artifacts/TwineSystemStorageContract.json
+index 29c9e50..e69de29 100644
+--- a/crates/evm-contracts/artifacts/TwineSystemStorageContract.json
++++ b/crates/evm-contracts/artifacts/TwineSystemStorageContract.json
+@@ -1,148 +0,0 @@
+-[
+-    {
+-        "inputs": [],
+-        "stateMutability": "nonpayable",
+-        "type": "constructor"
+-    },
+-    {
+-        "inputs": [],
+-        "name": "admin",
+-        "outputs": [
+-            {
+-                "internalType": "address",
+-                "name": "",
+-                "type": "address"
+-            }
+-        ],
+-        "stateMutability": "view",
+-        "type": "function"
+-    },
+-    {
+-        "inputs": [
+-            {
+-                "internalType": "uint256",
+-                "name": "",
+-                "type": "uint256"
+-            },
+-            {
+-                "internalType": "uint256",
+-                "name": "",
+-                "type": "uint256"
+-            }
+-        ],
+-        "name": "blockReceiptRoots",
+-        "outputs": [
+-            {
+-                "internalType": "bytes32",
+-                "name": "",
+-                "type": "bytes32"
+-            }
+-        ],
+-        "stateMutability": "view",
+-        "type": "function"
+-    },
+-    {
+-        "inputs": [
+-            {
+-                "internalType": "uint256",
+-                "name": "_chainId",
+-                "type": "uint256"
+-            },
+-            {
+-                "internalType": "enum ITwineSystemStorageContract.L1TxnType",
+-                "name": "_txnType",
+-                "type": "uint8"
+-            }
+-        ],
+-        "name": "increaseNonce",
+-        "outputs": [],
+-        "stateMutability": "nonpayable",
+-        "type": "function"
+-    },
+-    {
+-        "inputs": [
+-            {
+-                "internalType": "uint256",
+-                "name": "",
+-                "type": "uint256"
+-            },
+-            {
+-                "internalType": "enum ITwineSystemStorageContract.L1TxnType",
+-                "name": "",
+-                "type": "uint8"
+-            }
+-        ],
+-        "name": "l1MessageExecutedCount",
+-        "outputs": [
+-            {
+-                "internalType": "uint256",
+-                "name": "",
+-                "type": "uint256"
+-            }
+-        ],
+-        "stateMutability": "view",
+-        "type": "function"
+-    },
+-    {
+-        "inputs": [
+-            {
+-                "internalType": "uint256",
+-                "name": "_chainId",
+-                "type": "uint256"
+-            },
+-            {
+-                "internalType": "uint256",
+-                "name": "_height",
+-                "type": "uint256"
+-            },
+-            {
+-                "internalType": "bytes32",
+-                "name": "_receiptRoot",
+-                "type": "bytes32"
+-            }
+-        ],
+-        "name": "setBlockReceipts",
+-        "outputs": [],
+-        "stateMutability": "nonpayable",
+-        "type": "function"
+-    },
+-    {
+-        "inputs": [
+-            {
+-                "internalType": "address",
+-                "name": "_twineMessenger",
+-                "type": "address"
+-            }
+-        ],
+-        "name": "setInitialTwineMessenger",
+-        "outputs": [],
+-        "stateMutability": "nonpayable",
+-        "type": "function"
+-    },
+-    {
+-        "inputs": [
+-            {
+-                "internalType": "address",
+-                "name": "_twineMessenger",
+-                "type": "address"
+-            }
+-        ],
+-        "name": "setTwineMessenger",
+-        "outputs": [],
+-        "stateMutability": "nonpayable",
+-        "type": "function"
+-    },
+-    {
+-        "inputs": [],
+-        "name": "twineMessenger",
+-        "outputs": [
+-            {
+-                "internalType": "address",
+-                "name": "",
+-                "type": "address"
+-            }
+-        ],
+-        "stateMutability": "view",
+-        "type": "function"
+-    }
+-]
+diff --git a/twine-solidity-contracts b/twine-solidity-contracts
+new file mode 160000
+index 0000000..5f5979f
+--- /dev/null
++++ b/twine-solidity-contracts
+@@ -0,0 +1 @@
++Subproject commit 5f5979f19ddb4a584662fb0c4b470b220a3e7b1f
+```
