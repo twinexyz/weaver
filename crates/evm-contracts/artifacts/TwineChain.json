@@ -553,6 +553,19 @@
   },
   {
     "type": "function",
+    "name": "isGenesisBlockCommitted",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "isWithdrawExecuted",
     "inputs": [
       {
@@ -663,6 +676,19 @@
         "name": "",
         "type": "bytes",
         "internalType": "bytes"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "roleManager",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
       }
     ],
     "stateMutability": "view"
