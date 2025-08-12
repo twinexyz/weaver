@@ -51,17 +51,17 @@ jobs:
           git commit -m "Automated update from workflow"
           git push origin "$BRANCH_NAME"
 
-      - name: Get commit diff
-        id: diff
-        run: |
-          echo '```diff' > changes.txt
-          git diff HEAD~1 HEAD >> changes.txt || true
-          echo '```' >> changes.txt
-          # Store as output for PR body
-          CHANGES=$(cat changes.txt)
-          echo "changes<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+      #- name: Get commit diff
+      #  id: diff
+      #  run: |
+      #    echo '```diff' > changes.txt
+      #    git diff HEAD~1 HEAD >> changes.txt || true
+      #    echo '```' >> changes.txt
+      #    # Store as output for PR body
+      #    CHANGES=$(cat changes.txt)
+      #    echo "changes<<EOF" >> $GITHUB_OUTPUT
+      #    echo "$CHANGES" >> $GITHUB_OUTPUT
+      #    echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
