@@ -4,4 +4,4 @@
 /// subscribes to batches of block produced by twine node
 pub mod batch_subscriber;
 pub mod batch_transform_request;
-mod config;
+pub mod config;

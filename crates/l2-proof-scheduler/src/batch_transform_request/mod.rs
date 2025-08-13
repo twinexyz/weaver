@@ -29,10 +29,10 @@ impl TransformRequest for TwineBatchTransformRequest {
     type Output = TwineBatchTransformOutput;
 
     /// Returns the unique identifier for the transformation request.
-    fn request_id(&self) -> Self::Identifier { self.identifier }
+    fn request_id(&self) -> Self::Identifier { self.identifier.clone() }
 
     /// Returns the input for the transformation request.
-    fn input(&self) -> &Self::Input { self.transform_input }
+    fn input(&self) -> &Self::Input { &self.transform_input }
 
     /// Given the TransformRequest is the latest in the stream,
     /// what dynamic configs need to be updated, Key is always a
