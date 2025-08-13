@@ -19,6 +19,7 @@ members = [
   "crates/exex",
   "crates/integration-tests",
   "crates/l1-utils",
+  "crates/l2-proof-scheduler",
   "crates/precompiles/l1-consensus-verifier",
   "crates/precompiles/l1-transactions",
   "crates/precompiles/zstd",
@@ -46,6 +47,7 @@ alloy-trie = { version = "0.8.1", default-features = false }
 
 bls12_381 = { git = "https://github.com/sp1-patches/bls12_381", branch = "n/release-latest", features = ["experimental"], package = "sp1_bls12_381" }
 
+async-trait = "0.1.88"
 env_logger = "0.11.7"
 ethereum_ssz = "0.9.0"
 ethereum_ssz_derive = "0.9.0"
@@ -121,12 +123,16 @@ twine-integration-tests = { path = "crates/integration-tests" }
 twine-l1-consensus-verifier-precompile = { path = "crates/precompiles/l1-consensus-verifier" }
 twine-l1-transactions-precompile = { path = "crates/precompiles/l1-transactions" }
 twine-l1-utils = { path = "crates/l1-utils" }
+twine-l2-proof-scheduler = { path = "crates/l2-proof-scheduler" }
 twine-rpc = { path = "crates/rpc" }
 twine-solana-consensus-prover-lib = { path = "crates/solana-consensus-prover" }
 twine-solana-sdk = { path = "crates/solana-sdk" }
 twine-types = { path = "crates/types" }
 twine-utils = { path = "crates/utils" }
 twine-zstd-precompile = { path = "crates/precompiles/zstd" }
+
+# twine dependencies
+orchestrator-rs = { git = "https://github.com/twinexyz/orchestrator-rs.git" }
 
 [patch.crates-io]
 # The following is required since we would like to remove
