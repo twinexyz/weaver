@@ -1,0 +1,17 @@
+[package]
+name = "twine-l2-proof-scheduler"
+version.workspace = true
+edition.workspace = true
+exclude.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+async-trait.workspace = true
+orchestrator-rs.workspace = true
+thiserror.workspace = true
+twine-rpc.workspace = true
+
+[lints]
+workspace = true
