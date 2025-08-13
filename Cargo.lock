@@ -11641,8 +11641,25 @@ name = "twine-l2-proof-scheduler"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "log",
  "orchestrator-rs",
+ "serde_json",
  "thiserror 2.0.12",
+ "tokio",
+ "twine-rpc",
+]
+
+[[package]]
+name = "twine-l2-proof-scheduler-bin"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "env_logger",
+ "log",
+ "orchestrator-rs",
+ "serde_json",
+ "tokio",
+ "twine-l2-proof-scheduler",
  "twine-rpc",
 ]
 

@@ -10,7 +10,7 @@ rust-version = "1.85"
 members = [
   "bin/devtest",
   "bin/node",
-
+  "bin/twine-l2-proof-scheduler-bin",
   "crates/constants",
   "crates/db/batch",
   "crates/ethereum-consensus-prover",
