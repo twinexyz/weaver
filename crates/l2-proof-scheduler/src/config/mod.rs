@@ -4,15 +4,19 @@ use async_trait::async_trait;
 use orchestrator_rs::config::Config;
 use thiserror::Error;
 
+/// Configuration for the Scheduler
 #[derive(Debug, Clone)]
 pub struct TwineProofSchedulerConfig {
     static_config: HashMap<String, String>,
 }
 
+/// Configuration error
 #[derive(Debug, Clone, Error)]
 pub enum TwineProofSchedulerConfigError {
+    /// config associated to a `key` not found
     #[error("{0}")]
     KeyNotFound(String),
+    /// generic error
     #[error("{0}")]
     Other(String),
 }
@@ -34,14 +38,18 @@ impl Config for TwineProofSchedulerConfig {
     }
 
     /// Sets a static value in the configuration.
-    async fn set(&mut self, key: Self::KeyType, value: Self::ValueType) -> Result<(), Self::Error> {
+    async fn set(
+        &mut self,
+        _key: Self::KeyType,
+        _value: Self::ValueType,
+    ) -> Result<(), Self::Error> {
         todo!()
     }
 
     /// Set a bulk of static values in the configuration.
     async fn set_bulk(
         &mut self,
-        values: Vec<(Self::KeyType, Self::ValueType)>,
+        _values: Vec<(Self::KeyType, Self::ValueType)>,
     ) -> Result<(), Self::Error> {
         todo!()
     }
