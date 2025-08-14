@@ -5,16 +5,16 @@ use async_trait::async_trait;
 use log::error as log_error;
 use orchestrator_rs::config::Config;
 use orchestrator_rs::emitter::emitter::{EmissionState, Emitter};
-use thiserror::Error;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::Mutex;
 use tokio::time::{self, Interval};
 use twine_rpc::client::BatchClient as TwineBatchClient;
 
-use crate::batch_transform_request::{
+use crate::batch_transform::transform_request::{
     TwineBatchTransformInput, TwineBatchTransformRequest, TwineBatchTransformRequestID,
 };
 use crate::config::TwineProofSchedulerConfig;
+use crate::error::TwineProofSchedulerError;
 
 /// Maximum waiting time while retrying failed rpc queries
 pub const MAX_RPC_RETRY_INTERVAL: u64 = 60;
@@ -47,21 +47,10 @@ struct Backoff {
     retry: u64,
 }
 
-/// Error associated with `TwineBatchSubscriber`
-#[derive(Debug, Clone, Error)]
-pub enum TwineBatchSubscriberError {
-    /// Exit emmitter loop
-    #[error("emitter loop exit")]
-    LoopExit,
-    /// Generic error
-    #[error("{0}")]
-    Other(String),
-}
-
 #[async_trait]
 impl Emitter for TwineBatchSubscriber {
     type Config = TwineProofSchedulerConfig;
-    type Error = TwineBatchSubscriberError;
+    type Error = TwineProofSchedulerError;
     type TransformRequest = TwineBatchTransformRequest;
 
     async fn new(
@@ -76,17 +65,17 @@ impl Emitter for TwineBatchSubscriber {
             .await
             .get("batch_subscriber.twine_rpc_url".to_string())
             .await
-            .map_err(|e| TwineBatchSubscriberError::Other(format!("{e}")))?;
+            .map_err(|e| TwineProofSchedulerError::KeyNotFound(format!("{e}")))?;
 
         let start_block = init_config
             .lock()
             .await
             .get("batch_subscriber.start_block".to_string())
             .await
-            .map_err(|e| TwineBatchSubscriberError::Other(e.to_string()))?;
+            .map_err(|e| TwineProofSchedulerError::KeyNotFound(format!("{e}")))?;
         let start_block: u64 = start_block
             .parse()
-            .map_err(|e| TwineBatchSubscriberError::Other(format!("{e}")))?;
+            .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
 
         let twine_client = TwineBatchClient::new(&twine_rpc_url);
 
@@ -112,7 +101,7 @@ impl Emitter for TwineBatchSubscriber {
             .twine_client
             .get_batch_number_for_block(self.start_block)
             .await
-            .map_err(|e| TwineBatchSubscriberError::Other(format!("{e}")))?;
+            .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
 
         self.batch = current_batch;
 
@@ -165,12 +154,12 @@ impl Emitter for TwineBatchSubscriber {
                                 },
                             })
                             .await
-                            .map_err(|e| TwineBatchSubscriberError::Other(format!("{e}")))?;
+                            .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
                     self.next_batch();
                 }
             }
         }
-        Err(TwineBatchSubscriberError::LoopExit)
+        Err(TwineProofSchedulerError::LoopExit("emitter".to_string()))
     }
 }
 
