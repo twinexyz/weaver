@@ -2,11 +2,13 @@
 
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::time::Duration;
 
 use env_logger;
 use orchestrator_rs::config::Config;
-use orchestrator_rs::emitter::emitter::Emitter;
+use orchestrator_rs::emitter::emitter::{EmissionState, Emitter};
 use tokio::sync::{mpsc, Mutex};
+use tokio::time;
 use twine_l2_proof_scheduler::batch_subscriber::TwineBatchSubscriber;
 use twine_l2_proof_scheduler::config::TwineProofSchedulerConfig;
 
@@ -18,7 +20,10 @@ async fn main() {
         "batch_subscriber.twine_rpc_url".to_string(),
         "http://127.0.0.1:8545".to_string(),
     );
-    config.insert("batch_subscriber.start_block".to_string(), "1".to_string());
+    config.insert(
+        "batch_subscriber.start_block".to_string(),
+        "4000".to_string(),
+    );
 
     let config = serde_json::to_string(&config).unwrap();
 
@@ -33,13 +38,16 @@ async fn main() {
             .unwrap();
     let mut emitter_loop_job =
         tokio::spawn(async move { twine_batch_subscriber.emitter_loop().await });
-
+    let mut emission_state_ticker = time::interval(Duration::from_secs(15));
     loop {
         tokio::select! {
             Some(transform_request) = receive_channel.recv() => {
                 println!("{:?}", transform_request)
             }
             _ = &mut emitter_loop_job => {},
+            _ = emission_state_ticker.tick() => {
+                _snd_channel.send(EmissionState::Operational).await.unwrap();
+            }
         }
     }
 }

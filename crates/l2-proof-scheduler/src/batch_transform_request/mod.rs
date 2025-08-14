@@ -1,23 +1,38 @@
 use orchestrator_rs::transform::TransformRequest;
 
+/// Unique Identifier that associates every transform request
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct TwineBatchTransformRequestID {
+    /// Sequential Identifier for Transform Request
     pub identifier: u64,
 }
 
+/// TransformRequestInput
+/// Converts this transform request input to output by doing
+/// operations on the input
+/// eg. In this case this input is taken by the worker and
+/// execution proof for the batch is calculated
 #[derive(Debug, Clone)]
 pub struct TwineBatchTransformInput {
+    /// Batch number of bundle of blocks
     pub batch_number: u64,
+    /// first block in the batch
     pub start_block: u64,
+    /// last block in the batch
     pub end_block: u64,
 }
 
+/// Output
 #[derive(Debug, Clone)]
 pub struct TwineBatchTransformOutput {}
 
+/// Transform Request is the bundle of transform request id
+/// and input which is converted to output by the workers
 #[derive(Debug, Clone)]
 pub struct TwineBatchTransformRequest {
+    /// uniuqe id of the request
     pub identifier: TwineBatchTransformRequestID,
+    /// input
     pub transform_input: TwineBatchTransformInput,
 }
 

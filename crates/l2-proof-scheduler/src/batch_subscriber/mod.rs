@@ -50,6 +50,9 @@ struct Backoff {
 /// Error associated with `TwineBatchSubscriber`
 #[derive(Debug, Clone, Error)]
 pub enum TwineBatchSubscriberError {
+    /// Exit emmitter loop
+    #[error("emitter loop exit")]
+    LoopExit,
     /// Generic error
     #[error("{0}")]
     Other(String),
@@ -116,16 +119,24 @@ impl Emitter for TwineBatchSubscriber {
         loop {
             tokio::select! {
                 Some(emission_state) = self.emission_state.recv() => {
-                    println!("received emission state {:?}", emission_state);
+                    match emission_state {
+                        EmissionState::Operational => {},
+                        EmissionState::Halt => {
+                            // TODO: greacefully handle any required actions
+                            break;
+                        }
+                    }
                 }
                 block_range = self.twine_client.get_blocks_in_batch(self.batch) => {
                     let (start_block, end_block) = match block_range {
                        Ok(blocks_in_batch) => {
-                            let blocks: Vec<u64> = blocks_in_batch.collect();
+                            let mut blocks = blocks_in_batch.into_iter();
+                            let start_block = blocks.next().unwrap_or_default();
+                            let end_block = blocks.last().unwrap_or(start_block);
                             self.backoff.reset_wait_and_backoff();
                             (
-                                blocks.first().unwrap().to_owned(),
-                                blocks.last().unwrap().to_owned(),
+                                start_block,
+                                end_block,
                             )
                         }
                         Err(e) => {
@@ -159,6 +170,7 @@ impl Emitter for TwineBatchSubscriber {
                 }
             }
         }
+        Err(TwineBatchSubscriberError::LoopExit)
     }
 }
 
