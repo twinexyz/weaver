@@ -2,7 +2,8 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 use orchestrator_rs::config::Config;
-use thiserror::Error;
+
+use crate::error::TwineProofSchedulerError;
 
 /// Configuration for the Scheduler
 #[derive(Debug, Clone)]
@@ -10,20 +11,9 @@ pub struct TwineProofSchedulerConfig {
     static_config: HashMap<String, String>,
 }
 
-/// Configuration error
-#[derive(Debug, Clone, Error)]
-pub enum TwineProofSchedulerConfigError {
-    /// config associated to a `key` not found
-    #[error("{0}")]
-    KeyNotFound(String),
-    /// generic error
-    #[error("{0}")]
-    Other(String),
-}
-
 #[async_trait]
 impl Config for TwineProofSchedulerConfig {
-    type Error = TwineProofSchedulerConfigError;
+    type Error = TwineProofSchedulerError;
     type KeyType = String;
     type StaticConfigHandle = String;
     type ValueType = String;
@@ -33,7 +23,7 @@ impl Config for TwineProofSchedulerConfig {
     where
         Self: Sized, {
         let static_config = serde_json::from_str(&handle)
-            .map_err(|e| TwineProofSchedulerConfigError::Other(format!("{e}")))?;
+            .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
         Ok(Self { static_config })
     }
 
@@ -59,7 +49,7 @@ impl Config for TwineProofSchedulerConfig {
         let value = self
             .static_config
             .get(&key)
-            .ok_or(TwineProofSchedulerConfigError::KeyNotFound(key))?;
+            .ok_or(TwineProofSchedulerError::KeyNotFound(key))?;
         Ok(value.to_owned())
     }
 }
