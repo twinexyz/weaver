@@ -1,5 +1,9 @@
 use orchestrator_rs::transform::TransformRequest;
 
+use crate::batch_transform::transform_attempt::{
+    TwineBatchTransformCallCtx, TwineBatchTransformReturnType,
+};
+
 /// Unique Identifier that associates every transform request
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct TwineBatchTransformRequestID {
@@ -34,6 +38,8 @@ pub struct TwineBatchTransformRequest {
     pub identifier: TwineBatchTransformRequestID,
     /// input
     pub transform_input: TwineBatchTransformInput,
+    /// call context
+    pub call_context: TwineBatchTransformCallCtx,
 }
 
 impl TransformRequest for TwineBatchTransformRequest {
@@ -41,7 +47,7 @@ impl TransformRequest for TwineBatchTransformRequest {
     /// The type of the input for the transformation.
     type Input = TwineBatchTransformInput;
     /// The type of the output expected after the transformation.
-    type Output = TwineBatchTransformOutput;
+    type Output = TwineBatchTransformReturnType;
 
     /// Returns the unique identifier for the transformation request.
     fn request_id(&self) -> Self::Identifier { self.identifier.clone() }

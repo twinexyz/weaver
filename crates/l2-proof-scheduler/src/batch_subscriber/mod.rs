@@ -10,6 +10,7 @@ use tokio::sync::Mutex;
 use tokio::time::{self, Interval};
 use twine_rpc::client::BatchClient as TwineBatchClient;
 
+use crate::batch_transform::transform_attempt::TwineBatchTransformCallCtx;
 use crate::batch_transform::transform_request::{
     TwineBatchTransformInput, TwineBatchTransformRequest, TwineBatchTransformRequestID,
 };
@@ -152,6 +153,9 @@ impl Emitter for TwineBatchSubscriber {
                                     start_block,
                                     end_block,
                                 },
+                                call_context: TwineBatchTransformCallCtx {
+                                    twine_node_rpc: "".to_string() // TODO: Make this
+                                }
                             })
                             .await
                             .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;

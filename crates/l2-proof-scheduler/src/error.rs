@@ -3,6 +3,12 @@ use thiserror::Error;
 /// Scheduler error types
 #[derive(Debug, Error, Clone)]
 pub enum TwineProofSchedulerError {
+    /// max reattemts reached
+    #[error("maximum reattempts for {0} reached")]
+    MaxReattemtsReached(String),
+    /// duplicate key error
+    #[error("{0} key already exists")]
+    KeyAlreadyExists(String),
     /// loop exit
     #[error("{0} loop exit")]
     LoopExit(String),

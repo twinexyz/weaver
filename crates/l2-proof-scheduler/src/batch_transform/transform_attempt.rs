@@ -13,10 +13,20 @@ use crate::error::TwineProofSchedulerError;
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TwineBatchTransformAttemptID {
     /// sequntial attempt identifier
-    identifier: u64,
+    pub identifier: u64,
     /// represents the transform request associated with each
     /// transform attempts
-    transform_request_id: TwineBatchTransformRequestID,
+    pub transform_request_id: TwineBatchTransformRequestID,
+}
+
+impl TwineBatchTransformAttemptID {
+    /// creates new transform attempt id
+    pub fn new(identifier: u64, transform_request_id: TwineBatchTransformRequestID) -> Self {
+        Self {
+            identifier,
+            transform_request_id,
+        }
+    }
 }
 
 impl From<TwineBatchTransformAttemptID> for TwineBatchTransformRequestID {
@@ -115,11 +125,11 @@ impl TransformAttempt for TwineBatchTransformAttempt {
 
     fn from_return_package(
         // TODO: redundant value
-        _attempt_id: Self::Identifier,
+        attempt_id: Self::Identifier,
         return_package: Self::ReturnPackage,
     ) -> Self {
         Self {
-            identifier: return_package.0,
+            identifier: attempt_id,
             call_ctx: return_package.1.call_context,
             call_val: return_package.1.call_type,
             return_type: return_package.2.ok(),
