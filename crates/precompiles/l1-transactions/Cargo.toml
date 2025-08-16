@@ -10,12 +10,11 @@ rust-version.workspace = true
 [dependencies]
 reth-revm.workspace = true
 reth-tracing.workspace = true
+reth-trie-common.workspace = true
 
-alloy-consensus.workspace = true
 alloy-eips.workspace = true
 alloy-primitives.workspace = true
 alloy-sol-types.workspace = true
-alloy-trie.workspace = true
 
 twine-solana-consensus-prover-lib.workspace = true
 

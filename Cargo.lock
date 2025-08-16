@@ -11203,15 +11203,14 @@ dependencies = [
 name = "twine-l1-transactions-precompile"
 version = "0.1.0"
 dependencies = [
- "alloy-consensus",
  "alloy-eips",
  "alloy-primitives",
  "alloy-sol-types",
- "alloy-trie",
  "borsh 1.5.7",
  "eyre",
  "reth-revm",
  "reth-tracing",
+ "reth-trie-common",
  "serde_json",
  "thiserror 2.0.12",
  "twine-constants",

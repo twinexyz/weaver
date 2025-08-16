@@ -2,9 +2,11 @@ use alloy_sol_types::{sol, sol_data};
 
 pub(crate) type VerifierInput = (sol_data::Uint<256>, sol_data::Bytes);
 
-pub(crate) type MerkleParamType = (
-    sol_data::Array<sol_data::Bytes>,
-    sol_data::Array<sol_data::Bytes>,
+pub(crate) type StateRootVerifyParams = (
+    sol_data::Uint<64>,
+    sol_data::FixedBytes<32>,
+    sol_data::Bytes,
+    sol_data::Bytes,
 );
 
 sol!(
