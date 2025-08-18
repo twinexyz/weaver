@@ -11,3 +11,7 @@ pub mod config;
 
 /// errors
 pub mod error;
+
+/// manages connection with the connected workers and
+/// and provides and receives job results
+pub mod worker_manager;

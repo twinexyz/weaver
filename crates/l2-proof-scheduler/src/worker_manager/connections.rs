@@ -1,0 +1,256 @@
+//! manages connection with the worker managers
+use std::collections::HashMap;
+use std::sync::Arc;
+use std::time::Duration;
+
+use futures_util::{SinkExt, StreamExt};
+use orchestrator_rs::worker::worker_manager::WorkerManagerResult;
+use serde::{Deserialize, Serialize};
+use tokio::net::TcpStream;
+use tokio::sync::mpsc::Sender;
+use tokio::sync::Mutex;
+use tokio::time::{self, Instant};
+use tokio_tungstenite;
+
+use crate::batch_transform::transform_attempt::{
+    TwineBatchTransformAttempt, TwineBatchTransformAttemptID, TwineBatchTransformReturnCtx,
+};
+use crate::error::TwineProofSchedulerError;
+
+/// default job completion time out
+pub const JOB_COMPLETION_TIMEOUT: u64 = 30;
+
+/// Connection Message Types
+#[derive(Debug, Serialize, Deserialize)]
+pub enum ConnectionMessageTypes {
+    /// Worker Instances requests new jobs via `NewJob` message type
+    NewJob,
+    /// Result of the job is sent via `JobResult` message type
+    JobResult,
+}
+
+/// Message structure sent by the worker instances
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ConnectionMessage {
+    /// Message type to request new job or send result of the
+    /// previously taken job by the worker instances
+    pub message_type: ConnectionMessageTypes,
+    /// Message data
+    pub message: MessageData,
+}
+
+/// Message data
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MessageData {
+    /// Represents the message associated to the Transform Attempt
+    pub transform_attempt_id: TwineBatchTransformAttemptID,
+    /// json serialized message
+    pub data: String,
+}
+
+/// Connection ID
+///
+/// Each connection to the worker instances is uniquely identified by this
+/// connection ID, Worker instances cannot send the job result outside this
+/// connection ID. i.e. If the worker instance reconnects, the job result
+/// of the workers before the disconnect event is not accepted by the
+/// manager
+#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+pub struct ConnectionID(pub u64);
+
+/// Keeps track of the assigned jobs to the connected worker instances
+#[derive(Debug)]
+pub struct Connections {
+    /// hashmap to store the assigned jobs to the worker instances
+    pub assigned_jobs: Mutex<HashMap<(TwineBatchTransformAttemptID, ConnectionID), JobDetails>>,
+    /// keeps track of the existing connections to the worker instances
+    pub connection_status: Mutex<HashMap<ConnectionID, ConnectionStatus>>,
+}
+
+/// Connection status of the worker instances
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ConnectionStatus {
+    /// healty connection
+    Healthy,
+    /// disconnected to the workers
+    Disconnected,
+}
+
+/// Structure to represent the details of the assigned jobs to
+/// the worker instances
+#[derive(Debug, Clone)]
+pub struct JobDetails {
+    /// transform attempt
+    pub transform_attempt: TwineBatchTransformAttempt,
+    /// time of assignment
+    /// each job can have a specific timeout period, if the job result
+    /// exceeds this timeout period, the connection to that worker is
+    /// removed and the transform reattempt is made via the processor
+    pub assigned_at: Instant,
+}
+
+impl Connections {
+    /// accepts the incoming connection from the worker instances and handles
+    /// them according to the connection message
+    pub async fn accept_connection(
+        &self,
+        connection_id: ConnectionID,
+        stream: TcpStream,
+        _sender: Sender<WorkerManagerResult<TwineBatchTransformAttempt>>,
+        job_mutex: Arc<Mutex<Option<TwineBatchTransformAttempt>>>,
+    ) {
+        let addr = stream
+            .peer_addr()
+            .expect("connected streams should have a peer address");
+        log::info!("Peer address: {}", addr);
+
+        let ws_stream = tokio_tungstenite::accept_async(stream)
+            .await
+            .expect("Error during the websocket handshake occurred");
+
+        log::info!("New WebSocket connection: {}", addr);
+        let mut connection_status = self.connection_status.lock().await;
+        connection_status.insert(connection_id.clone(), ConnectionStatus::Healthy);
+        drop(connection_status);
+
+        let (mut write, mut read) = ws_stream.split();
+
+        while let Some(message) = read.next().await {
+            match message {
+                Ok(message) => {
+                    let message =
+                        String::from_utf8(message.into_text().unwrap().as_bytes().to_vec())
+                            .unwrap();
+                    println!("{}", message);
+
+                    let connection_message: ConnectionMessage = match serde_json::from_str(&message)
+                    {
+                        Ok(message) => message,
+                        Err(_) => continue,
+                    };
+
+                    match connection_message.message_type {
+                        ConnectionMessageTypes::NewJob => {
+                            if !self.check_connection_status(&connection_id).await {
+                                return;
+                            }
+                            let mut job = job_mutex.lock().await;
+                            println!(
+                                "connection id while giving the job {:?}",
+                                connection_id.clone()
+                            );
+                            let mut message = "please wait: job not ready yet".to_string();
+
+                            if let Some(proof_job) = job.clone() {
+                                let job_msg = ConnectionMessage {
+                                    message_type: ConnectionMessageTypes::NewJob,
+                                    message: MessageData {
+                                        transform_attempt_id: proof_job.identifier.clone(),
+                                        data: format!("{:?}", proof_job),
+                                    },
+                                };
+
+                                message = serde_json::to_string(&job_msg).unwrap();
+                                self.assigned_jobs.lock().await.insert(
+                                    (proof_job.identifier.clone(), connection_id.clone()),
+                                    JobDetails {
+                                        transform_attempt: proof_job,
+                                        assigned_at: Instant::now(),
+                                    },
+                                );
+                                *job = None;
+                                drop(job);
+                            }
+
+                            write.send(message.into()).await.unwrap();
+                            write.flush().await.unwrap();
+                        }
+                        ConnectionMessageTypes::JobResult => {
+                            if !self.check_connection_status(&connection_id).await {
+                                return;
+                            }
+
+                            let attempt_id = connection_message.message.transform_attempt_id;
+                            if let Some(job_details) = self
+                                .assigned_jobs
+                                .lock()
+                                .await
+                                .remove(&(attempt_id.clone(), connection_id.clone()))
+                            {
+                                let return_package = (
+                                    attempt_id.clone(),
+                                    TwineBatchTransformReturnCtx {
+                                        call_context: job_details.transform_attempt.call_ctx,
+                                        call_type: job_details.transform_attempt.call_val,
+                                        extra_data: vec![],
+                                    },
+                                    Err(TwineProofSchedulerError::Other(
+                                        "error from here".to_string(),
+                                    )),
+                                );
+
+                                _sender
+                                    .send(WorkerManagerResult::Success(attempt_id, return_package))
+                                    .await
+                                    .unwrap();
+                            } else {
+                                println!("didnot remove because the connection was not the same");
+                            }
+                        }
+                    }
+                }
+                Err(e) => println!("errored {e}"),
+            }
+        }
+    }
+
+    async fn check_connection_status(&self, connection_id: &ConnectionID) -> bool {
+        if let Some(connection_status) = self.connection_status.lock().await.get(connection_id) {
+            if connection_status.clone() == ConnectionStatus::Disconnected {
+                println!("returned because this is disconnected");
+                return false;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /// manages job assignments timeouts
+    pub async fn handle_assigned_jobs(
+        &self,
+        _sender: Sender<WorkerManagerResult<TwineBatchTransformAttempt>>,
+    ) {
+        let mut interval = time::interval(Duration::from_secs(JOB_COMPLETION_TIMEOUT));
+        loop {
+            interval.tick().await;
+            let mut assigned_jobs = self.assigned_jobs.lock().await;
+            let mut connection_status = self.connection_status.lock().await;
+            let jobs = assigned_jobs.clone();
+            for (job_id, job_details) in jobs {
+                // check if the job has timed out
+                // losen the policy
+                if job_details.assigned_at.elapsed().as_secs() > JOB_COMPLETION_TIMEOUT {
+                    assigned_jobs.remove(&job_id.clone()).unwrap();
+                    connection_status.insert(job_id.1.clone(), ConnectionStatus::Disconnected);
+                    // let mut return_package = job_details.transform_attempt.return_package;
+
+                    let return_package = (
+                        job_id.0.clone(),
+                        TwineBatchTransformReturnCtx {
+                            call_context: job_details.transform_attempt.call_ctx,
+                            call_type: job_details.transform_attempt.call_val,
+                            extra_data: vec![],
+                        },
+                        Err(TwineProofSchedulerError::Other(
+                            "error from here".to_string(),
+                        )),
+                    );
+
+                    let result: WorkerManagerResult<TwineBatchTransformAttempt> =
+                        WorkerManagerResult::Failure(job_id.0, return_package);
+                    _sender.send(result).await.unwrap();
+                }
+            }
+        }
+    }
+}
