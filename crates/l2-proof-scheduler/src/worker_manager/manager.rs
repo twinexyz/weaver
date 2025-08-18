@@ -57,7 +57,35 @@ impl WorkerManager for TwineWorkerManager {
         })
     }
 
-    async fn wm_loop(&mut self) -> Result<(), Self::WorkerManagerError> { todo!() }
+    async fn wm_loop(&mut self) -> Result<(), Self::WorkerManagerError> {
+        let job_mutex = Arc::new(Mutex::new(None));
+        let (mut wss_server_job, mut job_handle_job) = start_worker_register_server(
+            self.binding_port,
+            self.worker_result_sender.clone(),
+            job_mutex.clone(),
+        )
+        .await?;
+
+        'outer: loop {
+            tokio::select! {
+                Some(input) = self.transform_attempt_receiver.recv() => {
+                    'inner: loop {
+                        let mut job = job_mutex.lock().await;
+                        match job.clone(){
+                            Some(_) => continue 'inner,
+                            None => {
+                                *job = Some(input);
+                                continue 'outer;
+                            }
+                        }
+                }
+                }
+
+                 _ = &mut wss_server_job => {}
+                 _ = &mut job_handle_job => {}
+            }
+        }
+    }
 }
 
 /// starts a wss server to accept the incoming workers
