@@ -1,11 +1,12 @@
 use orchestrator_rs::transform::TransformRequest;
+use serde::{Deserialize, Serialize};
 
 use crate::batch_transform::transform_attempt::{
     TwineBatchTransformCallCtx, TwineBatchTransformReturnType,
 };
 
 /// Unique Identifier that associates every transform request
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TwineBatchTransformRequestID {
     /// Sequential Identifier for Transform Request
     pub identifier: u64,

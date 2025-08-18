@@ -3,6 +3,7 @@
 
 use async_trait::async_trait;
 use orchestrator_rs::transform::TransformAttempt;
+use serde::{Deserialize, Serialize};
 
 use crate::batch_transform::transform_request::{
     TwineBatchTransformInput, TwineBatchTransformRequestID,
@@ -10,7 +11,7 @@ use crate::batch_transform::transform_request::{
 use crate::error::TwineProofSchedulerError;
 
 /// Uniquely identifies the transform attempts
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct TwineBatchTransformAttemptID {
     /// sequntial attempt identifier
     pub identifier: u64,
