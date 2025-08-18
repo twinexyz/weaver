@@ -76,6 +76,7 @@ strum = "0.27"
 strum_macros = "0.27"
 thiserror = "2.0.12"
 tokio = { version = "1.40.0", features = ["full"] }
+tokio-tungstenite = "0.27.0"
 tree_hash = "0.10.0"
 tree_hash_derive = "0.10.0"
 typenum = "1.12.0"
