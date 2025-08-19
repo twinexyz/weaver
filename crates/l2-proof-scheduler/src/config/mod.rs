@@ -8,7 +8,7 @@ use crate::error::TwineProofSchedulerError;
 /// Configuration for the Scheduler
 #[derive(Debug, Clone)]
 pub struct TwineProofSchedulerConfig {
-    static_config: HashMap<String, String>,
+    static_config: HashMap<String, Vec<u8>>,
 }
 
 #[async_trait]
@@ -16,7 +16,7 @@ impl Config for TwineProofSchedulerConfig {
     type Error = TwineProofSchedulerError;
     type KeyType = String;
     type StaticConfigHandle = String;
-    type ValueType = String;
+    type ValueType = Vec<u8>;
 
     /// Creates a new instance of the static config.
     async fn new(handle: Self::StaticConfigHandle) -> Result<Self, Self::Error>

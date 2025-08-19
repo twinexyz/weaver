@@ -1,6 +1,7 @@
 //! consume attempt
 
 use orchestrator_rs::consumer::ConsumeAttempt;
+use serde::{Deserialize, Serialize};
 
 use crate::batch_transform::transform_attempt::{
     TwineBatchTransformAttemptID, TwineBatchTransformReturnType,
@@ -8,7 +9,7 @@ use crate::batch_transform::transform_attempt::{
 use crate::batch_transform::transform_request::TwineBatchTransformRequestID;
 use crate::error::TwineProofSchedulerError;
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
 /// uniquely identifies teh Consume Attempts
 pub struct TwineBatchTransformResultConsumeAttemptID {
     /// sequentially increasing consume attempt identifier
@@ -43,7 +44,7 @@ impl From<TwineBatchTransformResultConsumeAttemptID> for TwineBatchTransformRequ
 }
 
 /// Result consume context
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TwineBatchTransformResultConsumeContext {}
 
 /// Result consume value
@@ -51,7 +52,7 @@ pub struct TwineBatchTransformResultConsumeContext {}
 pub struct TwineBatchTransformResultConsumeValue {}
 
 /// Return context
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TwineBatchTransformResultConsumeReturnContext {
     /// consume context
     pub consume_context: TwineBatchTransformResultConsumeContext,
@@ -62,7 +63,7 @@ pub struct TwineBatchTransformResultConsumeReturnContext {
 }
 
 /// structure that represents the consume attempts of a `WorkerManagerResult`
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TwineBatchTransformResultConsumeAttempt {
     /// consume attempt ID
     pub identifier: TwineBatchTransformResultConsumeAttemptID,

@@ -47,6 +47,8 @@ impl Consumer for TwineBatchTransformResultConsumer {
             .get("consumer.aggregator_url".to_string())
             .await?;
 
+        let aggregator_url = String::from_utf8(aggregator_url)
+            .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
         let aggregator_client = AggregatorClient::new(aggregator_url);
 
         Ok(Self {

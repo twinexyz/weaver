@@ -14,6 +14,7 @@ use tokio::task::JoinHandle;
 use crate::batch_transform::transform_attempt::TwineBatchTransformAttempt;
 use crate::config::TwineProofSchedulerConfig;
 use crate::error::TwineProofSchedulerError;
+use crate::utils::to_bytes_u64;
 use crate::worker_manager::connections::{ConnectionID, Connections};
 
 /// Twine Worker Manager
@@ -46,9 +47,9 @@ impl WorkerManager for TwineWorkerManager {
             .await
             .get("worker_manager.binding_port".to_string())
             .await?;
-        let binding_port: u64 = binding_port
-            .parse()
-            .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
+        let binding_port =
+            to_bytes_u64(&binding_port).map_err(|e| TwineProofSchedulerError::Other(e))?;
+        let binding_port: u64 = u64::from_be_bytes(binding_port);
 
         Ok(Self {
             binding_port,

@@ -1,7 +1,8 @@
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 /// Scheduler error types
-#[derive(Debug, Error, Clone)]
+#[derive(Debug, Error, Clone, Serialize, Deserialize)]
 pub enum TwineProofSchedulerError {
     /// max reattemts reached
     #[error("maximum reattempts for {0} reached")]
