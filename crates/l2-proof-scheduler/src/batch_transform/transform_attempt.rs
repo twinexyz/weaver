@@ -72,7 +72,7 @@ pub struct TwineBatchTransformReturnCtx {
 pub struct TwineBatchTransformReturnType(pub ZKProofBundle);
 
 /// represents the zk proof structure that is returned by the worker instances
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ZKProofBundle {
     /// version of the zk proof: it is associated with the verifying key
     pub version: u64, // TODO make it into an enum
