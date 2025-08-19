@@ -6,30 +6,6 @@
   },
   {
     "type": "function",
-    "name": "blockReceiptRoots",
-    "inputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "bridgingPrecompileAddress",
     "inputs": [],
     "outputs": [
@@ -43,8 +19,91 @@
   },
   {
     "type": "function",
+    "name": "computeTransactionHash",
+    "inputs": [
+      {
+        "name": "from",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "l2Token",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "to",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "l1Token",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "value",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "messageCount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "chainId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "blockNumber",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "gasLimit",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
     "name": "consensusPrecompileAddress",
     "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "counterpartMessenger",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "outputs": [
       {
         "name": "",
@@ -69,6 +128,71 @@
   },
   {
     "type": "function",
+    "name": "handleChainTransactions",
+    "inputs": [
+      {
+        "name": "messageData",
+        "type": "tuple",
+        "internalType": "struct IL2TwineMessenger.MessageData",
+        "components": [
+          {
+            "name": "txnType",
+            "type": "uint8",
+            "internalType": "enum IL2TwineMessenger.TransactionType"
+          },
+          {
+            "name": "nonce",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "chainId",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "blockNumber",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "fromAddress",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "toAddress",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "l1Token",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "l2Token",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "amount",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "message",
+            "type": "bytes",
+            "internalType": "bytes"
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "handleEthereumProofAndTransactions",
     "inputs": [
       {
@@ -77,22 +201,17 @@
         "internalType": "uint256"
       },
       {
-        "name": "height",
+        "name": "executionHeight",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "receiptRoot",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "consensusProof",
+        "name": "messageData",
         "type": "bytes",
         "internalType": "bytes"
       },
       {
-        "name": "ethereumTransactions",
+        "name": "serializedProof",
         "type": "bytes",
         "internalType": "bytes"
       }
@@ -123,17 +242,22 @@
     "name": "initialize",
     "inputs": [
       {
-        "name": "ethChaindId",
+        "name": "chaindId",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "ethCounterpart",
+        "name": "counterpartMessenger",
         "type": "address",
         "internalType": "address"
       },
       {
         "name": "roleManager",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "msgExecutorAddress",
         "type": "address",
         "internalType": "address"
       }
@@ -143,19 +267,8 @@
   },
   {
     "type": "function",
-    "name": "l1MessageExecutedCount",
-    "inputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "",
-        "type": "uint8",
-        "internalType": "enum IL2TwineMessenger.L1TxnType"
-      }
-    ],
+    "name": "messageCount",
+    "inputs": [],
     "outputs": [
       {
         "name": "",
@@ -167,13 +280,60 @@
   },
   {
     "type": "function",
-    "name": "messageCount",
-    "inputs": [],
-    "outputs": [
+    "name": "messageHash",
+    "inputs": [
       {
         "name": "",
         "type": "uint256",
         "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "mintAndCall",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "contractCallData",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "msgExecutor",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
       }
     ],
     "stateMutability": "view"
@@ -272,6 +432,19 @@
   },
   {
     "type": "function",
+    "name": "setMsgExecutorAddress",
+    "inputs": [
+      {
+        "name": "msgExecutorAddress",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "setPrecompileAddress",
     "inputs": [
       {
@@ -303,10 +476,59 @@
   },
   {
     "type": "function",
+    "name": "setSP1Helios",
+    "inputs": [
+      {
+        "name": "_sp1Helios",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "setSp1VerifierAddress",
     "inputs": [
       {
         "name": "sp1VerifierAddress",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setSystemStorageContract",
+    "inputs": [
+      {
+        "name": "systemStorageContractAddress",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setTokenGateWay",
+    "inputs": [
+      {
+        "name": "chainId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "l2Token",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "gateway",
         "type": "address",
         "internalType": "address"
       }
@@ -360,6 +582,19 @@
   },
   {
     "type": "function",
+    "name": "sp1Helios",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "sp1Verifier",
     "inputs": [],
     "outputs": [
@@ -373,7 +608,20 @@
   },
   {
     "type": "function",
-    "name": "tokenCounterpartGateWay",
+    "name": "systemStorageContract",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "tokenGateWay",
     "inputs": [
       {
         "name": "",
@@ -382,15 +630,15 @@
       },
       {
         "name": "",
-        "type": "string",
-        "internalType": "string"
+        "type": "address",
+        "internalType": "address"
       }
     ],
     "outputs": [
       {
         "name": "",
-        "type": "string",
-        "internalType": "string"
+        "type": "address",
+        "internalType": "address"
       }
     ],
     "stateMutability": "view"
@@ -452,19 +700,6 @@
   },
   {
     "type": "event",
-    "name": "EthereumTransactionsHandled",
-    "inputs": [
-      {
-        "name": "transactionOutput",
-        "type": "bytes",
-        "indexed": false,
-        "internalType": "bytes"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
     "name": "Initialized",
     "inputs": [
       {
@@ -472,6 +707,37 @@
         "type": "uint64",
         "indexed": false,
         "internalType": "uint64"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "L1TransactionsHandled",
+    "inputs": [
+      {
+        "name": "chainId",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "status",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      },
+      {
+        "name": "nonce",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "transactionOutput",
+        "type": "bytes",
+        "indexed": false,
+        "internalType": "bytes"
       }
     ],
     "anonymous": false
@@ -589,10 +855,10 @@
   },
   {
     "type": "event",
-    "name": "SolanaTransactionsHandled",
+    "name": "TransactionFailed",
     "inputs": [
       {
-        "name": "transactionOutput",
+        "name": "reason",
         "type": "bytes",
         "indexed": false,
         "internalType": "bytes"
