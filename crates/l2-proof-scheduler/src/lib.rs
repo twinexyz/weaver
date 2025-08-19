@@ -15,3 +15,6 @@ pub mod error;
 /// manages connection with the connected workers and
 /// and provides and receives job results
 pub mod worker_manager;
+
+/// consumes the result from the worker instances
+pub mod consumer;
