@@ -12,6 +12,39 @@ pub struct PublicValuesStruct {
     pub verification_result: bool,
 }
 
+/// The public values committed by the ZKVM program
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PublicCommitments {
+    /// Start slot number of the proven chain
+    pub start_slot: u64,
+    /// End slot number of the proven chain
+    pub end_slot: u64,
+    /// Original slot bank hash (first slot in the chain)
+    pub original_bank_hash: [u8; 32],
+    /// Last slot bank hash (end of the proven chain)
+    pub last_bank_hash: [u8; 32],
+    /// current epoch number
+    pub epoch_number: u64,
+    /// ESR root (validator set merkle root)
+    pub hash_root_valset: [u8; 32],
+    /// vaildator set for the next epoch
+    pub next_hash_root_valset: Option<[u8; 32]>,
+    /// Map of monitored account -> {last_change_slot,
+    /// account_data_hash_at_that_slot}
+    pub monitored_accounts_state: Vec<AccountStateCommitment>,
+    /// Aggregated validation result (true if all validations passed)
+    pub validations_passed: bool,
+}
+
+/// Public commitment per monitored account to disambiguate which slot carried
+/// its last change
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AccountStateCommitment {
+    pub account_pubkey: [u8; 32],
+    pub last_change_slot: u64,
+    pub account_data_hash: [u8; 32],
+}
+
 impl PublicValuesStruct {
     pub fn abi_encode(&self) -> Vec<u8> { bincode::serialize(self).unwrap_or_default() }
 

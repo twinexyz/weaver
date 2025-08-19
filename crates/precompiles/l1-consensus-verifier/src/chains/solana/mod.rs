@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use alloy_sol_types::sol;
 use serde::{Deserialize, Serialize};
-use twine_solana_consensus_prover_lib::{PublicValuesStruct, ValidatorInfo, VoteOrTowerSync};
+use twine_solana_consensus_prover_lib::{PublicCommitments, ValidatorInfo, VoteOrTowerSync};
 
 use crate::errors::ConsensusPrecompileError;
 
@@ -12,7 +12,7 @@ use crate::errors::ConsensusPrecompileError;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SolanaVerifierPrecompileInput {
     /// public commitment to the proof of consensus on a target solana block
-    pub public_value: PublicValuesStruct,
+    pub public_commitments: PublicCommitments,
     /// Groth16 proof of consensus
     pub proof: Vec<u8>,
 }
@@ -36,7 +36,9 @@ impl SolanaVerifierPrecompileInput {
         total_stake: u64,
         validator_set: &HashMap<String, ValidatorInfo>,
     ) -> Result<(), String> {
-        let vote_list = self.public_value.package.votes.clone();
+        let vote_list = self.public_commitments.package.votes.clone(); // fixme
+                                                                       // let volte_list = self.public_commitments.
+
         if vote_list.len() > validator_set.len() {
             return Err(ConsensusPrecompileError::InvalidValidators.into());
         }
