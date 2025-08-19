@@ -5743,7 +5743,7 @@ checksum = "04744f49eae99ab78e0d5c0b603ab218f515ea8cfe5a456d7629ad883a3b6e7d"
 [[package]]
 name = "orchestrator-rs"
 version = "0.1.0"
-source = "git+https://github.com/twinexyz/orchestrator-rs.git#55b41be3658a564a6c7c9d483faa3cd464a4a6f3"
+source = "git+https://github.com/twinexyz/orchestrator-rs.git?branch=wip%2Fparajuliswopnil%2Fsimple-processor-updates#c9118fe7da5b8f1baf5f75be086c6029b908e1c7"
 dependencies = [
  "async-trait",
  "hex",

@@ -17,7 +17,7 @@ pub struct TwineBatchTransformRequestID {
 /// operations on the input
 /// eg. In this case this input is taken by the worker and
 /// execution proof for the batch is calculated
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TwineBatchTransformInput {
     /// Batch number of bundle of blocks
     pub batch_number: u64,
@@ -33,7 +33,7 @@ pub struct TwineBatchTransformOutput {}
 
 /// Transform Request is the bundle of transform request id
 /// and input which is converted to output by the workers
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TwineBatchTransformRequest {
     /// uniuqe id of the request
     pub identifier: TwineBatchTransformRequestID,

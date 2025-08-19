@@ -16,6 +16,7 @@ use crate::batch_transform::transform_request::{
 };
 use crate::config::TwineProofSchedulerConfig;
 use crate::error::TwineProofSchedulerError;
+use crate::utils::to_bytes_u64;
 
 /// Maximum waiting time while retrying failed rpc queries
 pub const MAX_RPC_RETRY_INTERVAL: u64 = 60;
@@ -68,15 +69,19 @@ impl Emitter for TwineBatchSubscriber {
             .await
             .map_err(|e| TwineProofSchedulerError::KeyNotFound(format!("{e}")))?;
 
+        let twine_rpc_url = String::from_utf8(twine_rpc_url)
+            .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
+
         let start_block = init_config
             .lock()
             .await
             .get("batch_subscriber.start_block".to_string())
             .await
             .map_err(|e| TwineProofSchedulerError::KeyNotFound(format!("{e}")))?;
-        let start_block: u64 = start_block
-            .parse()
-            .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
+
+        let start_block =
+            to_bytes_u64(&start_block).map_err(|e| TwineProofSchedulerError::Other(e))?;
+        let start_block: u64 = u64::from_be_bytes(start_block);
 
         let twine_client = TwineBatchClient::new(&twine_rpc_url);
 

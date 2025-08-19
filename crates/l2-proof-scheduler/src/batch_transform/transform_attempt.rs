@@ -36,7 +36,7 @@ impl From<TwineBatchTransformAttemptID> for TwineBatchTransformRequestID {
 
 /// represents the attempts made to convert the transform request
 /// to desired output
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TwineBatchTransformAttempt {
     /// identifier to identify attempts
     pub identifier: TwineBatchTransformAttemptID,
@@ -49,14 +49,14 @@ pub struct TwineBatchTransformAttempt {
 }
 
 /// call context sent alongside the input to the worker instance
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TwineBatchTransformCallCtx {
     /// rpc url to connect to twine node
     pub twine_node_rpc: String,
 }
 
 /// return from the worker instances
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TwineBatchTransformReturnCtx {
     /// any additional data
     pub extra_data: Vec<u8>,
@@ -68,7 +68,7 @@ pub struct TwineBatchTransformReturnCtx {
 }
 
 /// return type from the workers
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TwineBatchTransformReturnType(pub ZKProofBundle);
 
 /// represents the zk proof structure that is returned by the worker instances

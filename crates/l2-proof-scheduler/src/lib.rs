@@ -18,3 +18,9 @@ pub mod worker_manager;
 
 /// consumes the result from the worker instances
 pub mod consumer;
+
+/// processor for the scheduler
+pub mod scheduler_instance;
+
+/// scheduler utils
+pub mod utils;
