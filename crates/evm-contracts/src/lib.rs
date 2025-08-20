@@ -65,7 +65,7 @@ pub mod twine_chain {
         }
 
         #[derive(Serialize, Deserialize, Debug)]
-        struct L1OriginatedTransactionPublicValueStruct {
+        struct L1OriginTxPublicValues {
             uint64 batchNumber;
             bytes32 batchHash;
             TransactionType txn_type;
@@ -81,7 +81,7 @@ pub mod twine_chain {
         }
 
         #[derive(Serialize, Deserialize, Debug)]
-        struct L2WithdrawPublicValuesStruct {
+        struct L2WithdrawPublicValues {
             uint64 batchNumber;
             uint64 nonce;
             bytes32 batchHash;
