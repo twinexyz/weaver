@@ -10,7 +10,7 @@ use twine_l1_utils::{get_chain_id, get_chain_type, L1ChainType};
 
 use crate::chains::solana::verifier::SolanaConsensusVerifier;
 use crate::errors::ConsensusPrecompileError;
-use crate::storage::{get_bankhash_at_slot, handle_storage_updates, TrustedCheckpoint};
+use crate::storage::TrustedCheckpoint;
 
 pub mod chains;
 pub mod errors;
@@ -24,15 +24,14 @@ pub struct ConsensusVerifierPrecompile {
 }
 
 impl ConsensusVerifierPrecompile {
-    pub fn new(validator_sets: HashMap<String, String>) -> Self {
+    pub fn new(chain_name: HashMap<String, String>) -> Self {
         let mut chains: HashMap<u64, Box<dyn Chains>> = HashMap::new();
-        for (chain, validator_set) in validator_sets {
-            let chain_id = get_chain_id(&chain);
+        for (chain_id, _) in chain_name {
+            let chain_id = get_chain_id(&chain_id);
             let chain_type = get_chain_type(chain_id).expect("chain type not found");
             match chain_type {
                 L1ChainType::Solana => {
-                    let solana_consensus_verifier =
-                        SolanaConsensusVerifier::new(chain_id, &validator_set);
+                    let solana_consensus_verifier = SolanaConsensusVerifier::new(chain_id);
                     chains.insert(chain_id, Box::new(solana_consensus_verifier));
                 }
                 _ => {
@@ -67,20 +66,12 @@ impl ConsensusVerifierPrecompile {
         })?;
 
         let verification_input = chain.derive_verification_input(&verifying_bytes)?;
-        let start_slot_bankhash =
-            if let Some(start_slot) = verification_input.params.start_slot_bankhash_needed {
-                Some(get_bankhash_at_slot(context, chain_id, start_slot)?)
-            } else {
-                None
-            };
-
         let checkpoint =
-            TrustedCheckpoint::get(context, chain_id, verification_input.params.epoch)?;
+            TrustedCheckpoint::from_storage_query_keys(context, &verification_input.query_keys)?;
 
-        let precompile_result =
-            chain.verify(checkpoint, start_slot_bankhash, verification_input)?;
+        let precompile_result = chain.verify(checkpoint, verification_input)?;
 
-        handle_storage_updates(context, chain_id, precompile_result.updates)?;
+        precompile_result.updates.apply_updates(context)?;
 
         info!("consensus verifier precompile return");
         Ok(Some(InterpreterResult {

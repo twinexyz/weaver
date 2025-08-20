@@ -3,26 +3,19 @@ pub mod solana;
 use std::any::Any;
 use std::fmt::Debug;
 
-use alloy_primitives::Bytes;
+use alloy_primitives::{Bytes, U256};
 
 use crate::storage::{StorageUpdate, TrustedCheckpoint};
 
 pub struct VerificationResult {
     pub verifier_output: Bytes,
-    pub updates: Vec<StorageUpdate>,
+    pub updates: StorageUpdate,
 }
 
-pub struct SupportingParams {
-    /// Epoch whose validator-set merkle root should be used for this
-    /// verification.
-    pub epoch: u64,
-    /// Does the `start_slot` field needs its bankhash to be fetched?
-    /// Its used when we receive a validator-set root transition proof.
-    pub start_slot_bankhash_needed: Option<u64>,
-}
+pub type StorageQueryKeys = Vec<U256>;
 
 pub struct VerificationInput {
-    pub params: SupportingParams,
+    pub query_keys: StorageQueryKeys,
     pub parsed: Box<dyn Any + Send + Sync>,
 }
 
@@ -37,7 +30,6 @@ pub trait Chains: Debug {
     fn verify(
         &self,
         checkpoint: TrustedCheckpoint,
-        start_slot_bankhash: Option<[u8; 32]>,
         verification_input: VerificationInput,
     ) -> Result<VerificationResult, String>;
 }
