@@ -285,7 +285,7 @@
         "name": "txnType",
         "type": "uint8",
         "indexed": false,
-        "internalType": "enum IL1MessageHandler.TransactionType"
+        "internalType": "enum TwineTypes.TransactionType"
       },
       {
         "name": "nonce",

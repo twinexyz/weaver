@@ -133,12 +133,12 @@
       {
         "name": "messageData",
         "type": "tuple",
-        "internalType": "struct IL2TwineMessenger.MessageData",
+        "internalType": "struct TwineTypes.MessageData",
         "components": [
           {
             "name": "txnType",
             "type": "uint8",
-            "internalType": "enum IL2TwineMessenger.TransactionType"
+            "internalType": "enum TwineTypes.TransactionType"
           },
           {
             "name": "nonce",

@@ -17,7 +17,7 @@ use reth_tracing::tracing::{self, debug};
 use reth_trie_common::AccountProof;
 use sol::{L1Txns, TokenTxn, VerifierInput};
 use twine_constants::precompiles::TWINE_SYSTEM_STORAGE_CONTRACT;
-use twine_evm_contracts::IL2TwineMessenger::MessageData;
+use twine_evm_contracts::l2_twine_messenger::TwineTypes::MessageData;
 use twine_l1_utils::{get_chain_type, whitelisted_contract, L1ChainType};
 
 use crate::sol::{L1Metadata, StateRootVerifyParams};
