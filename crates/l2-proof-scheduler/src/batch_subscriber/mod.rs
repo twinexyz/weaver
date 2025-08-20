@@ -5,6 +5,7 @@ use async_trait::async_trait;
 use log::error as log_error;
 use orchestrator_rs::config::Config;
 use orchestrator_rs::emitter::emitter::{EmissionState, Emitter};
+use orchestrator_rs::processor::simple_processor::TomlDeserialize;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::Mutex;
 use tokio::time::{self, Interval};
@@ -16,7 +17,6 @@ use crate::batch_transform::transform_request::{
 };
 use crate::config::TwineProofSchedulerConfig;
 use crate::error::TwineProofSchedulerError;
-use crate::utils::to_bytes_u64;
 
 /// Maximum waiting time while retrying failed rpc queries
 pub const MAX_RPC_RETRY_INTERVAL: u64 = 60;
@@ -33,6 +33,8 @@ pub struct TwineBatchSubscriber {
     emission_state: Receiver<EmissionState>,
     /// height of twine chain from where new batches are subscribed
     start_block: u64,
+    /// twine node rpc
+    twine_rpc_url: String,
     /// client to subscribe to twine node
     twine_client: TwineBatchClient,
     /// identifier tracker
@@ -69,8 +71,10 @@ impl Emitter for TwineBatchSubscriber {
             .await
             .map_err(|e| TwineProofSchedulerError::KeyNotFound(format!("{e}")))?;
 
-        let twine_rpc_url = String::from_utf8(twine_rpc_url)
-            .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
+        let mut url = toml::Value::String("".to_string());
+        url.from_vec(&twine_rpc_url).unwrap();
+
+        let twine_rpc_url = url.as_str().unwrap().to_owned();
 
         let start_block = init_config
             .lock()
@@ -79,9 +83,15 @@ impl Emitter for TwineBatchSubscriber {
             .await
             .map_err(|e| TwineProofSchedulerError::KeyNotFound(format!("{e}")))?;
 
-        let start_block =
-            to_bytes_u64(&start_block).map_err(|e| TwineProofSchedulerError::Other(e))?;
-        let start_block: u64 = u64::from_be_bytes(start_block);
+        let mut block_number = toml::Value::Integer(0);
+        block_number
+            .from_vec(&start_block)
+            .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
+
+        let start_block = block_number
+            .as_integer()
+            .ok_or(TwineProofSchedulerError::Other("parse error".to_string()))?
+            as u64; // TODO: map error
 
         let twine_client = TwineBatchClient::new(&twine_rpc_url);
 
@@ -94,6 +104,7 @@ impl Emitter for TwineBatchSubscriber {
                 wait_interval: time::interval(Duration::from_secs(BASE_RPC_RETRY_INTERVAL)),
                 retry: 0,
             },
+            twine_rpc_url,
             identifier: 0,
             batch: 0,
         })
@@ -159,7 +170,7 @@ impl Emitter for TwineBatchSubscriber {
                                     end_block,
                                 },
                                 call_context: TwineBatchTransformCallCtx {
-                                    twine_node_rpc: "".to_string() // TODO: Make this
+                                    twine_node_rpc: self.twine_rpc_url.to_owned()
                                 }
                             })
                             .await

@@ -15,9 +15,11 @@ orchestrator-rs.workspace = true
 reqwest.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+sqlx.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
 tokio-tungstenite.workspace = true
+toml.workspace = true
 twine-rpc.workspace = true
 
 [lints]

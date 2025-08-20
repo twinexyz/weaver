@@ -1,12 +1,16 @@
 //! Proof scheduler instance
 #![allow(unused_imports)]
 
+use std::time::Duration;
+
+use orchestrator_rs::database::inmem::InMemoryDatabase;
 use orchestrator_rs::database::postgresql::PostgresDatabase;
 use orchestrator_rs::instance::instance::Instance;
 use orchestrator_rs::instrumentation::dummy_instrumentation::DummyInstrumentation;
 use orchestrator_rs::processor::simple_processor::SimpleProcessor;
 use orchestrator_rs::transform::TransformRequest;
 use orchestrator_rs::worker::worker_manager::WorkerManager;
+use sqlx::postgres::PgPoolOptions;
 
 use crate::batch_subscriber::TwineBatchSubscriber;
 use crate::batch_transform::transform_attempt::{
