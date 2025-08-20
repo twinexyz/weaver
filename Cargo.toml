@@ -61,7 +61,7 @@ rand = "0.8.5"
 regex = "1.11.1"
 reqwest = { version = "0.11", features = ["json"] }
 rocksdb = "0.23.0"
-ruzstd = "0.8.1"
+ruzstd = { git = "https://github.com/KillingSpark/zstd-rs.git" }
 serde = { version = "1.0.210", features = ["derive"] }
 serde_bytes = "0.11.14"
 serde_json = "1.0.132"

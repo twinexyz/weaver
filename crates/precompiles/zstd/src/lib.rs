@@ -62,10 +62,12 @@ impl ZStdPrecompile {
                 tracing::info!("ZSTD Decompression");
                 let mut source: &[u8] = &original;
                 let mut decoder = StreamingDecoder::new(&mut source).map_err(|e| e.to_string())?;
+                tracing::info!("🍇 Cast into decoder");
                 let mut result = Vec::new();
                 decoder
                     .read_to_end(&mut result)
                     .map_err(|e| e.to_string())?;
+                tracing::info!("🍇 decodingg 🥦");
 
                 return Ok(Some(InterpreterResult {
                     result: InstructionResult::Return,
