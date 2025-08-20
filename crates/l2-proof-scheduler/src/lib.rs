@@ -21,6 +21,3 @@ pub mod consumer;
 
 /// processor for the scheduler
 pub mod scheduler_instance;
-
-/// scheduler utils
-pub mod utils;

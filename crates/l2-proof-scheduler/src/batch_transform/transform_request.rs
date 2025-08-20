@@ -60,8 +60,5 @@ impl TransformRequest for TwineBatchTransformRequest {
     /// what dynamic configs need to be updated, Key is always a
     /// string, value is always a `Vec<u8>` representing the serialized
     /// value
-    fn get_dyn_configs(&self) -> Vec<(String, Vec<u8>)> {
-        println!("getting dynamic config for the transform requset");
-        vec![]
-    }
+    fn get_dyn_configs(&self) -> Vec<(String, Vec<u8>)> { vec![] }
 }

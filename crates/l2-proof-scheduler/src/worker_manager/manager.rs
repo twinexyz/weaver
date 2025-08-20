@@ -2,19 +2,21 @@
 
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::time::Duration;
 
 use async_trait::async_trait;
 use orchestrator_rs::config::Config;
+use orchestrator_rs::processor::simple_processor::TomlDeserialize;
 use orchestrator_rs::worker::worker_manager::{WorkerManager, WorkerManagerResult};
 use tokio::net::TcpListener;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
+use tokio::time::sleep;
 
 use crate::batch_transform::transform_attempt::TwineBatchTransformAttempt;
 use crate::config::TwineProofSchedulerConfig;
 use crate::error::TwineProofSchedulerError;
-use crate::utils::to_bytes_u64;
 use crate::worker_manager::connections::{ConnectionID, Connections};
 
 /// Twine Worker Manager
@@ -47,9 +49,11 @@ impl WorkerManager for TwineWorkerManager {
             .await
             .get("worker_manager.binding_port".to_string())
             .await?;
-        let binding_port =
-            to_bytes_u64(&binding_port).map_err(|e| TwineProofSchedulerError::Other(e))?;
-        let binding_port: u64 = u64::from_be_bytes(binding_port);
+
+        let mut port = toml::Value::Integer(0);
+        port.from_vec(&binding_port).unwrap();
+
+        let binding_port = port.as_integer().unwrap() as u64;
 
         Ok(Self {
             binding_port,
@@ -59,18 +63,23 @@ impl WorkerManager for TwineWorkerManager {
     }
 
     async fn wm_loop(&mut self) -> Result<(), Self::WorkerManagerError> {
+        println!("starting wm loop");
         let job_mutex = Arc::new(Mutex::new(None));
-        let (mut wss_server_job, mut job_handle_job) = start_worker_register_server(
+        let (wss_server_job, job_handle_job) = start_worker_register_server(
             self.binding_port,
             self.worker_result_sender.clone(),
             job_mutex.clone(),
         )
         .await?;
 
+        tokio::pin!(wss_server_job);
+        tokio::pin!(job_handle_job);
+
         'outer: loop {
             tokio::select! {
                 Some(input) = self.transform_attempt_receiver.recv() => {
                     'inner: loop {
+                        sleep(Duration::from_secs(1)).await;
                         let mut job = job_mutex.lock().await;
                         match job.clone(){
                             Some(_) => continue 'inner,
@@ -101,7 +110,7 @@ pub async fn start_worker_register_server(
     sender: Sender<WorkerManagerResult<TwineBatchTransformAttempt>>,
     job_mutex: Arc<Mutex<Option<TwineBatchTransformAttempt>>>,
 ) -> Result<(JoinHandle<()>, JoinHandle<()>), TwineProofSchedulerError> {
-    let address = format!("http://0.0.0.0:{}", bind_port);
+    let address = format!("127.0.0.1:{}", bind_port);
     let listener = TcpListener::bind(&address)
         .await
         .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
