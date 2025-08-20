@@ -166,7 +166,7 @@ pub fn handle_storage_updates<CTX: ContextTr>(
     for update in updates {
         match update {
             StorageUpdate::UpdateHeader(new_header_hash) => {
-                TrustedCheckpoint::update_header(ctx, 0, new_header_hash)?;
+                TrustedCheckpoint::update_header(ctx, chain_id, new_header_hash)?;
             }
             StorageUpdate::StoreValidatorRoot(epoch, new_validator_root) => {
                 TrustedCheckpoint::add_validator_root_at_epoch(

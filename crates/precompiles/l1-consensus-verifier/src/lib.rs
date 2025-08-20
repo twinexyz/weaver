@@ -55,11 +55,10 @@ impl ConsensusVerifierPrecompile {
         let (chain_id, verifying_bytes) = match PrecompileInput::abi_decode_sequence(&_inputs.input)
         {
             Ok((chain_id, verifying_bytes)) => (chain_id, verifying_bytes),
-            Err(e) => {
+            Err(e) =>
                 return Err(
                     ConsensusPrecompileError::DecodeError(format!("PrecompileInput {e}")).into(),
-                )
-            }
+                ),
         };
 
         let chain_id: u64 = chain_id.to();

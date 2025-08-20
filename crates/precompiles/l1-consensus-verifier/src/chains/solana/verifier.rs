@@ -72,9 +72,7 @@ impl SolanaConsensusVerifier {
 }
 
 impl Chains for SolanaConsensusVerifier {
-    fn name(&self) -> String {
-        self.chain_id_to_name().unwrap_or_default()
-    }
+    fn name(&self) -> String { self.chain_id_to_name().unwrap_or_default() }
 
     fn derive_verification_input(
         &self,
