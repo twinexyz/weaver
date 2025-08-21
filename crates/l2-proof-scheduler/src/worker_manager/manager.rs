@@ -6,7 +6,6 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 use orchestrator_rs::config::Config;
-use orchestrator_rs::processor::simple_processor::TomlDeserialize;
 use orchestrator_rs::worker::worker_manager::{WorkerManager, WorkerManagerResult};
 use tokio::net::TcpListener;
 use tokio::sync::mpsc::{Receiver, Sender};
@@ -50,8 +49,7 @@ impl WorkerManager for TwineWorkerManager {
             .get("worker_manager.binding_port".to_string())
             .await?;
 
-        let mut port = toml::Value::Integer(0);
-        port.from_vec(&binding_port).unwrap();
+        let port: toml::Value = serde_json::from_slice(&binding_port).unwrap();
 
         let binding_port = port.as_integer().unwrap() as u64;
 

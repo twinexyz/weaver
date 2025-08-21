@@ -5,7 +5,6 @@ use async_trait::async_trait;
 use log::error as log_error;
 use orchestrator_rs::config::Config;
 use orchestrator_rs::emitter::emitter::{EmissionState, Emitter};
-use orchestrator_rs::processor::simple_processor::TomlDeserialize;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::Mutex;
 use tokio::time::{self, Interval};
@@ -71,8 +70,7 @@ impl Emitter for TwineBatchSubscriber {
             .await
             .map_err(|e| TwineProofSchedulerError::KeyNotFound(format!("{e}")))?;
 
-        let mut url = toml::Value::String("".to_string());
-        url.from_vec(&twine_rpc_url).unwrap();
+        let url: toml::Value = serde_json::from_slice(&twine_rpc_url).unwrap();
 
         let twine_rpc_url = url.as_str().unwrap().to_owned();
 
@@ -83,9 +81,7 @@ impl Emitter for TwineBatchSubscriber {
             .await
             .map_err(|e| TwineProofSchedulerError::KeyNotFound(format!("{e}")))?;
 
-        let mut block_number = toml::Value::Integer(0);
-        block_number
-            .from_vec(&start_block)
+        let block_number: toml::Value = serde_json::from_slice(&start_block)
             .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
 
         let start_block = block_number
@@ -133,6 +129,7 @@ impl Emitter for TwineBatchSubscriber {
                         }
                     }
                 }
+                
                 block_range = self.twine_client.get_blocks_in_batch(self.batch) => {
                     let (start_block, end_block) = match block_range {
                        Ok(blocks_in_batch) => {
@@ -166,6 +163,7 @@ impl Emitter for TwineBatchSubscriber {
                                 },
                                 transform_input: TwineBatchTransformInput {
                                     batch_number: self.batch,
+                                    batch_hash: [0u8; 32],
                                     start_block,
                                     end_block,
                                 },
