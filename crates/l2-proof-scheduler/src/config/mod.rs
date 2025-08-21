@@ -41,7 +41,8 @@ impl Config for TwineProofSchedulerConfig {
             let value = value.as_table().unwrap();
             for (inner_key, value) in value {
                 let main_key = format!("{key}.{inner_key}");
-                let value = serde_json::to_vec(value).map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
+                let value = serde_json::to_vec(value)
+                    .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
                 config.insert(main_key, value);
             }
         }
