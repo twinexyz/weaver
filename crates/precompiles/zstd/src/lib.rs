@@ -1,6 +1,6 @@
 //! zstd compression and decompression precompile
 
-use alloy_primitives::Address;
+use alloy_primitives::{Address, Bytes};
 use alloy_sol_types::{sol, SolCall};
 use reth_revm::context::ContextTr;
 use reth_revm::interpreter::{Gas, InputsImpl, InstructionResult, InterpreterResult};
@@ -29,6 +29,21 @@ impl ZStdPrecompile {
         _is_static: bool,
         gas_limit: u64,
     ) -> Result<Option<InterpreterResult>, String> {
+        match ZStdPrecompile::run_precompile(inputs, gas_limit) {
+            Ok(result) => return Ok(Some(result)),
+            Err(err) => {
+                tracing::error!("zstd_precompile_error: {err:?}");
+                let err_bytes = Bytes::copy_from_slice(err.as_bytes());
+                return Ok(Some(InterpreterResult {
+                    result: InstructionResult::Revert,
+                    output: err_bytes,
+                    gas: Gas::new(0),
+                }));
+            }
+        }
+    }
+
+    fn run_precompile(inputs: &InputsImpl, gas_limit: u64) -> Result<InterpreterResult, String> {
         tracing::info!("Zstd precompile invoked");
 
         if inputs.input.len() < 4 {
@@ -52,28 +67,26 @@ impl ZStdPrecompile {
                     100 - (compressed.len() * 100 / original.len())
                 );
 
-                return Ok(Some(InterpreterResult {
+                return Ok(InterpreterResult {
                     result: InstructionResult::Return,
                     output: compressed.into(),
                     gas: Gas::new(gas_limit - 21000),
-                }));
+                });
             }
             &ZstdLib::decompressCall::SELECTOR => {
                 tracing::info!("ZSTD Decompression");
                 let mut source: &[u8] = &original;
                 let mut decoder = StreamingDecoder::new(&mut source).map_err(|e| e.to_string())?;
-                tracing::info!("🍇 Cast into decoder");
                 let mut result = Vec::new();
                 decoder
                     .read_to_end(&mut result)
                     .map_err(|e| e.to_string())?;
-                tracing::info!("🍇 decodingg 🥦");
 
-                return Ok(Some(InterpreterResult {
+                return Ok(InterpreterResult {
                     result: InstructionResult::Return,
                     output: result.into(),
                     gas: Gas::new(gas_limit - 42000),
-                }));
+                });
             }
             _ => {}
         }
