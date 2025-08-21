@@ -129,17 +129,22 @@ impl Emitter for TwineBatchSubscriber {
                         }
                     }
                 }
-                
-                block_range = self.twine_client.get_blocks_in_batch(self.batch) => {
-                    let (start_block, end_block) = match block_range {
-                       Ok(blocks_in_batch) => {
-                            let mut blocks = blocks_in_batch.into_iter();
+
+                full_batch = self.twine_client.get_full_batch(self.batch) => {
+                    let (start_block, end_block, batch_hash) = match full_batch {
+                       Ok(batch) => {
+                            let mut blocks = batch.block_range.into_iter();
                             let start_block = blocks.next().unwrap_or_default();
                             let end_block = blocks.last().unwrap_or(start_block);
+                            if batch.batch_hash.is_none() {
+                                self.backoff.wait_and_backoff().await;
+                                continue
+                            }
                             self.backoff.reset_wait_and_backoff();
                             (
                                 start_block,
                                 end_block,
+                                batch.batch_hash.unwrap().0
                             )
                         }
                         Err(e) => {
@@ -163,7 +168,7 @@ impl Emitter for TwineBatchSubscriber {
                                 },
                                 transform_input: TwineBatchTransformInput {
                                     batch_number: self.batch,
-                                    batch_hash: [0u8; 32],
+                                    batch_hash,
                                     start_block,
                                     end_block,
                                 },

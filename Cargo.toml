@@ -9,8 +9,9 @@ rust-version = "1.85"
 [workspace]
 members = [
   "bin/devtest",
+  "bin/l2-execution-prover-worker",
+  "bin/l2-proof-scheduler-bin",
   "bin/node",
-  "bin/twine-l2-proof-scheduler-bin",
   "crates/constants",
   "crates/db/batch",
   "crates/ethereum-consensus-prover",
