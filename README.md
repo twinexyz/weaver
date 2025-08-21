@@ -26,22 +26,16 @@ cargo run --bin twine-node -- \
     --dev.block-time 5sec
 ```
 
-## Naming convention for files contain validator sets info
-1. Ethereum mainnet: `ethereum_mainnet.json`
-2. Ethereum holesky: `ethereum_holesky.json`
-3. Ethereum sepolia: `ethereum_sepolia.json`
-4. Solana          : `solana.json`
+## Deciding which L1's consensus should be verified by the precompile
+Chains whose consensus should be verified through the precompile are
+specified by the `CONSENSUS_PRECOMPILE_TARGET_CHAINS` environment variable.
 
-## Downloading the comittee updates for all chains
-# Ethereum chains
-```sh
-# chain = {mainnet, holesky, sepolia}
-./scripts/ethereum_validator_set_fetcher.sh --<chain> --height=<slot_number>
-```
-# Solana
-```sh
-./scripts/solana_validator_set_fetcher.sh <target_slot>
-```
+For example:
+ ```bash
+ CONSENSUS_PRECOMPILE_TARGET_CHAINS=solana,ethereum_mainnet
+ ```
+Currently, we only support Solana’s consensus proof via this mechanism. 
+Ethereum proofs are handled separately, outside the precompile flow.
 
 ## Running devtests
 ```sh

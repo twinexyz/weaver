@@ -10,7 +10,6 @@ use reth_node_ethereum::EthereumNode;
 use twine_executor::executor_builder::TwineExecutorBuilder;
 use twine_executor::payload_builder::TwinePayloadBuilder;
 
-// pub const L1_VALIDATOR_SET_PATH: &str = "L1_VALIDATOR_SET_PATH";
 pub const CONSENSUS_PRECOMPILE_TARGET_CHAINS: &str = "CONSENSUS_PRECOMPILE_TARGET_CHAINS";
 
 fn generate_batch_store_path(parsed: &Cli) -> PathBuf {
