@@ -66,18 +66,18 @@ pub mod twine_chain {
 
         #[derive(Serialize, Deserialize, Debug)]
         struct L1OriginTxPublicValues {
-            uint64 batchNumber;
             bytes32 batchHash;
-            TransactionType txn_type;
+            uint64 batchNumber;
+            TransactionType txnType;
             uint64 nonce;
             uint64 chainId;
             uint64 blockNumber;
+            bytes32 messageHash;
             string fromAddress;
             string toAddress;
             string l1Token;
             string l2Token;
             string amount;
-            bytes message;
         }
 
         #[derive(Serialize, Deserialize, Debug)]
