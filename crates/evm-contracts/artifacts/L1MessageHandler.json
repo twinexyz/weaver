@@ -324,7 +324,7 @@
         "internalType": "address"
       },
       {
-        "name": "TwineAddress",
+        "name": "twineAddress",
         "type": "address",
         "indexed": false,
         "internalType": "address"
