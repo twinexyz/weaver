@@ -4,7 +4,6 @@ use std::io::Read;
 
 use async_trait::async_trait;
 use orchestrator_rs::config::Config;
-use orchestrator_rs::processor::simple_processor::TomlSerialize;
 
 use crate::error::TwineProofSchedulerError;
 
@@ -42,7 +41,7 @@ impl Config for TwineProofSchedulerConfig {
             let value = value.as_table().unwrap();
             for (inner_key, value) in value {
                 let main_key = format!("{key}.{inner_key}");
-                let value = value.to_vec().unwrap();
+                let value = serde_json::to_vec(value).map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
                 config.insert(main_key, value);
             }
         }

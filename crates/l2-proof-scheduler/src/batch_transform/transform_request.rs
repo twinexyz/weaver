@@ -21,6 +21,8 @@ pub struct TwineBatchTransformRequestID {
 pub struct TwineBatchTransformInput {
     /// Batch number of bundle of blocks
     pub batch_number: u64,
+    /// Batch hash
+    pub batch_hash: [u8; 32],
     /// first block in the batch
     pub start_block: u64,
     /// last block in the batch
