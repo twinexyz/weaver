@@ -9,7 +9,7 @@ sh scripts/generate_evm_contract_artifacts.sh
 
 ## Running a Twine node
 ```sh
-L1_VALIDATOR_SET_PATH=<path_to_base_directory_containing_validator_sets>
+CONSENSUS_PRECOMPILE_TARGET_CHAINS=solana
 cargo run --bin twine-node -- \
     node \
     --dev \
