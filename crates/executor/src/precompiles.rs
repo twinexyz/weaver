@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use alloy_primitives::Address;
 use reth::revm::context::{Cfg, ContextTr};
 use reth::revm::handler::{EthPrecompiles, PrecompileProvider};
@@ -57,7 +55,7 @@ impl Default for TwinePrecompiles {
 pub struct TwineCustomPrecompile {
     pub inner: EthPrecompiles,
     pub twine_precompiles: TwinePrecompiles,
-    pub validator_sets: HashMap<String, String>,
+    pub consensus_verification_target_chains: Vec<String>,
 }
 
 impl<CTX: ContextTr> PrecompileProvider<CTX> for TwineCustomPrecompile {
@@ -90,8 +88,9 @@ impl<CTX: ContextTr> PrecompileProvider<CTX> for TwineCustomPrecompile {
         #[cfg(feature = "twine-l1-consensus-verifier-precompile")]
         {
             if address.eq(&self.twine_precompiles.consensus_precompile) {
-                let consensus_verifier_precompile =
-                    ConsensusVerifierPrecompile::new(self.validator_sets.clone());
+                let consensus_verifier_precompile = ConsensusVerifierPrecompile::new(
+                    self.consensus_verification_target_chains.clone(),
+                );
                 return consensus_verifier_precompile
                     .run(context, address, inputs, is_static, gas_limit);
             }

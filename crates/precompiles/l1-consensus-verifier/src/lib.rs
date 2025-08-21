@@ -24,10 +24,10 @@ pub struct ConsensusVerifierPrecompile {
 }
 
 impl ConsensusVerifierPrecompile {
-    pub fn new(chain_name: HashMap<String, String>) -> Self {
+    pub fn new(chain_names: Vec<String>) -> Self {
         let mut chains: HashMap<u64, Box<dyn Chains>> = HashMap::new();
-        for (chain_id, _) in chain_name {
-            let chain_id = get_chain_id(&chain_id);
+        for chain_name in chain_names {
+            let chain_id = get_chain_id(&chain_name);
             let chain_type = get_chain_type(chain_id).expect("chain type not found");
             match chain_type {
                 L1ChainType::Solana => {

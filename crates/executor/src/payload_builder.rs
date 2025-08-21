@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use reth::builder::components::PayloadBuilderBuilder;
 use reth::builder::BuilderContext;
 use reth::payload::{EthBuiltPayload, EthPayloadBuilderAttributes};
@@ -17,13 +15,13 @@ use crate::evm_config::TwineEvmConfig;
 #[non_exhaustive]
 pub struct TwinePayloadBuilder {
     inner: EthereumPayloadBuilder,
-    validator_sets: HashMap<String, String>,
+    consensus_verification_target_chains: Vec<String>,
 }
 
 impl TwinePayloadBuilder {
-    pub fn new(validator_sets: HashMap<String, String>) -> Self {
+    pub fn new(consensus_verification_target_chains: Vec<String>) -> Self {
         Self {
-            validator_sets,
+            consensus_verification_target_chains,
             ..Default::default()
         }
     }
@@ -51,7 +49,7 @@ where
         pool: Pool,
     ) -> eyre::Result<Self::PayloadBuilder> {
         self.inner.build(
-            TwineEvmConfig::new(ctx.chain_spec(), self.validator_sets),
+            TwineEvmConfig::new(ctx.chain_spec(), self.consensus_verification_target_chains),
             ctx,
             pool,
         )

@@ -1,18 +1,17 @@
-use std::collections::HashMap;
+use std::env;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::{env, fs};
 
 use reth::builder::components::BasicPayloadServiceBuilder;
 use reth::chainspec::Chain;
 use reth::cli::{Cli, Commands};
 use reth_node_ethereum::node::EthereumAddOns;
 use reth_node_ethereum::EthereumNode;
-use twine_constants::chains::*;
 use twine_executor::executor_builder::TwineExecutorBuilder;
 use twine_executor::payload_builder::TwinePayloadBuilder;
 
-pub const L1_VALIDATOR_SET_PATH: &str = "L1_VALIDATOR_SET_PATH";
+// pub const L1_VALIDATOR_SET_PATH: &str = "L1_VALIDATOR_SET_PATH";
+pub const CONSENSUS_PRECOMPILE_TARGET_CHAINS: &str = "CONSENSUS_PRECOMPILE_TARGET_CHAINS";
 
 fn generate_batch_store_path(parsed: &Cli) -> PathBuf {
     if let Commands::Node(node_command) = &parsed.command {
@@ -26,7 +25,7 @@ fn generate_batch_store_path(parsed: &Cli) -> PathBuf {
 
 fn main() -> eyre::Result<()> {
     let parsed = Cli::parse_args();
-    let validator_sets = load_validator_sets();
+    let consensus_precompile_target_chains = load_consensus_precompile_targets();
 
     #[cfg(feature = "twine-batch")]
     let batch_store_path = generate_batch_store_path(&parsed);
@@ -37,9 +36,11 @@ fn main() -> eyre::Result<()> {
             // 1. The executor: The code which verifies the block and executes the transactions.
             // 2. The payload builder: The code which builds the block and creates the payload.
             EthereumNode::components()
-                .executor(TwineExecutorBuilder::new(validator_sets.clone()))
+                .executor(TwineExecutorBuilder::new(
+                    consensus_precompile_target_chains.clone(),
+                ))
                 .payload(BasicPayloadServiceBuilder::new(TwinePayloadBuilder::new(
-                    validator_sets,
+                    consensus_precompile_target_chains,
                 ))),
         );
 
@@ -81,24 +82,15 @@ fn main() -> eyre::Result<()> {
     })
 }
 
-fn load_validator_sets() -> HashMap<String, String> {
-    let validator_set_base_path = match env::var("L1_VALIDATOR_SET_PATH") {
-        Ok(path) => path,
-        Err(_) => return HashMap::new(),
-    };
-    let validator_set_files = fs::read_dir(validator_set_base_path).unwrap();
-    let mut validator_set_hashmap = HashMap::new();
-    () = validator_set_files
-        .into_iter()
-        .map(|file| {
-            let file = file.unwrap();
-            let file_name = file.file_name().to_str().unwrap().to_string();
-            let splitted_name: Vec<&str> = file_name.split(".").collect();
-            if RECOGNIZED_CHAINS.contains(&splitted_name[0]) {
-                let validator_set = fs::read_to_string(file.path()).unwrap();
-                validator_set_hashmap.insert(splitted_name[0].to_string(), validator_set);
-            }
-        })
-        .collect();
-    validator_set_hashmap
+fn load_consensus_precompile_targets() -> Vec<String> {
+    let mut chains = Vec::new();
+
+    if let Ok(chain_names) = env::var(CONSENSUS_PRECOMPILE_TARGET_CHAINS) {
+        chains = chain_names
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect();
+    }
+    return chains;
 }

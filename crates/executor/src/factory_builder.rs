@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use reth::revm::context::TxEnv;
 use reth::revm::context_interface::result::{EVMError, HaltReason};
 use reth::revm::handler::EthPrecompiles;
@@ -18,11 +16,15 @@ use crate::precompiles::{TwineCustomPrecompile, TwinePrecompiles};
 #[derive(Debug, Default, Clone)] // removed compy from the original implementation
 #[non_exhaustive]
 pub struct TwineEvmFactory {
-    validator_sets: HashMap<String, String>,
+    consensus_verification_target_chains: Vec<String>,
 }
 
 impl TwineEvmFactory {
-    pub fn new(validator_sets: HashMap<String, String>) -> Self { Self { validator_sets } }
+    pub fn new(consensus_verification_target_chains: Vec<String>) -> Self {
+        Self {
+            consensus_verification_target_chains,
+        }
+    }
 }
 
 impl EvmFactory for TwineEvmFactory {
@@ -43,7 +45,7 @@ impl EvmFactory for TwineEvmFactory {
         let twine_precompile = TwineCustomPrecompile {
             inner: eth_precompiles,
             twine_precompiles: TwinePrecompiles::default(),
-            validator_sets: self.validator_sets.clone(),
+            consensus_verification_target_chains: self.consensus_verification_target_chains.clone(),
         };
         let evm = Context::mainnet()
             .with_db(db)

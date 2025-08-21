@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use reth::builder::components::ExecutorBuilder;
 use reth::builder::BuilderContext;
 use reth_chainspec::ChainSpec;
@@ -13,14 +11,18 @@ use crate::factory_builder::TwineEvmFactory;
 
 /// Builds a regular ethereum block executor that uses the custom EVM.
 /// This is heavily inspired from `examples/stateful-precompile` in `reth`.
-#[derive(Debug, Default, Clone)] // sw: removed copy from the original implementation to support hashmap
+#[derive(Debug, Default, Clone)]
 #[non_exhaustive]
 pub struct TwineExecutorBuilder {
-    validator_sets: HashMap<String, String>,
+    consensus_precompile_target_chains: Vec<String>,
 }
 
 impl TwineExecutorBuilder {
-    pub fn new(validator_sets: HashMap<String, String>) -> Self { Self { validator_sets } }
+    pub fn new(consensus_precompile_target_chains: Vec<String>) -> Self {
+        Self {
+            consensus_precompile_target_chains,
+        }
+    }
 }
 
 impl<Node> ExecutorBuilder<Node> for TwineExecutorBuilder
@@ -37,7 +39,7 @@ where
         let evm_config = TwineEvmConfig {
             inner: EthEvmConfig::new_with_evm_factory(
                 ctx.chain_spec(),
-                TwineEvmFactory::new(self.validator_sets),
+                TwineEvmFactory::new(self.consensus_precompile_target_chains),
             ),
         };
         Ok((
