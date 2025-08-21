@@ -35,7 +35,7 @@ impl ZStdPrecompile {
                 tracing::error!("zstd_precompile_error: {err:?}");
                 let err_bytes = Bytes::copy_from_slice(err.as_bytes());
                 return Ok(Some(InterpreterResult {
-                    result: InstructionResult::Revert,
+                    result: InstructionResult::PrecompileError,
                     output: err_bytes,
                     gas: Gas::new(0),
                 }));
