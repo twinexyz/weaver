@@ -130,7 +130,7 @@ impl Emitter for TwineBatchSubscriber {
                     }
                 }
 
-                full_batch = self.twine_client.get_full_batch(self.batch) => {
+                full_batch = self.twine_client.get_full_batch(self.batch, None) => {
                     let (start_block, end_block, batch_hash) = match full_batch {
                        Ok(batch) => {
                             let mut blocks = batch.block_range.into_iter();
