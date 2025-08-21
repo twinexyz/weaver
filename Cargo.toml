@@ -14,6 +14,7 @@ members = [
   "crates/constants",
   "crates/db/batch",
   "crates/ethereum-consensus-prover",
+  "crates/ethereum-writer",
   "crates/evm-contracts",
   "crates/executor",
   "crates/exex",
@@ -56,8 +57,10 @@ hex = "0.4.3"
 jsonrpsee = { version = "0.24", features = ["client", "jsonrpsee-proc-macros", "tracing", "server"] }
 log = "0.4.26"
 
+async-trait = "0.1.88"
 parking_lot = "0.12"
 rand = "0.8.5"
+rdkafka = "0.34"
 regex = "1.11.1"
 reqwest = { version = "0.11", features = ["json"] }
 rocksdb = "0.23.0"
@@ -70,9 +73,13 @@ sha2 = "0.10.8"
 ssz_types = "0.11.0"
 thiserror = "2.0.12"
 tokio = { version = "1.40.0", features = ["full"] }
+tokio-stream = "0.1"
+toml = "0.8.23"
 tree_hash = "0.10.0"
 tree_hash_derive = "0.10.0"
 typenum = "1.12.0"
+
+orchestrator-rs = { path = "../orchestrator-rs" }
 
 # SOLANA
 bincode = "1.3"
@@ -113,6 +120,7 @@ test-harness = { path = "crates/test-harness" }
 twine-constants = { path = "crates/constants" }
 twine-db-batch = { path = "crates/db/batch" }
 twine-ethereum-consensus-prover-lib = { path = "crates/ethereum-consensus-prover" }
+twine-ethereum-writer = { path = "crates/ethereum-writer" }
 twine-evm-contracts = { path = "crates/evm-contracts" }
 twine-executor = { path = "crates/executor" }
 twine-exex = { path = "crates/exex" }
