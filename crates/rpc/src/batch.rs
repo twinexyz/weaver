@@ -59,14 +59,37 @@ impl TwineBatchApiServer for TwineBatchRPC {
         }
     }
 
-    fn get_full_batch(&self, batch_number: u64) -> RpcResult<BatchMeta> {
-        match self.db.load_batch(batch_number) {
-            Ok(batch) => Ok(batch),
-            Err(e) => RpcResult::Err(ErrorObject::owned(
-                ErrorCode::InternalError.code(),
-                format!("{:?}", e),
-                Some(0),
-            )),
+    fn get_full_batch(&self, batch_number: u64, hydrate: Option<bool>) -> RpcResult<BatchMeta> {
+        let hydrate = hydrate.unwrap_or(false);
+        match hydrate {
+            true => match self.db.load_batch(batch_number) {
+                Ok(batch) => Ok(batch),
+                Err(e) => RpcResult::Err(ErrorObject::owned(
+                    ErrorCode::InternalError.code(),
+                    format!("{:?}", e),
+                    Some(0),
+                )),
+            },
+            false => {
+                let blocks_in_range = self.get_blocks_in_batch(batch_number)?;
+                let previous_hash = self.db.get_batch_hash(batch_number - 1);
+                let batch_hash = self.db.get_batch_hash(batch_number);
+
+                if blocks_in_range.is_none() {
+                    return RpcResult::Err(ErrorObject::owned(
+                        ErrorCode::InvalidParams.code(),
+                        format!("can not find metadata for batch {batch_number}"),
+                        Some(0),
+                    ));
+                }
+                Ok(BatchMeta {
+                    block_range: blocks_in_range.unwrap(),
+                    created_at: 0,
+                    prev_batch_hash: previous_hash,
+                    batch_hash,
+                    block_metadata: vec![],
+                })
+            }
         }
     }
 }

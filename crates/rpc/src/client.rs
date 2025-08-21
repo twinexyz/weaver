@@ -29,8 +29,11 @@ impl BatchClient {
     }
 
     /// Fetch the complete [`BatchMeta`] object for the given `batch` number.
-    pub async fn get_full_batch(&self, batch: u64) -> Result<BatchMeta> {
-        self.inner.get_full_batch(batch).await.map_err(Into::into)
+    pub async fn get_full_batch(&self, batch: u64, hydrate: Option<bool>) -> Result<BatchMeta> {
+        self.inner
+            .get_full_batch(batch, hydrate)
+            .await
+            .map_err(Into::into)
     }
 
     /// Retrieve the batch hash of the specified batch.

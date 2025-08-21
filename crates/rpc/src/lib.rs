@@ -18,8 +18,12 @@ pub trait TwineBatchApi {
     fn get_latest_batch(&self) -> RpcResult<u64>;
 
     /// Get full batch
+    /// # Arguments:
+    /// - `batch` - Batch number
+    /// - `hydrate` - When true, Inculdes the info of all the blocks in that
+    ///   batch
     #[method(name = "getFullBatch")]
-    fn get_full_batch(&self, batch: u64) -> RpcResult<BatchMeta>;
+    fn get_full_batch(&self, batch: u64, hydrate: Option<bool>) -> RpcResult<BatchMeta>;
 
     /// Get batch hash for a batch number
     #[method(name = "getBatchHash")]
