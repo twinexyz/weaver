@@ -55,7 +55,7 @@ pub struct L1PostingParams {
     pub l2_batch_proof: (ExecutionProof, PublicInput),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct L1PostingParamsWithAuxData {
     /// Batch number of the L2 batch
     pub l2_batch_number: u64,
