@@ -45,6 +45,7 @@ where
         info!("Last stored block number: {}", last_block);
         info!("Next batch number: {}", next_batch_number);
         info!("Chain tip is: {}", chain_tip);
+        info!("Max blocks per batch: {}", config.max_blocks);
 
         Ok(Self {
             store,
