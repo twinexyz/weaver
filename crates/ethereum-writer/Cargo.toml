@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+alloy.workspace = true
 async-trait.workspace = true
 orchestrator-rs.workspace = true
 rdkafka.workspace = true

@@ -4,7 +4,6 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use orchestrator_rs::config::Config;
 use orchestrator_rs::emitter::emitter::{EmissionState, Emitter};
-use orchestrator_rs::transform::TransformRequest;
 use rdkafka::config::ClientConfig;
 use rdkafka::consumer::{Consumer, StreamConsumer};
 use rdkafka::Message;
@@ -13,15 +12,18 @@ use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::Mutex;
 use tokio_stream::StreamExt;
 
-pub struct KafkaEmitter<CFG, TR> {
+use crate::request::EthereumWriterTransformRequest;
+use crate::types::L1PostingParamsWithAuxData;
+
+pub struct KafkaEmitter<CFG> {
     available_id: i64,
     brokers: Vec<String>,
     group_id: String,
     topic: String,
 
-    send_channel: Sender<TR>,
+    send_channel: Sender<EthereumWriterTransformRequest>,
 
-    _marker: std::marker::PhantomData<(CFG, TR)>,
+    _marker: std::marker::PhantomData<CFG>,
 }
 
 #[derive(Error, Debug)]
@@ -37,14 +39,13 @@ pub enum KafkaEmitterError {
 }
 
 #[async_trait]
-impl<CFG, TR> Emitter for KafkaEmitter<CFG, TR>
+impl<CFG> Emitter for KafkaEmitter<CFG>
 where
     CFG: Config<KeyType = String, ValueType = Vec<u8>> + Send + Sync + 'static,
-    TR: TransformRequest<Identifier = i64, Input = Vec<u8>> + Send + Sync + 'static,
 {
     type Config = CFG;
     type Error = KafkaEmitterError;
-    type TransformRequest = TR;
+    type TransformRequest = EthereumWriterTransformRequest;
 
     async fn new(
         init_config: Arc<Mutex<Self::Config>>,
@@ -126,17 +127,34 @@ where
         let mut stream = consumer.stream();
         loop {
             match stream.next().await {
-                Some(Ok(msg)) => {
+                Some(Ok(msg)) =>
                     if let Some(input) = msg.payload() {
-                        // You may want to deserialize payload to TR here
-                        // For now, just print and forward raw bytes
-                        println!("KafkaEmitter received message: {:?}", input);
-                        // Remove message from broker by committing offset
+                        let l1_posting_params_with_aux_data: L1PostingParamsWithAuxData =
+                            serde_json::from_slice(input).map_err(|e| {
+                                KafkaEmitterError::MessageError(format!(
+                                    "Deserialization error: {}",
+                                    e
+                                ))
+                            })?;
+
+                        let transform_request = EthereumWriterTransformRequest {
+                            identifier: l1_posting_params_with_aux_data.l2_batch_hash,
+                            input: l1_posting_params_with_aux_data.clone(),
+                        };
+                        self.send_channel
+                            .send(transform_request)
+                            .await
+                            .map_err(|e| {
+                                KafkaEmitterError::MessageError(format!(
+                                    "Channel send error: {}",
+                                    e
+                                ))
+                            })?;
+                        self.available_id += 1;
                         consumer
                             .commit_message(&msg, rdkafka::consumer::CommitMode::Async)
                             .map_err(|e| KafkaEmitterError::MessageError(e.to_string()))?;
-                    }
-                }
+                    },
                 Some(Err(e)) => {
                     eprintln!("Kafka error: {}", e);
                     return Err(KafkaEmitterError::MessageError(e.to_string()));
