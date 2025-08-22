@@ -259,25 +259,6 @@
         "internalType": "bytes32"
       }
     ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "isGenesisBlockCommitted",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "isGenesisBlockCommitted",
-    "inputs": [],
     "outputs": [
       {
         "name": "",
@@ -306,8 +287,8 @@
     "inputs": [
       {
         "name": "",
-        "type": "bytes",
-        "internalType": "bytes"
+        "type": "bytes32",
+        "internalType": "bytes32"
       }
     ],
     "outputs": [
@@ -325,7 +306,6 @@
     "inputs": [
       {
         "name": "",
-
         "type": "bytes32",
         "internalType": "bytes32"
       }
