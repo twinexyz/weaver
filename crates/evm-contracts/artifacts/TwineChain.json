@@ -289,6 +289,19 @@
   },
   {
     "type": "function",
+    "name": "isGenesisBlockCommitted",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "isL2WithdrawExecuted",
     "inputs": [
       {
@@ -312,6 +325,7 @@
     "inputs": [
       {
         "name": "",
+
         "type": "bytes32",
         "internalType": "bytes32"
       }
