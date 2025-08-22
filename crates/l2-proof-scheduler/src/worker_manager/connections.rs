@@ -27,6 +27,8 @@ pub enum ConnectionMessageTypes {
     NewJob,
     /// Result of the job is sent via `JobResult` message type
     JobResult,
+    /// Invalid params
+    InvalidParams,
 }
 
 /// Message structure sent by the worker instances
@@ -197,6 +199,7 @@ impl Connections {
                                 println!("didnot remove because the connection was not the same");
                             }
                         }
+                        ConnectionMessageTypes::InvalidParams => {} // todo
                     }
                 }
                 Err(e) => println!("errored {e}"),

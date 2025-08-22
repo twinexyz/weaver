@@ -4787,10 +4787,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "l2-execution-prover-worker"
-version = "0.1.0"
-
-[[package]]
 name = "lazy_static"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -11649,6 +11645,22 @@ version = "0.1.0"
 dependencies = [
  "reth-revm",
  "twine-constants",
+]
+
+[[package]]
+name = "twine-l2-execution-prover-worker"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "futures-channel",
+ "futures-util",
+ "orchestrator-rs",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.15",
+ "tokio",
+ "tokio-tungstenite 0.27.0",
+ "twine-l2-proof-scheduler",
 ]
 
 [[package]]
