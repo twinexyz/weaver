@@ -16,6 +16,12 @@ pub enum TransactionPrecompileError {
     DecodeReceipt,
     #[error("failed to decode event")]
     DecodeEvent,
+    #[error("failed to decode account proof")]
+    DecodedAccountProof,
+    #[error("failed to decode message data")]
+    DecodeMessage,
+    #[error("failed to verify state proofs")]
+    InvalidStateProof,
     #[error("invalid nonce: current nonce `{0}")]
     InvalidNonce(u64),
     #[error("failed to query storage slot of contract")]
