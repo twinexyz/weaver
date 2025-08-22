@@ -19,112 +19,6 @@
   },
   {
     "type": "function",
-    "name": "_calculateBatchHash",
-    "inputs": [
-      {
-        "name": "batchId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "_decodeBatchInfo",
-    "inputs": [
-      {
-        "name": "batchPublicValues",
-        "type": "bytes",
-        "internalType": "bytes"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "tuple",
-        "internalType": "struct ITwineChain.StoredBatchInfo",
-        "components": [
-          {
-            "name": "startBlock",
-            "type": "uint64",
-            "internalType": "uint64"
-          },
-          {
-            "name": "endBlock",
-            "type": "uint64",
-            "internalType": "uint64"
-          },
-          {
-            "name": "batchHash",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          }
-        ]
-      }
-    ],
-    "stateMutability": "pure"
-  },
-  {
-    "type": "function",
-    "name": "_decodeChainCommitment",
-    "inputs": [
-      {
-        "name": "chainCommitment",
-        "type": "bytes",
-        "internalType": "bytes"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "tuple",
-        "internalType": "struct ITwineChain.ChainCommitment",
-        "components": [
-          {
-            "name": "depositCount",
-            "type": "uint64",
-            "internalType": "uint64"
-          },
-          {
-            "name": "depositRollingHash",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          },
-          {
-            "name": "withdrawCount",
-            "type": "uint64",
-            "internalType": "uint64"
-          },
-          {
-            "name": "withdrawRollingHash",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          },
-          {
-            "name": "lzTransactionCount",
-            "type": "uint64",
-            "internalType": "uint64"
-          },
-          {
-            "name": "lzTransactionRollingHash",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          }
-        ]
-      }
-    ],
-    "stateMutability": "pure"
-  },
-  {
-    "type": "function",
     "name": "chainId",
     "inputs": [],
     "outputs": [
@@ -138,86 +32,17 @@
   },
   {
     "type": "function",
-    "name": "checkBatchFinalization",
-    "inputs": [
-      {
-        "name": "startBlock",
-        "type": "uint64",
-        "internalType": "uint64"
-      },
-      {
-        "name": "endBlock",
-        "type": "uint64",
-        "internalType": "uint64"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "commitAndFinalizeTransactions",
-    "inputs": [
-      {
-        "name": "transactionInfo",
-        "type": "bytes",
-        "internalType": "bytes"
-      },
-      {
-        "name": "inclusionProof",
-        "type": "bytes",
-        "internalType": "bytes"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "commitBatch",
     "inputs": [
       {
-        "name": "startBlock",
+        "name": "batchNumber",
         "type": "uint64",
         "internalType": "uint64"
       },
       {
-        "name": "endBlock",
-        "type": "uint64",
-        "internalType": "uint64"
-      },
-      {
-        "name": "commitBlockInfo",
-        "type": "tuple[]",
-        "internalType": "struct ITwineChain.CommitBlockInfo[]",
-        "components": [
-          {
-            "name": "blockNumber",
-            "type": "uint64",
-            "internalType": "uint64"
-          },
-          {
-            "name": "blockHash",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          },
-          {
-            "name": "transactionRoot",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          },
-          {
-            "name": "receiptRoot",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          }
-        ]
+        "name": "batchHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
       }
     ],
     "outputs": [],
@@ -238,85 +63,17 @@
   },
   {
     "type": "function",
-    "name": "commitedBatchStatus",
+    "name": "committedBatch",
     "inputs": [
       {
         "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "commitedBlockInfo",
-    "inputs": [
-      {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "previousHash",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "blockHash",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "transactionRoot",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "receiptRoot",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "committedBatches",
-    "inputs": [
-      {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "startBlock",
         "type": "uint64",
         "internalType": "uint64"
-      },
+      }
+    ],
+    "outputs": [
       {
-        "name": "endBlock",
-        "type": "uint64",
-        "internalType": "uint64"
-      },
-      {
-        "name": "batchHash",
+        "name": "",
         "type": "bytes32",
         "internalType": "bytes32"
       }
@@ -338,23 +95,51 @@
   },
   {
     "type": "function",
-    "name": "executionVKey",
-    "inputs": [],
-    "outputs": [
+    "name": "executeForcedWithdrawal",
+    "inputs": [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        "name": "publicValues",
+        "type": "bytes",
+        "internalType": "bytes"
+      },
+      {
+        "name": "withdrawalProof",
+        "type": "bytes",
+        "internalType": "bytes"
       }
     ],
-    "stateMutability": "view"
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "executeL2Withdraw",
+    "inputs": [
+      {
+        "name": "publicValues",
+        "type": "bytes",
+        "internalType": "bytes"
+      },
+      {
+        "name": "withdrawProof",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
     "name": "finalizeBatch",
     "inputs": [
       {
-        "name": "publicInputForExecution",
+        "name": "batchNumber",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "publicValues",
         "type": "bytes",
         "internalType": "bytes"
       },
@@ -369,118 +154,27 @@
   },
   {
     "type": "function",
-    "name": "finalizeWithdrawal",
-    "inputs": [
-      {
-        "name": "withdrawalInputs",
-        "type": "tuple",
-        "internalType": "struct ITwineChain.FinalizeWithdrawalInput",
-        "components": [
-          {
-            "name": "publicInput",
-            "type": "tuple",
-            "internalType": "struct ITwineChain.WithdrawalPublicInput",
-            "components": [
-              {
-                "name": "chainId",
-                "type": "uint64",
-                "internalType": "uint64"
-              },
-              {
-                "name": "blockNumber",
-                "type": "uint64",
-                "internalType": "uint64"
-              },
-              {
-                "name": "nonce",
-                "type": "uint64",
-                "internalType": "uint64"
-              },
-              {
-                "name": "isForcedWithdrawal",
-                "type": "uint8",
-                "internalType": "uint8"
-              },
-              {
-                "name": "receiptRoot",
-                "type": "bytes32",
-                "internalType": "bytes32"
-              },
-              {
-                "name": "l1ReceiverAddress",
-                "type": "string",
-                "internalType": "string"
-              },
-              {
-                "name": "l1TokenAddress",
-                "type": "string",
-                "internalType": "string"
-              },
-              {
-                "name": "l2TokenAddress",
-                "type": "string",
-                "internalType": "string"
-              },
-              {
-                "name": "amount",
-                "type": "string",
-                "internalType": "string"
-              }
-            ]
-          },
-          {
-            "name": "inclusionProof",
-            "type": "bytes",
-            "internalType": "bytes"
-          }
-        ]
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "finalizedBatchStatus",
-    "inputs": [
-      {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "finalizedCombinedReceiptRoot",
-    "inputs": [
-      {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "inclusionVKey",
+    "name": "finalizeVKey",
     "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "finalizedBatch",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
     "outputs": [
       {
         "name": "",
@@ -495,7 +189,7 @@
     "name": "initialize",
     "inputs": [
       {
-        "name": "_messageQueue",
+        "name": "_messageHandler",
         "type": "address",
         "internalType": "address"
       },
@@ -515,31 +209,12 @@
   },
   {
     "type": "function",
-    "name": "isBatchCommitted",
-    "inputs": [
-      {
-        "name": "batchId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "isBatchFinalized",
     "inputs": [
       {
-        "name": "batchId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        "name": "batchNumber",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "outputs": [
@@ -553,12 +228,12 @@
   },
   {
     "type": "function",
-    "name": "isWithdrawExecuted",
+    "name": "isForcedWithdrawExecuted",
     "inputs": [
       {
         "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        "type": "bytes",
+        "internalType": "bytes"
       }
     ],
     "outputs": [
@@ -572,26 +247,64 @@
   },
   {
     "type": "function",
-    "name": "lastCommittedBlockNumber",
+    "name": "isGenesisBlockCommitted",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "isL2WithdrawExecuted",
+    "inputs": [
+      {
+        "name": "",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "isRefundExecuted",
+    "inputs": [
+      {
+        "name": "",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "lastCommittedBatchNumber",
     "inputs": [],
     "outputs": [
       {
         "name": "",
         "type": "uint256",
         "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "lastCommittedEndBlockHash",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
       }
     ],
     "stateMutability": "view"
@@ -611,7 +324,7 @@
   },
   {
     "type": "function",
-    "name": "lastFinalizedBlockNumber",
+    "name": "lastFinalizedBatchNumber",
     "inputs": [],
     "outputs": [
       {
@@ -624,20 +337,7 @@
   },
   {
     "type": "function",
-    "name": "lastFinalizedTransactionsBlockNumber",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "messageQueue",
+    "name": "messageHandler",
     "inputs": [],
     "outputs": [
       {
@@ -650,19 +350,44 @@
   },
   {
     "type": "function",
-    "name": "prependBytes",
+    "name": "refundDeposit",
     "inputs": [
       {
-        "name": "originalData",
+        "name": "publicValues",
+        "type": "bytes",
+        "internalType": "bytes"
+      },
+      {
+        "name": "refundProof",
         "type": "bytes",
         "internalType": "bytes"
       }
     ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "refundVKey",
+    "inputs": [],
     "outputs": [
       {
         "name": "",
-        "type": "bytes",
-        "internalType": "bytes"
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "roleManager",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
       }
     ],
     "stateMutability": "view"
@@ -700,10 +425,10 @@
   },
   {
     "type": "function",
-    "name": "setMessengerQueueAddress",
+    "name": "setMessageHandlerAddress",
     "inputs": [
       {
-        "name": "_messageQueue",
+        "name": "_messageHandler",
         "type": "address",
         "internalType": "address"
       }
@@ -716,12 +441,12 @@
     "name": "setProgramVKey",
     "inputs": [
       {
-        "name": "_executionVKey",
+        "name": "_finalizeVKey",
         "type": "bytes32",
         "internalType": "bytes32"
       },
       {
-        "name": "_inclusionVKey",
+        "name": "_refundVKey",
         "type": "bytes32",
         "internalType": "bytes32"
       },
@@ -814,16 +539,10 @@
   },
   {
     "type": "event",
-    "name": "CommitBatch",
+    "name": "CommitedBatch",
     "inputs": [
       {
-        "name": "startBlock",
-        "type": "uint64",
-        "indexed": true,
-        "internalType": "uint64"
-      },
-      {
-        "name": "endBlock",
+        "name": "batchNumber",
         "type": "uint64",
         "indexed": true,
         "internalType": "uint64"
@@ -839,12 +558,6 @@
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
-      },
-      {
-        "name": "batchId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
       },
       {
         "name": "batchHash",
@@ -860,13 +573,13 @@
     "name": "FinalizedBatch",
     "inputs": [
       {
-        "name": "startBlock",
+        "name": "batchNumber",
         "type": "uint64",
         "indexed": true,
         "internalType": "uint64"
       },
       {
-        "name": "endBlock",
+        "name": "messagesHandledOnTwine",
         "type": "uint64",
         "indexed": true,
         "internalType": "uint64"
@@ -882,66 +595,11 @@
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
-      },
-      {
-        "name": "batchId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
       },
       {
         "name": "batchHash",
         "type": "bytes32",
         "indexed": false,
-        "internalType": "bytes32"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "FinalizedTransaction",
-    "inputs": [
-      {
-        "name": "startBlock",
-        "type": "uint64",
-        "indexed": true,
-        "internalType": "uint64"
-      },
-      {
-        "name": "endBlock",
-        "type": "uint64",
-        "indexed": true,
-        "internalType": "uint64"
-      },
-      {
-        "name": "chainId",
-        "type": "uint64",
-        "indexed": false,
-        "internalType": "uint64"
-      },
-      {
-        "name": "depositCount",
-        "type": "uint64",
-        "indexed": false,
-        "internalType": "uint64"
-      },
-      {
-        "name": "withdrawCount",
-        "type": "uint64",
-        "indexed": false,
-        "internalType": "uint64"
-      },
-      {
-        "name": "blockNumber",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      },
-      {
-        "name": "batchId",
-        "type": "bytes32",
-        "indexed": true,
         "internalType": "bytes32"
       }
     ],
@@ -962,19 +620,43 @@
   },
   {
     "type": "event",
-    "name": "RevertBatch",
+    "name": "L2WithdrawExecuted",
     "inputs": [
       {
-        "name": "batchNumber",
-        "type": "uint256",
-        "indexed": true,
-        "internalType": "uint256"
+        "name": "nonce",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
       },
       {
-        "name": "batchHash",
-        "type": "bytes32",
+        "name": "l1Token",
+        "type": "string",
         "indexed": true,
-        "internalType": "bytes32"
+        "internalType": "string"
+      },
+      {
+        "name": "l2Token",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "receiver",
+        "type": "string",
+        "indexed": true,
+        "internalType": "string"
+      },
+      {
+        "name": "amount",
+        "type": "string",
+        "indexed": true,
+        "internalType": "string"
+      },
+      {
+        "name": "blockNumber",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
       }
     ],
     "anonymous": false
@@ -1006,7 +688,37 @@
   },
   {
     "type": "error",
+    "name": "BatchHashMismatch",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "BatchMustBeFinalizedSequentially",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "BatchNotFinalizedYet",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "CommittedBatchHashMismatch",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "ErrorZeroAddress",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "GenesisBlockAlreadyCommitted",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidBatchSequence",
     "inputs": []
   },
   {
@@ -1016,7 +728,57 @@
   },
   {
     "type": "error",
+    "name": "InvalidMessageCount",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidVerificationKeys",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "LastFinalizedBatchHashMismatch",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MessageHashNotFound",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotAtGenesis",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "NotInitializing",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "PreviousBatchHashMismatch",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "RefundAlreadyProcessed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "TransactionMustBeDepositType",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "TransactionMustBeWithdrawType",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "WithdrawalAlreadyProcessed",
     "inputs": []
   }
 ]
