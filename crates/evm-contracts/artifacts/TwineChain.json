@@ -259,6 +259,12 @@
         "internalType": "bytes32"
       }
     ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "isGenesisBlockCommitted",
+    "inputs": [],
     "outputs": [
       {
         "name": "",
@@ -287,8 +293,8 @@
     "inputs": [
       {
         "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        "type": "bytes",
+        "internalType": "bytes"
       }
     ],
     "outputs": [
