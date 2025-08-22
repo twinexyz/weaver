@@ -32,6 +32,29 @@
   },
   {
     "type": "function",
+    "name": "commitAndFinalizeBatch",
+    "inputs": [
+      {
+        "name": "batchNumber",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "publicValues",
+        "type": "bytes",
+        "internalType": "bytes"
+      },
+      {
+        "name": "executionProof",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "commitBatch",
     "inputs": [
       {
@@ -232,8 +255,8 @@
     "inputs": [
       {
         "name": "",
-        "type": "bytes",
-        "internalType": "bytes"
+        "type": "bytes32",
+        "internalType": "bytes32"
       }
     ],
     "outputs": [
@@ -264,8 +287,8 @@
     "inputs": [
       {
         "name": "",
-        "type": "bytes",
-        "internalType": "bytes"
+        "type": "bytes32",
+        "internalType": "bytes32"
       }
     ],
     "outputs": [
@@ -283,8 +306,8 @@
     "inputs": [
       {
         "name": "",
-        "type": "bytes",
-        "internalType": "bytes"
+        "type": "bytes32",
+        "internalType": "bytes32"
       }
     ],
     "outputs": [
