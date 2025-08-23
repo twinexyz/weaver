@@ -11,6 +11,7 @@ rust-version.workspace = true
 alloy-primitives.workspace = true
 alloy-sol-types.workspace = true
 eyre.workspace = true
+git2.workspace = true
 log.workspace = true
 ruzstd.workspace = true
 serde.workspace = true
