@@ -59,7 +59,7 @@ jobs:
             fi
           }
 
-          update_abi twine-solidity-contracts/out/L1MessageQueue.sol/L1MessageQueue.json crates/evm-contracts/artifacts/L1MessageQueue.json
+          update_abi twine-solidity-contracts/out/L1MessageHandler.sol/L1MessageHandler.json crates/evm-contracts/artifacts/L1MessageHandler.json
           update_abi twine-solidity-contracts/out/TwineChain.sol/TwineChain.json crates/evm-contracts/artifacts/TwineChain.json
           update_abi twine-solidity-contracts/out/L2TwineMessenger.sol/L2TwineMessenger.json crates/evm-contracts/artifacts/L2TwineMessenger.json
           update_abi twine-solidity-contracts/out/TwineSystemStorageContract.sol/TwineSystemStorageContract.json crates/evm-contracts/artifacts/TwineSystemStorageContract.json
