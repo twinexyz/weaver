@@ -141,6 +141,7 @@ impl Emitter for TwineBatchSubscriber {
                                 continue
                             }
                             self.backoff.reset_wait_and_backoff();
+                            log::info!("received batch info for {}", self.batch);
                             (
                                 start_block,
                                 end_block,
