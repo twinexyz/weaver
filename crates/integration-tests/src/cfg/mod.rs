@@ -45,6 +45,7 @@ pub struct MerkoraConfig {
 #[derive(Debug, Deserialize, Clone)]
 pub struct SmartContractsConfig {
     pub solidity: ContractRepoConfig,
+    pub solana: ContractRepoConfig,
 }
 
 #[derive(Debug, Deserialize, Clone)]

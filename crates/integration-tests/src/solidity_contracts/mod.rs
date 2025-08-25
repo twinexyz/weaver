@@ -2,7 +2,7 @@ use std::fs::File;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
-use eyre::eyre;
+use eyre::{eyre, Context};
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 use test_harness::{AsyncFnStep, TestStep};
@@ -35,7 +35,8 @@ pub fn prepare_contract_repo(
         std::fs::create_dir_all(parent)?;
     }
 
-    let repo = clone_private_repo(url, target_path.to_str().unwrap())?;
+    let repo =
+        clone_private_repo(url, target_path.to_str().unwrap()).context("Failed cloning repo")?;
     checkout_branch(&repo, cfg.branch.as_deref().unwrap_or("main"))?;
 
     Ok(target_path)
@@ -89,7 +90,7 @@ pub fn deploy_contracts_step(contract_path: &PathBuf) -> eyre::Result<TestStep> 
 }
 
 /// load contracts after deployment
-fn load_contract_addresses_step(contract_path: &PathBuf) -> eyre::Result<TestStep> {
+pub fn load_contract_addresses_step(contract_path: &PathBuf) -> eyre::Result<TestStep> {
     let mut path = contract_path.clone();
     path.push("script/utils/deployedContracts.json");
     Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {

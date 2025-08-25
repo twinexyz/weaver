@@ -52,5 +52,25 @@ pub fn prepare_reth(cfg: &NodeConfig) -> Vec<String> {
         "--ws".into(),
         "--dev.block-time".into(),
         "2sec".into(),
+        "--port".into(),
+        "6787".into(),
+        "--authrpc.port".into(),
+        "6788".into(),
+        "--ws.port".into(),
+        "6789".into(),
+    ]
+}
+
+/// Build the command vector for solana test validator
+pub fn prepare_solana_node(cfg: &NodeConfig) -> Vec<String> {
+    let binary = cfg.binary_name.clone();
+
+    vec![
+        binary,
+        "--reset".into(),
+        "--limit-ledger-size".into(),
+        "false".into(),
+        "--ledger".into(),
+        consts::SOLANA_DATA_DIR.into(),
     ]
 }

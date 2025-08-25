@@ -21,6 +21,8 @@ pub mod ctx;
 pub mod git;
 pub mod merkora;
 pub mod nodes;
+pub mod postgresql;
+pub mod solana_programs;
 pub mod solidity_contracts;
 
 /// Utility function to remove a folder or file
