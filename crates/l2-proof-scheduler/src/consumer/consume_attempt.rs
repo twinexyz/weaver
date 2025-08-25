@@ -100,7 +100,7 @@ impl ConsumeAttempt for TwineBatchTransformResultConsumeAttempt {
     /// what dynamic configs need to be updated, Key is always a
     /// string, value is always a `Vec<u8>` representing the serialized
     /// value.
-    fn get_dyn_configs(&self) -> Vec<(String, Vec<u8>)> { todo!() }
+    fn get_dyn_configs(&self) -> Vec<(String, Vec<u8>)> { vec![] }
 }
 
 impl TwineBatchTransformResultConsumeAttempt {

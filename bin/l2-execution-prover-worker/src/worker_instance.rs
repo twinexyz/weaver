@@ -52,9 +52,13 @@ impl WorkerInstance {
                 data: "".to_string(),
             },
         };
-        self.result_sender.send(new_job_request).await.unwrap();
+        self.result_sender
+            .send(new_job_request.clone())
+            .await
+            .unwrap();
 
         while let Some(attempt) = self.job_receiver.recv().await {
+            println!("new job received {:#?}", attempt);
             let proving_result = self
                 .prove(attempt.call_ctx.clone().twine_node_rpc, BlocksInBatch {
                     start_block: attempt.call_val.start_block,
@@ -63,6 +67,10 @@ impl WorkerInstance {
                 .await;
             let return_value = self.make_return_value(attempt, proving_result);
             self.result_sender.send(return_value).await.unwrap();
+            self.result_sender
+                .send(new_job_request.clone())
+                .await
+                .unwrap();
         }
     }
 

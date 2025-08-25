@@ -21,7 +21,7 @@ use crate::error::TwineProofSchedulerError;
 pub const JOB_COMPLETION_TIMEOUT: u64 = 30;
 
 /// Connection Message Types
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum ConnectionMessageTypes {
     /// Worker Instances requests new jobs via `NewJob` message type
     NewJob,
@@ -32,7 +32,7 @@ pub enum ConnectionMessageTypes {
 }
 
 /// Message structure sent by the worker instances
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ConnectionMessage {
     /// Message type to request new job or send result of the
     /// previously taken job by the worker instances
@@ -42,7 +42,7 @@ pub struct ConnectionMessage {
 }
 
 /// Message data
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct MessageData {
     /// Represents the message associated to the Transform Attempt
     pub transform_attempt_id: TwineBatchTransformAttemptID,
@@ -144,11 +144,14 @@ impl Connections {
                             let mut message = "please wait: job not ready yet".to_string();
 
                             if let Some(proof_job) = job.clone() {
+                                println!("reached in the place where we assign job");
+                                let id = proof_job.identifier.clone();
+                                let proof_job_str = serde_json::to_string(&proof_job).unwrap();
                                 let job_msg = ConnectionMessage {
                                     message_type: ConnectionMessageTypes::NewJob,
                                     message: MessageData {
-                                        transform_attempt_id: proof_job.identifier.clone(),
-                                        data: format!("{:?}", proof_job),
+                                        transform_attempt_id: id,
+                                        data: proof_job_str,
                                     },
                                 };
 
@@ -173,28 +176,17 @@ impl Connections {
                             }
 
                             let attempt_id = connection_message.message.transform_attempt_id;
-                            if let Some(job_details) = self
+                            if let Some(_) = self
                                 .assigned_jobs
                                 .lock()
                                 .await
                                 .remove(&(attempt_id.clone(), connection_id.clone()))
                             {
-                                let return_package = (
-                                    attempt_id.clone(),
-                                    TwineBatchTransformReturnCtx {
-                                        call_context: job_details.transform_attempt.call_ctx,
-                                        call_type: job_details.transform_attempt.call_val,
-                                        extra_data: vec![],
-                                    },
-                                    Err(TwineProofSchedulerError::Other(
-                                        "error from here".to_string(),
-                                    )),
-                                );
+                                let worker_manager_result: WorkerManagerResult<
+                                    TwineBatchTransformAttempt,
+                                > = serde_json::from_str(&connection_message.message.data).unwrap(); // TODO: write some message
 
-                                _sender
-                                    .send(WorkerManagerResult::Success(attempt_id, return_package))
-                                    .await
-                                    .unwrap();
+                                _sender.send(worker_manager_result).await.unwrap();
                             } else {
                                 println!("didnot remove because the connection was not the same");
                             }
