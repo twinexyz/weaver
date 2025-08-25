@@ -90,6 +90,13 @@ mod eth_deposit_test {
         harness.add_step(deploy_contracts_step(&solidity_contracts)?);
         harness.add_step(load_contract_addresses_step(&solidity_contracts)?);
 
+        // Build and deploy solana programs
+        harness.add_step(build_solana_program_step(&solana_programs)?);
+        harness.add_step(deploy_solana_program_step(&solana_programs)?);
+        harness.add_step(load_solana_programs_step(&solana_programs)?);
+
+        // harness.add_step(wait_step(Duration::from_secs(1000), "waiting"));
+
         // Configure and start merkora
         harness.add_step(setup_postgres_step()?);
         harness.add_step(setup_merkora_config()?);

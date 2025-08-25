@@ -54,3 +54,7 @@ pub fn ctx_get<'a>(
         .ok_or_else(|| eyre!("Missing context key: {key}"))
         .map(|s| s.clone())
 }
+
+pub mod common_ctx_keys {
+    pub const MERKORA_DB_CONNECTION_STRING: &str = "merkora_db_connection_string";
+}
