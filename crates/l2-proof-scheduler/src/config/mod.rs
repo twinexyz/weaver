@@ -68,13 +68,17 @@ impl Config for TwineProofSchedulerConfig {
         _values: Vec<(Self::KeyType, Self::ValueType)>,
     ) -> Result<(), Self::Error> {
         for (key, value) in _values {
-            self.dynamic_config.insert(key, value).unwrap(); // Todo
+            self.dynamic_config.insert(key, value);
         }
         Ok(())
     }
 
-    /// Gets a static value from the configuration.
+    /// Gets a value from dynamic config and if not, gets it from
+    /// static config
     async fn get(&self, key: Self::KeyType) -> Result<Self::ValueType, Self::Error> {
+        if let Some(value) = self.dynamic_config.get(&key) {
+            return Ok(value.to_owned());
+        }
         let value = self
             .static_config
             .get(&key)

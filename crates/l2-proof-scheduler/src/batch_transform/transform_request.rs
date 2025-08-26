@@ -62,5 +62,19 @@ impl TransformRequest for TwineBatchTransformRequest {
     /// what dynamic configs need to be updated, Key is always a
     /// string, value is always a `Vec<u8>` representing the serialized
     /// value
-    fn get_dyn_configs(&self) -> Vec<(String, Vec<u8>)> { vec![] }
+    fn get_dyn_configs(&self) -> Vec<(String, Vec<u8>)> {
+        let end_block = toml::Value::Integer((self.transform_input.end_block + 1) as i64);
+        let end_block = serde_json::to_vec(&end_block).unwrap();
+
+        let next_transfrom_request_id =
+            toml::Value::Integer((self.identifier.identifier + 1) as i64);
+        let next_transform_request_id = serde_json::to_vec(&next_transfrom_request_id).unwrap();
+        vec![
+            ("batch_subscriber.start_block".to_string(), end_block),
+            (
+                "batch_subscriber.next_transform_request_id".to_string(),
+                next_transform_request_id,
+            ),
+        ]
+    }
 }
