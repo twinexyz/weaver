@@ -8,6 +8,7 @@ pub mod worker_instance;
 pub mod wss_client;
 
 use clap::Parser;
+use env_logger;
 
 /// command line arguments
 #[derive(Debug, Clone, Parser)]
@@ -22,6 +23,8 @@ pub struct Args {
 
 #[tokio::main]
 async fn main() {
+    env_logger::init();
+
     let args = Args::parse();
 
     let (worker_to_manager_message_tx, worker_to_manager_message_rx) =

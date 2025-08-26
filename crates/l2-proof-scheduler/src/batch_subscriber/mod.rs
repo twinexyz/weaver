@@ -2,7 +2,6 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use async_trait::async_trait;
-use log::error as log_error;
 use orchestrator_rs::config::Config;
 use orchestrator_rs::emitter::emitter::{EmissionState, Emitter};
 use tokio::sync::mpsc::{Receiver, Sender};
@@ -125,7 +124,7 @@ impl Emitter for TwineBatchSubscriber {
     /// This loop should run indefinitely, processing incoming requests in a
     /// sequential manner. See [`Emitter`] for more details.
     async fn emitter_loop(&mut self) -> Result<(), Self::Error> {
-        println!("starting emitter loop");
+        log::info!("starting emitter loop");
         let current_batch: u64 = self
             .twine_client
             .get_batch_number_for_block(self.start_block)
@@ -165,8 +164,7 @@ impl Emitter for TwineBatchSubscriber {
                             )
                         }
                         Err(e) => {
-                            println!("errored");
-                            log_error!(
+                            log::warn!(
                                 "error getting response from twine rpc. batch tyring to query: {}, error {e}",
                                 self.batch
                             );
@@ -176,12 +174,11 @@ impl Emitter for TwineBatchSubscriber {
                         }
                     };
 
-                    let identifier = self.next_identifier();
                     self.transform_request_sender
                         .send(
                             TwineBatchTransformRequest {
                                 identifier: TwineBatchTransformRequestID {
-                                    identifier,
+                                    identifier: self.identifier,
                                 },
                                 transform_input: TwineBatchTransformInput {
                                     batch_number: self.batch,
@@ -196,6 +193,7 @@ impl Emitter for TwineBatchSubscriber {
                             .await
                             .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
                     self.next_batch();
+                    self.next_identifier();
                 }
             }
         }

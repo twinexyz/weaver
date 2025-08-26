@@ -102,7 +102,7 @@ impl Consumer for TwineBatchTransformResultConsumer {
     /// This loop should run indefinitely, processing incoming consume attempt
     /// requests in a sequential manner. See [`Consumer`] for more details.
     async fn consumer_loop(&mut self) -> Result<(), Self::ConsumeError> {
-        println!("consumer loop started");
+        log::info!("consumer loop started");
         while let Some(consume_attempt) = self.consume_attempt_receiver.recv().await {
             match self
                 .kafka_client
