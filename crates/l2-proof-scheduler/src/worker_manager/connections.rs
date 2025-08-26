@@ -15,6 +15,7 @@ use tokio_tungstenite;
 use crate::batch_transform::transform_attempt::{
     TwineBatchTransformAttempt, TwineBatchTransformAttemptID, TwineBatchTransformReturnCtx,
 };
+use crate::batch_transform::transform_request::TwineBatchTransformRequestID;
 use crate::error::TwineProofSchedulerError;
 
 /// default job completion time out
@@ -29,6 +30,8 @@ pub enum ConnectionMessageTypes {
     JobResult,
     /// Invalid params
     InvalidParams,
+    /// Message not ready
+    MessageNotReady,
 }
 
 /// Message structure sent by the worker instances
@@ -39,6 +42,22 @@ pub struct ConnectionMessage {
     pub message_type: ConnectionMessageTypes,
     /// Message data
     pub message: MessageData,
+}
+
+impl ConnectionMessage {
+    /// default connection message with type
+    pub fn default_message_with_type(connection_message_type: ConnectionMessageTypes) -> Self {
+        ConnectionMessage {
+            message_type: connection_message_type,
+            message: MessageData {
+                transform_attempt_id: TwineBatchTransformAttemptID {
+                    identifier: 0,
+                    transform_request_id: TwineBatchTransformRequestID { identifier: 0 },
+                },
+                data: "".to_owned(),
+            },
+        }
+    }
 }
 
 /// Message data
@@ -141,7 +160,10 @@ impl Connections {
                                 "connection id while giving the job {:?}",
                                 connection_id.clone()
                             );
-                            let mut message = "please wait: job not ready yet".to_string();
+                            let message = ConnectionMessage::default_message_with_type(
+                                ConnectionMessageTypes::MessageNotReady,
+                            );
+                            let mut message = serde_json::to_string(&message).unwrap();
 
                             if let Some(proof_job) = job.clone() {
                                 println!("reached in the place where we assign job");
@@ -192,6 +214,7 @@ impl Connections {
                             }
                         }
                         ConnectionMessageTypes::InvalidParams => {} // todo
+                        ConnectionMessageTypes::MessageNotReady => {} // should be unreachable
                     }
                 }
                 Err(e) => println!("errored {e}"),

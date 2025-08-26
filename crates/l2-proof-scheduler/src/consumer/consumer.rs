@@ -10,7 +10,6 @@ use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::Mutex;
 
 use crate::config::TwineProofSchedulerConfig;
-use crate::consumer::aggregator_client::AggregatorClient;
 use crate::consumer::consume_attempt::{
     TwineBatchTransformResultConsumeAttempt, TwineBatchTransformResultConsumeReturnContext,
 };
@@ -21,7 +20,7 @@ use crate::error::TwineProofSchedulerError;
 #[derive(Debug)]
 pub struct TwineBatchTransformResultConsumer {
     /// url to connect to the aggregator
-    pub aggregator_client: AggregatorClient,
+    // pub aggregator_client: AggregatorClient,
     /// kafka client
     pub kafka_client: KafkaProducer,
     /// receiver to receive the consume attempts
@@ -44,12 +43,6 @@ impl Consumer for TwineBatchTransformResultConsumer {
     ) -> Result<Self, Self::ConsumeError>
     where
         Self: Sized, {
-        let aggregator_url = init_config
-            .lock()
-            .await
-            .get("consumer.aggregator_url".to_string())
-            .await?;
-
         let kafka_broker_url = init_config
             .lock()
             .await
@@ -67,15 +60,6 @@ impl Consumer for TwineBatchTransformResultConsumer {
             .await
             .get("consumer.kafka_groups".to_string())
             .await?;
-
-        let aggregator_url: toml::Value = serde_json::from_slice(&aggregator_url)
-            .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
-        let aggregator_url = aggregator_url
-            .as_str()
-            .ok_or(TwineProofSchedulerError::Other(
-                "could not cast to string".to_string(),
-            ))?;
-        let aggregator_client = AggregatorClient::new(aggregator_url.to_string());
 
         let kafka_broker_url: toml::Value = serde_json::from_slice(&kafka_broker_url)
             .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
@@ -108,7 +92,6 @@ impl Consumer for TwineBatchTransformResultConsumer {
         )?;
 
         Ok(Self {
-            aggregator_client,
             consume_attempt_receiver: recv_channel,
             consume_attempt_result_sender: end_channel,
             kafka_client,
