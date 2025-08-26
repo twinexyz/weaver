@@ -87,6 +87,21 @@ impl Emitter for TwineBatchSubscriber {
         let start_block = block_number
             .as_integer()
             .ok_or(TwineProofSchedulerError::Other("parse error".to_string()))?
+            as u64;
+
+        let identifier = init_config
+            .lock()
+            .await
+            .get("batch_subscriber.next_transform_request_id".to_string())
+            .await
+            .map_err(|e| TwineProofSchedulerError::KeyNotFound(format!("{e}")))?;
+
+        let identifier: toml::Value = serde_json::from_slice(&identifier)
+            .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
+
+        let identifier = identifier
+            .as_integer()
+            .ok_or(TwineProofSchedulerError::Other("parse error".to_string()))?
             as u64; // TODO: map error
 
         let twine_client = TwineBatchClient::new(&twine_rpc_url);
@@ -101,7 +116,7 @@ impl Emitter for TwineBatchSubscriber {
                 retry: 0,
             },
             twine_rpc_url,
-            identifier: 0,
+            identifier,
             batch: 0,
         })
     }
@@ -110,6 +125,7 @@ impl Emitter for TwineBatchSubscriber {
     /// This loop should run indefinitely, processing incoming requests in a
     /// sequential manner. See [`Emitter`] for more details.
     async fn emitter_loop(&mut self) -> Result<(), Self::Error> {
+        println!("starting emitter loop");
         let current_batch: u64 = self
             .twine_client
             .get_batch_number_for_block(self.start_block)
