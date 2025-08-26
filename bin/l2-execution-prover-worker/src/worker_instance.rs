@@ -7,7 +7,6 @@ use twine_l2_proof_scheduler::batch_transform::transform_attempt::{
     TwineBatchTransformAttempt, TwineBatchTransformAttemptID, TwineBatchTransformReturnCtx,
     TwineBatchTransformReturnType, ZKProofBundle,
 };
-use twine_l2_proof_scheduler::batch_transform::transform_request::TwineBatchTransformRequestID;
 use twine_l2_proof_scheduler::error::TwineProofSchedulerError;
 use twine_l2_proof_scheduler::worker_manager::connections::{
     ConnectionMessage, ConnectionMessageTypes, MessageData,
@@ -42,16 +41,8 @@ impl WorkerInstance {
 
     /// handles proof creation
     pub async fn worker_loop(&mut self) {
-        let new_job_request = ConnectionMessage {
-            message_type: ConnectionMessageTypes::NewJob,
-            message: MessageData {
-                transform_attempt_id: TwineBatchTransformAttemptID {
-                    identifier: 0,
-                    transform_request_id: TwineBatchTransformRequestID { identifier: 0 },
-                },
-                data: "".to_string(),
-            },
-        };
+        let new_job_request =
+            ConnectionMessage::default_message_with_type(ConnectionMessageTypes::NewJob);
         self.result_sender
             .send(new_job_request.clone())
             .await

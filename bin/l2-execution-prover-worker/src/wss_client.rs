@@ -1,12 +1,14 @@
 //! client to connect to the worker manager
 
 use std::sync::Arc;
+use std::time::Duration;
 
 use futures_util::stream::{SplitSink, SplitStream};
 use futures_util::{SinkExt, StreamExt};
 use tokio::net::TcpStream;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::Mutex;
+use tokio::time::sleep;
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 use twine_l2_proof_scheduler::batch_transform::transform_attempt::{
@@ -67,21 +69,31 @@ impl WSSClient {
                     let message = message.unwrap();
                     match self.send_ws_message_to_processor(message).await {
                         Ok(_) => {},
-                        Err(_) => {
-                            let error_message =
-                            ConnectionMessage {
-                                message_type: ConnectionMessageTypes::InvalidParams,
-                                message: MessageData {
-                                    transform_attempt_id: TwineBatchTransformAttemptID::new(
-                                        0,
-                                        TwineBatchTransformRequestID { identifier: 0 },
-                                    ),
-                                    data: "".to_string(),
+                        Err(e) => {
 
-                                },
-                            };
+                            match e {
+                                ProverError::MessageNotReady => {
+                                    let error_message = ConnectionMessage::default_message_with_type(ConnectionMessageTypes::NewJob);
+                                    sleep(Duration::from_secs(2)).await;
+                                    self.ws_message_writer(&error_message, write.clone()).await
+                               }
+                                _ => {
+                                    let error_message =
+                                        ConnectionMessage {
+                                            message_type: ConnectionMessageTypes::InvalidParams,
+                                            message: MessageData {
+                                                        transform_attempt_id: TwineBatchTransformAttemptID::new(
+                                                        0,
+                                                        TwineBatchTransformRequestID { identifier: 0 },
+                                                    ),
+                                                        data: format!("{e}"),
+                                                    },
+                                        };
+                                    sleep(Duration::from_secs(2)).await;
+                                    self.ws_message_writer(&error_message, write.clone()).await
+                               }
+                            }
 
-                            self.ws_message_writer(&error_message, write.clone()).await
                         }
                     }
                 }
@@ -108,12 +120,18 @@ impl WSSClient {
             .map_err(|e| ProverError::Other(e.to_string()))?;
         let connection_message: ConnectionMessage =
             serde_json::from_str(&message).map_err(|e| ProverError::Other(e.to_string()))?;
-        let transform_attempt: TwineBatchTransformAttempt =
-            serde_json::from_str(&connection_message.message.data)
-                .map_err(|e| ProverError::Other(e.to_string()))?;
-        self.job_from_wss_sender
-            .send(transform_attempt)
-            .await
-            .map_err(|e| ProverError::Other(e.to_string()))
+        match connection_message.message_type {
+            ConnectionMessageTypes::NewJob => {
+                let transform_attempt: TwineBatchTransformAttempt =
+                    serde_json::from_str(&connection_message.message.data)
+                        .map_err(|e| ProverError::Other(e.to_string()))?;
+                self.job_from_wss_sender
+                    .send(transform_attempt)
+                    .await
+                    .map_err(|e| ProverError::Other(e.to_string()))
+            }
+            ConnectionMessageTypes::MessageNotReady => Err(ProverError::MessageNotReady),
+            _ => Err(ProverError::UnexpectedMessageType),
+        }
     }
 }
