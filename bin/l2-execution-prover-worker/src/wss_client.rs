@@ -57,7 +57,7 @@ impl WSSClient {
             .await
             .expect("Failed to connect");
         let (write, mut read) = ws_stream.split();
-        println!("WebSocket handshake has been successfully completed");
+        log::info!("WebSocket handshake has been successfully completed");
         let write = Arc::new(Mutex::new(write));
 
         loop {
@@ -115,7 +115,6 @@ impl WSSClient {
     /// receives the message from the ws stream and sends the message to the
     /// processors
     pub async fn send_ws_message_to_processor(&self, message: Message) -> Result<(), ProverError> {
-        println!("message {}", message);
         let message = String::from_utf8(message.into_data().to_vec())
             .map_err(|e| ProverError::Other(e.to_string()))?;
         let connection_message: ConnectionMessage =

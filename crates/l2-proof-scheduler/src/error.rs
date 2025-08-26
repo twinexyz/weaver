@@ -14,7 +14,7 @@ pub enum TwineProofSchedulerError {
     #[error("{0} loop exit")]
     LoopExit(String),
     /// config associated to a `key` not found
-    #[error("{0}")]
+    #[error("key not found {0}")]
     KeyNotFound(String),
     /// generic error
     #[error("{0}")]

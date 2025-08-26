@@ -4,8 +4,8 @@ use orchestrator_rs::worker::worker_manager::WorkerManagerResult;
 use tokio::process::Command;
 use tokio::sync::mpsc::{Receiver, Sender};
 use twine_l2_proof_scheduler::batch_transform::transform_attempt::{
-    TwineBatchTransformAttempt, TwineBatchTransformAttemptID, TwineBatchTransformReturnCtx,
-    TwineBatchTransformReturnType, ZKProofBundle,
+    TwineBatchTransformAttempt, TwineBatchTransformReturnCtx, TwineBatchTransformReturnType,
+    ZKProofBundle,
 };
 use twine_l2_proof_scheduler::error::TwineProofSchedulerError;
 use twine_l2_proof_scheduler::worker_manager::connections::{
@@ -49,7 +49,6 @@ impl WorkerInstance {
             .unwrap();
 
         while let Some(attempt) = self.job_receiver.recv().await {
-            println!("new job received {:#?}", attempt);
             let proving_result = self
                 .prove(attempt.call_ctx.clone().twine_node_rpc, BlocksInBatch {
                     start_block: attempt.call_val.start_block,
@@ -70,31 +69,31 @@ impl WorkerInstance {
         attempt: TwineBatchTransformAttempt,
         zk_proof_bundle: Result<ZKProofBundle, ProverError>,
     ) -> ConnectionMessage {
-        let return_pkg = match zk_proof_bundle {
-            Ok(zk_proof_bundle) => Ok(TwineBatchTransformReturnType(zk_proof_bundle)),
-            Err(e) => Err(TwineProofSchedulerError::Other(format!("{e}"))),
+        let return_context = TwineBatchTransformReturnCtx {
+            call_context: attempt.call_ctx,
+            call_type: attempt.call_val,
+            extra_data: vec![],
         };
-        let return_value: (
-            TwineBatchTransformAttemptID,
-            (
-                TwineBatchTransformAttemptID,
-                TwineBatchTransformReturnCtx,
-                Result<TwineBatchTransformReturnType, TwineProofSchedulerError>,
-            ),
-        ) = (
-            attempt.identifier.clone(),
-            (
-                attempt.identifier.clone(),
-                TwineBatchTransformReturnCtx {
-                    call_context: attempt.call_ctx,
-                    call_type: attempt.call_val,
-                    extra_data: vec![],
-                },
-                return_pkg,
-            ),
-        );
         let worker_manager_result: WorkerManagerResult<TwineBatchTransformAttempt> =
-            WorkerManagerResult::Success(return_value.0, return_value.1);
+            match zk_proof_bundle {
+                Ok(zk_proof_bundle) => WorkerManagerResult::Success(
+                    attempt.identifier.clone(),
+                    (
+                        attempt.identifier.clone(),
+                        return_context,
+                        Ok(TwineBatchTransformReturnType(zk_proof_bundle)),
+                    ),
+                ),
+                Err(e) => WorkerManagerResult::Failure(
+                    attempt.identifier.clone(),
+                    (
+                        attempt.identifier.clone(),
+                        return_context,
+                        Err(TwineProofSchedulerError::Other(format!("{e}"))),
+                    ),
+                ),
+            };
+
         let worker_manager_result = serde_json::to_string(&worker_manager_result).unwrap();
         ConnectionMessage {
             message_type: ConnectionMessageTypes::JobResult,

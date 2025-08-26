@@ -60,6 +60,8 @@ impl TransformAttemptCreator for TwineBatchTransformAttemptCreator {
             request.transform_input.clone(),
         );
 
+        log::info!("new attempt for request {}", request.identifier.identifier);
+
         self.attempts
             .insert(request.identifier.clone(), transform_attempt.clone());
 
@@ -83,7 +85,8 @@ impl TransformAttemptCreator for TwineBatchTransformAttemptCreator {
             new_identifier.identifier += 1;
             let transform_attempt =
                 TwineBatchTransformAttempt::from_return_package(new_identifier, error);
-            *attempt = transform_attempt
+            *attempt = transform_attempt.clone();
+            return Ok(transform_attempt);
         }
 
         return Err(TwineProofSchedulerError::KeyNotFound(format!(

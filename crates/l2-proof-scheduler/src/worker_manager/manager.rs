@@ -61,7 +61,7 @@ impl WorkerManager for TwineWorkerManager {
     }
 
     async fn wm_loop(&mut self) -> Result<(), Self::WorkerManagerError> {
-        println!("starting wm loop");
+        log::info!("starting wm loop");
         let job_mutex = Arc::new(Mutex::new(None));
         let (wss_server_job, job_handle_job) = start_worker_register_server(
             self.binding_port,

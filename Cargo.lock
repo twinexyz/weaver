@@ -11692,8 +11692,10 @@ name = "twine-l2-execution-prover-worker"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "env_logger",
  "futures-channel",
  "futures-util",
+ "log",
  "orchestrator-rs",
  "serde",
  "serde_json",

@@ -69,6 +69,7 @@ impl KafkaProducer {
             .send(record, Duration::from_secs(2))
             .await
             .map_err(|_| TwineProofSchedulerError::Other(format!("kafka error")))?;
+        log::info!("pushed proof to kafka");
         Ok(())
     }
 }

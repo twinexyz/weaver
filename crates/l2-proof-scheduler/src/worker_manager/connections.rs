@@ -142,7 +142,6 @@ impl Connections {
                     let message =
                         String::from_utf8(message.into_text().unwrap().as_bytes().to_vec())
                             .unwrap();
-                    println!("{}", message);
 
                     let connection_message: ConnectionMessage = match serde_json::from_str(&message)
                     {
@@ -156,8 +155,8 @@ impl Connections {
                                 return;
                             }
                             let mut job = job_mutex.lock().await;
-                            println!(
-                                "connection id while giving the job {:?}",
+                            log::info!(
+                                "worker with connection id {:?} given new job",
                                 connection_id.clone()
                             );
                             let message = ConnectionMessage::default_message_with_type(
@@ -166,7 +165,6 @@ impl Connections {
                             let mut message = serde_json::to_string(&message).unwrap();
 
                             if let Some(proof_job) = job.clone() {
-                                println!("reached in the place where we assign job");
                                 let id = proof_job.identifier.clone();
                                 let proof_job_str = serde_json::to_string(&proof_job).unwrap();
                                 let job_msg = ConnectionMessage {
@@ -210,14 +208,16 @@ impl Connections {
 
                                 _sender.send(worker_manager_result).await.unwrap();
                             } else {
-                                println!("didnot remove because the connection was not the same");
+                                log::error!(
+                                    "ignored job result received from different connection boundry"
+                                );
                             }
                         }
                         ConnectionMessageTypes::InvalidParams => {} // todo
                         ConnectionMessageTypes::MessageNotReady => {} // should be unreachable
                     }
                 }
-                Err(e) => println!("errored {e}"),
+                Err(e) => log::error!("{e}"),
             }
         }
     }
@@ -225,7 +225,7 @@ impl Connections {
     async fn check_connection_status(&self, connection_id: &ConnectionID) -> bool {
         if let Some(connection_status) = self.connection_status.lock().await.get(connection_id) {
             if connection_status.clone() == ConnectionStatus::Disconnected {
-                println!("returned because this is disconnected");
+                log::warn!("connection status: Disconnected");
                 return false;
             }
             return true;
