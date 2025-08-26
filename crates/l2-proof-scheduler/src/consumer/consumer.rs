@@ -124,6 +124,7 @@ impl Consumer for TwineBatchTransformResultConsumer {
             match self
                 .kafka_client
                 .push_to_kafka(consume_attempt.consume_value.clone().0)
+                .await
             {
                 Ok(_) => {
                     let return_ctx = TwineBatchTransformResultConsumeReturnContext {

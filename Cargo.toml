@@ -63,6 +63,7 @@ log = "0.4.26"
 
 parking_lot = "0.12"
 rand = "0.8.5"
+rdkafka = { version = "0.36", features = ["cmake-build"] }
 regex = "1.11.1"
 reqwest = { version = "0.11", features = ["json"] }
 rocksdb = "0.23.0"
@@ -81,7 +82,6 @@ toml = "0.8.23"
 tree_hash = "0.10.0"
 tree_hash_derive = "0.10.0"
 typenum = "1.12.0"
-kafka = "0.10.0"
 
 # SOLANA
 bincode = "1.3"
