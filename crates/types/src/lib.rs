@@ -25,6 +25,15 @@ pub struct BatchMeta {
     pub block_metadata: Vec<BlockMetadata>, // every hash in order
 }
 
+#[allow(missing_docs)]
+/// Wrapper enum around BatchMeta types
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(tag = "version", content = "data")]
+pub enum VersionedBatchMeta {
+    #[serde(rename = "0")]
+    V0(BatchMeta),
+}
+
 impl BatchMeta {
     /// Get batch hash of this batch
     pub fn get_batch_hash(&self) -> B256 {

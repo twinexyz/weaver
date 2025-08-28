@@ -16,8 +16,9 @@ pub(crate) fn deserialize_versioned(bytes: &[u8]) -> eyre::Result<(ValueVersion,
     let (tag, payload) = bytes
         .split_first()
         .ok_or_else(|| eyre::eyre!("empty value"))?;
-    match *tag {
-        0x00 => Ok((ValueVersion::V0, payload)),
+    let ver = match *tag {
+        0x00 => ValueVersion::V0,
         v => eyre::bail!("unknown version {v}"),
-    }
+    };
+    Ok((ver, payload))
 }

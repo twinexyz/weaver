@@ -4,7 +4,7 @@ use alloy_primitives::hex::FromHex;
 use alloy_primitives::B256;
 use eyre::{eyre, Result};
 use jsonrpsee::http_client::{HttpClient, HttpClientBuilder};
-use twine_types::BatchMeta;
+use twine_types::VersionedBatchMeta;
 
 use crate::TwineBatchApiClient;
 
@@ -29,7 +29,11 @@ impl BatchClient {
     }
 
     /// Fetch the complete [`BatchMeta`] object for the given `batch` number.
-    pub async fn get_full_batch(&self, batch: u64, hydrate: Option<bool>) -> Result<BatchMeta> {
+    pub async fn get_full_batch(
+        &self,
+        batch: u64,
+        hydrate: Option<bool>,
+    ) -> Result<VersionedBatchMeta> {
         self.inner
             .get_full_batch(batch, hydrate)
             .await
