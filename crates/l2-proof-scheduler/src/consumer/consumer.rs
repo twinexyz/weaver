@@ -63,27 +63,21 @@ impl Consumer for TwineBatchTransformResultConsumer {
 
         let kafka_broker_url: toml::Value = serde_json::from_slice(&kafka_broker_url)
             .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
-        let kafka_broker_url = kafka_broker_url
-            .as_str()
-            .ok_or(TwineProofSchedulerError::Other(
-                "could not cast to string".to_string(),
-            ))?;
+        let kafka_broker_url = kafka_broker_url.as_str().ok_or_else(|| {
+            TwineProofSchedulerError::Other("could not cast to string".to_string())
+        })?;
 
         let kafka_topics: toml::Value = serde_json::from_slice(&kafka_topics)
             .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
-        let kafka_topics = kafka_topics
-            .as_str()
-            .ok_or(TwineProofSchedulerError::Other(
-                "could not cast to string".to_string(),
-            ))?;
+        let kafka_topics = kafka_topics.as_str().ok_or_else(|| {
+            TwineProofSchedulerError::Other("could not cast to string".to_string())
+        })?;
 
         let kafka_groups: toml::Value = serde_json::from_slice(&kafka_groups)
             .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
-        let kafka_groups = kafka_groups
-            .as_str()
-            .ok_or(TwineProofSchedulerError::Other(
-                "could not cast to string".to_string(),
-            ))?;
+        let kafka_groups = kafka_groups.as_str().ok_or_else(|| {
+            TwineProofSchedulerError::Other("could not cast to string".to_string())
+        })?;
 
         let kafka_client = KafkaProducer::new(
             kafka_broker_url.to_string(),

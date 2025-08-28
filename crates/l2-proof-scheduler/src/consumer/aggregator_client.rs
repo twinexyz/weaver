@@ -52,7 +52,7 @@ impl AggregatorClient {
                     )));
                 }
                 log::info!("proof sent to the aggregator");
-                return Ok(());
+                Ok(())
             }
             Err(e) => {
                 log::error!("could not send proof to the aggregator");

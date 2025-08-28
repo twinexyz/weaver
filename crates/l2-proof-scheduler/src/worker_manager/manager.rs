@@ -108,12 +108,12 @@ pub async fn start_worker_register_server(
     sender: Sender<WorkerManagerResult<TwineBatchTransformAttempt>>,
     job_mutex: Arc<Mutex<Option<TwineBatchTransformAttempt>>>,
 ) -> Result<(JoinHandle<()>, JoinHandle<()>), TwineProofSchedulerError> {
-    let address = format!("127.0.0.1:{}", bind_port);
+    let address = format!("127.0.0.1:{bind_port}");
     let listener = TcpListener::bind(&address)
         .await
         .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
 
-    log::info!("starting wss server on: {}", address);
+    log::info!("starting wss server on: {address}");
 
     let connections = Arc::new(Connections {
         assigned_jobs: Mutex::new(HashMap::new()),
@@ -140,10 +140,8 @@ pub async fn start_worker_register_server(
         }
     });
 
-    let cloned_connection = connections.clone();
-
     let job_handle_job = tokio::spawn(async move {
-        cloned_connection.handle_assigned_jobs(sender).await;
+        connections.handle_assigned_jobs(sender).await;
     });
     Ok((wss_handle, job_handle_job))
 }
