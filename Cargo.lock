@@ -11082,6 +11082,8 @@ dependencies = [
  "rocksdb",
  "serde",
  "serde_json",
+ "strum 0.27.1",
+ "strum_macros 0.27.1",
  "tempfile",
  "twine-types",
  "twine-utils",

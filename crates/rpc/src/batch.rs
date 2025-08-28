@@ -4,7 +4,7 @@ use alloy_primitives::B256;
 use jsonrpsee::core::RpcResult;
 use jsonrpsee::types::{ErrorCode, ErrorObject};
 use jsonrpsee::RpcModule;
-use twine_db_batch::{BatchStore, ValueVersion};
+use twine_db_batch::{BatchStore, BatchVersionID};
 use twine_types::{BatchMeta, VersionedBatchMeta};
 
 use crate::TwineBatchApiServer;
@@ -97,7 +97,7 @@ impl TwineBatchApiServer for TwineBatchRPC {
                 )),
         };
         match ver {
-            ValueVersion::V0 => {
+            BatchVersionID::V0 => {
                 let metadata = BatchMeta {
                     block_range: blocks_in_range.unwrap(),
                     created_at: 0,

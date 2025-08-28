@@ -2,124 +2,100 @@ use std::fs;
 use std::path::Path;
 
 use once_cell::sync::OnceCell;
-use serde::Deserialize;
+use serde::{de, Deserialize, Deserializer};
+use strum::IntoEnumIterator;
+use strum_macros::{EnumIter, FromRepr};
 
 #[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, FromRepr)]
 #[allow(missing_docs)]
-#[derive(Debug, Clone)]
-/// Version to serialize with
-pub enum ValueVersion {
+/// Version of the batch to use.
+pub enum BatchVersionID {
     V0 = 0x00,
 }
 
-/// Logical versions keyed by start height.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum BatchVersion {
-    V0 { start: u64 },
-}
-
-impl BatchVersion {
-    #[inline]
-    fn get_start_height(self) -> u64 {
-        match self {
-            BatchVersion::V0 { start } => start,
-        }
-    }
-}
-
-#[allow(missing_docs)]
-#[derive(Debug, Deserialize)]
-pub(self) struct BatchVersionConfig {
-    pub version: u8,
+/// A cutover entry for which batch version to use.
+/// Version becomes active at start height.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+struct Cutover {
+    // Deserialize from a u8 in JSON -> BatchVersionID
+    #[serde(deserialize_with = "u8_to_batch_version_id")]
+    pub version: BatchVersionID,
     pub start: u64,
 }
 
-impl TryFrom<BatchVersionConfig> for BatchVersion {
-    type Error = eyre::Report;
-
-    fn try_from(c: BatchVersionConfig) -> Result<Self, Self::Error> {
-        Ok(match c.version {
-            0 => BatchVersion::V0 { start: c.start },
-            other => eyre::bail!("unsupported version id {other} (max supported is 3)"),
-        })
-    }
+/// Convert a u8 to a BatchVersionID
+fn u8_to_batch_version_id<'de, D>(d: D) -> Result<BatchVersionID, D::Error>
+where
+    D: Deserializer<'de>, {
+    let raw = u8::deserialize(d)?;
+    BatchVersionID::from_repr(raw).ok_or_else(|| {
+        let supported: Vec<u8> = BatchVersionID::iter().map(|v| v as u8).collect();
+        de::Error::custom(format!(
+            "unsupported version id {raw}. Supported ids: {supported:?}"
+        ))
+    })
 }
 
-/// Global batch version config initialized once at startup.
-static BATCH_VERSION_CONFIG: OnceCell<Vec<BatchVersion>> = OnceCell::new();
+static BATCH_VERSION_CUTOVERS: OnceCell<Vec<Cutover>> = OnceCell::new();
 
-/// Initialize batch version config from a file
+/// Initialize batch version config from a JSON file
 pub fn init_batch_version_config_from_file(path: &Path) -> eyre::Result<()> {
-    let content = fs::read_to_string(path).map_err(|e| {
+    let content = fs::read_to_string(path)
+        .map_err(|e| eyre::eyre!("failed to read batch config '{}': {e}", path.display()))?;
+
+    // Directly parse into Cutover (no intermediate struct)
+    let mut cutovers: Vec<Cutover> = serde_json::from_str(&content).map_err(|e| {
         eyre::eyre!(
-            "failed to read forks file at '{}': {e}. \
-             Make sure the file exists and is readable.",
+            r#"failed to parse '{}': {e}. Expected JSON array like
+        [{{"version":0,"start":0}}, {{"version":1,"start":100}}]"#,
             path.display()
         )
     })?;
 
-    let mut items: Vec<BatchVersionConfig> = serde_json::from_str(&content).map_err(|e| {
-        eyre::eyre!(
-            "failed to parse forks file at '{}': {e}. \
-             Expected JSON array like: \
-             [{{\"version\":0,\"start\":0}}, {{\"version\":1,\"start\":100}}]",
-            path.display()
-        )
-    })?;
-
-    if items.is_empty() {
+    if cutovers.is_empty() {
         eyre::bail!(
-            "forks file at '{}' is empty. Provide at least one {{\"version\":V, \"start\":H}} entry.",
+            "Batch config '{}' is empty. Provide at least one {{\"version\":V,\"start\":H}} entry.",
             path.display()
         );
     }
 
-    // sort by version id for deterministic order (0,1,2,...)
-    items.sort_by_key(|c| c.version);
+    // Ensure exactly one cutover per defined BatchVersionID
+    let required_ids: Vec<u8> = BatchVersionID::iter().map(|v| v as u8).collect();
 
-    // validate monotonic version ids and strictly increasing starts
-    for w in items.windows(2) {
-        let (vp, sp) = (w[0].version, w[0].start);
-        let (vn, sn) = (w[1].version, w[1].start);
-        if vn != vp + 1 {
-            eyre::bail!(
-                "invalid batch version config in '{}': version ids must be consecutive (found {vp} then {vn}). \
-                 Fix the JSON so versions go 0,1,2,... with no gaps.",
-                path.display()
-            );
-        }
+    cutovers.sort_by_key(|c| c.version as u8);
+
+    let seen_ids: Vec<u8> = cutovers.iter().map(|c| c.version as u8).collect();
+    if seen_ids != required_ids {
+        eyre::bail!(
+            "invalid batch config '{}': must include exactly one entry for each version {:?}, but saw {:?}.",
+            path.display(), required_ids, seen_ids
+        );
+    }
+
+    // Starts must strictly increase in version order
+    for w in cutovers.windows(2) {
+        let (vp, sp) = (w[0].version as u8, w[0].start);
+        let (vn, sn) = (w[1].version as u8, w[1].start);
         if sn <= sp {
             eyre::bail!(
-                "invalid batch version config in '{}': start heights must strictly increase (v{}@{} then v{}@{}). \
-                 Ensure each later version has a larger 'start' height.",
-                path.display(),
-                vp, sp, vn, sn
+                "invalid batch config '{}': start heights must strictly increase (v{}: {} but v{}: {}).",
+                path.display(), vp, sp, vn, sn
             );
         }
     }
 
-    let mut config = Vec::with_capacity(items.len());
-    for c in items {
-        config.push(BatchVersion::try_from(c)?);
-    }
-
-    BATCH_VERSION_CONFIG.set(config).map_err(|_| {
-        eyre::eyre!(
-            "Batch version config was already initialized. \
-             Initialize it once at startup before using batch DB."
-        )
+    BATCH_VERSION_CUTOVERS.set(cutovers).map_err(|_| {
+        eyre::eyre!("Batch version config already initialized; initialize once at startup.")
     })
 }
 
-pub(crate) fn value_version_for_height(height: u64) -> ValueVersion {
-    let batch_version_config = BATCH_VERSION_CONFIG.get().expect(
-        "BATCH_VERSION_CONFIG not initialized, call init_batch_version_config_from_file() at startup",
-    );
-
-    // Binary search over strictly-increasing starts
-    let idx = batch_version_config.partition_point(|version| version.get_start_height() <= height);
+/// Get the batch version for a given height
+pub(crate) fn batch_version_for_height(height: u64) -> BatchVersionID {
+    let cutovers = BATCH_VERSION_CUTOVERS
+        .get()
+        .expect("BATCH_VERSION_CUTOVERS not initialized; call init_batch_version_config_from_file() at startup");
+    let idx = cutovers.partition_point(|c| c.start <= height);
     let active = if idx == 0 { 0 } else { idx - 1 };
-    match batch_version_config[active] {
-        BatchVersion::V0 { .. } => ValueVersion::V0,
-    }
+    cutovers[active].version
 }

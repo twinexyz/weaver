@@ -137,7 +137,7 @@ Response:
 {
     "jsonrpc": "2.0",
     "id": 1,
-    "result": 2  
+    "result": 2
 }
 ```
 

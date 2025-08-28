@@ -8,9 +8,9 @@ use std::time::SystemTime;
 use alloy_primitives::{BlockNumber, B256, KECCAK256_EMPTY};
 use rocksdb::{ColumnFamilyDescriptor, Options, DB};
 use twine_types::{BatchMeta, BlockMetadata, VersionedBatchMeta};
-pub use versioning::{init_batch_version_config_from_file, ValueVersion};
+pub use versioning::{init_batch_version_config_from_file, BatchVersionID};
 
-use crate::versioning::value_version_for_height;
+use crate::versioning::batch_version_for_height;
 
 mod bincode_utils;
 mod versioning;
@@ -98,7 +98,7 @@ impl BatchStore {
 
         let (version, payload) = bincode_utils::deserialize_versioned(&bytes)?;
         match version {
-            ValueVersion::V0 => {
+            BatchVersionID::V0 => {
                 let metadata = bincode::deserialize::<BatchMeta>(payload)?;
                 Ok(VersionedBatchMeta::V0(metadata))
             }
@@ -123,10 +123,10 @@ impl BatchStore {
 
         let start_block = *block_range.start();
 
-        let disk_version = value_version_for_height(start_block);
+        let batch_version = batch_version_for_height(start_block);
 
-        let (batch_hash, serialized_value) = match disk_version {
-            ValueVersion::V0 => {
+        let (batch_hash, serialized_value) = match batch_version {
+            BatchVersionID::V0 => {
                 let mut meta_v0 = BatchMeta {
                     block_range: block_range.clone(),
                     created_at: SystemTime::now()
@@ -140,7 +140,7 @@ impl BatchStore {
                 let h = meta_v0.get_batch_hash();
                 meta_v0.batch_hash = Some(h);
 
-                let bytes = bincode_utils::serialize_versioned(&meta_v0, ValueVersion::V0)?;
+                let bytes = bincode_utils::serialize_versioned(&meta_v0, BatchVersionID::V0)?;
                 (h, bytes)
             }
         };
@@ -207,7 +207,7 @@ impl BatchStore {
         let (version, payload) = bincode_utils::deserialize_versioned(&bytes).ok()?;
 
         let val = match version {
-            ValueVersion::V0 => bincode::deserialize::<BatchMeta>(payload)
+            BatchVersionID::V0 => bincode::deserialize::<BatchMeta>(payload)
                 .ok()
                 .map(|batch| batch.block_range),
         };
@@ -215,7 +215,7 @@ impl BatchStore {
     }
 
     /// Peek the batch version
-    pub fn peek_batch_version(&self, batch_number: u64) -> eyre::Result<ValueVersion> {
+    pub fn peek_batch_version(&self, batch_number: u64) -> eyre::Result<BatchVersionID> {
         let cf = self
             .db
             .cf_handle(BATCH_META)
