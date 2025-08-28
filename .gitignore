@@ -11,3 +11,5 @@ rocksdb/
 *.bk
 
 config.toml
+
+*.proof
