@@ -2,12 +2,14 @@
 use std::fs;
 
 use orchestrator_rs::worker::worker_manager::WorkerManagerResult;
+use serde_json::Value;
 use tokio::process::Command;
 use tokio::sync::mpsc::{Receiver, Sender};
 use twine_l2_proof_scheduler::batch_transform::transform_attempt::{
-    TwineBatchTransformAttempt, TwineBatchTransformReturnCtx, TwineBatchTransformReturnType,
-    ZKProofBundle,
+    ProofKind, SupportedProvers, TwineBatchTransformAttempt, TwineBatchTransformReturnCtx,
+    TwineBatchTransformReturnType, ZKProofBundle,
 };
+use twine_l2_proof_scheduler::batch_transform::transform_request::TwineBatchTransformInput;
 use twine_l2_proof_scheduler::error::TwineProofSchedulerError;
 use twine_l2_proof_scheduler::worker_manager::connections::{
     ConnectionMessage, ConnectionMessageTypes, MessageData,
@@ -28,6 +30,10 @@ pub struct WorkerInstance {
     prove: bool,
     /// proof directory path
     proof_dir: String,
+    /// proof kind
+    proof_kind: ProofKind,
+    /// prover type
+    prover_type: SupportedProvers,
 }
 
 impl WorkerInstance {
@@ -38,6 +44,8 @@ impl WorkerInstance {
         result_sender: Sender<ConnectionMessage>,
         prove: bool,
         proof_dir: String,
+        proof_kind: ProofKind,
+        prover_type: SupportedProvers,
     ) -> Self {
         Self {
             prover_bin_path,
@@ -45,6 +53,8 @@ impl WorkerInstance {
             result_sender,
             prove,
             proof_dir,
+            proof_kind,
+            prover_type,
         }
     }
 
@@ -60,10 +70,10 @@ impl WorkerInstance {
 
         while let Some(attempt) = self.job_receiver.recv().await {
             let proving_result = self
-                .prove(attempt.call_ctx.clone().twine_node_rpc, BlocksInBatch {
-                    start_block: attempt.call_val.start_block,
-                    end_block: attempt.call_val.end_block,
-                })
+                .prove(
+                    attempt.call_ctx.clone().twine_node_rpc,
+                    attempt.call_val.clone(),
+                )
                 .await;
             let return_value = self.make_return_value(attempt, proving_result);
             log::info!("sending job result to worker manager");
@@ -119,10 +129,10 @@ impl WorkerInstance {
     async fn prove(
         &self,
         rpc_url: String,
-        blocks_in_batch: BlocksInBatch,
+        call_value: TwineBatchTransformInput,
     ) -> Result<ZKProofBundle, ProverError> {
-        let start_block = format!("{}", blocks_in_batch.start_block);
-        let end_block = format!("{}", blocks_in_batch.end_block);
+        let start_block = format!("{}", call_value.start_block);
+        let end_block = format!("{}", call_value.end_block);
         let mut args = vec![
             "--block-number",
             &start_block,
@@ -145,15 +155,22 @@ impl WorkerInstance {
                 if !output.status.success() {
                     log::error!("proof generation failed: for block range {start_block}-{end_block} status not success");
                     return Err(ProverError::ProofGenerationFailed(format!(
-                        "failed generating proof for block range: {:?}",
-                        blocks_in_batch
+                        "failed generating proof for block range: {start_block}-{end_block}",
                     )));
                 }
                 log::info!("proof generation successful for block range {start_block}-{end_block}");
-                return self.process_proof_result(format!(
+                let proof = self.process_proof_result(format!(
                     "{}/execution_proof_{start_block}_{end_block}.proof",
                     self.proof_dir
-                ));
+                ))?;
+
+                Ok(ZKProofBundle {
+                    batch_number: call_value.batch_number,
+                    proof_type: self.prover_type.clone(),
+                    proof_kind: self.proof_kind.clone(),
+                    identifier: String::new(),
+                    proof,
+                })
             }
             Err(e) => {
                 log::error!(
@@ -164,18 +181,9 @@ impl WorkerInstance {
         }
     }
 
-    fn process_proof_result(&self, proof_file: String) -> Result<ZKProofBundle, ProverError> {
+    fn process_proof_result(&self, proof_file: String) -> Result<Value, ProverError> {
         let proof_file =
             fs::File::open(proof_file).map_err(|e| ProverError::Other(e.to_string()))?;
         return serde_json::from_reader(proof_file).map_err(|e| ProverError::Other(e.to_string()));
     }
-}
-
-/// Blocks in a given batch
-#[derive(Debug)]
-pub struct BlocksInBatch {
-    /// first block of the batch
-    start_block: u64,
-    /// last block of the batch
-    end_block: u64,
 }

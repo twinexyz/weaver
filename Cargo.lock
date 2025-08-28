@@ -11710,6 +11710,7 @@ name = "twine-l2-proof-scheduler"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "clap",
  "futures-util",
  "log",
  "orchestrator-rs",
