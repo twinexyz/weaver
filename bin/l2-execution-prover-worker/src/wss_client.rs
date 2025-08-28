@@ -75,7 +75,8 @@ impl WSSClient {
                                 ProverError::MessageNotReady => {
                                     let error_message = ConnectionMessage::default_message_with_type(ConnectionMessageTypes::NewJob);
                                     sleep(Duration::from_secs(2)).await;
-                                    self.ws_message_writer(&error_message, write.clone()).await
+                                    self.ws_message_writer(&error_message, write.clone()).await;
+                                    log::info!("message not ready, resending new job request");
                                }
                                 _ => {
                                     let error_message =
@@ -90,7 +91,8 @@ impl WSSClient {
                                                     },
                                         };
                                     sleep(Duration::from_secs(2)).await;
-                                    self.ws_message_writer(&error_message, write.clone()).await
+                                    self.ws_message_writer(&error_message, write.clone()).await;
+                                    log::error!("error from prover, sending error message to worker manager: {e}")
                                }
                             }
 
