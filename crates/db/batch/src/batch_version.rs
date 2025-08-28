@@ -39,8 +39,19 @@ where
 
 static BATCH_VERSION_CUTOVERS: OnceCell<Vec<Cutover>> = OnceCell::new();
 
+/// Initialize batch version config to a single default cutover
+pub fn default_config() -> eyre::Result<()> {
+    let default = vec![Cutover {
+        version: BatchVersionID::V0,
+        start: 0,
+    }];
+    BATCH_VERSION_CUTOVERS.set(default).map_err(|_| {
+        eyre::eyre!("Batch version config already initialized; initialize once at startup.")
+    })
+}
+
 /// Initialize batch version config from a JSON file
-pub fn init_batch_version_config_from_file(path: &Path) -> eyre::Result<()> {
+pub fn from_file(path: &Path) -> eyre::Result<()> {
     let content = fs::read_to_string(path)
         .map_err(|e| eyre::eyre!("failed to read batch config '{}': {e}", path.display()))?;
 

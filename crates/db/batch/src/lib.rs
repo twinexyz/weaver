@@ -6,14 +6,15 @@ use std::sync::Arc;
 use std::time::SystemTime;
 
 use alloy_primitives::{BlockNumber, B256, KECCAK256_EMPTY};
+pub use batch_version::BatchVersionID;
 use rocksdb::{ColumnFamilyDescriptor, Options, DB};
 use twine_types::{BatchMeta, BlockMetadata, VersionedBatchMeta};
-pub use versioning::{init_batch_version_config_from_file, BatchVersionID};
 
-use crate::versioning::batch_version_for_height;
+use crate::batch_version::batch_version_for_height;
 
+/// Batch versioning
+pub mod batch_version;
 mod bincode_utils;
-mod versioning;
 
 const BATCH_META: &str = "batch_meta";
 const BATCH_HASHES: &str = "batch_hashes";

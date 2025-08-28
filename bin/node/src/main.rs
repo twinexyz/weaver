@@ -17,8 +17,8 @@ pub struct TwineCliArgs {
     pub max_blocks_per_batch: u64,
 
     /// Path to json file defining batch version cutovers
-    #[arg(long = "twine.batch-config", default_value = "batch_config.json")]
-    pub batch_config_file: std::path::PathBuf,
+    #[arg(long = "twine.batch-config")]
+    pub batch_config_file: Option<std::path::PathBuf>,
 }
 
 fn generate_batch_store_path(parsed: &Cli<EthereumChainSpecParser, TwineCliArgs>) -> PathBuf {
@@ -56,8 +56,18 @@ fn main() -> eyre::Result<()> {
 
         #[cfg(feature = "twine-batch")]
         {
-            twine_db_batch::init_batch_version_config_from_file(&twine_cli_args.batch_config_file)
-                .expect("failed to initialize batch version config from --twine.batch-config");
+            use twine_db_batch::batch_version;
+            match &twine_cli_args.batch_config_file {
+                Some(path) => {
+                    batch_version::from_file(path).expect(
+                        "failed to initialize batch version config from --twine.batch-config",
+                    );
+                }
+                None => {
+                    batch_version::default_config()
+                        .expect("failed to initialize default batch version");
+                }
+            }
             twine_node = twine_node.install_exex("twine-batcher", {
                 let store = Arc::clone(&store);
                 move |ctx| async move {
