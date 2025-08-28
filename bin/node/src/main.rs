@@ -48,7 +48,7 @@ fn main() -> eyre::Result<()> {
                 let store = Arc::clone(&store);
                 move |ctx| async move {
                     use twine_exex::batcher::{BatchConfig, TwineBatchingExEx};
-                    let config = BatchConfig { max_blocks: 10 };
+                    let config = BatchConfig { max_blocks: 200 };
                     let exex = TwineBatchingExEx::new(ctx, (*store).clone(), config)?;
                     Ok(exex.start())
                 }
