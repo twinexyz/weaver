@@ -19,6 +19,12 @@ pub struct Args {
     /// prover bin
     #[arg(short, long, default_value = "rsp")]
     pub prover_bin: String,
+    /// prove
+    #[arg(short, long)]
+    pub prove: bool,
+    /// proof directory path
+    #[arg(short, long, default_value = "proofs")]
+    pub proof_dir_path: String,
 }
 
 #[tokio::main]
@@ -40,6 +46,8 @@ async fn main() {
         args.prover_bin,
         job_from_wss_rx,
         worker_to_manager_message_tx,
+        args.prove,
+        args.proof_dir_path,
     );
 
     tokio::select! {

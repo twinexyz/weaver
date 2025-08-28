@@ -4,6 +4,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use futures_util::{SinkExt, StreamExt};
+use log::info;
 use orchestrator_rs::worker::worker_manager::WorkerManagerResult;
 use serde::{Deserialize, Serialize};
 use tokio::net::TcpStream;
@@ -155,10 +156,7 @@ impl Connections {
                                 return;
                             }
                             let mut job = job_mutex.lock().await;
-                            log::info!(
-                                "worker with connection id {:?} given new job",
-                                connection_id.clone()
-                            );
+
                             let message = ConnectionMessage::default_message_with_type(
                                 ConnectionMessageTypes::MessageNotReady,
                             );
@@ -179,18 +177,30 @@ impl Connections {
                                 self.assigned_jobs.lock().await.insert(
                                     (proof_job.identifier.clone(), connection_id.clone()),
                                     JobDetails {
-                                        transform_attempt: proof_job,
+                                        transform_attempt: proof_job.clone(),
                                         assigned_at: Instant::now(),
                                     },
                                 );
                                 *job = None;
                                 drop(job);
+                                log::info!(
+                                    "making new job of request id: {:?}",
+                                    proof_job.identifier.transform_request_id
+                                );
                             }
 
                             write.send(message.into()).await.unwrap();
                             write.flush().await.unwrap();
+                            log::info!(
+                                "sent new job to the prover with connection id: {:?}",
+                                connection_id
+                            );
                         }
                         ConnectionMessageTypes::JobResult => {
+                            log::info!(
+                                "received job result from prover with connection id: {:?}",
+                                connection_id
+                            );
                             if !self.check_connection_status(&connection_id).await {
                                 return;
                             }
@@ -205,7 +215,10 @@ impl Connections {
                                 let worker_manager_result: WorkerManagerResult<
                                     TwineBatchTransformAttempt,
                                 > = serde_json::from_str(&connection_message.message.data).unwrap(); // TODO: write some message
-
+                                info!(
+                                    "received job result for job with request id: {:?}",
+                                    attempt_id.transform_request_id
+                                );
                                 _sender.send(worker_manager_result).await.unwrap();
                             } else {
                                 log::error!(
@@ -259,9 +272,7 @@ impl Connections {
                             call_type: job_details.transform_attempt.call_val,
                             extra_data: vec![],
                         },
-                        Err(TwineProofSchedulerError::Other(
-                            "error from here".to_string(),
-                        )),
+                        Err(TwineProofSchedulerError::Other("job timed out".to_string())),
                     );
 
                     let result: WorkerManagerResult<TwineBatchTransformAttempt> =
