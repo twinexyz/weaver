@@ -55,7 +55,7 @@ impl ConnectionMessage {
                     identifier: 0,
                     transform_request_id: TwineBatchTransformRequestID { identifier: 0 },
                 },
-                data: "".to_owned(),
+                data: String::new(),
             },
         }
     }
@@ -124,13 +124,13 @@ impl Connections {
         let addr = stream
             .peer_addr()
             .expect("connected streams should have a peer address");
-        log::info!("Peer address: {}", addr);
+        log::info!("Peer address: {addr}");
 
         let ws_stream = tokio_tungstenite::accept_async(stream)
             .await
             .expect("Error during the websocket handshake occurred");
 
-        log::info!("New WebSocket connection: {}", addr);
+        log::info!("New WebSocket connection: {addr}");
         let mut connection_status = self.connection_status.lock().await;
         connection_status.insert(connection_id.clone(), ConnectionStatus::Healthy);
         drop(connection_status);
@@ -140,9 +140,7 @@ impl Connections {
         while let Some(message) = read.next().await {
             match message {
                 Ok(message) => {
-                    let message =
-                        String::from_utf8(message.into_text().unwrap().as_bytes().to_vec())
-                            .unwrap();
+                    let message = String::from_utf8(message.into_data().to_vec()).unwrap();
 
                     let connection_message: ConnectionMessage = match serde_json::from_str(&message)
                     {
@@ -198,19 +196,19 @@ impl Connections {
                         }
                         ConnectionMessageTypes::JobResult => {
                             log::info!(
-                                "received job result from prover with connection id: {:?}",
-                                connection_id
+                                "received job result from prover with connection id: {connection_id:?}",
                             );
                             if !self.check_connection_status(&connection_id).await {
                                 return;
                             }
 
                             let attempt_id = connection_message.message.transform_attempt_id;
-                            if let Some(_) = self
+                            if self
                                 .assigned_jobs
                                 .lock()
                                 .await
                                 .remove(&(attempt_id.clone(), connection_id.clone()))
+                                .is_some()
                             {
                                 let worker_manager_result: WorkerManagerResult<
                                     TwineBatchTransformAttempt,
@@ -226,8 +224,8 @@ impl Connections {
                                 );
                             }
                         }
-                        ConnectionMessageTypes::InvalidParams => {} // todo
-                        ConnectionMessageTypes::MessageNotReady => {} // should be unreachable
+                        ConnectionMessageTypes::InvalidParams
+                        | ConnectionMessageTypes::MessageNotReady => {} // todo
                     }
                 }
                 Err(e) => log::error!("{e}"),
@@ -243,7 +241,7 @@ impl Connections {
             }
             return true;
         }
-        return false;
+        false
     }
 
     /// manages job assignments timeouts
