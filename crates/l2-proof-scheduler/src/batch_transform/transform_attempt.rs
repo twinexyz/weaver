@@ -1,6 +1,5 @@
 //! Represents attempts made to convert the transform request
 //! to output
-
 use async_trait::async_trait;
 use orchestrator_rs::transform::TransformAttempt;
 use serde::{Deserialize, Serialize};
@@ -74,6 +73,70 @@ pub struct TwineBatchTransformReturnType(pub ZKProofBundle);
 /// represents the zk proof structure that is returned by the worker instances
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ZKProofBundle {
+    /// proof type SP1, RISC0 or GKR
+    #[serde(rename = "type")]
+    pub proof_type: SupportedProvers,
+    /// proof kind
+    #[serde(rename = "kind")]
+    pub proof_kind: ProofKind,
+    /// twine batch number this proof is associated to
+    pub batch_number: u64,
+    /// prover identity
+    pub identifier: String,
+    /// proof structure
+    pub proof: serde_json::Value,
+}
+
+/// proof types
+#[derive(Serialize, Deserialize, Debug, Clone, clap::ValueEnum)]
+pub enum SupportedProvers {
+    /// scuccinct's proof
+    SP1,
+    /// risczero's proof
+    RISC0,
+    /// GKR proof
+    GKR,
+}
+
+impl Default for SupportedProvers {
+    fn default() -> Self { Self::SP1 }
+}
+
+impl ToString for SupportedProvers {
+    fn to_string(&self) -> String {
+        match self {
+            Self::GKR => String::from("gkr"),
+            Self::RISC0 => String::from("risc0"),
+            Self::SP1 => String::from("sp1"),
+        }
+    }
+}
+
+/// Proof kind
+#[derive(Debug, Clone, Serialize, Deserialize, clap::ValueEnum)]
+pub enum ProofKind {
+    /// Twine execution proof
+    ExecutionProof,
+    /// Twine transaction proof
+    TransactionProof,
+}
+
+impl Default for ProofKind {
+    fn default() -> Self { Self::ExecutionProof }
+}
+
+impl ToString for ProofKind {
+    fn to_string(&self) -> String {
+        match self {
+            Self::ExecutionProof => String::from("execution_proof"),
+            Self::TransactionProof => String::from("transaction_proof"),
+        }
+    }
+}
+
+/// SP1 proof structure
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SP1Proof {
     /// version of the zk proof: it is associated with the verifying key
     pub version: u64, // TODO make it into an enum
     /// zk proof

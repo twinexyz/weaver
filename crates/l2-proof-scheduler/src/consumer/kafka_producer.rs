@@ -41,6 +41,8 @@ impl KafkaProducer {
     ) -> Result<Self, TwineProofSchedulerError> {
         let producer: FutureProducer = ClientConfig::new()
             .set("bootstrap.servers", url)
+            .set("group.id", "my-group-v2")
+            .set("auto.offset.reset", "earliest")
             .create()
             .expect("producer");
 
@@ -71,55 +73,5 @@ impl KafkaProducer {
             .map_err(|_| TwineProofSchedulerError::Other(format!("kafka error")))?;
         log::info!("pushed proof to kafka");
         Ok(())
-    }
-}
-
-#[allow(unused_imports)]
-mod tests {
-    use rdkafka::config::FromClientConfig;
-    use rdkafka::consumer::{CommitMode, Consumer, StreamConsumer};
-    use rdkafka::{ClientConfig, ClientContext, Message};
-
-    use crate::batch_transform::transform_attempt::ZKProofBundle;
-    use crate::consumer::kafka_producer::KafkaProducer;
-
-    #[tokio::test]
-    async fn test_kafka_pusher() {
-        let mut kafka_producer = KafkaProducer::new(
-            "localhost:9092".to_string(),
-            "demo".to_string(),
-            "my-group".to_string(),
-        )
-        .unwrap();
-
-        kafka_producer
-            .push_to_kafka(ZKProofBundle {
-                version: 1,
-                proof: vec![1; 292],
-                public_value: vec![2; 80],
-                verification_key: [3; 32],
-            })
-            .await
-            .unwrap();
-    }
-
-    #[tokio::test]
-    async fn get_from_kafka_queue() {
-        let mut config = ClientConfig::new();
-        config.set("bootstrap.servers", "localhost:9092");
-        config.set("group.id", "my-group");
-
-        let consumer: StreamConsumer = config.create().unwrap();
-
-        consumer.subscribe(&["demo"]).unwrap();
-
-        while let Ok(value) = consumer.recv().await {
-            let str_value = value.payload_view::<str>().unwrap().unwrap();
-
-            println!("value from stream is {str_value}");
-
-            consumer.commit_message(&value, CommitMode::Async).unwrap();
-            return;
-        }
     }
 }

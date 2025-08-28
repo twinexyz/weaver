@@ -9,6 +9,7 @@ pub mod wss_client;
 
 use clap::Parser;
 use env_logger;
+use twine_l2_proof_scheduler::batch_transform::transform_attempt::{ProofKind, SupportedProvers};
 
 /// command line arguments
 #[derive(Debug, Clone, Parser)]
@@ -25,6 +26,12 @@ pub struct Args {
     /// proof directory path
     #[arg(short, long, default_value = "proofs")]
     pub proof_dir_path: String,
+    /// prover type
+    #[arg(short, long, default_value_t, value_enum)]
+    pub prover_type: SupportedProvers,
+    /// proof kind
+    #[arg(short, long, default_value_t, value_enum)]
+    pub proof_kind: ProofKind,
 }
 
 #[tokio::main]
@@ -48,6 +55,8 @@ async fn main() {
         worker_to_manager_message_tx,
         args.prove,
         args.proof_dir_path,
+        args.proof_kind,
+        args.prover_type,
     );
 
     tokio::select! {
