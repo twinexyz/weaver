@@ -4,7 +4,6 @@
 use std::collections::HashMap;
 
 use async_trait::async_trait;
-use orchestrator_rs::config::Config;
 use orchestrator_rs::transform::{TransformAttempt, TransformAttemptCreator};
 
 use crate::batch_transform::transform_attempt::{
@@ -13,6 +12,7 @@ use crate::batch_transform::transform_attempt::{
 use crate::batch_transform::transform_request::{
     TwineBatchTransformInput, TwineBatchTransformRequest, TwineBatchTransformRequestID,
 };
+use crate::config::TwineProofSchedulerConfig;
 use crate::error::TwineProofSchedulerError;
 
 /// Transform attempt creator
@@ -27,13 +27,14 @@ pub struct TwineBatchTransformAttemptCreator {
 
 #[async_trait]
 impl TransformAttemptCreator for TwineBatchTransformAttemptCreator {
+    type Config = TwineProofSchedulerConfig;
     type Input = TwineBatchTransformInput;
     type Output = TwineBatchTransformReturnType;
     type TransformAttempt = TwineBatchTransformAttempt;
     type TransformAttemptCreationError = TwineProofSchedulerError;
     type TransformRequest = TwineBatchTransformRequest;
 
-    async fn new(_config: std::sync::Arc<tokio::sync::Mutex<impl Config>>) -> Self
+    async fn new(_config: std::sync::Arc<tokio::sync::Mutex<Self::Config>>) -> Self
     where
         Self: Sized, {
         Self {
@@ -46,6 +47,7 @@ impl TransformAttemptCreator for TwineBatchTransformAttemptCreator {
     /// Converts a `TransformRequest` into a `TransformAttempt`.
     async fn create_new_attempt(
         &mut self,
+        transform_attempt_id: Option<<Self::TransformAttempt as TransformAttempt>::Identifier>,
         request: &Self::TransformRequest,
     ) -> Result<Self::TransformAttempt, Self::TransformAttemptCreationError> {
         if let Some(_) = self.attempts.get(&request.identifier) {
@@ -54,8 +56,12 @@ impl TransformAttemptCreator for TwineBatchTransformAttemptCreator {
                 request.identifier
             )));
         }
+        let transform_attempt_id = transform_attempt_id.unwrap_or(TwineBatchTransformAttemptID {
+            identifier: 0,
+            transform_request_id: request.identifier.clone(),
+        });
         let transform_attempt = TwineBatchTransformAttempt::new(
-            TwineBatchTransformAttemptID::new(0, request.identifier.clone()),
+            transform_attempt_id,
             request.call_context.clone(),
             request.transform_input.clone(),
         );
