@@ -3,12 +3,12 @@
 use std::collections::HashMap;
 
 use async_trait::async_trait;
-use orchestrator_rs::config::Config;
 use orchestrator_rs::consumer::{ConsumeAttempt, ConsumeAttemptCreator};
 
 use crate::batch_transform::transform_attempt::{
     TwineBatchTransformAttempt, TwineBatchTransformAttemptID, TwineBatchTransformReturnType,
 };
+use crate::config::TwineProofSchedulerConfig;
 use crate::consumer::consume_attempt::{
     TwineBatchTransformResultConsumeAttempt, TwineBatchTransformResultConsumeAttemptID,
     TwineBatchTransformResultConsumeContext,
@@ -27,12 +27,13 @@ pub struct TwineBatchTransformResultConsumeAttemptCreator {
 
 #[async_trait]
 impl ConsumeAttemptCreator for TwineBatchTransformResultConsumeAttemptCreator {
+    type Config = TwineProofSchedulerConfig;
     type ConsumeAttempt = TwineBatchTransformResultConsumeAttempt;
     type ConsumeAttemptCreationError = TwineProofSchedulerError;
     type Output = TwineBatchTransformReturnType;
     type TransformAttempt = TwineBatchTransformAttempt;
 
-    async fn new(_config: std::sync::Arc<tokio::sync::Mutex<impl Config>>) -> Self
+    async fn new(_config: std::sync::Arc<tokio::sync::Mutex<Self::Config>>) -> Self
     // constrain config
     where
         Self: Sized, {

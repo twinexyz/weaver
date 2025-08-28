@@ -97,6 +97,7 @@ mod tests {
                 version: 1,
                 proof: vec![1; 292],
                 public_value: vec![2; 80],
+                verification_key: [3; 32],
             })
             .await
             .unwrap();

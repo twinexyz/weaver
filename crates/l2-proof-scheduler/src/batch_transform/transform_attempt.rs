@@ -80,6 +80,8 @@ pub struct ZKProofBundle {
     pub proof: Vec<u8>,
     /// zk public commitments
     pub public_value: Vec<u8>,
+    /// zk verification key,
+    pub verification_key: [u8; 32],
 }
 
 #[async_trait]
