@@ -1,5 +1,5 @@
 //! receives the proving job from the worker manager and starts the job
-use std::fs;
+use std::{env, fs};
 
 use orchestrator_rs::worker::worker_manager::WorkerManagerResult;
 use serde_json::Value;
@@ -34,6 +34,12 @@ pub struct WorkerInstance {
     proof_kind: ProofKind,
     /// prover type
     prover_type: SupportedProvers,
+    /// sp1 port
+    sp1_port: String,
+    /// runtime env
+    runtime_env: Option<String>,
+    /// network
+    network: Option<String>,
 }
 
 impl WorkerInstance {
@@ -46,6 +52,9 @@ impl WorkerInstance {
         proof_dir: String,
         proof_kind: ProofKind,
         prover_type: SupportedProvers,
+        sp1_port: String,
+        runtime_env: Option<String>,
+        network: Option<String>,
     ) -> Self {
         Self {
             prover_bin_path,
@@ -55,6 +64,9 @@ impl WorkerInstance {
             proof_dir,
             proof_kind,
             prover_type,
+            sp1_port,
+            runtime_env,
+            network,
         }
     }
 
@@ -142,7 +154,20 @@ impl WorkerInstance {
             &rpc_url,
         ];
 
+        env::set_var("RUST_LOG", "info");
+        env::set_var("RUST_BACKTRACE", "1");
+
         if self.prove {
+            env::set_var("SP1_PROVER", "cuda");
+            env::set_var("SP1_PORT", self.sp1_port.to_owned());
+            if let Some(network) = self.network.clone() {
+                env::set_var("SP1_NETWORK", network);
+            }
+
+            if let Some(runtime_env) = self.runtime_env.clone() {
+                env::set_var("SP1_RUNTIME_ENV", runtime_env);
+            }
+
             args.push("--prove");
         }
 

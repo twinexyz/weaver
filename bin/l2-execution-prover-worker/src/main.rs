@@ -32,6 +32,15 @@ pub struct Args {
     /// proof kind
     #[arg(short, long, default_value_t, value_enum)]
     pub proof_kind: ProofKind,
+    /// sp1 internal docker port
+    #[arg(short, long, default_value = "3000")]
+    pub sp1_port: String,
+    /// runtime environment "docker" for running it in docker
+    #[arg(short, long)]
+    pub runtime_env: Option<String>,
+    /// proof kind
+    #[arg(short, long)]
+    pub network: Option<String>,
 }
 
 #[tokio::main]
@@ -57,6 +66,9 @@ async fn main() {
         args.proof_dir_path,
         args.proof_kind,
         args.prover_type,
+        args.sp1_port,
+        args.runtime_env,
+        args.network,
     );
 
     tokio::select! {
