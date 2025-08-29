@@ -1,12 +1,16 @@
 FROM rust:1.85 AS builder
 
-RUN apt-get update && \
+RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
+    --mount=type=secret,id=github_username,env=GITHUB_USERNAME \
+    apt-get update && \
     apt-get install -y \
     build-essential \
     clang \
     libssl-dev \
     pkg-config && \
-    rm -rf /var/lib/apt/lists/*
+    git config --global credential.helper store && \
+    echo "https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com" > ~/.git-credentials && \
+    chmod 600 ~/.git-credentials
 
 WORKDIR /app
 
