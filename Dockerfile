@@ -1,5 +1,7 @@
-FROM rust:1.85 AS builder
+FROM rust:1.86 AS builder
 
+#ARG GITHUB_TOKEN
+#ARG GITHUB_USERNAME
 RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
     --mount=type=secret,id=github_username,env=GITHUB_USERNAME \
     apt-get update && \
@@ -7,6 +9,8 @@ RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
     build-essential \
     clang \
     libssl-dev \
+    cmake \
+    gcc \
     pkg-config && \
     git config --global credential.helper store && \
     echo "https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com" > ~/.git-credentials && \
