@@ -46,6 +46,7 @@ impl ConsumeAttemptCreator for TwineBatchTransformResultConsumeAttemptCreator {
     /// Converts a `TransformAttempt` into a `ConsumeAttempt`.
     async fn create_new_attempt(
         &mut self,
+        consume_attempt_id: Option<<Self::ConsumeAttempt as ConsumeAttempt>::Identifier>, 
         request: &Self::TransformAttempt,
     ) -> Result<Self::ConsumeAttempt, Self::ConsumeAttemptCreationError> {
         if let Some(_) = self.attempts.get(&request.identifier) {
@@ -54,8 +55,10 @@ impl ConsumeAttemptCreator for TwineBatchTransformResultConsumeAttemptCreator {
                 request.identifier
             )));
         }
+
+        let consume_attempt_id = consume_attempt_id.unwrap_or(TwineBatchTransformResultConsumeAttemptID { identifier: 0, transform_attempt_identifier: request.identifier.clone() });
         let consume_attempt = TwineBatchTransformResultConsumeAttempt::new(
-            TwineBatchTransformResultConsumeAttemptID::new(0, request.identifier.clone()),
+            consume_attempt_id,
             TwineBatchTransformResultConsumeContext {},
             request.return_type.clone().unwrap(), /* can unwrap here because this field could
                                                    * never be null */
