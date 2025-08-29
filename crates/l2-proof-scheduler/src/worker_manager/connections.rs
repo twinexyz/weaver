@@ -225,7 +225,8 @@ impl Connections {
                             }
                         }
                         ConnectionMessageTypes::InvalidParams
-                        | ConnectionMessageTypes::MessageNotReady => {} // todo: terminate connection
+                        | ConnectionMessageTypes::MessageNotReady => {} /* todo: terminate
+                                                                         * connection */
                     }
                 }
                 Err(e) => log::error!("{e}"),
