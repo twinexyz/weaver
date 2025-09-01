@@ -8,6 +8,7 @@ rust-version = "1.85"
 
 [workspace]
 members = [
+  "bin/aggregator",
   "bin/devtest",
   "bin/l2-execution-prover-worker",
   "bin/l2-proof-scheduler-bin",
