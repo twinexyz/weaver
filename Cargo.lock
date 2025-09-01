@@ -12047,6 +12047,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "twine-l2-batch-poller"
+version = "0.1.0"
+dependencies = [
+ "eyre",
+ "reth-tracing",
+ "tokio",
+ "twine-rpc",
+ "twine-types",
+]
+
+[[package]]
 name = "twine-node"
 version = "0.1.0"
 dependencies = [
