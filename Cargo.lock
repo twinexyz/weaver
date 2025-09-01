@@ -11751,6 +11751,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "twine-kafka"
+version = "0.1.0"
+
+[[package]]
+name = "twine-kafka-common"
+version = "0.1.0"
+
+[[package]]
+name = "twine-kafka-consumer"
+version = "0.1.0"
+
+[[package]]
+name = "twine-kafka-producer"
+version = "0.1.0"
+
+[[package]]
 name = "twine-l1-consensus-verifier-precompile"
 version = "0.1.0"
 dependencies = [
