@@ -125,13 +125,24 @@ impl Emitter for TwineBatchSubscriber {
     /// sequential manner. See [`Emitter`] for more details.
     async fn emitter_loop(&mut self) -> Result<(), Self::Error> {
         log::info!("starting emitter loop");
-        let current_batch: u64 = self
-            .twine_client
-            .get_batch_number_for_block(self.start_block)
-            .await
-            .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
 
-        self.batch = current_batch;
+        loop {
+            if let Ok(batch) = self
+                .twine_client
+                .get_batch_number_for_block(self.start_block)
+                .await
+            {
+                self.batch = batch;
+                self.backoff.reset_wait_and_backoff();
+                log::info!("found the starting batch {batch}");
+                break;
+            }
+            log::warn!(
+                "Could not find batch related to {}. retrying....",
+                self.start_block
+            );
+            self.backoff.wait_and_backoff().await;
+        }
 
         loop {
             tokio::select! {
