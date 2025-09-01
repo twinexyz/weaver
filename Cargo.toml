@@ -30,6 +30,7 @@ members = [
   "crates/kafka/consumer",
   "crates/kafka/producer",
   "crates/l1-utils",
+  "crates/l2-batch-poller",
   "crates/l2-proof-scheduler",
   "crates/precompiles/l1-consensus-verifier",
   "crates/precompiles/l1-transactions",
@@ -149,6 +150,7 @@ twine-integration-tests = { path = "crates/integration-tests" }
 twine-l1-consensus-verifier-precompile = { path = "crates/precompiles/l1-consensus-verifier" }
 twine-l1-transactions-precompile = { path = "crates/precompiles/l1-transactions" }
 twine-l1-utils = { path = "crates/l1-utils" }
+twine-l2-batch-poller = { path = "crates/l2-batch-poller" }
 twine-l2-proof-scheduler = { path = "crates/l2-proof-scheduler" }
 twine-rpc = { path = "crates/rpc" }
 twine-solana-consensus-prover-lib = { path = "crates/solana-consensus-prover" }
