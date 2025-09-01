@@ -53,9 +53,16 @@ impl WSSClient {
 
     /// Handles connection to the worker manager server
     pub async fn connection_loop(&mut self) {
-        let (ws_stream, _) = connect_async(&self.worker_manager_url)
-            .await
-            .expect("Failed to connect");
+        let ws_stream;
+        loop {
+            if let Ok((stream, _)) = connect_async(&self.worker_manager_url).await {
+                ws_stream = stream;
+                log::info!("Connected to worker manager's message stream");
+                break;
+            }
+            sleep(Duration::from_secs(10)).await;
+            log::warn!("Could not connect to ws stream. retrying...")
+        }
         let (write, mut read) = ws_stream.split();
         log::info!("WebSocket handshake has been successfully completed");
         let write = Arc::new(Mutex::new(write));
