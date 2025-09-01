@@ -1,5 +1,5 @@
 [package]
-name = "twine-aggregator"
+name = "twine-aggregator-metrics"
 version.workspace = true
 edition.workspace = true
 exclude.workspace = true
@@ -8,9 +8,8 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-clap.workspace = true
-eyre.workspace = true
-tokio.workspace = true
+once_cell.workspace = true
+prometheus.workspace = true
 
 [lints]
 workspace = true

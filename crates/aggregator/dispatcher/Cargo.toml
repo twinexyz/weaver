@@ -1,5 +1,5 @@
 [package]
-name = "twine-aggregator"
+name = "twine-aggregator-dispatcher"
 version.workspace = true
 edition.workspace = true
 exclude.workspace = true
@@ -8,9 +8,6 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-clap.workspace = true
-eyre.workspace = true
-tokio.workspace = true
 
 [lints]
 workspace = true
