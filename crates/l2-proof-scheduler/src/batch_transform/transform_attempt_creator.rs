@@ -4,6 +4,7 @@
 use std::collections::HashMap;
 
 use async_trait::async_trait;
+use orchestrator_rs::config::Config;
 use orchestrator_rs::transform::{TransformAttempt, TransformAttemptCreator};
 
 use crate::batch_transform::transform_attempt::{
@@ -14,6 +15,9 @@ use crate::batch_transform::transform_request::{
 };
 use crate::config::TwineProofSchedulerConfig;
 use crate::error::TwineProofSchedulerError;
+
+/// Maximum number of attempts for a request
+pub const DEFAULT_MAX_ATTEMPTS_PER_REQUEST: u64 = 10;
 
 /// Transform attempt creator
 #[derive(Debug, Clone)]
@@ -34,14 +38,30 @@ impl TransformAttemptCreator for TwineBatchTransformAttemptCreator {
     type TransformAttemptCreationError = TwineProofSchedulerError;
     type TransformRequest = TwineBatchTransformRequest;
 
-    async fn new(_config: std::sync::Arc<tokio::sync::Mutex<Self::Config>>) -> Self
+    async fn new(config: std::sync::Arc<tokio::sync::Mutex<Self::Config>>) -> Self
     where
         Self: Sized, {
+        let mut max_attempts_per_request = DEFAULT_MAX_ATTEMPTS_PER_REQUEST;
+
+        if let Ok(max_attempts_from_config) = config
+            .lock()
+            .await
+            .get("attempt.max_attempts_per_request".to_string())
+            .await
+        {
+            let max_attempts_from_config: toml::Value =
+                serde_json::from_slice(&max_attempts_from_config)
+                    .expect("could not deserialize config into toml value");
+
+            max_attempts_per_request = max_attempts_from_config.as_integer().unwrap_or(10) as u64;
+        }
+
+        println!("found config to be {max_attempts_per_request}");
+
         Self {
-            // config: _config,
-            max_attempts_per_request: 10,
+            max_attempts_per_request,
             attempts: HashMap::new(),
-        } // TODO: constrain config
+        }
     }
 
     /// Converts a `TransformRequest` into a `TransformAttempt`.
@@ -99,5 +119,22 @@ impl TransformAttemptCreator for TwineBatchTransformAttemptCreator {
             "{:?}",
             request.transform_request_id
         )));
+    }
+
+    async fn prune_attempts(
+        &mut self,
+        attempt_id: <Self::TransformAttempt as TransformAttempt>::Identifier,
+    ) -> Result<(), TwineProofSchedulerError> {
+        let transform_request_id: TwineBatchTransformRequestID = attempt_id.into();
+        if let Some(attempts) = self.attempts.remove_entry(&transform_request_id) {
+            log::info!("Removed {:?} from transform attempts record", attempts.0);
+            return Ok(());
+        }
+
+        log::warn!(
+            "Key {:?} not found in transform attempts record",
+            transform_request_id
+        );
+        Ok(())
     }
 }

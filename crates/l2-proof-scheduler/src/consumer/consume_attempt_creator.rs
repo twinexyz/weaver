@@ -3,6 +3,7 @@
 use std::collections::HashMap;
 
 use async_trait::async_trait;
+use orchestrator_rs::config::Config;
 use orchestrator_rs::consumer::{ConsumeAttempt, ConsumeAttemptCreator};
 
 use crate::batch_transform::transform_attempt::{
@@ -14,6 +15,9 @@ use crate::consumer::consume_attempt::{
     TwineBatchTransformResultConsumeContext,
 };
 use crate::error::TwineProofSchedulerError;
+
+/// Max consume attempts per transform attempts
+pub const DEFAULT_MAX_CONSUME_ATTEMPTS_PER_ATTEMPTS: u64 = 10;
 
 /// consume attempt creator
 #[derive(Debug)]
@@ -33,12 +37,27 @@ impl ConsumeAttemptCreator for TwineBatchTransformResultConsumeAttemptCreator {
     type Output = TwineBatchTransformReturnType;
     type TransformAttempt = TwineBatchTransformAttempt;
 
-    async fn new(_config: std::sync::Arc<tokio::sync::Mutex<Self::Config>>) -> Self
+    async fn new(config: std::sync::Arc<tokio::sync::Mutex<Self::Config>>) -> Self
     // constrain config
     where
         Self: Sized, {
+        let mut max_attempts_per_request = DEFAULT_MAX_CONSUME_ATTEMPTS_PER_ATTEMPTS;
+
+        if let Ok(max_attempts_from_config) = config
+            .lock()
+            .await
+            .get("attempt.max_consume_attempts_per_attempts".to_string())
+            .await
+        {
+            let max_attempts_from_config: toml::Value =
+                serde_json::from_slice(&max_attempts_from_config)
+                    .expect("could not deserialize config into toml value");
+
+            max_attempts_per_request = max_attempts_from_config.as_integer().unwrap_or(10) as u64;
+        }
+
         Self {
-            max_attempts_per_request: 10,
+            max_attempts_per_request,
             attempts: HashMap::new(),
         }
     }
@@ -103,5 +122,22 @@ impl ConsumeAttemptCreator for TwineBatchTransformResultConsumeAttemptCreator {
             "{:?}",
             attempt_id.transform_attempt_identifier
         )));
+    }
+
+    async fn prune_attempts(
+        &mut self,
+        attempt_id: <Self::ConsumeAttempt as ConsumeAttempt>::Identifier,
+    ) -> Result<(), TwineProofSchedulerError> {
+        let transform_request_id: TwineBatchTransformAttemptID = attempt_id.into();
+        if let Some(attempts) = self.attempts.remove_entry(&transform_request_id) {
+            log::info!("Removed {:?} from consume attempts record", attempts.0);
+            return Ok(());
+        }
+
+        log::warn!(
+            "Key {:?} not found in consume attempts record",
+            transform_request_id
+        );
+        Ok(())
     }
 }
