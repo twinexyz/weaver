@@ -1288,6 +1288,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "ascii"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d92bec98840b8f03a5ff5413de5293bfcd8bf96467cf5452609f939ec6f5de16"
+
+[[package]]
 name = "asn1_der"
 version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2297,6 +2303,12 @@ dependencies = [
  "wasm-bindgen",
  "windows-link",
 ]
+
+[[package]]
+name = "chunked_transfer"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6e4de3bc4ea267985becf712dc6d9eed8b04c953b3fcfb339ebc87acd9804901"
 
 [[package]]
 name = "cipher"
@@ -6902,6 +6914,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "rdkafka"
+version = "0.38.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5f1856d72dbbbea0d2a5b2eaf6af7fb3847ef2746e883b11781446a51dbc85c0"
+dependencies = [
+ "futures-channel",
+ "futures-util",
+ "libc",
+ "log",
+ "rdkafka-sys",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "slab",
+ "tokio",
+]
+
+[[package]]
+name = "rdkafka-sys"
+version = "4.9.0+2.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5230dca48bc354d718269f3e4353280e188b610f7af7e2fcf54b7a79d5802872"
+dependencies = [
+ "libc",
+ "libz-sys",
+ "num_enum",
+ "pkg-config",
+]
+
+[[package]]
 name = "recvmsg"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -11370,6 +11412,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "tiny_http"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "389915df6413a2e74fb181895f933386023c71110878cd0825588928e64cdc82"
+dependencies = [
+ "ascii",
+ "chunked_transfer",
+ "httpdate",
+ "log",
+]
+
+[[package]]
 name = "tinystr"
 version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -11830,7 +11884,19 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "eyre",
+ "rdkafka",
+ "reth-tracing",
+ "serde_json",
+ "sqlx",
  "tokio",
+ "twine-aggregator-common",
+ "twine-aggregator-database",
+ "twine-common",
+ "twine-kafka-common",
+ "twine-kafka-consumer",
+ "twine-l2-batch-poller",
+ "twine-rpc",
+ "twine-types",
 ]
 
 [[package]]
@@ -11866,6 +11932,21 @@ name = "twine-aggregator-types"
 version = "0.1.0"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "twine-common"
+version = "0.1.0"
+dependencies = [
+ "eyre",
+ "once_cell",
+ "prometheus",
+ "reth-tracing",
+ "serde",
+ "tiny_http",
+ "tokio",
+ "tracing-appender",
+ "tracing-subscriber 0.3.19",
 ]
 
 [[package]]
@@ -12001,14 +12082,29 @@ version = "0.1.0"
 [[package]]
 name = "twine-kafka-common"
 version = "0.1.0"
+dependencies = [
+ "rdkafka",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.12",
+]
 
 [[package]]
 name = "twine-kafka-consumer"
 version = "0.1.0"
+dependencies = [
+ "rdkafka",
+ "tokio",
+ "twine-kafka-common",
+]
 
 [[package]]
 name = "twine-kafka-producer"
 version = "0.1.0"
+dependencies = [
+ "rdkafka",
+ "twine-kafka-common",
+]
 
 [[package]]
 name = "twine-l1-consensus-verifier-precompile"
@@ -12135,6 +12231,7 @@ version = "0.1.0"
 dependencies = [
  "alloy-primitives",
  "serde",
+ "serde_json",
  "twine-utils",
 ]
 

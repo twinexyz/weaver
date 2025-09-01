@@ -120,6 +120,7 @@ impl BatchStore {
     ) -> eyre::Result<()> {
         let end_block = block_range.end();
         let mut meta = BatchMeta {
+            batch_number,
             block_range: block_range.clone(),
             created_at: SystemTime::now()
                 .duration_since(SystemTime::UNIX_EPOCH)

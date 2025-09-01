@@ -5,6 +5,9 @@ use std::ops::RangeInclusive;
 use alloy_primitives::{BlockNumber, Keccak256, B256, KECCAK256_EMPTY};
 use serde::{Deserialize, Serialize};
 
+pub mod proofs;
+pub mod settle;
+
 /// Metadata for a block
 #[allow(missing_docs)]
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -18,6 +21,7 @@ pub struct BlockMetadata {
 #[allow(missing_docs)]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct BatchMeta {
+    pub batch_number: u64,
     pub block_range: RangeInclusive<BlockNumber>,
     pub created_at: u64,
     pub prev_batch_hash: Option<B256>, // batch hash of previous block

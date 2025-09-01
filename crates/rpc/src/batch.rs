@@ -83,6 +83,7 @@ impl TwineBatchApiServer for TwineBatchRPC {
                     ));
                 }
                 Ok(BatchMeta {
+                    batch_number,
                     block_range: blocks_in_range.unwrap(),
                     created_at: 0,
                     prev_batch_hash: previous_hash,
