@@ -13,6 +13,11 @@ members = [
   "bin/l2-execution-prover-worker",
   "bin/l2-proof-scheduler-bin",
   "bin/node",
+  "crates/aggregator/common",
+  "crates/aggregator/database",
+  "crates/aggregator/dispatcher",
+  "crates/aggregator/metrics",
+  "crates/aggregator/types",
   "crates/constants",
   "crates/db/batch",
   "crates/ethereum-consensus-prover",
@@ -54,7 +59,7 @@ alloy-trie = { version = "0.8.1", default-features = false }
 bls12_381 = { git = "https://github.com/sp1-patches/bls12_381", branch = "n/release-latest", features = ["experimental"], package = "sp1_bls12_381" }
 
 async-trait = "0.1.88"
-clap = { version = "4.5.45", features = ["derive"] }
+clap = { version = "4.5.46", features = ["derive"] }
 env_logger = "0.11.7"
 ethereum_ssz = "0.9.0"
 ethereum_ssz_derive = "0.9.0"
@@ -66,8 +71,8 @@ hex = "0.4.3"
 jsonrpsee = { version = "0.24", features = ["client", "jsonrpsee-proc-macros", "tracing", "server"] }
 log = "0.4.26"
 once_cell = "1.21.3"
-
 parking_lot = "0.12"
+prometheus = "0.14.0"
 rand = "0.8.5"
 rdkafka = { version = "0.36", features = ["ssl-vendored"] }
 regex = "1.11.1"
@@ -79,14 +84,17 @@ serde_bytes = "0.11.14"
 serde_json = "1.0.132"
 serde_yaml = "0.9.34"
 sha2 = "0.10.8"
-sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres"] }
+sqlx = { version = "0.8.6", features = ["postgres", "runtime-async-std-native-tls", "chrono", "runtime-tokio-rustls"] }
 ssz_types = "0.11.0"
 strum = "0.27"
 strum_macros = "0.27"
 thiserror = "2.0.12"
+tiny_http = "0.12"
 tokio = { version = "1.40.0", features = ["full"] }
 tokio-tungstenite = "0.27.0"
 toml = "0.8.23"
+tracing-appender = "0.2.3"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter", "json"] }
 tree_hash = "0.10.0"
 tree_hash_derive = "0.10.0"
 typenum = "1.12.0"
@@ -128,6 +136,9 @@ reth-trie-common = { git = "https://github.com/paradigmxyz/reth", tag = "v1.3.10
 revm-context = { version = "3.0.0", default-features = false }
 
 test-harness = { path = "crates/test-harness" }
+twine-aggregator-common = { path = "crates/aggregator/common" }
+twine-aggregator-database = { path = "crates/aggregator/database" }
+twine-aggregator-metrics = { path = "crates/aggregator/metrics" }
 twine-constants = { path = "crates/constants" }
 twine-db-batch = { path = "crates/db/batch" }
 twine-ethereum-consensus-prover-lib = { path = "crates/ethereum-consensus-prover" }
