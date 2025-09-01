@@ -8,9 +8,9 @@ rust-version = "1.85"
 
 [workspace]
 members = [
+  "bin/aggregator",
   "bin/devtest",
   "bin/node",
-
   "crates/constants",
   "crates/db/batch",
   "crates/ethereum-consensus-prover",
