@@ -53,7 +53,7 @@ impl TwineBatchApiServer for TwineBatchRPC {
             Some(b) => Ok(b),
             None => RpcResult::Err(ErrorObject::owned(
                 ErrorCode::InternalError.code(),
-                format!("Failed to find block number"),
+                "Failed to find block number".to_string(),
                 Some(0),
             )),
         }
@@ -83,6 +83,7 @@ impl TwineBatchApiServer for TwineBatchRPC {
                     ));
                 }
                 Ok(BatchMeta {
+                    batch_number,
                     block_range: blocks_in_range.unwrap(),
                     created_at: 0,
                     prev_batch_hash: previous_hash,
