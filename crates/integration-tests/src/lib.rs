@@ -31,7 +31,7 @@ pub fn generate_random_eth_address() -> String {
     fn pseudo_random_bytes(mut seed: u64) -> [u8; 20] {
         let mut bytes = [0u8; 20];
 
-        for byte in bytes.iter_mut() {
+        for byte in &mut bytes {
             seed ^= seed << 13;
             seed ^= seed >> 7;
             seed ^= seed << 17;

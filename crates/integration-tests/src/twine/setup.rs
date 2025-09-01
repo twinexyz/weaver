@@ -36,7 +36,7 @@ pub fn deploy_l2_contracts_step(contracts_dir: PathBuf) -> eyre::Result<TestStep
         futurefn: Box::new(move |_ctx| {
             Box::new(async move {
                 let status = Command::new("forge")
-                    .args(&["clean"])
+                    .args(["clean"])
                     .current_dir(&contracts_dir)
                     .status()?;
 
@@ -45,7 +45,7 @@ pub fn deploy_l2_contracts_step(contracts_dir: PathBuf) -> eyre::Result<TestStep
                 }
 
                 let status = Command::new("forge")
-                    .args(&[
+                    .args([
                         "script",
                         "script/deploy/L2DeploymentScripts/DeployL2Contracts.s.sol",
                         "--rpc-url",
@@ -76,7 +76,7 @@ pub fn setup_l2_contracts_step(contracts_dir: PathBuf) -> eyre::Result<TestStep>
         futurefn: Box::new(move |_ctx| {
             Box::new(async move {
                 let status = Command::new("forge")
-                    .args(&[
+                    .args([
                         "script",
                         "script/setup/L2SetupScripts/L2andSolSetupScript.s.sol",
                         "--rpc-url",
@@ -140,7 +140,7 @@ pub fn update_sol_token_mapping() -> eyre::Result<TestStep> {
                     .context("No l2 erc20 gateway in context")?;
 
                 let status = Command::new("cast")
-                    .args(&[
+                    .args([
                         "send",
                         l2_erc20_gateway,
                         "updateTokenMapping(uint256,address,string)",
@@ -166,7 +166,7 @@ pub fn update_sol_token_mapping() -> eyre::Result<TestStep> {
 }
 
 /// Deploy a test contract to try deposit and call
-/// Param: contracts_dir: point to testing/
+/// Param: `contracts_dir`: point to testing/
 pub fn deploy_cat_contract(contracts_dir: PathBuf) -> eyre::Result<TestStep> {
     Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
         name: "Deploy Cat Contract".to_string(),

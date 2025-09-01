@@ -17,7 +17,7 @@ pub fn set_solana_config_step() -> eyre::Result<TestStep> {
             Box::new(async move {
                 // Set solana config to localnet
                 let status = Command::new("solana")
-                    .args(&["config", "set", "--url", "localhost"])
+                    .args(["config", "set", "--url", "localhost"])
                     .status()?;
 
                 if !status.success() {
@@ -40,7 +40,7 @@ pub fn get_solana_address_step() -> eyre::Result<TestStep> {
         description: "Get solana address and store in context".to_string(),
         futurefn: Box::new(|ctx| {
             Box::new(async move {
-                let output = Command::new("solana").args(&["address"]).output()?;
+                let output = Command::new("solana").args(["address"]).output()?;
 
                 if !output.status.success() {
                     return Err(eyre!("Failed to get solana address"));
@@ -57,7 +57,7 @@ pub fn get_solana_address_step() -> eyre::Result<TestStep> {
 }
 
 /// Update admin on solana programs
-/// Replace the INITIAL_CHAIN_ADMIN constant in the Solana program
+/// Replace the `INITIAL_CHAIN_ADMIN` constant in the Solana program
 pub fn update_solana_program_step(program_path: PathBuf) -> eyre::Result<TestStep> {
     Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
         name: "Update Solana Program".to_string(),
@@ -133,7 +133,7 @@ pub fn build_solana_program_step(program_path: PathBuf) -> eyre::Result<TestStep
                 // Sync keys 3 times
                 for _ in 0..3 {
                     let status = Command::new("anchor")
-                        .args(&["keys", "sync"])
+                        .args(["keys", "sync"])
                         .current_dir(program_path.clone())
                         .status()?;
 
@@ -210,7 +210,7 @@ pub fn initialize_solana_program_step(program_path: PathBuf) -> eyre::Result<Tes
 
 /// Load program addresses
 pub fn load_program_addresses_step(program_path: PathBuf) -> eyre::Result<TestStep> {
-    let mut path = program_path.clone();
+    let mut path = program_path;
     path.push("solanaPrograms.json");
     Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
         name: "Load Solana Addresses".to_string(),
@@ -238,7 +238,7 @@ pub fn update_sol_token_mapping(program_path: PathBuf) -> eyre::Result<TestStep>
                     .context("No l2 sol token in context")?;
 
                 let status = Command::new("make")
-                    .args(&[
+                    .args([
                         "update-token-mapping",
                         &format!("l1_token={}", solana::constants::SOLANA_NATIVECOIN),
                         &format!("l2_token={}", sol_token),
@@ -286,7 +286,7 @@ pub fn deposit_sol_step(program_path: PathBuf) -> eyre::Result<TestStep> {
                 };
 
                 let status = Command::new("make")
-                    .args(&[
+                    .args([
                         "deposit-native-token",
                         &format!("amount={}", solana::constants::SOLANA_DEPOSIT_AMOUNT),
                         &format!("receiver_address={}", ethereum_address),

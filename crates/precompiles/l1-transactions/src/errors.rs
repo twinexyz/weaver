@@ -57,7 +57,7 @@ impl TransactionPrecompileError {
 
 impl From<TransactionPrecompileError> for InterpreterResult {
     fn from(_err: TransactionPrecompileError) -> Self {
-        InterpreterResult {
+        Self {
             result: InstructionResult::PrecompileError,
             output: Bytes::new(),
             gas: Gas::new(0),

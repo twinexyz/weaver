@@ -203,7 +203,7 @@ pub struct SubProcessLogReader {
     /// Service index
     pub service_idx: usize,
     /// Read stdout
-    /// Wrapping in RefCell enables us to be able to call `execute`
+    /// Wrapping in `RefCell` enables us to be able to call `execute`
     /// method of `ServiceStepExecutor` without it taking mutable reference to
     /// self
     pub stdout: Arc<Mutex<Option<Box<dyn FnOnce(ChildStdout) + Send>>>>,
@@ -212,7 +212,7 @@ pub struct SubProcessLogReader {
     /// Notification to proceed
     /// This takes more precedence than `wait_after`
     pub proceed_flag: Arc<AtomicBool>,
-    /// Wait till proceed_flag is enabled
+    /// Wait till `proceed_flag` is enabled
     pub block_until_proceed: bool,
 }
 
@@ -380,7 +380,7 @@ impl Service for SubProcessService {
             )));
         }
 
-        let command = (&self.cmd_gen)(ctx);
+        let command = (self.cmd_gen)(ctx);
         info!(
             "Executing service {} with command {:?}",
             self.name,

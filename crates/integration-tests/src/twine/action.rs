@@ -14,7 +14,7 @@ use crate::{solana, zstd_compress};
 
 pub(crate) async fn deploy_contract(contracts_dir: &PathBuf) -> eyre::Result<String> {
     let output = Command::new("forge")
-        .args(&[
+        .args([
             "create",
             "testing/precompile-caller/src/Cat.sol:Cat",
             "--rpc-url",
@@ -45,7 +45,7 @@ pub(crate) fn parse_contract_address(output: &str) -> eyre::Result<String> {
 
 pub(crate) async fn get_call_params(cat_address: &str, setter_value: &str) -> eyre::Result<String> {
     let output = Command::new("cast")
-        .args(&[
+        .args([
             "call",
             cat_address,
             "returnSelector(bytes)(bytes)",

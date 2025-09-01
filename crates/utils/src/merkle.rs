@@ -45,7 +45,7 @@ impl MerkleTree {
             cur = next;
             layers.push(cur.clone());
         }
-        MerkleTree {
+        Self {
             leaves: hashes.to_vec(),
             layers,
         }
@@ -81,7 +81,7 @@ pub struct MerkleProof {
 
 impl MerkleProof {
     /// Instantiate Merkle Proof
-    pub fn new(proof: Vec<Hash>) -> MerkleProof { MerkleProof { proof } }
+    pub fn new(proof: Vec<Hash>) -> Self { Self { proof } }
 
     /// Verify merkle proof
     pub fn verify(&self, root: Hash, index: usize, leaf: Hash) -> bool {

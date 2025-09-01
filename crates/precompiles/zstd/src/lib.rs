@@ -29,16 +29,16 @@ impl ZStdPrecompile {
         _is_static: bool,
         gas_limit: u64,
     ) -> Result<Option<InterpreterResult>, String> {
-        match ZStdPrecompile::run_precompile(inputs, gas_limit) {
-            Ok(result) => return Ok(Some(result)),
+        match Self::run_precompile(inputs, gas_limit) {
+            Ok(result) => Ok(Some(result)),
             Err(err) => {
                 tracing::error!("zstd_precompile_error: {err:?}");
                 let err_bytes = Bytes::copy_from_slice(err.as_bytes());
-                return Ok(Some(InterpreterResult {
+                Ok(Some(InterpreterResult {
                     result: InstructionResult::PrecompileError,
                     output: err_bytes,
                     gas: Gas::new(0),
-                }));
+                }))
             }
         }
     }
@@ -55,8 +55,8 @@ impl ZStdPrecompile {
             .map_err(|_| "Failed to extract 4-byte selector".to_string())?;
 
         let original = &inputs.input[4..];
-        match selector {
-            &ZstdLib::compressCall::SELECTOR => {
+        match *selector {
+            ZstdLib::compressCall::SELECTOR => {
                 tracing::info!("ZSTD Compression");
                 let compressed = compress_to_vec(original, CompressionLevel::Fastest);
 
@@ -73,9 +73,9 @@ impl ZStdPrecompile {
                     gas: Gas::new(gas_limit - 21000),
                 });
             }
-            &ZstdLib::decompressCall::SELECTOR => {
+            ZstdLib::decompressCall::SELECTOR => {
                 tracing::info!("ZSTD Decompression");
-                let mut source: &[u8] = &original;
+                let mut source: &[u8] = original;
                 let mut decoder = StreamingDecoder::new(&mut source).map_err(|e| e.to_string())?;
                 let mut result = Vec::new();
                 decoder

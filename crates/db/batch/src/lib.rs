@@ -88,7 +88,7 @@ impl BatchStore {
         }
     }
 
-    /// Load batch metadata for batch_number
+    /// Load batch metadata for `batch_number`
     pub fn load_batch(&self, batch_number: u64) -> eyre::Result<BatchMeta> {
         let cf = self
             .db
@@ -120,6 +120,7 @@ impl BatchStore {
     ) -> eyre::Result<()> {
         let end_block = block_range.end();
         let mut meta = BatchMeta {
+            batch_number,
             block_range: block_range.clone(),
             created_at: SystemTime::now()
                 .duration_since(SystemTime::UNIX_EPOCH)
@@ -249,7 +250,7 @@ mod batch_db_tests {
 
             store.seal_batch(
                 batch_number,
-                block_range.clone(),
+                block_range,
                 prev_batch_hash,
                 block_metadata,
             )?;
@@ -269,7 +270,7 @@ mod batch_db_tests {
 
             store.seal_batch(
                 batch_number,
-                block_range.clone(),
+                block_range,
                 prev_batch_hash,
                 block_metadata,
             )?;
@@ -289,7 +290,7 @@ mod batch_db_tests {
 
             store.seal_batch(
                 batch_number,
-                block_range.clone(),
+                block_range,
                 prev_batch_hash,
                 block_metadata,
             )?;

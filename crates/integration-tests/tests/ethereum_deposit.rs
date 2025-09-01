@@ -98,7 +98,7 @@ mod ethereum_deposit_test {
                         };
                         move |_ctx| {
                             vec![
-                                binary.clone().into(),
+                                binary.clone(),
                                 "node".into(),
                                 "--dev".into(),
                                 "--http".into(),
@@ -358,7 +358,7 @@ mod ethereum_deposit_test {
                     fn pseudo_random_bytes(mut seed: u64) -> [u8; 20] {
                         let mut bytes = [0u8; 20];
 
-                        for byte in bytes.iter_mut() {
+                        for byte in &mut bytes {
                             seed ^= seed << 13;
                             seed ^= seed >> 7;
                             seed ^= seed << 17;
@@ -391,7 +391,7 @@ mod ethereum_deposit_test {
                     let binding = ctx.borrow();
                     let gateway = binding.get(ctx_keys::L1_ETH_GATEWAY).unwrap();
                     let result = Command::new("cast")
-                        .args(&[
+                        .args([
                             "send",
                             gateway,
                             "depositETH(address,uint256,uint256)",
@@ -433,7 +433,7 @@ mod ethereum_deposit_test {
                         .ok_or_else(|| eyre!("L2 ETH token address not found in context"))?;
 
                     let output = Command::new("cast")
-                        .args(&[
+                        .args([
                             "call",
                             l2_eth_token,
                             "balanceOf(address)(uint256)",
@@ -456,7 +456,7 @@ mod ethereum_deposit_test {
                         return Ok(());
                     }
 
-                    return Err(eyre!("Failed to verify balance"));
+                    Err(eyre!("Failed to verify balance"))
                 })
             }),
         })))

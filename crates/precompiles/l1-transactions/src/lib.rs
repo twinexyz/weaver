@@ -58,7 +58,7 @@ impl TransactionPrecompile {
             L1ChainType::Solana => {
                 tracing::info!("Solana chain transaction");
 
-                return Err("Solana Transaction Precompile is a work in progress".to_owned());
+                Err("Solana Transaction Precompile is a work in progress".to_owned())
             }
         }
     }
@@ -101,10 +101,10 @@ fn process_transaction(
     chain_id: U256,
 ) -> Result<Option<InterpreterResult>, TransactionPrecompileError> {
     let message_hash = keccak256(message_data);
-    let message_data = <MessageData as SolValue>::abi_decode_params(&message_data)
+    let message_data = <MessageData as SolValue>::abi_decode_params(message_data)
         .map_err(|_| TransactionPrecompileError::DecodeMessage)?;
 
-    let account_proofs: AccountProof = serde_json::from_slice(&state_proof)
+    let account_proofs: AccountProof = serde_json::from_slice(state_proof)
         .map_err(|_| TransactionPrecompileError::DecodedAccountProof)?;
 
     account_proofs.verify(*state_root).map_err(|e| {
@@ -114,11 +114,11 @@ fn process_transaction(
 
     let value_stored: FixedBytes<32> = account_proofs.storage_proofs[0].value.into();
     if !value_stored.eq(&message_hash) {
-        return Err(TransactionPrecompileError::InvalidStateProof.into());
+        return Err(TransactionPrecompileError::InvalidStateProof);
     }
 
     if !whitelisted_contract(chain_id).contains(&account_proofs.address) {
-        return Err(TransactionPrecompileError::InvalidStateProof.into());
+        return Err(TransactionPrecompileError::InvalidStateProof);
     }
 
     if message_data.chainId != chain_id.to::<u64>() {
@@ -130,7 +130,7 @@ fn process_transaction(
 
     if message_data.blockNumber > block_number {
         tracing::debug!("The message block number cannot be greater than the state root block");
-        return Err(TransactionPrecompileError::InvalidStateProof.into());
+        return Err(TransactionPrecompileError::InvalidStateProof);
     }
 
     let l2_token = Address::from_str(&message_data.l2Token)
@@ -178,7 +178,7 @@ pub fn get_receipt_root<CTX: ContextTr>(
         .sload(TWINE_SYSTEM_STORAGE_CONTRACT, receipt_slot)
     {
         Ok(root) => Ok(FixedBytes::from(root.data)),
-        Err(_) => Err(TransactionPrecompileError::QueryEvmFailed.into()),
+        Err(_) => Err(TransactionPrecompileError::QueryEvmFailed),
     }
 }
 

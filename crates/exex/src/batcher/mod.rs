@@ -106,14 +106,12 @@ where
         // If the gap between current_block and last block is high
         // Then, this current loop seals one batch
         // Another batch is sealed on next loop
-        if current_block > last_block {
-            if current_block - last_block >= 5 + self.config.max_blocks {
-                let next_batch_start: u64 = last_block + 1;
-                let next_batch_end = next_batch_start + self.config.max_blocks - 1;
-                let next_batch_number = self.store.get_next_batch_number().unwrap_or(0);
-                self.seal_batch(next_batch_number, next_batch_start, next_batch_end)
-                    .await?;
-            }
+        if current_block > last_block && current_block - last_block >= 5 + self.config.max_blocks {
+            let next_batch_start: u64 = last_block + 1;
+            let next_batch_end = next_batch_start + self.config.max_blocks - 1;
+            let next_batch_number = self.store.get_next_batch_number().unwrap_or(0);
+            self.seal_batch(next_batch_number, next_batch_start, next_batch_end)
+                .await?;
         }
 
         Ok(())

@@ -183,7 +183,7 @@ mod solana_deposit_and_call_test {
         let programs_path = PathBuf::from(programs_path_);
 
         let contracts_path_ = app_config.contracts_path.clone();
-        let contracts_path = PathBuf::from(contracts_path_);
+        let contracts_path = contracts_path_;
 
         let mut harness = TestHarness::new("Deposit flow", ".");
         let services = TestServices::new(&app_config);
@@ -273,7 +273,7 @@ mod solana_deposit_and_call_test {
         harness.add_step(start_service_step("Merkora", 3, Duration::from_secs(5)));
 
         // Deposit ETH
-        harness.add_step(solana::setup::deposit_sol_step(programs_path.clone())?);
+        harness.add_step(solana::setup::deposit_sol_step(programs_path)?);
 
         // Wait for message processing
         harness.add_step(wait_step(
@@ -353,7 +353,7 @@ mod solana_deposit_and_call_test {
                         .ok_or_else(|| eyre!("L2 SOL token address not found in context"))?;
 
                     let output = Command::new("cast")
-                        .args(&[
+                        .args([
                             "call",
                             l2_sol_token,
                             "balanceOf(address)(uint256)",
@@ -396,7 +396,7 @@ mod solana_deposit_and_call_test {
                         .ok_or_else(|| eyre!("L2 call param not found in context"))?;
 
                     let output = Command::new("cast")
-                        .args(&[
+                        .args([
                             "call",
                             cat_address,
                             "getRecording()(bytes)",
