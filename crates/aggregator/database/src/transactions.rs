@@ -2,6 +2,8 @@ use sqlx::types::chrono::{DateTime, Utc};
 use sqlx::types::JsonValue;
 use sqlx::Transaction;
 
+use crate::types::{DaPostingStatus, OnChainStatus};
+
 /// Track on chain progress
 /// progress: batch status: `send_successful`
 pub async fn set_on_chain_progress(
@@ -32,7 +34,7 @@ pub async fn upsert_on_chain_status(
     executor: &mut Transaction<'_, sqlx::Postgres>,
     batch_id: u64,
     chain_id: &str,
-    status: &str,
+    status: OnChainStatus,
     batch_posted_txn: Option<&str>,
     error_msg: Option<&str>,
     posted_at: Option<DateTime<Utc>>,
@@ -53,7 +55,7 @@ pub async fn upsert_on_chain_status(
     )
     .bind(batch_id as i64)
     .bind(chain_id)
-    .bind(status)
+    .bind(status.to_string())
     .bind(batch_posted_txn)
     .bind(error_msg)
     .bind(posted_at)
@@ -92,7 +94,7 @@ pub async fn upsert_da_status(
     executor: &mut Transaction<'_, sqlx::Postgres>,
     batch_id: i64,
     da_id: &str,
-    status: &str,
+    status: DaPostingStatus,
     verification_data: Option<&JsonValue>,
     da_posted_at: Option<DateTime<Utc>>,
     da_verified_at: Option<DateTime<Utc>>,
@@ -111,7 +113,7 @@ pub async fn upsert_da_status(
     "#)
     .bind(batch_id)
     .bind(da_id)
-    .bind(status)
+    .bind(status.to_string())
     .bind(verification_data)
     .bind(da_posted_at)
     .bind(da_verified_at)

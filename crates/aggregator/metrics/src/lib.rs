@@ -20,6 +20,8 @@ struct Metrics {
     batches_observed_total: IntCounterVec,
     commits_total: IntCounterVec,
     finalizes_total: IntCounterVec,
+    batches_dispatched_total: IntCounterVec,
+    dispatcher_errors_total: IntCounterVec,
 
     // Current heads
     last_observed_batch: IntGaugeVec,
@@ -33,6 +35,7 @@ struct Metrics {
     // Optional backlogs (set by scheduler)
     commit_backlog: IntGaugeVec,
     finalize_backlog: IntGaugeVec,
+    dispatcher_queue_size: IntGaugeVec,
 }
 
 static METRICS: Lazy<Metrics> = Lazy::new(|| {
@@ -82,6 +85,28 @@ static METRICS: Lazy<Metrics> = Lazy::new(|| {
     .expect("counter vec");
     reg.register(Box::new(finalizes_total.clone()))
         .expect("register finalizes_total");
+
+    let batches_dispatched_total = IntCounterVec::new(
+        Opts::new(
+            "twine_batches_dispatched_total",
+            "Number of batches dispatched to chains",
+        ),
+        &["chain_id"],
+    )
+    .expect("counter vec");
+    reg.register(Box::new(batches_dispatched_total.clone()))
+        .expect("register batches_dispatched_total");
+
+    let dispatcher_errors_total = IntCounterVec::new(
+        Opts::new(
+            "twine_dispatcher_errors_total",
+            "Number of errors in the dispatcher",
+        ),
+        &["error_type"],
+    )
+    .expect("counter vec");
+    reg.register(Box::new(dispatcher_errors_total.clone()))
+        .expect("register dispatcher_errors_total");
 
     // --- Gauges (heads/backlogs) ---
     let last_observed_batch = IntGaugeVec::new(
@@ -139,6 +164,17 @@ static METRICS: Lazy<Metrics> = Lazy::new(|| {
     reg.register(Box::new(finalize_backlog.clone()))
         .expect("register finalize_backlog");
 
+    let dispatcher_queue_size = IntGaugeVec::new(
+        Opts::new(
+            "twine_dispatcher_queue_size",
+            "Number of batches pending dispatch",
+        ),
+        &["chain_id"],
+    )
+    .expect("gauge vec");
+    reg.register(Box::new(dispatcher_queue_size.clone()))
+        .expect("register dispatcher_queue_size");
+
     // --- Histograms (latencies) ---
     // Use wide buckets suitable for chain latencies; tweak as needed.
     let buckets = vec![
@@ -174,6 +210,8 @@ static METRICS: Lazy<Metrics> = Lazy::new(|| {
         batches_observed_total,
         commits_total,
         finalizes_total,
+        batches_dispatched_total,
+        dispatcher_errors_total,
         last_observed_batch,
         last_committed_batch,
         last_finalized_batch,
@@ -181,6 +219,7 @@ static METRICS: Lazy<Metrics> = Lazy::new(|| {
         finalize_submit_latency,
         commit_backlog,
         finalize_backlog,
+        dispatcher_queue_size,
     }
 });
 
@@ -256,6 +295,30 @@ pub fn set_finalize_backlog(chain_id: &str, backlog: i64) {
         .finalize_backlog
         .with_label_values(&[chain_id])
         .set(backlog);
+}
+
+/// Record when a batch is dispatched to a chain
+pub fn record_batch_dispatched(chain_id: &str, _batch: u64) {
+    METRICS
+        .batches_dispatched_total
+        .with_label_values(&[chain_id])
+        .inc();
+}
+
+/// Record a dispatcher error
+pub fn record_dispatcher_error(error_type: &str) {
+    METRICS
+        .dispatcher_errors_total
+        .with_label_values(&[error_type])
+        .inc();
+}
+
+/// Set the size of the dispatcher queue for a chain
+pub fn set_dispatcher_queue_size(chain_id: &str, queue_size: i64) {
+    METRICS
+        .dispatcher_queue_size
+        .with_label_values(&[chain_id])
+        .set(queue_size);
 }
 
 /// Retrieve last recorded tx hash (not a metric; for debug endpoints/logs).

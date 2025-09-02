@@ -7,6 +7,9 @@ pub mod operations;
 /// Transactions needs to be committed manually
 pub mod transactions;
 
+/// Database Type Management
+pub mod types;
+
 /// Run all database migrations at compile time
 pub fn run_migrations() {
     // This will run all migrations in the migrations directory at compile time

@@ -8,6 +8,7 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+eyre.workspace = true
 serde.workspace = true
 serde_yaml.workspace = true
 

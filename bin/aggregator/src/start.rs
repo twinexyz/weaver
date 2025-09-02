@@ -25,19 +25,6 @@ pub(crate) async fn start_aggregator(config: &AppCfg) -> eyre::Result<()> {
         crate::components::kafka_consumer::start_kafka_consumer(config, db_pool.clone()).await?,
     );
 
-    // Start the Ethereum worker
-    handles.push(crate::components::eth_worker::start_eth_worker(config, db_pool.clone()).await?);
-
-    // Start the Solana worker
-    handles.push(crate::components::sol_worker::start_sol_worker(config, db_pool.clone()).await?);
-
-    // Start the dispatcher
-    handles.push(crate::components::dispatcher::start_dispatcher(config, db_pool.clone()).await?);
-
-    // Start the DA publisher
-    handles
-        .push(crate::components::da_publisher::start_da_publisher(config, db_pool.clone()).await?);
-
     // Start the DA verifier
     handles.push(crate::components::da_verifier::start_da_verifier(config, db_pool.clone()).await?);
 
