@@ -4,68 +4,47 @@ use std::future::Future;
 use std::time::Duration;
 
 use reth_tracing::tracing::{self};
-use tokio::sync::mpsc;
 use tokio::time::sleep;
 use twine_rpc::client::BatchClient;
 use twine_types::BatchMeta;
 
 /// Poll Twine L2 for new batches starting from `start_from` (inclusive),
-/// transform each `BatchMeta` into `K` via `map`, and send to `tx`.
+/// and call `handler` for each batch.
 ///
 /// - `poll_interval` is used *only* when we're caught up. While behind, the
 ///   poller streams batches as fast as it can.
-/// - If `tx` is closed, the poller logs and keeps going (you can change to
-///   `return` if preferred).
 ///
 /// ## Examples
 ///
-/// Send `BatchMeta` values directly:
+/// Handle batches directly with a non-async handler:
 /// ```rust
-/// use tokio::sync::mpsc;
 /// use std::time::Duration;
 /// use twine_types::BatchMeta;
+/// use twine_l2_batch_poller::poll_batches;
 ///
-/// # async fn demo() {
-/// let (tx, mut rx) = mpsc::channel::<BatchMeta>(1024);
-/// tokio::spawn(poll_batches(
-///     "http://localhost:854",
-///     1,
-///     tx,
-///     Duration::from_secs(2),
-///     |bm| bm,
-/// ));
-/// # }
-/// ```
-///
-/// Transform into your own type before sending:
-/// ```rust
-/// use tokio::sync::mpsc;
-/// use std::time::Duration;
-/// use twine_types::BatchMeta;
-///
-/// struct CommitJob { n: u64, hash: [u8; 32] }
-///
-/// # async fn demo() {
-/// let (tx, mut rx) = mpsc::channel::<CommitJob>(1024);
-/// tokio::spawn(poll_batches(
+/// # async fn demo() -> eyre::Result<()> {
+/// poll_batches(
 ///     "http://localhost:8545",
 ///     1,
-///     tx,
 ///     Duration::from_secs(2),
-///     |bm: BatchMeta| CommitJob { n: bm.batch_number, hash: bm.batch_hash },
-/// ));
+///     |bm| {
+///         // Handle the batch directly
+///         println!("Handling batch: {}", bm.batch_number);
+///         // Non-async handlers should return Ok(())
+///         Ok::<(), eyre::Error>(())
+///     },
+/// ).await?;
+/// # Ok(())
 /// # }
 /// ```
-pub async fn poll_batches<F, K>(
+pub async fn poll_batches<F>(
     twine_rpc: &str,
     start_from: u64,
-    tx: mpsc::Sender<K>,
     poll_interval: Duration,
-    map: F,
+    handler: F,
 ) -> eyre::Result<()>
 where
-    F: Fn(BatchMeta) -> K + Send + Sync + Clone + 'static,
-    K: Send + 'static, {
+    F: Fn(BatchMeta) -> eyre::Result<()> + Send + Sync + Clone + 'static, {
     let client = BatchClient::new(twine_rpc);
     let mut next = start_from;
 
@@ -83,9 +62,8 @@ where
                 for n in next..=latest {
                     match client.get_full_batch(n, Some(true)).await {
                         Ok(batch_meta) => {
-                            let out = map(batch_meta);
-                            if let Err(e) = tx.send(out).await {
-                                tracing::error!(batch=n, error=?e, "failed sending to channel");
+                            if let Err(e) = handler(batch_meta) {
+                                tracing::error!(batch=n, error=?e, "failed handling batch");
                             }
                             next = n + 1;
                         }
@@ -95,8 +73,8 @@ where
                             break;
                         }
                     }
-                    // Minimal sleep for to avoid rpc rate limit
-                    sleep(Duration::from_millis(500)).await;
+                    // Minimal sleep to avoid rpc rate limit
+                    sleep(Duration::from_millis(200)).await;
                 }
             }
             Err(e) => {
@@ -107,20 +85,42 @@ where
     }
 }
 
-/// Async-mapping variant: map each `BatchMeta` to `K` with an async closure.
-/// Useful if you need DB lookups, hashing, or enrichment per batch before
-/// sending.
-pub async fn poll_batches_async<K, F, Fut>(
+/// Async variant: handle each `BatchMeta` with an async closure.
+/// Useful if you need DB lookups, hashing, or enrichment per batch.
+///
+/// ## Examples
+///
+/// Handle batches with an async handler:
+/// ```rust
+/// use std::time::Duration;
+/// use twine_types::BatchMeta;
+/// use twine_l2_batch_poller::poll_batches_async;
+///
+/// # async fn demo() -> eyre::Result<()> {
+/// poll_batches_async(
+///     "http://localhost:8545",
+///     1,
+///     Duration::from_secs(2),
+///     |bm| async move {
+///         // Handle the batch asynchronously
+///         println!("Handling batch: {}", bm.batch_number);
+///         // Simulate async work
+///         tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
+///         Ok::<(), eyre::Error>(())
+///     },
+/// ).await?;
+/// # Ok(())
+/// # }
+/// ```
+pub async fn poll_batches_async<F, Fut>(
     twine_rpc: &str,
     start_from: u64,
-    tx: mpsc::Sender<K>,
     poll_interval: Duration,
-    map_async: F,
+    handler: F,
 ) -> eyre::Result<()>
 where
     F: Fn(BatchMeta) -> Fut + Send + Sync + Clone + 'static,
-    Fut: Future<Output = K> + Send,
-    K: Send + 'static, {
+    Fut: Future<Output = eyre::Result<()>> + Send, {
     let client = BatchClient::new(twine_rpc);
     let mut next = start_from;
 
@@ -136,9 +136,8 @@ where
                 for n in next..=latest {
                     match client.get_full_batch(n, Some(true)).await {
                         Ok(batch_meta) => {
-                            let out = map_async(batch_meta).await;
-                            if let Err(e) = tx.send(out).await {
-                                tracing::error!(batch=n, error=?e, "failed sending to channel");
+                            if let Err(e) = handler(batch_meta).await {
+                                tracing::error!(batch=n, error=?e, "failed handling batch");
                             }
                             next = n + 1;
                         }
@@ -148,6 +147,8 @@ where
                             break;
                         }
                     }
+                    // Minimal sleep to avoid rpc rate limit
+                    sleep(Duration::from_millis(200)).await;
                 }
             }
             Err(e) => {
