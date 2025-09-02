@@ -56,7 +56,7 @@ use twine_types::BatchMeta;
 /// ));
 /// # }
 /// ```
-pub async fn poll_batches<K, F>(
+pub async fn poll_batches<F, K>(
     twine_rpc: &str,
     start_from: u64,
     tx: mpsc::Sender<K>,
@@ -95,11 +95,13 @@ where
                             break;
                         }
                     }
+                    // Minimal sleep for to avoid rpc rate limit
+                    sleep(Duration::from_millis(500)).await;
                 }
             }
             Err(e) => {
                 tracing::warn!(error=?e, "failed to query latest batch; backing off");
-                sleep(Duration::from_secs(1)).await;
+                sleep(Duration::from_secs(2)).await;
             }
         }
     }

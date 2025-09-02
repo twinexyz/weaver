@@ -1,12 +1,17 @@
-use reth_tracing::tracing::{info, warn};
+use reth_tracing::tracing::{self, info, warn};
 use sqlx::PgPool;
 #[cfg(unix)]
 use tokio::signal::unix::{signal, SignalKind};
 use twine_aggregator_common::config::AppCfg;
+use twine_aggregator_database::operations::apply_migrations;
 
 pub(crate) async fn start_aggregator(config: &AppCfg) -> eyre::Result<()> {
+    tracing::info!("Starting aggregator");
     // Create database connection pool
     let db_pool = PgPool::connect(&config.db_url).await?;
+
+    // Apply migrations before we can start
+    apply_migrations(&db_pool).await?;
 
     // Start background components and collect their JoinHandles
     let mut handles: Vec<tokio::task::JoinHandle<()>> = Vec::new();

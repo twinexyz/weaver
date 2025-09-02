@@ -1,0 +1,68 @@
+# Database configuration
+db_url: "postgresql://twine:twine@localhost:5432/twine"
+
+# Ethereum chain configuration
+eth:
+  # RPC endpoints for Ethereum
+  rpcs:
+    - "http://localhost:8545"
+  # Address of the twine chain contract on Ethereum
+  twine_chain_contract: "0x..."
+  # Number of blocks to wait for finality on Ethereum
+  finality_blocks: 12
+
+# Solana chain configuration
+sol:
+  # RPC endpoints for Solana
+  rpcs:
+    - "http://localhost:8899"
+  # Program ID of the twine chain program on Solana
+  twine_chain_program_id: "..."
+
+# Twine chain configuration
+twine:
+  # RPC endpoints for the Twine chain
+  rpcs:
+    - "http://127.0.0.1:8545"
+
+  # Starting batch number to process
+  start_batch: 1
+
+  # Polling interval in seconds
+  poll_interval: 10
+
+# Kafka configuration
+kafka:
+  # Generic Kafka configuration parameters
+  config: {}
+  # Topics to consume from
+  topics:
+    - "twine.proofs"
+  # Kafka consumer specific configuration
+  consumer:
+    # Bootstrap servers for Kafka
+    bootstrap_servers: "localhost:9092"
+
+    # Client identifier
+    client_id: "twine-consumer"
+
+    # Consumer group identifier
+    group_id: "twine-workers"
+
+    # Session timeout in milliseconds
+    session_timeout_ms: 45000
+
+    # Auto offset reset policy
+    auto_offset_reset: "earliest"
+
+    # Enable auto commit
+    enable_auto_commit: false
+
+# Verification key paths
+verification_keys:
+  # Execution proof verification key
+  execution_proof: "rsp verification key"
+
+# Telemetry configuration (optional)
+telemetry:
+  metrics_server: "127.0.0.1:3000"
