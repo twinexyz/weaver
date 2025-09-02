@@ -5,29 +5,29 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
+use crate::SettlementChains;
+
 /// The main application configuration structure.
+#[allow(missing_docs)]
 #[derive(Debug, Deserialize, Clone)]
 pub struct AppCfg {
-    /// The database connection URL.
     pub db_url: String,
-
-    /// Ethereum chain configuration.
-    pub eth: EthCfg,
-
-    /// Solana chain configuration.
-    pub sol: SolCfg,
-
-    /// Twine chain configuration.
+    pub dispatcher: DispatcherConfig,
+    pub eth: Option<EthCfg>,
+    pub sol: Option<SolCfg>,
+    pub celestia: Option<CelestiaCfg>,
     pub twine: TwineCfg,
-
-    /// Kafka messaging configuration.
     pub kafka: KafkaConfig,
-
-    /// Verification key paths.
-    pub verification_keys: VerificationKey,
-
-    /// Optional telemetry configuration.
+    pub verification_keys: Option<VerificationKey>,
     pub telemetry: Option<TelemetryCfg>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[allow(missing_docs)]
+pub struct DispatcherConfig {
+    pub use_da: bool,
+    pub settle_targets: Vec<SettlementChains>,
+    pub poll_interval_ms: u64,
 }
 
 /// Ethereum blockchain configuration.
@@ -52,6 +52,9 @@ pub struct SolCfg {
     /// Program ID of the twine chain program on Solana.
     pub twine_chain_program_id: String,
 }
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct CelestiaCfg {}
 
 /// Twine network configuration.
 #[derive(Debug, Deserialize, Clone)]
@@ -151,4 +154,36 @@ pub struct TelemetryCfg {
 pub fn parse_config(config_path: &Path) -> AppCfg {
     let config_content = std::fs::read_to_string(config_path).expect("Failed to read config file");
     serde_yaml::from_str(&config_content).expect("Failed to parse config file")
+}
+
+impl AppCfg {
+    /// Validate config
+    pub fn validate(&self) -> eyre::Result<()> {
+        if self.dispatcher.use_da && self.celestia.is_none() {
+            eyre::bail!("dispatcher.use_da=true but no [celestia] block provided");
+        }
+        if self.dispatcher.settle_targets.is_empty() {
+            eyre::bail!("No settlement chains configured (dispatcher.settle_targets empty).");
+        }
+
+        // Ensure ETH/SOL config exists if selected
+        if self
+            .dispatcher
+            .settle_targets
+            .contains(&SettlementChains::Ethereum)
+            && self.eth.is_none()
+        {
+            eyre::bail!("settle_targets includes ethereum but eth.rpcs is empty");
+        }
+
+        if self
+            .dispatcher
+            .settle_targets
+            .contains(&SettlementChains::Solana)
+            && self.sol.is_none()
+        {
+            eyre::bail!("settle_targets includes solana but sol.rpcs is empty");
+        }
+        Ok(())
+    }
 }

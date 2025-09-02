@@ -226,3 +226,156 @@ pub async fn set_da_verified(
     .await?;
     Ok(res.rows_affected())
 }
+
+/// Get the last processed batch for on-chain operations for a specific chain
+pub async fn get_last_processed_on_chain_batch(
+    pool: &PgPool,
+    chain_id: &str,
+) -> Result<u64, sqlx::Error> {
+    let row: Option<i64> = sqlx::query_scalar(
+        r#"
+        SELECT last_consumed_batch_id
+        FROM on_chain_progress
+        WHERE chain_id = $1
+        "#,
+    )
+    .bind(chain_id)
+    .fetch_optional(pool)
+    .await?;
+
+    Ok(row.unwrap_or(0) as u64)
+}
+
+/// Get the last processed batch for DA operations
+pub async fn get_last_processed_da_batch(pool: &PgPool, da_id: &str) -> Result<u64, sqlx::Error> {
+    let row: Option<i64> = sqlx::query_scalar(
+        r#"
+        SELECT last_consumed_batch_id
+        FROM da_progress
+        WHERE da_id = $1
+        "#,
+    )
+    .bind(da_id)
+    .fetch_optional(pool)
+    .await?;
+
+    Ok(row.unwrap_or(0) as u64)
+}
+
+/// Update the last processed batch for on-chain operations
+pub async fn update_last_processed_on_chain_batch(
+    pool: &PgPool,
+    chain_id: &str,
+    batch_id: u64,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        r#"
+        INSERT INTO on_chain_progress (chain_id, last_consumed_batch_id, updated_at)
+        VALUES ($1, $2, now())
+        ON CONFLICT (chain_id) DO UPDATE
+        SET last_consumed_batch_id = $2,
+            updated_at = now()
+        "#,
+    )
+    .bind(chain_id)
+    .bind(batch_id as i64)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+/// Update the last processed batch for DA operations
+pub async fn update_last_processed_da_batch(
+    pool: &PgPool,
+    da_id: &str,
+    batch_id: u64,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        r#"
+        INSERT INTO da_progress (da_id, last_consumed_batch_id, updated_at)
+        VALUES ($1, $2, now())
+        ON CONFLICT (da_id) DO UPDATE
+        SET last_consumed_batch_id = $2,
+            updated_at = now()
+        "#,
+    )
+    .bind(da_id)
+    .bind(batch_id as i64)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+/// Get batch data by batch ID
+pub async fn get_batch_by_id(
+    pool: &PgPool,
+    batch_id: u64,
+) -> Result<Option<(u64, [u8; 32], Vec<u8>)>, sqlx::Error> {
+    let row = sqlx::query_as::<_, (i64, Vec<u8>, Vec<u8>)>(
+        r#"
+        SELECT batch_id, batch_hash, execution_proof_data
+        FROM batches
+        WHERE batch_id = $1
+        "#,
+    )
+    .bind(batch_id as i64)
+    .fetch_optional(pool)
+    .await?;
+
+    match row {
+        Some((id, hash_vec, proof_data)) => {
+            if hash_vec.len() != 32 {
+                return Err(sqlx::Error::Decode("Invalid batch hash length".into()));
+            }
+            let mut hash = [0u8; 32];
+            hash.copy_from_slice(&hash_vec);
+            Ok(Some((id as u64, hash, proof_data)))
+        }
+        None => Ok(None),
+    }
+}
+
+/// Check if a batch is ready for processing (has proof data)
+pub async fn is_batch_ready_for_processing(
+    pool: &PgPool,
+    batch_id: u64,
+) -> Result<bool, sqlx::Error> {
+    let count: i64 = sqlx::query_scalar(
+        r#"
+        SELECT COUNT(*)
+        FROM batches
+        WHERE batch_id = $1
+          AND execution_proof_data IS NOT NULL
+        "#,
+    )
+    .bind(batch_id as i64)
+    .fetch_one(pool)
+    .await?;
+
+    Ok(count > 0)
+}
+
+/// Get the oldest batch that is ready for dispatching (has execution proof but
+/// not yet dispatched)
+pub async fn get_oldest_batch_ready_for_dispatch(
+    pool: &PgPool,
+) -> Result<Option<(u64, Vec<u8>)>, sqlx::Error> {
+    let row = sqlx::query_as::<_, (i64, Vec<u8>)>(
+        r#"
+        SELECT batch_id, execution_proof_data
+        FROM batches
+        WHERE execution_proof_data IS NOT NULL
+          AND batch_id NOT IN (
+              SELECT DISTINCT batch_id
+              FROM batch_status
+              WHERE on_chain_posting_status IN ('send_successful', 'send_successful_finalized')
+          )
+        ORDER BY batch_id ASC
+        LIMIT 1
+        "#,
+    )
+    .fetch_optional(pool)
+    .await?;
+
+    Ok(row.map(|(id, data)| (id as u64, data)))
+}

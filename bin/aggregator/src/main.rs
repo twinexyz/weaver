@@ -24,6 +24,7 @@ async fn main() -> eyre::Result<()> {
     };
 
     let config = parse_config(&path);
+    config.validate()?;
     let telemetry_server = config.clone().telemetry.map(|cfg| cfg.metrics_server);
     logging::init_with_config(telemetry_server, "twine_aggregator.log")?;
 

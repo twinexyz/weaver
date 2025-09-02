@@ -21,6 +21,9 @@ members = [
   "crates/common",
   "crates/constants",
   "crates/db/batch",
+  "crates/eth",
+  "crates/eth/reader",
+  "crates/eth/writer",
   "crates/ethereum-consensus-prover",
   "crates/evm-contracts",
   "crates/executor",
@@ -55,13 +58,16 @@ alloy-contract = { version = "0.14.0", default-features = false }
 alloy-eips = { version = "0.14.0", default-features = false }
 alloy-genesis = { version = "0.14.0", default-features = false }
 alloy-primitives = { version = "1.0.0", default-features = false, features = ["map-foldhash", "serde"] }
+alloy-provider = { version = "0.14.0", features = ["reqwest", "ws"], default-features = false }
+alloy-pubsub = { version = "0.14.0", default-features = false }
 alloy-rpc-types = { version = "0.14.0", features = ["eth"], default-features = false }
+alloy-signer-local = { version = "0.14.0", default-features = false }
 alloy-sol-types = { version = "1.0.0", default-features = false, features = ["json"] }
 alloy-trie = { version = "0.8.1", default-features = false }
 
 bls12_381 = { git = "https://github.com/sp1-patches/bls12_381", branch = "n/release-latest", features = ["experimental"], package = "sp1_bls12_381" }
 
-async-trait = "0.1.88"
+async-trait = "0.1.89"
 clap = { version = "4.5.46", features = ["derive"] }
 env_logger = "0.11.7"
 ethereum_ssz = "0.9.0"
@@ -142,9 +148,13 @@ test-harness = { path = "crates/test-harness" }
 twine-aggregator-common = { path = "crates/aggregator/common" }
 twine-aggregator-database = { path = "crates/aggregator/database" }
 twine-aggregator-metrics = { path = "crates/aggregator/metrics" }
+twine-aggregator-types = { path = "crates/aggregator/types" }
 twine-common = { path = "crates/common" }
 twine-constants = { path = "crates/constants" }
 twine-db-batch = { path = "crates/db/batch" }
+twine-eth = { path = "crates/eth" }
+twine-eth-reader = { path = "crates/eth/reader" }
+twine-eth-writer = { path = "crates/eth/writer" }
 twine-ethereum-consensus-prover-lib = { path = "crates/ethereum-consensus-prover" }
 twine-evm-contracts = { path = "crates/evm-contracts" }
 twine-executor = { path = "crates/executor" }
