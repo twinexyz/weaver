@@ -9,13 +9,16 @@ use tracing_subscriber::filter::Directive;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::{fmt, Layer, Registry};
 
-const DEFAULT_ENV_FILTER_DIRECTIVES: [&str; 3] =
-    ["sqlx=off", "jsonrpsee-server=off", "hyper::proto::h1=off"];
+const DEFAULT_ENV_FILTER_DIRECTIVES: [&str; 4] = [
+    "sqlx=off",
+    "jsonrpsee-server=off",
+    "hyper::proto::h1=off",
+    "hyper_util=off",
+];
 
 fn build_filters() -> (EnvFilter, EnvFilter) {
     // stdout filter: default to "info", override with RUST_LOG
     let base_stdout = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
-
     let directives = std::env::var("RUST_LOG").unwrap_or_else(|_| "info".to_owned());
 
     let stdout_filter = DEFAULT_ENV_FILTER_DIRECTIVES
@@ -26,8 +29,16 @@ fn build_filters() -> (EnvFilter, EnvFilter) {
             env_filter.add_directive(dir)
         });
 
-    // file filter: always trace everything
-    let file_filter = EnvFilter::new("debug");
+    let base_file = EnvFilter::new("debug");
+    let file_directives = "debug".to_owned();
+
+    let file_filter = DEFAULT_ENV_FILTER_DIRECTIVES
+        .into_iter()
+        .chain(file_directives.split(',').filter(|d| !d.is_empty()))
+        .fold(base_file, |env_filter, directive| {
+            let dir: Directive = directive.parse().unwrap();
+            env_filter.add_directive(dir)
+        });
 
     (stdout_filter, file_filter)
 }
@@ -40,7 +51,11 @@ pub fn init_with_config(metrics_addr: Option<String>, log_file_name: &str) -> Re
     let registry = Registry::default();
 
     // Add formatting layer for stdout with info and above logs
-    let fmt_layer = fmt::layer().with_target(false).with_filter(stdout_filter);
+    let fmt_layer = fmt::layer()
+        .with_target(false)
+        .with_file(true)
+        .with_line_number(true)
+        .with_filter(stdout_filter);
     let registry = registry.with(fmt_layer);
 
     // Add file logging layer for debug and above levels
