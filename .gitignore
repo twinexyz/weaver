@@ -13,3 +13,6 @@ rocksdb/
 config.toml
 
 *.proof
+
+*.crt
+*.key
