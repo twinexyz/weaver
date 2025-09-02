@@ -56,8 +56,6 @@ impl TransformAttemptCreator for TwineBatchTransformAttemptCreator {
             max_attempts_per_request = max_attempts_from_config.as_integer().unwrap_or(10) as u64;
         }
 
-        println!("found config to be {max_attempts_per_request}");
-
         Self {
             max_attempts_per_request,
             attempts: HashMap::new(),
