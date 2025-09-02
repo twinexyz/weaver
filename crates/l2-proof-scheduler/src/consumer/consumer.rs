@@ -1,5 +1,6 @@
 //! consumes worker manager result
 
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -43,6 +44,8 @@ impl Consumer for TwineBatchTransformResultConsumer {
     ) -> Result<Self, Self::ConsumeError>
     where
         Self: Sized, {
+        let mut kafka_config = HashMap::new();
+
         let kafka_broker_url = init_config
             .lock()
             .await
@@ -61,11 +64,46 @@ impl Consumer for TwineBatchTransformResultConsumer {
             .get("consumer.kafka_groups".to_string())
             .await?;
 
+        let auto_offset_reset = init_config
+            .lock()
+            .await
+            .get("consumer.auto_offset_reset".to_string())
+            .await?;
+
+        let security_protocol = init_config
+            .lock()
+            .await
+            .get("consumer.security_protocol".to_string())
+            .await
+            .unwrap_or_default(); // optional
+
+        let ssl_ca_location = init_config
+            .lock()
+            .await
+            .get("consumer.ssl_ca_location".to_string())
+            .await
+            .unwrap_or_default();
+
+        let ssl_certificate_location = init_config
+            .lock()
+            .await
+            .get("consumer.ssl_certificate_location".to_string())
+            .await
+            .unwrap_or_default();
+
+        let ssl_key_location = init_config
+            .lock()
+            .await
+            .get("consumer.ssl_key_location".to_string())
+            .await
+            .unwrap_or_default();
+
         let kafka_broker_url: toml::Value = serde_json::from_slice(&kafka_broker_url)
             .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
         let kafka_broker_url = kafka_broker_url.as_str().ok_or_else(|| {
             TwineProofSchedulerError::Other("could not cast to string".to_string())
         })?;
+        kafka_config.insert("bootstrap.servers", kafka_broker_url.to_string());
 
         let kafka_topics: toml::Value = serde_json::from_slice(&kafka_topics)
             .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
@@ -79,11 +117,46 @@ impl Consumer for TwineBatchTransformResultConsumer {
             TwineProofSchedulerError::Other("could not cast to string".to_string())
         })?;
 
-        let kafka_client = KafkaProducer::new(
-            kafka_broker_url.to_string(),
-            kafka_topics.to_string(),
-            kafka_groups.to_string(),
-        )?;
+        kafka_config.insert("group.id", kafka_groups.to_string());
+
+        let auto_offset_reset: toml::Value = serde_json::from_slice(&auto_offset_reset)
+            .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
+        let auto_offset_reset = auto_offset_reset.as_str().ok_or_else(|| {
+            TwineProofSchedulerError::Other("could not cast to string".to_string())
+        })?;
+
+        kafka_config.insert("auto.offset.reset", auto_offset_reset.to_string());
+
+        _ = serde_json::from_slice::<toml::Value>(&security_protocol).map(|security_protocol| {
+            let security_protocol = security_protocol.clone();
+            security_protocol
+                .as_str()
+                .and_then(|v| kafka_config.insert("security.protocol", v.to_string()));
+        });
+
+        _ = serde_json::from_slice::<toml::Value>(&ssl_ca_location).map(|ssl_ca_location| {
+            ssl_ca_location
+                .as_str()
+                .and_then(|v| kafka_config.insert("ssl.ca.location", v.to_string()));
+        });
+
+        _ = serde_json::from_slice::<toml::Value>(&ssl_certificate_location).map(
+            |ssl_certificate_location| {
+                ssl_certificate_location
+                    .as_str()
+                    .and_then(|v| kafka_config.insert("ssl.certificate.location", v.to_string()));
+            },
+        );
+
+        _ = serde_json::from_slice::<toml::Value>(&ssl_key_location).map(|ssl_key_location| {
+            ssl_key_location
+                .as_str()
+                .and_then(|v| kafka_config.insert("ssl.key.location", v.to_string()));
+        });
+
+        println!("{kafka_config:#?}");
+
+        let kafka_client = KafkaProducer::new(kafka_config, kafka_topics.to_string())?;
 
         Ok(Self {
             consume_attempt_receiver: recv_channel,
