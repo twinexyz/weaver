@@ -1,6 +1,19 @@
 # Database configuration
 db_url: "postgresql://twine:twine@localhost:5432/twine"
 
+# Dispatcher configuration
+dispatcher:
+  # Whether to use Data Availability layer
+  use_da: false
+
+  # Settlement targets - list of chains to settle to
+  settle_targets:
+    - ethereum
+    # - solana  # Uncomment to enable Solana settlement
+
+  # Polling interval in milliseconds
+  poll_interval_ms: 10000
+
 # Ethereum chain configuration
 eth:
   # RPC endpoints for Ethereum
@@ -12,12 +25,15 @@ eth:
   finality_blocks: 12
 
 # Solana chain configuration
-sol:
-  # RPC endpoints for Solana
-  rpcs:
-    - "http://localhost:8899"
-  # Program ID of the twine chain program on Solana
-  twine_chain_program_id: "..."
+# sol:
+#   # RPC endpoints for Solana
+#   rpcs:
+#     - "http://localhost:8899"
+#   # Program ID of the twine chain program on Solana
+#   twine_chain_program_id: "..."
+
+# Celestia DA configuration
+# celestia: {}
 
 # Twine chain configuration
 twine:

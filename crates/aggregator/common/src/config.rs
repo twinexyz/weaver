@@ -187,3 +187,21 @@ impl AppCfg {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use super::*;
+
+    #[test]
+    fn test_config_parsing() {
+        let config_path = Path::new("bin/aggregator/res/config.yaml");
+        // Only run this test if the config file exists
+        if config_path.exists() {
+            let config = parse_config(config_path);
+            assert!(!config.db_url.is_empty());
+            // Add more assertions as needed
+        }
+    }
+}

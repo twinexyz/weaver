@@ -15,19 +15,13 @@ use sqlx::PgPool;
 use tokio::sync::RwLock;
 use tokio::task::JoinSet;
 use twine_aggregator_common::config::DispatcherConfig;
-use twine_aggregator_common::{DAChains, SettlementChains};
+use twine_aggregator_common::{DALayer, SettleBatch, TwineQuery};
 use twine_aggregator_database::operations::{
     get_last_processed_da_batch, get_last_processed_on_chain_batch,
 };
-use twine_aggregator_types::BatchData;
 
 pub mod da;
 pub mod settlement;
-
-#[async_trait::async_trait]
-pub trait TwineQuery {
-    async fn da_payload(&self, batch_id: u64) -> Result<Option<Vec<u8>>>;
-}
 
 /// A simple TwineQuery implementation that always returns None
 /// This is a placeholder - a real implementation would fetch data from Twine
@@ -39,23 +33,9 @@ impl TwineQuery for SimpleTwineQuery {
     async fn da_payload(&self, _batch_id: u64) -> Result<Option<Vec<u8>>> { Ok(None) }
 }
 
-#[async_trait::async_trait]
-pub trait DALayer {
-    fn chain_id(&self) -> DAChains;
-    /// Post the payload bytes fetched from Twine to the DA network.
-    async fn post(&self, payload: &[u8]) -> Result<()>;
-}
-
-#[async_trait::async_trait]
-pub trait Settlement {
-    fn chain_id(&self) -> SettlementChains;
-    async fn settle(&self, batch: &BatchData) -> Result<()>;
-    async fn is_finalized(&self, batch_id: u64) -> Result<bool>;
-}
-
 #[derive(Debug, Clone)]
 #[allow(missing_docs)]
-pub struct Dispatcher<DA: DALayer, Set: Settlement> {
+pub struct Dispatcher<DA: DALayer, Set: SettleBatch> {
     pool: PgPool,
     cfg: DispatcherConfig,
     da_client: Option<DA>,
@@ -66,7 +46,7 @@ pub struct Dispatcher<DA: DALayer, Set: Settlement> {
 impl<DA, Set> Dispatcher<DA, Set>
 where
     DA: DALayer + Clone + Send + Sync + 'static,
-    Set: Settlement + Clone + Send + Sync + 'static,
+    Set: SettleBatch + Clone + Send + Sync + 'static,
 {
     /// Simple constructor: does not hit the database; starts with empty
     /// checkpoints.
