@@ -2,6 +2,31 @@ use sqlx::types::chrono::{DateTime, Utc};
 use sqlx::types::JsonValue;
 use sqlx::PgPool;
 
+/// Migrate database tables
+pub async fn apply_migrations(pool: &PgPool) -> Result<(), sqlx::Error> {
+    // Run all migrations using the embedded migrations
+    sqlx::migrate!("./migrations").run(pool).await?;
+    Ok(())
+}
+
+/// Get last polled twine batch
+/// If `batches` table does not exist, return 1
+pub async fn get_last_polled_batch(pool: &PgPool) -> Result<u64, sqlx::Error> {
+    let row: Option<i64> = sqlx::query_scalar(
+        r#"
+            SELECT MAX(batch_id) AS last_batch_id
+            FROM batches;
+        "#,
+    )
+    .fetch_optional(pool)
+    .await?;
+
+    match row {
+        Some(id) => Ok(id as u64),
+        None => Ok(1),
+    }
+}
+
 /// Insert a new batch with its hash.
 /// If the batch already exists, this will do nothing.
 pub async fn insert_batch(

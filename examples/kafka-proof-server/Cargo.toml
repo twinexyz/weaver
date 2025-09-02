@@ -1,5 +1,5 @@
 [package]
-name = "twine-kafka"
+name = "kafka-proof-server"
 version.workspace = true
 edition.workspace = true
 exclude.workspace = true
@@ -8,9 +8,8 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-twine-kafka-common.workspace = true
-twine-kafka-consumer.workspace = true
-twine-kafka-producer.workspace = true
-
-[lints]
-workspace = true
+eyre.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+twine-kafka.workspace = true
+twine-types.workspace = true

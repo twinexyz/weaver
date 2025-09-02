@@ -5025,6 +5025,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "kafka-proof-server"
+version = "0.1.0"
+dependencies = [
+ "eyre",
+ "serde_json",
+ "tokio",
+ "twine-kafka",
+ "twine-types",
+]
+
+[[package]]
 name = "keccak"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -12078,6 +12089,11 @@ dependencies = [
 [[package]]
 name = "twine-kafka"
 version = "0.1.0"
+dependencies = [
+ "twine-kafka-common",
+ "twine-kafka-consumer",
+ "twine-kafka-producer",
+]
 
 [[package]]
 name = "twine-kafka-common"
