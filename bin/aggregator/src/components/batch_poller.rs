@@ -5,6 +5,7 @@ use std::time::Duration;
 use reth_tracing::tracing::{error, info};
 use twine_aggregator_common::config::AppCfg;
 use twine_aggregator_database::operations::{get_last_polled_batch, insert_batch};
+use twine_aggregator_metrics::record_twine_batch_observed;
 use twine_l2_batch_poller::poll_batches_async;
 
 /// Start the L2 batch poller and return a handle for graceful shutdown
@@ -23,6 +24,9 @@ pub(crate) async fn start_batch_poller(
         let _l2_poller = poll_batches_async(&twine_rpc, start_height, poll_interval, move |bm| {
             let db_pool = db_pool_clone.clone();
             async move {
+                // Record metrics for the observed batch
+                record_twine_batch_observed("twine", bm.batch_number);
+
                 if let Some(hash) = bm.batch_hash {
                     match insert_batch(&db_pool, bm.batch_number, hash.0).await {
                         Ok(()) => {

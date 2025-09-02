@@ -1,3 +1,8 @@
+//! Serialization and deserialization traits for Kafka messages.
+//!
+//! Provides generic traits for serializing and deserializing Kafka messages,
+//! along with a JSON implementation.
+
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
