@@ -8,7 +8,9 @@ use serde::{Deserialize, Serialize};
 
 pub mod config;
 
+/// All chains to settle to
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[allow(missing_docs)]
 pub enum SettlementChains {
     Ethereum,
     Solana,
@@ -24,6 +26,7 @@ impl fmt::Display for SettlementChains {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(missing_docs)]
 pub enum DAChains {
     Celestia,
 }
@@ -34,4 +37,31 @@ impl fmt::Display for DAChains {
             DAChains::Celestia => write!(f, "celestia"),
         }
     }
+}
+
+/// A trait for querying data from Twine
+#[async_trait::async_trait]
+pub trait TwineQuery {
+    /// Fetch the data needed to post to celestia
+    async fn da_payload(&self, batch_id: u64) -> eyre::Result<Option<Vec<u8>>>;
+}
+
+/// A trait for Data Availability layer implementations
+#[async_trait::async_trait]
+pub trait DALayer {
+    /// Get chain id of the da chain
+    fn chain_id(&self) -> DAChains;
+    /// Post the payload bytes fetched from Twine to the DA network.
+    async fn post(&self, payload: &[u8]) -> eyre::Result<()>;
+}
+
+/// A trait for Settlement chain implementations
+#[async_trait::async_trait]
+pub trait SettleBatch {
+    /// Chain identifier for settlement chains
+    fn chain_id(&self) -> SettlementChains;
+    /// Commit and Finalize Transactions
+    async fn settle(&self, batch: &twine_aggregator_types::BatchData) -> eyre::Result<()>;
+    /// Check if a batch is finalized
+    async fn is_finalized(&self, batch_id: u64) -> eyre::Result<bool>;
 }

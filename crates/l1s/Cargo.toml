@@ -1,5 +1,5 @@
 [package]
-name = "twine-aggregator-common"
+name = "twine-l1"
 version.workspace = true
 edition.workspace = true
 exclude.workspace = true
@@ -8,11 +8,7 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-async-trait.workspace = true
-eyre.workspace = true
-serde.workspace = true
-serde_yaml.workspace = true
-twine-aggregator-types.workspace = true
+thiserror.workspace = true
 
 [lints]
 workspace = true

@@ -1,5 +1,5 @@
 [package]
-name = "twine-eth-writer"
+name = "twine-l1-eth-writer"
 version.workspace = true
 edition.workspace = true
 exclude.workspace = true

@@ -1,14 +1,15 @@
+//! On Chain settlement pipeline
+
 use std::time::Duration;
 
 use eyre::Result;
 use reth_tracing::tracing::{info, warn};
 use sqlx::PgPool;
 use tokio::time;
+use twine_aggregator_common::SettleBatch;
 use twine_aggregator_database::types::OnChainStatus;
 use twine_aggregator_database::{operations, transactions};
 use twine_aggregator_types::BatchData;
-
-use crate::Settlement;
 
 /// Helper function to update on-chain progress in a transaction
 async fn update_on_chain_progress(
@@ -39,7 +40,7 @@ async fn update_on_chain_progress(
 /// Settlement pipeline function that can be spawned as a task
 pub async fn run_settlement_pipeline<S>(pool: PgPool, client: S, poll_ms: u64) -> Result<()>
 where
-    S: Settlement + Send + Sync + 'static, {
+    S: SettleBatch + Send + Sync + 'static, {
     let chain = client.chain_id().to_string();
     let mut tick = time::interval(Duration::from_millis(poll_ms));
 

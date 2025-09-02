@@ -1,10 +1,11 @@
+//! DA Posting pipeline
+
 use eyre::Result;
 use reth_tracing::tracing::{info, warn};
 use sqlx::PgPool;
 use tokio::time::{self, Duration};
+use twine_aggregator_common::{DALayer, TwineQuery};
 use twine_aggregator_database::operations;
-
-use crate::{DALayer, TwineQuery};
 
 /// DA pipeline function that can be spawned as a task
 pub async fn run_da_pipeline<TQ, DA>(pool: PgPool, twine: TQ, da: DA, poll_ms: u64) -> Result<()>
