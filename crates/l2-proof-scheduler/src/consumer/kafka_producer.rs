@@ -1,5 +1,6 @@
 //! Kafka producer. Puts the worker results on the kafka queue for the
 //! aggregator to consume.
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::time::Duration;
 
@@ -14,8 +15,6 @@ use crate::error::TwineProofSchedulerError;
 pub struct KafkaProducer {
     /// kafka message topic
     topics: String,
-    /// kafka message group
-    _groups: String,
     /// producer
     inner: InnerProducer,
 }
@@ -35,20 +34,18 @@ impl Debug for InnerProducer {
 impl KafkaProducer {
     /// Creates new kafka producer instance
     pub fn new(
-        url: String,
+        kafka_config: HashMap<&str, String>,
         topics: String,
-        _groups: String,
     ) -> Result<Self, TwineProofSchedulerError> {
-        let producer: FutureProducer = ClientConfig::new()
-            .set("bootstrap.servers", url)
-            .set("group.id", "my-group-v2")
-            .set("auto.offset.reset", "earliest")
-            .create()
-            .expect("producer");
+        let mut client_config = ClientConfig::new();
+        for (key, value) in kafka_config {
+            client_config.set(key, value);
+        }
+
+        let producer: FutureProducer = client_config.create().expect("Error while making producer");
 
         Ok(Self {
             topics,
-            _groups,
             inner: InnerProducer { producer },
         })
     }
