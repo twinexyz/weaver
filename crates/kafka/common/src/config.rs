@@ -1,3 +1,7 @@
+//! Configuration structures for Kafka clients.
+//!
+//! Provides common configuration types used by both producers and consumers.
+
 use std::collections::HashMap;
 
 /// Common configuration for Kafka producers and consumers.

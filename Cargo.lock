@@ -11902,6 +11902,7 @@ dependencies = [
  "tokio",
  "twine-aggregator-common",
  "twine-aggregator-database",
+ "twine-aggregator-metrics",
  "twine-common",
  "twine-kafka-common",
  "twine-kafka-consumer",

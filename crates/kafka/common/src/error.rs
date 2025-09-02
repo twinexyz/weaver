@@ -1,3 +1,7 @@
+//! Error types for Kafka operations.
+//!
+//! Defines the common error type used throughout the Kafka crates.
+
 use thiserror::Error;
 
 /// The error type for this crate.

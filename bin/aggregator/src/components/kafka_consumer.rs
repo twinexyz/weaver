@@ -7,6 +7,7 @@ use reth_tracing::tracing::{error, info, trace};
 use sqlx::PgPool;
 use twine_aggregator_common::config::AppCfg;
 use twine_aggregator_database::operations::{insert_batch, insert_proof};
+use twine_aggregator_metrics::proof_received_from_kafka;
 use twine_kafka_common::config::KafkaCommonConfig;
 use twine_kafka_common::serde::JsonSerde;
 use twine_kafka_consumer::KafkaConsumer;
@@ -165,6 +166,9 @@ pub(crate) async fn start_kafka_consumer(
                     // Handle the ZkProof record here
                     let proof = record.value;
                     info!("Received ZkProof for batch: {}", proof.batch_number);
+
+                    // Record metrics for the received proof
+                    proof_received_from_kafka("twine", proof.batch_number);
 
                     // Convert proof data to bytes (this is a simplification)
                     let proof_data = serde_json::to_vec(&proof.proof).unwrap_or_default();
