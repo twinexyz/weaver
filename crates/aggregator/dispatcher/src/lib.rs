@@ -40,7 +40,6 @@ pub struct Dispatcher<DA: DALayer, Set: SettleBatch> {
     cfg: DispatcherConfig,
     da_client: Option<DA>,
     settlement_clients: Vec<Set>,
-    checkpoints: Arc<RwLock<HashMap<String, u64>>>,
 }
 
 impl<DA, Set> Dispatcher<DA, Set>
@@ -61,38 +60,7 @@ where
             cfg,
             da_client,
             settlement_clients,
-            checkpoints: Arc::new(RwLock::new(HashMap::new())),
         }
-    }
-
-    /// Preferred constructor: preloads checkpoints from DB based on config.
-    pub async fn with_checkpoints(
-        pool: PgPool,
-        cfg: DispatcherConfig,
-        da_client: Option<DA>,
-        settlement_clients: Vec<Set>,
-    ) -> Result<Self> {
-        let mut checkpoints = HashMap::new();
-
-        if cfg.use_da {
-            if let Some(ref da) = da_client {
-                let da_cp = get_last_processed_da_batch(&pool, &da.chain_id().to_string()).await?;
-                checkpoints.insert(da.chain_id().to_string(), da_cp);
-            }
-        }
-
-        for chain in &cfg.settle_targets {
-            let cp = get_last_processed_on_chain_batch(&pool, &chain.to_string()).await?;
-            checkpoints.insert(chain.to_string(), cp);
-        }
-
-        Ok(Self {
-            pool,
-            cfg,
-            da_client,
-            settlement_clients,
-            checkpoints: Arc::new(RwLock::new(checkpoints)),
-        })
     }
 
     /// Main dispatcher runner
@@ -104,7 +72,6 @@ where
             if let Some(da) = self.da_client.clone() {
                 let pool = self.pool.clone();
                 let poll_interval_ms = self.cfg.poll_interval_ms;
-                let _checkpoints = self.checkpoints.clone();
                 let twine_query = SimpleTwineQuery;
                 tasks.spawn(async move {
                     if let Err(e) =
@@ -122,7 +89,6 @@ where
             if self.cfg.settle_targets.contains(&client.chain_id()) {
                 let pool = self.pool.clone();
                 let poll_interval_ms = self.cfg.poll_interval_ms;
-                let _checkpoints = self.checkpoints.clone();
                 tasks.spawn(async move {
                     if let Err(e) =
                         settlement::run_settlement_pipeline(pool, client, poll_interval_ms).await

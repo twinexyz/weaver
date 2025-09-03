@@ -1,0 +1,21 @@
+[package]
+name = "twine-aggregator-settlement"
+version.workspace = true
+edition.workspace = true
+exclude.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+alloy-primitives.workspace = true
+async-trait.workspace = true
+eyre.workspace = true
+twine-aggregator-common = { path = "../common" }
+twine-aggregator-types = { path = "../types" }
+twine-evm-contracts.workspace = true
+twine-l1-eth.workspace = true
+twine-l1-solana.workspace = true
+
+[lints]
+workspace = true

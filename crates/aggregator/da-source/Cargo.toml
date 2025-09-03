@@ -1,0 +1,20 @@
+[package]
+name = "twine-aggregator-da-source"
+version.workspace = true
+edition.workspace = true
+exclude.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+alloy-rlp.workspace = true
+async-trait.workspace = true
+eyre.workspace = true
+twine-aggregator-common = { path = "../common" }
+twine-common.workspace = true
+twine-l1-eth.workspace = true
+twine-rpc.workspace = true
+
+[lints]
+workspace = true

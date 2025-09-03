@@ -12,9 +12,11 @@ members = [
   "bin/devtest",
   "bin/node",
   "crates/aggregator/common",
+  "crates/aggregator/da-source",
   "crates/aggregator/database",
   "crates/aggregator/dispatcher",
   "crates/aggregator/metrics",
+  "crates/aggregator/settlement",
   "crates/aggregator/types",
   "crates/common",
   "crates/constants",
@@ -59,6 +61,7 @@ alloy-genesis = { version = "0.14.0", default-features = false }
 alloy-primitives = { version = "1.0.0", default-features = false, features = ["map-foldhash", "serde"] }
 alloy-provider = { version = "0.14.0", features = ["reqwest", "ws"], default-features = false }
 alloy-pubsub = { version = "0.14.0", default-features = false }
+alloy-rlp = { version = "0.3.10", default-features = false, features = ["core-net"] }
 alloy-rpc-types = { version = "0.14.0", features = ["eth"], default-features = false }
 alloy-signer-local = { version = "0.14.0", default-features = false }
 alloy-sol-types = { version = "1.0.0", default-features = false, features = ["json"] }
