@@ -58,6 +58,17 @@ pub trait DALayer: Send + Sync {
     async fn post(&self, payload: &[u8]) -> eyre::Result<()>;
 }
 
+/// TransactionStatus
+#[derive(Debug, Clone, Default)]
+pub struct TransactionStatus {
+    /// status
+    pub status: bool,
+    /// transaction hash
+    pub txn_hash: String,
+    /// error message
+    pub message: Option<String>,
+}
+
 /// A trait for Settlement chain implementations
 #[async_trait::async_trait]
 pub trait SettleBatch: Send + Sync {
@@ -66,7 +77,7 @@ pub trait SettleBatch: Send + Sync {
     /// Chain identifier for settlement chains
     fn chain_name(&self) -> SettlementChains;
     /// Commit and Finalize Transactions
-    async fn settle(&self, batch: &CommitAndFinalizeBatch) -> eyre::Result<()>;
+    async fn settle(&self, batch: &CommitAndFinalizeBatch) -> eyre::Result<TransactionStatus>;
     /// Check if a batch is finalized
     async fn is_finalized(&self, batch_id: u64) -> eyre::Result<bool>;
 }

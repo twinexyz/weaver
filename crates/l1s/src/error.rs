@@ -20,8 +20,8 @@ pub enum TransactionError {
     #[error("failed to get transaction receipt: {0}")]
     ReceiptError(String),
 
-    #[error("transaction failed on-chain: {0}")]
-    OnChainFailure(String),
+    #[error("transaction failed on-chain signature: {0} error: {1}")]
+    OnChainFailure(String, String),
 
     #[error("transaction failed after {0} retries")]
     MaxRetriesExceeded(i32),

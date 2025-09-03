@@ -10,9 +10,13 @@ rust-version.workspace = true
 [dependencies]
 alloy-primitives.workspace = true
 async-trait.workspace = true
+borsh.workspace = true
 eyre.workspace = true
-twine-aggregator-common = { path = "../common" }
+reth-tracing.workspace = true
+solana-sdk.workspace = true
+twine-aggregator-common.workspace = true
 twine-evm-contracts.workspace = true
+twine-l1.workspace = true
 twine-l1-eth.workspace = true
 twine-l1-solana.workspace = true
 twine-types.workspace = true
