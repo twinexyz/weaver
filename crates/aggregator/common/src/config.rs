@@ -36,6 +36,9 @@ pub struct EthCfg {
     /// List of Ethereum RPC endpoints to connect to.
     pub rpcs: Vec<String>,
 
+    /// Chain id
+    pub chain_id: u64,
+
     /// Address of the twine chain contract on Ethereum.
     pub twine_chain_contract: String,
 
@@ -49,6 +52,9 @@ pub struct SolCfg {
     /// List of Solana RPC endpoints to connect to.
     pub rpcs: Vec<String>,
 
+    /// Chain id
+    pub chain_id: u64,
+
     /// Program ID of the twine chain program on Solana.
     pub twine_chain_program_id: String,
 }
@@ -61,6 +67,9 @@ pub struct CelestiaCfg {}
 pub struct TwineCfg {
     /// List of twine RPC endpoints to connect to.
     pub rpcs: Vec<String>,
+
+    /// Chain id
+    pub chain_id: u64,
 
     /// Interval (in milliseconds) between polling for new batches.
     pub poll_interval: u64,

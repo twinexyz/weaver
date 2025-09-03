@@ -8,7 +8,7 @@ dispatcher:
 
   # Settlement targets - list of chains to settle to
   settle_targets:
-    - ethereum
+    - Ethereum
     # - solana  # Uncomment to enable Solana settlement
 
   # Polling interval in milliseconds
@@ -19,6 +19,8 @@ eth:
   # RPC endpoints for Ethereum
   rpcs:
     - "http://localhost:8545"
+  # Chain id of ethereum chain
+  chain_id: 11155111
   # Address of the twine chain contract on Ethereum
   twine_chain_contract: "0x..."
   # Number of blocks to wait for finality on Ethereum
@@ -29,6 +31,8 @@ eth:
 #   # RPC endpoints for Solana
 #   rpcs:
 #     - "http://localhost:8899"
+#   # Chain id of solana chain
+#   chain_id: 14523
 #   # Program ID of the twine chain program on Solana
 #   twine_chain_program_id: "..."
 
@@ -40,6 +44,9 @@ twine:
   # RPC endpoints for the Twine chain
   rpcs:
     - "http://127.0.0.1:8545"
+
+  # Chain id of twine chain
+  chain_id: 14523
 
   # Starting batch number to process
   start_batch: 1

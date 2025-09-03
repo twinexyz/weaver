@@ -17,21 +17,29 @@ pub struct EthereumL1 {
 
 impl EthereumL1 {
     /// Ethereum l1 chain
-    pub fn new(eth_client: EthClient, twine_chain_address: &str) -> EthereumL1 {
+    pub async fn new(
+        rpc_url: &str,
+        private_key: &str,
+        chain_id: u64,
+        twine_chain_address: &str,
+    ) -> eyre::Result<EthereumL1> {
+        let client = EthClient::new(rpc_url, private_key, chain_id).await?;
         let twine_chain_contract = Address::from_str(twine_chain_address).expect("Invalid address");
-        EthereumL1 {
-            inner: eth_client,
+        Ok(EthereumL1 {
+            inner: client,
             twine_chain_contract,
-        }
+        })
     }
 }
 
 #[async_trait::async_trait]
 impl SettleBatch for EthereumL1 {
-    fn chain_id(&self) -> SettlementChains { SettlementChains::Ethereum }
+    fn chain_id(&self) -> u64 { self.inner.chain_id }
+
+    fn chain_name(&self) -> SettlementChains { SettlementChains::Ethereum }
 
     async fn settle(&self, batch: &BatchData) -> eyre::Result<()> {
-        let provider = TwineChain::new(self.twine_chain_contract, &self.inner.writer.provider);
+        let _provider = TwineChain::new(self.twine_chain_contract, &self.inner.writer.provider);
         Ok(())
     }
 

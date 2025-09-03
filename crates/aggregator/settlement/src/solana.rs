@@ -31,9 +31,11 @@ impl SolanaL1 {
 
 #[async_trait::async_trait]
 impl SettleBatch for SolanaL1 {
-    fn chain_id(&self) -> SettlementChains { SettlementChains::Solana }
+    fn chain_id(&self) -> u64 { self.inner.chain_id }
 
-    async fn settle(&self, batch: &BatchData) -> eyre::Result<()> { Ok(()) }
+    fn chain_name(&self) -> SettlementChains { SettlementChains::Solana }
+
+    async fn settle(&self, _batch: &BatchData) -> eyre::Result<()> { Ok(()) }
 
     async fn is_finalized(&self, batch_id: u64) -> eyre::Result<bool> {
         let twine_chain_storage = self.inner.get_twine_chain_storage().await?;
