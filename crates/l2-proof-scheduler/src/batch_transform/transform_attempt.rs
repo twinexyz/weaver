@@ -73,18 +73,22 @@ pub struct TwineBatchTransformReturnType(pub ZKProofBundle);
 /// represents the zk proof structure that is returned by the worker instances
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ZKProofBundle {
-    /// proof type SP1, RISC0 or GKR
-    #[serde(rename = "type")]
-    pub proof_type: SupportedProvers,
     /// proof kind
     #[serde(rename = "kind")]
     pub proof_kind: ProofKind,
-    /// twine batch number this proof is associated to
-    pub batch_number: u64,
     /// prover identity
     pub identifier: String,
     /// proof structure
-    pub proof: serde_json::Value,
+    pub proof_data: ProofData,
+}
+
+/// Proof data for different provers
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ProofData {
+    /// SP1 proof
+    SP1(SP1Proof),
+    /// RISC0 proof
+    RISC0,
 }
 
 /// proof types
@@ -113,23 +117,23 @@ impl ToString for SupportedProvers {
 }
 
 /// Proof kind
-#[derive(Debug, Clone, Serialize, Deserialize, clap::ValueEnum)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ProofKind {
     /// Twine execution proof
-    ExecutionProof,
+    ExecutionProof(u64),
     /// Twine transaction proof
-    TransactionProof,
+    SolanaConsensusProof,
 }
 
 impl Default for ProofKind {
-    fn default() -> Self { Self::ExecutionProof }
+    fn default() -> Self { Self::ExecutionProof(0) }
 }
 
 impl ToString for ProofKind {
     fn to_string(&self) -> String {
         match self {
-            Self::ExecutionProof => String::from("execution_proof"),
-            Self::TransactionProof => String::from("transaction_proof"),
+            Self::ExecutionProof(_) => String::from("execution_proof"),
+            Self::SolanaConsensusProof => String::from("solana_consensus_proof"),
         }
     }
 }

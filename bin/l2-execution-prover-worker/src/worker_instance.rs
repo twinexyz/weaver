@@ -2,11 +2,10 @@
 use std::{env, fs};
 
 use orchestrator_rs::worker::worker_manager::WorkerManagerResult;
-use serde_json::Value;
 use tokio::process::Command;
 use tokio::sync::mpsc::{Receiver, Sender};
 use twine_l2_proof_scheduler::batch_transform::transform_attempt::{
-    ProofKind, SupportedProvers, TwineBatchTransformAttempt, TwineBatchTransformReturnCtx,
+    ProofData, ProofKind, SP1Proof, TwineBatchTransformAttempt, TwineBatchTransformReturnCtx,
     TwineBatchTransformReturnType, ZKProofBundle,
 };
 use twine_l2_proof_scheduler::batch_transform::transform_request::TwineBatchTransformInput;
@@ -30,10 +29,6 @@ pub struct WorkerInstance {
     prove: bool,
     /// proof directory path
     proof_dir: String,
-    /// proof kind
-    proof_kind: ProofKind,
-    /// prover type
-    prover_type: SupportedProvers,
     /// sp1 port
     sp1_port: String,
     /// runtime env
@@ -50,8 +45,6 @@ impl WorkerInstance {
         result_sender: Sender<ConnectionMessage>,
         prove: bool,
         proof_dir: String,
-        proof_kind: ProofKind,
-        prover_type: SupportedProvers,
         sp1_port: String,
         runtime_env: Option<String>,
         network: Option<String>,
@@ -62,8 +55,6 @@ impl WorkerInstance {
             result_sender,
             prove,
             proof_dir,
-            proof_kind,
-            prover_type,
             sp1_port,
             runtime_env,
             network,
@@ -190,11 +181,9 @@ impl WorkerInstance {
                 ))?;
 
                 Ok(ZKProofBundle {
-                    batch_number: call_value.batch_number,
-                    proof_type: self.prover_type.clone(),
-                    proof_kind: self.proof_kind.clone(),
+                    proof_kind: ProofKind::ExecutionProof(call_value.batch_number),
                     identifier: String::new(),
-                    proof,
+                    proof_data: ProofData::SP1(proof),
                 })
             }
             Err(e) => {
@@ -206,7 +195,7 @@ impl WorkerInstance {
         }
     }
 
-    fn process_proof_result(&self, proof_file: String) -> Result<Value, ProverError> {
+    fn process_proof_result(&self, proof_file: String) -> Result<SP1Proof, ProverError> {
         let proof_file =
             fs::File::open(proof_file).map_err(|e| ProverError::Other(e.to_string()))?;
         return serde_json::from_reader(proof_file).map_err(|e| ProverError::Other(e.to_string()));
