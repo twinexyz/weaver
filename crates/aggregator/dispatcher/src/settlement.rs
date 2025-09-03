@@ -45,6 +45,7 @@ pub async fn run_settlement_pipeline(
 ) -> Result<()> {
     let chain = client.chain_id().to_string();
     let mut tick = time::interval(Duration::from_millis(poll_ms));
+    info!("Run settlement pipeline with tick of {:?}", tick.period());
 
     loop {
         tick.tick().await;
@@ -52,8 +53,10 @@ pub async fn run_settlement_pipeline(
         // Get the current checkpoint from the database on each iteration
         let cp = operations::get_last_processed_on_chain_batch(&pool, &chain).await?;
         let next = cp.saturating_add(1);
+        info!("Processing batch: {} for {}", next, chain);
 
         if client.is_finalized(next).await? {
+            info!("Batch finalized already");
             update_on_chain_progress(
                 &pool,
                 next,
@@ -64,7 +67,14 @@ pub async fn run_settlement_pipeline(
                 None,
             )
             .await?;
-            continue;
+            tick.tick().await;
+        }
+
+        if let Ok(exists) = operations::execution_proof_exists(&pool, next).await {
+            if !exists {
+                info!("Execution proof for batch {} does not exist", next);
+                tick.tick().await;
+            }
         }
 
         match operations::get_settlement_batch_by_id(&pool, next).await? {
@@ -107,11 +117,13 @@ pub async fn run_settlement_pipeline(
                     Err(e) => {
                         // Other error occurred
                         warn!(batch = next, "Settlement failed: {e:?}");
-                        continue;
+                        tick.tick().await;
                     }
                 }
             }
-            None => { /* producer hasn't inserted BatchData yet */ }
+            None => {
+                info!("Getting settlement batch by id: proof missing");
+            }
         }
     }
 }

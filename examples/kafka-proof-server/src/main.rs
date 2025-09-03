@@ -16,7 +16,7 @@ async fn main() -> eyre::Result<()> {
 
     let producer = KafkaProducer::new(&prod_cfg).unwrap();
 
-    for i in 1400..1500 {
+    for i in 1..=42 {
         let proof = ZkProof {
             identifier: "twine-prover-one".to_string(),
             proof_kind: ProofKind::ExecutionProof(i),

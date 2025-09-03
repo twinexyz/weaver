@@ -120,6 +120,7 @@ pub(crate) async fn start_kafka_consumer(
     config: &AppCfg,
     db_pool: PgPool,
 ) -> eyre::Result<tokio::task::JoinHandle<()>> {
+    info!("Starting kafka consumer");
     let topics = config.kafka.topics.as_slice();
     let kafka_consumer_config = &config.kafka.consumer;
 
@@ -173,10 +174,20 @@ pub(crate) async fn start_kafka_consumer(
                         twine_types::proofs::ProofData::SP1(sp1_proof) => sp1_proof.into(),
                     };
 
-                    if let Err(e) =
-                        process_proof(&db_pool, &twine_rpc, batch_number, &common_proof_data).await
-                    {
-                        error!("Error processing proof: {:?}", e);
+                    loop {
+                        match process_proof(&db_pool, &twine_rpc, batch_number, &common_proof_data)
+                            .await
+                        {
+                            Ok(_) => {
+                                // Processing was successful, so we can exit the loop and commit
+                                // message
+                                break;
+                            }
+                            Err(e) => {
+                                error!("Error processing proof: {:?}", e);
+                                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                            }
+                        }
                     }
 
                     if let Err(e) = consumer.commit_message(&msg, CommitMode::Async) {

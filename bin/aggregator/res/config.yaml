@@ -17,20 +17,20 @@ dispatcher:
 # Ethereum chain configuration
 eth:
   # RPC endpoints for Ethereum
-  rpcs:
-    - "http://localhost:8545"
+  rpc: "https://1rpc.io/sepolia"
   # Chain id of ethereum chain
   chain_id: 11155111
   # Address of the twine chain contract on Ethereum
-  twine_chain_contract: "0x..."
+  twine_chain_contract: "0x088E11B82b35db8EE56c5700C8ec8abBa0b189aa"
   # Number of blocks to wait for finality on Ethereum
   finality_blocks: 12
+  # Private Key
+  eth_private_key:  0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 
 # Solana chain configuration
 # sol:
 #   # RPC endpoints for Solana
-#   rpcs:
-#     - "http://localhost:8899"
+#   rpc: "http://localhost:8899"
 #   # Chain id of solana chain
 #   chain_id: 14523
 #   # Program ID of the twine chain program on Solana
@@ -42,8 +42,7 @@ eth:
 # Twine chain configuration
 twine:
   # RPC endpoints for the Twine chain
-  rpcs:
-    - "http://127.0.0.1:8545"
+  rpc: "http://127.0.0.1:8545"
 
   # Chain id of twine chain
   chain_id: 14523
@@ -52,7 +51,7 @@ twine:
   start_batch: 1
 
   # Polling interval in seconds
-  poll_interval: 10
+  poll_interval: 20
 
 # Kafka configuration
 kafka:

@@ -22,7 +22,7 @@ pub async fn get_last_polled_batch(pool: &PgPool) -> Result<u64, sqlx::Error> {
             FROM batches;
         "#,
     )
-    .fetch_optional(pool)
+    .fetch_one(pool)
     .await?;
 
     match row {
@@ -315,6 +315,25 @@ pub async fn get_batch_by_id(
         }
         None => Ok(None),
     }
+}
+
+/// Check if execution proof exists for a batch
+pub async fn execution_proof_exists(pool: &PgPool, batch_id: u64) -> eyre::Result<bool> {
+    let exists: bool = sqlx::query_scalar(
+        r#"
+        SELECT EXISTS(
+          SELECT 1
+          FROM batches
+          WHERE batch_id = $1
+            AND execution_proof_data IS NOT NULL
+        )
+        "#,
+    )
+    .bind(batch_id as i64)
+    .fetch_one(pool)
+    .await?;
+
+    Ok(exists)
 }
 
 /// Get batch data by batch ID and return as CommitAndFinalizeBatch

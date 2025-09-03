@@ -3,7 +3,7 @@
 use std::str::FromStr;
 
 use alloy_primitives::{Address, Bytes};
-use reth_tracing::tracing;
+use reth_tracing::tracing::{self, info};
 use twine_aggregator_common::{SettleBatch, SettlementChains, TransactionStatus};
 use twine_evm_contracts::twine_chain::TwineChain;
 use twine_l1_eth::EthClient;
@@ -48,6 +48,7 @@ impl SettleBatch for EthereumL1 {
         let txn_request = twine_chain_contract
             .commitAndFinalizeBatch(batch_number, public_values, proofs)
             .into_transaction_request();
+        info!("Transaction request: {:?}", txn_request);
         let tx_receipt = self
             .inner
             .writer

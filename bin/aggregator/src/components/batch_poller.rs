@@ -13,9 +13,11 @@ pub(crate) async fn start_batch_poller(
     config: &AppCfg,
     db_pool: sqlx::PgPool,
 ) -> eyre::Result<tokio::task::JoinHandle<()>> {
+    info!("Starting batch poller");
     let twine_rpc = config.twine.rpc.clone();
     let start_from = config.twine.start_batch;
     let last_polled = get_last_polled_batch(&db_pool).await?;
+    info!("Starting at batch {}", last_polled);
     let start_height = start_from.max(last_polled.saturating_sub(1));
     let poll_interval = Duration::from_secs(config.twine.poll_interval);
 
