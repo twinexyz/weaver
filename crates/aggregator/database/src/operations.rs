@@ -1,6 +1,10 @@
+use eyre::eyre;
+use serde_json;
 use sqlx::types::chrono::{DateTime, Utc};
 use sqlx::types::JsonValue;
 use sqlx::PgPool;
+use twine_types::proofs::CommonProofData;
+use twine_types::settle::CommitAndFinalizeBatch;
 
 /// Migrate database tables
 pub async fn apply_migrations(pool: &PgPool) -> Result<(), sqlx::Error> {
@@ -55,7 +59,7 @@ pub async fn insert_batch(
 pub async fn insert_proof(
     pool: &PgPool,
     batch_id: u64,
-    proof_data: Vec<u8>,
+    proof_data: &Vec<u8>,
     proof_gen_time: Option<DateTime<Utc>>,
 ) -> Result<u64, sqlx::Error> {
     let res = sqlx::query(
@@ -330,6 +334,46 @@ pub async fn get_batch_by_id(
             let mut hash = [0u8; 32];
             hash.copy_from_slice(&hash_vec);
             Ok(Some((id as u64, hash, proof_data)))
+        }
+        None => Ok(None),
+    }
+}
+
+/// Get batch data by batch ID and return as CommitAndFinalizeBatch
+pub async fn get_settlement_batch_by_id(
+    pool: &PgPool,
+    batch_id: u64,
+) -> eyre::Result<Option<CommitAndFinalizeBatch>> {
+    let row = sqlx::query_as::<_, (i64, Vec<u8>, Vec<u8>)>(
+        r#"
+        SELECT batch_id, batch_hash, execution_proof_data
+        FROM batches
+        WHERE batch_id = $1
+        "#,
+    )
+    .bind(batch_id as i64)
+    .fetch_optional(pool)
+    .await?;
+
+    match row {
+        Some((id, hash_vec, proof_data)) => {
+            if hash_vec.len() != 32 {
+                return Err(eyre!("Invalid batch hash length"));
+            }
+
+            let mut hash = [0u8; 32];
+            hash.copy_from_slice(&hash_vec);
+
+            let common_proof_data: CommonProofData = serde_json::from_slice(&proof_data)?;
+
+            let settlement_batch = CommitAndFinalizeBatch {
+                batch_number: id as u64,
+                batch_hash: hash,
+                public_value: common_proof_data.public_value,
+                proofs: common_proof_data.proof,
+            };
+
+            Ok(Some(settlement_batch))
         }
         None => Ok(None),
     }

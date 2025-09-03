@@ -10,7 +10,7 @@ rust-version.workspace = true
 [dependencies]
 twine-aggregator-common.workspace = true
 twine-aggregator-database.workspace = true
-twine-aggregator-types.workspace = true
+twine-types.workspace = true
 
 async-trait.workspace = true
 eyre.workspace = true

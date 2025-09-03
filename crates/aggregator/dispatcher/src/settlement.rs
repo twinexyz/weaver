@@ -10,7 +10,6 @@ use tokio::time;
 use twine_aggregator_common::SettleBatch;
 use twine_aggregator_database::types::OnChainStatus;
 use twine_aggregator_database::{operations, transactions};
-use twine_aggregator_types::BatchData;
 
 /// Helper function to update on-chain progress in a transaction
 async fn update_on_chain_progress(
@@ -68,13 +67,9 @@ pub async fn run_settlement_pipeline(
             continue;
         }
 
-        match operations::get_batch_by_id(&pool, next).await? {
-            Some((batch_id, batch_root, batch_data)) => {
-                let batch = BatchData {
-                    batch_id,
-                    batch_hash: batch_root,
-                    proof_data: batch_data,
-                };
+        match operations::get_settlement_batch_by_id(&pool, next).await? {
+            Some(batch) => {
+                let batch_id = batch.batch_number;
                 if let Err(e) = client.settle(&batch).await {
                     warn!(batch = next, "Settlement failed: {e:?}");
                     continue;

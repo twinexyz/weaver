@@ -5475,7 +5475,6 @@ name = "kafka-proof-server"
 version = "0.1.0"
 dependencies = [
  "eyre",
- "serde_json",
  "tokio",
  "twine-kafka",
  "twine-types",
@@ -14701,7 +14700,7 @@ dependencies = [
  "eyre",
  "serde",
  "serde_yaml",
- "twine-aggregator-types",
+ "twine-types",
 ]
 
 [[package]]
@@ -14723,7 +14722,9 @@ version = "0.1.0"
 dependencies = [
  "eyre",
  "serde",
+ "serde_json",
  "sqlx",
+ "twine-types",
 ]
 
 [[package]]
@@ -14737,7 +14738,7 @@ dependencies = [
  "tokio",
  "twine-aggregator-common",
  "twine-aggregator-database",
- "twine-aggregator-types",
+ "twine-types",
 ]
 
 [[package]]
@@ -14756,17 +14757,10 @@ dependencies = [
  "async-trait",
  "eyre",
  "twine-aggregator-common",
- "twine-aggregator-types",
  "twine-evm-contracts",
  "twine-l1-eth",
  "twine-l1-solana",
-]
-
-[[package]]
-name = "twine-aggregator-types"
-version = "0.1.0"
-dependencies = [
- "serde",
+ "twine-types",
 ]
 
 [[package]]
@@ -15136,7 +15130,6 @@ version = "0.1.0"
 dependencies = [
  "alloy-primitives",
  "serde",
- "serde_json",
  "twine-utils",
 ]
 

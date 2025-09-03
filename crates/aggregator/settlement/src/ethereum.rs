@@ -4,9 +4,9 @@ use std::str::FromStr;
 
 use alloy_primitives::Address;
 use twine_aggregator_common::{SettleBatch, SettlementChains};
-use twine_aggregator_types::BatchData;
 use twine_evm_contracts::twine_chain::TwineChain;
 use twine_l1_eth::EthClient;
+use twine_types::settle::CommitAndFinalizeBatch;
 
 #[allow(missing_docs)]
 #[derive(Debug, Clone)]
@@ -38,7 +38,7 @@ impl SettleBatch for EthereumL1 {
 
     fn chain_name(&self) -> SettlementChains { SettlementChains::Ethereum }
 
-    async fn settle(&self, batch: &BatchData) -> eyre::Result<()> {
+    async fn settle(&self, _batch: &CommitAndFinalizeBatch) -> eyre::Result<()> {
         let _provider = TwineChain::new(self.twine_chain_contract, &self.inner.writer.provider);
         Ok(())
     }
