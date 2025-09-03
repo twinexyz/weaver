@@ -7,6 +7,7 @@ use orchestrator_rs::database::inmem::InMemoryDatabase;
 use orchestrator_rs::database::postgresql::PostgresDatabase;
 use orchestrator_rs::instance::instance::Instance;
 use orchestrator_rs::instrumentation::dummy_instrumentation::DummyInstrumentation;
+use orchestrator_rs::instrumentation::open_telemetry::Prometheus;
 use orchestrator_rs::processor::dynamic_processor::DynamicProcessor;
 use orchestrator_rs::processor::simple_processor::SimpleProcessor;
 use orchestrator_rs::transform::TransformRequest;
@@ -47,10 +48,10 @@ impl Instance for TwineProofSchedulerInstance {
     >;
     type Emitter = TwineBatchSubscriber;
     type Input = TwineBatchTransformInput;
-    type Instrumentation = DummyInstrumentation<
-        TwineBatchTransformRequestID,
-        TwineBatchTransformAttemptID,
-        TwineBatchTransformResultConsumeAttemptID,
+    type Instrumentation = Prometheus<
+        TwineBatchTransformRequest,
+        TwineBatchTransformAttempt,
+        TwineBatchTransformResultConsumeAttempt,
         Self::Config,
     >;
     type Output = TwineBatchTransformReturnType;
@@ -62,6 +63,7 @@ impl Instance for TwineProofSchedulerInstance {
         TwineBatchTransformResultConsumeAttempt,
         TwineBatchTransformResultConsumeAttemptCreator,
         Self::Database,
+        Self::Instrumentation,
     >;
     type StaticConfigHandle = String;
     type TransformAttempt = TwineBatchTransformAttempt;
