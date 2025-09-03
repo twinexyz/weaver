@@ -7,7 +7,7 @@ use twine_types::proofs::{ProofData, ProofKind, SP1Proof, ZkProof};
 async fn main() -> eyre::Result<()> {
     let prod_cfg = ProducerConfig {
         common: KafkaCommonConfig {
-            bootstrap_servers: "localhost:9092".into(),
+            bootstrap_servers: "b-1.test.7alql0.c5.kafka.us-east-1.amazonaws.com:9092".into(),
             client_id: "twine-producer".into(),
             extra: Default::default(),
         },
@@ -16,7 +16,7 @@ async fn main() -> eyre::Result<()> {
 
     let producer = KafkaProducer::new(&prod_cfg).unwrap();
 
-    for i in 0..100 {
+    for i in 1400..1500 {
         let proof = ZkProof {
             identifier: "twine-prover-one".to_string(),
             proof_kind: ProofKind::ExecutionProof(i),
@@ -26,7 +26,7 @@ async fn main() -> eyre::Result<()> {
         producer
             .send(
                 ProduceRecord {
-                    topic: "twine.proofs",
+                    topic: "twine.solana.proofs",
                     key: None::<&()>,
                     value: &proof,
                     partition: None,

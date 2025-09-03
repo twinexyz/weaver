@@ -288,28 +288,6 @@ pub async fn update_last_processed_on_chain_batch(
     Ok(())
 }
 
-/// Update the last processed batch for DA operations
-pub async fn update_last_processed_da_batch(
-    pool: &PgPool,
-    da_id: &str,
-    batch_id: u64,
-) -> Result<(), sqlx::Error> {
-    sqlx::query(
-        r#"
-        INSERT INTO da_progress (da_id, last_consumed_batch_id, updated_at)
-        VALUES ($1, $2, now())
-        ON CONFLICT (da_id) DO UPDATE
-        SET last_consumed_batch_id = $2,
-            updated_at = now()
-        "#,
-    )
-    .bind(da_id)
-    .bind(batch_id as i64)
-    .execute(pool)
-    .await?;
-    Ok(())
-}
-
 /// Get batch data by batch ID
 pub async fn get_batch_by_id(
     pool: &PgPool,
@@ -397,29 +375,4 @@ pub async fn is_batch_ready_for_processing(
     .await?;
 
     Ok(count > 0)
-}
-
-/// Get the oldest batch that is ready for dispatching (has execution proof but
-/// not yet dispatched)
-pub async fn get_oldest_batch_ready_for_dispatch(
-    pool: &PgPool,
-) -> Result<Option<(u64, Vec<u8>)>, sqlx::Error> {
-    let row = sqlx::query_as::<_, (i64, Vec<u8>)>(
-        r#"
-        SELECT batch_id, execution_proof_data
-        FROM batches
-        WHERE execution_proof_data IS NOT NULL
-          AND batch_id NOT IN (
-              SELECT DISTINCT batch_id
-              FROM batch_status
-              WHERE on_chain_posting_status IN ('send_successful', 'send_successful_finalized')
-          )
-        ORDER BY batch_id ASC
-        LIMIT 1
-        "#,
-    )
-    .fetch_optional(pool)
-    .await?;
-
-    Ok(row.map(|(id, data)| (id as u64, data)))
 }

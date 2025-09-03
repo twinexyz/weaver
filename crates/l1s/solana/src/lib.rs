@@ -28,6 +28,8 @@ pub struct SolanaProvider {
     pub admin_wallet_path: String,
     /// Pubkey of twine chain contract on solana
     pub twine_chain_program: Pubkey,
+    /// Pubkey of admin from wallet
+    pub admin_pubkey: Pubkey,
 }
 
 impl SolanaProvider {
@@ -39,11 +41,13 @@ impl SolanaProvider {
         admin_wallet_path: String,
     ) -> Self {
         let twine_chain = Pubkey::from_str_const(twine_chain_program);
+        let admin_pubkey = read_keypair_file(&admin_wallet_path).expect("Failed to load keypair");
         Self {
             rpc,
             chain_id,
             admin_wallet_path,
             twine_chain_program: twine_chain,
+            admin_pubkey: admin_pubkey.pubkey(),
         }
     }
 }
@@ -75,10 +79,10 @@ impl SolanaProvider {
                     if let Some(status) = s.value.get(0).and_then(|x| x.as_ref()) {
                         // Check if transaction failed
                         if status.err.is_some() {
-                            return Err(TransactionError::OnChainFailure(format!(
-                                "{}",
-                                status.err.clone().unwrap()
-                            )));
+                            return Err(TransactionError::OnChainFailure(
+                                signature.to_string(),
+                                format!("{}", status.err.clone().unwrap()),
+                            ));
                         }
 
                         // Check if transaction satisfies the requested commitment level

@@ -60,11 +60,11 @@ kafka:
   config: {}
   # Topics to consume from
   topics:
-    - "twine.proofs"
+    - "twine.solana.proofs"
   # Kafka consumer specific configuration
   consumer:
     # Bootstrap servers for Kafka
-    bootstrap_servers: "localhost:9092"
+    bootstrap_servers: "b-1.test.7alql0.c5.kafka.us-east-1.amazonaws.com:9092"
 
     # Client identifier
     client_id: "twine-consumer"

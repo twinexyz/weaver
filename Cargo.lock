@@ -14755,9 +14755,13 @@ version = "0.1.0"
 dependencies = [
  "alloy-primitives",
  "async-trait",
+ "borsh 1.5.7",
  "eyre",
+ "reth-tracing",
+ "solana-sdk",
  "twine-aggregator-common",
  "twine-evm-contracts",
+ "twine-l1",
  "twine-l1-eth",
  "twine-l1-solana",
  "twine-types",

@@ -7,7 +7,7 @@ use eyre::Result;
 use reth_tracing::tracing::{info, warn};
 use sqlx::PgPool;
 use tokio::time;
-use twine_aggregator_common::SettleBatch;
+use twine_aggregator_common::{SettleBatch, TransactionStatus};
 use twine_aggregator_database::types::OnChainStatus;
 use twine_aggregator_database::{operations, transactions};
 
@@ -70,21 +70,46 @@ pub async fn run_settlement_pipeline(
         match operations::get_settlement_batch_by_id(&pool, next).await? {
             Some(batch) => {
                 let batch_id = batch.batch_number;
-                if let Err(e) = client.settle(&batch).await {
-                    warn!(batch = next, "Settlement failed: {e:?}");
-                    continue;
+                match client.settle(&batch).await {
+                    Ok(TransactionStatus {
+                        status,
+                        txn_hash,
+                        message,
+                    }) => {
+                        if status {
+                            // Transaction was successful
+                            update_on_chain_progress(
+                                &pool,
+                                batch_id,
+                                &chain,
+                                OnChainStatus::SendSuccessful,
+                                Some(&txn_hash),
+                                None,
+                                None,
+                            )
+                            .await?;
+                            info!(batch = next, "Settlement completed successfully");
+                        } else {
+                            // Transaction failed on-chain
+                            update_on_chain_progress(
+                                &pool,
+                                batch_id,
+                                &chain,
+                                OnChainStatus::SendFailed,
+                                Some(&txn_hash),
+                                message.as_deref(),
+                                None,
+                            )
+                            .await?;
+                            warn!(batch = next, "Settlement failed on-chain");
+                        }
+                    }
+                    Err(e) => {
+                        // Other error occurred
+                        warn!(batch = next, "Settlement failed: {e:?}");
+                        continue;
+                    }
                 }
-                update_on_chain_progress(
-                    &pool,
-                    batch_id,
-                    &chain,
-                    OnChainStatus::SendSuccessful,
-                    Some("txn_hash"),
-                    None,
-                    None,
-                )
-                .await?;
-                info!(batch = next, "Settlement completed");
             }
             None => { /* producer hasn't inserted BatchData yet */ }
         }
