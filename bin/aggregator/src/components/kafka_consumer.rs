@@ -3,7 +3,7 @@
 use std::time::Duration;
 
 use rdkafka::consumer::CommitMode;
-use reth_tracing::tracing::{error, info, trace};
+use reth_tracing::tracing::{debug, error, info, trace};
 use sqlx::PgPool;
 use twine_aggregator_common::config::AppCfg;
 use twine_aggregator_database::operations::{insert_batch, insert_proof};
@@ -26,6 +26,7 @@ async fn process_proof(
     batch_number: u64,
     common_proof_data: &CommonProofData,
 ) -> Result<(), eyre::Error> {
+    debug!("Processing proof for batch {}", batch_number);
     let proof_data = serde_json::to_vec(common_proof_data)?;
 
     // Insert proof into database
@@ -35,7 +36,7 @@ async fn process_proof(
                 // Batch doesn't exist, need to query twine chain for batch hash
                 handle_missing_batch(db_pool, twine_rpc, batch_number, &proof_data).await
             } else {
-                info!("Successfully inserted proof for batch {}", batch_number);
+                debug!("Successfully inserted proof for batch {}", batch_number);
                 Ok(())
             }
         }
@@ -56,7 +57,7 @@ async fn handle_missing_batch(
     batch_number: u64,
     proof: &Vec<u8>,
 ) -> Result<(), eyre::Error> {
-    info!(
+    debug!(
         "Batch {} not found in db, querying twine chain",
         batch_number
     );
@@ -67,6 +68,10 @@ async fn handle_missing_batch(
     // Get the batch hash from the twine chain
     match batch_client.get_batch_hash(batch_number).await {
         Ok(batch_hash) => {
+            debug!(
+                "Retrieved batch hash for batch {}, inserting batch",
+                batch_number
+            );
             // Insert the batch first
             insert_batch_and_proof(db_pool, batch_number, proof, batch_hash).await
         }
@@ -91,11 +96,11 @@ async fn insert_batch_and_proof(
 ) -> Result<(), eyre::Error> {
     match insert_batch(db_pool, batch_number, batch_hash).await {
         Ok(()) => {
-            info!("Successfully inserted batch {} into database", batch_number);
+            debug!("Successfully inserted batch {} into database", batch_number);
 
             match insert_proof(db_pool, batch_number, proof_data, None).await {
                 Ok(_) => {
-                    info!("Successfully inserted proof for batch {}", batch_number);
+                    info!("Successfully processed proof for batch {}", batch_number);
                     Ok(())
                 }
                 Err(e) => {
@@ -124,6 +129,11 @@ pub(crate) async fn start_kafka_consumer(
     let topics = config.kafka.topics.as_slice();
     let kafka_consumer_config = &config.kafka.consumer;
 
+    debug!(
+        "Kafka consumer config: bootstrap_servers={:?}, group_id={}, topics={:?}",
+        kafka_consumer_config.bootstrap_servers, kafka_consumer_config.group_id, topics
+    );
+
     let cons_cfg = twine_kafka_common::config::ConsumerConfig {
         common: KafkaCommonConfig {
             bootstrap_servers: kafka_consumer_config.bootstrap_servers.clone(),
@@ -138,10 +148,12 @@ pub(crate) async fn start_kafka_consumer(
 
     let consumer = KafkaConsumer::new(&cons_cfg)?;
     consumer.subscribe(topics)?;
+    debug!("Subscribed to Kafka topics: {:?}", topics);
 
     // Start Kafka consumer in a separate task
     let twine_rpc = config.twine.rpc.clone();
     let handle = tokio::spawn(async move {
+        info!("Kafka consumer task started");
         let json_deser = JsonSerde;
         loop {
             match consumer
@@ -184,14 +196,16 @@ pub(crate) async fn start_kafka_consumer(
                                 break;
                             }
                             Err(e) => {
-                                error!("Error processing proof: {:?}", e);
+                                error!("Error processing proof for batch {}: {:?}. Retrying in 1 second...", batch_number, e);
                                 tokio::time::sleep(std::time::Duration::from_secs(1)).await;
                             }
                         }
                     }
 
                     if let Err(e) = consumer.commit_message(&msg, CommitMode::Async) {
-                        error!("Failed to commit message: {:?}", e);
+                        error!("Failed to commit message {:?}", e);
+                    } else {
+                        debug!("Successfully committed message");
                     }
                 }
                 Ok(None) => {

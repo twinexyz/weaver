@@ -1,7 +1,7 @@
 //! DA Posting pipeline
 
 use eyre::Result;
-use reth_tracing::tracing::{info, warn};
+use reth_tracing::tracing::{debug, info, warn};
 use sqlx::types::JsonValue;
 use sqlx::PgPool;
 use tokio::time::{self, Duration};
@@ -40,6 +40,11 @@ where
     DA: DALayer + Send + Sync + 'static, {
     let mut tick = time::interval(Duration::from_millis(poll_ms));
     let da_id = da.chain_id().to_string();
+    info!(
+        "Starting DA pipeline for chain {} with tick of {:?}",
+        da_id,
+        tick.period()
+    );
 
     loop {
         tick.tick().await;
@@ -47,31 +52,43 @@ where
         // Get the current checkpoint from the database on each iteration
         let cp = operations::get_last_processed_da_batch(&pool, &da_id).await?;
         let next = cp.saturating_add(1);
+        debug!("Processing DA batch: {} for chain {}", next, da_id);
 
         // Ask Twine chain for the DA payload for this batch.
         match twine.da_payload(next).await {
             Ok(Some(bytes)) => {
-                if let Err(e) = da.post(&bytes).await {
-                    warn!(batch = next, "DA post failed: {e:?}");
-                    continue; // retry on next tick
+                debug!(batch = next, chain = da_id, "Posting DA payload for batch");
+                match da.post(&bytes).await {
+                    Ok(_) => {
+                        info!(batch = next, chain = da_id, "DA post successful");
+                        // mocks, this response should come from celestia
+                        let val = Some(JsonValue::Null);
+                        update_da_progress(
+                            &pool,
+                            next,
+                            &da_id,
+                            DaPostingStatus::Committed,
+                            val.as_ref(),
+                        )
+                        .await?;
+                        debug!(batch = next, chain = da_id, "DA status updated in database");
+                    }
+                    Err(e) => {
+                        warn!(batch = next, chain = da_id, error = ?e, "DA post failed");
+                        continue; // retry on next tick
+                    }
                 }
-                // mocks, this response should come from celestia
-                let val = Some(JsonValue::Null);
-                update_da_progress(
-                    &pool,
-                    next,
-                    &da_id,
-                    DaPostingStatus::Committed,
-                    val.as_ref(),
-                )
-                .await?;
-                info!(batch = next, "DA posted and advanced");
             }
             Ok(None) => {
                 // Twine hasn't materialized the payload yet; keep polling.
+                debug!(
+                    batch = next,
+                    chain = da_id,
+                    "Twine hasn't materialized DA payload yet"
+                );
             }
             Err(e) => {
-                warn!(batch = next, "Twine query failed: {e:?}");
+                warn!(batch = next, chain = da_id, error = ?e, "Twine query failed");
             }
         }
     }
