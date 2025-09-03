@@ -28,6 +28,8 @@ pub struct TwineWorkerManager {
     pub transform_attempt_receiver: Receiver<TwineBatchTransformAttempt>,
     /// sends worker sent results to the consumer
     pub worker_result_sender: Sender<WorkerManagerResult<TwineBatchTransformAttempt>>,
+    /// job completion timeout: removes the workers if their job timeout exceeds
+    pub job_completion_timeout: u64,
 }
 
 #[async_trait]
@@ -49,14 +51,26 @@ impl WorkerManager for TwineWorkerManager {
             .get("worker_manager.binding_port".to_string())
             .await?;
 
-        let port: toml::Value = serde_json::from_slice(&binding_port).unwrap();
+        let binding_port: toml::Value = serde_json::from_slice(&binding_port).unwrap();
 
-        let binding_port = port.as_integer().unwrap() as u64;
+        let binding_port = binding_port.as_integer().unwrap() as u64;
+
+        let job_completion_timeout = init_config
+            .lock()
+            .await
+            .get("worker_manager.binding_port".to_string())
+            .await?;
+
+        let job_completion_timeout: toml::Value =
+            serde_json::from_slice(&job_completion_timeout).unwrap();
+
+        let job_completion_timeout = job_completion_timeout.as_integer().unwrap() as u64;
 
         Ok(Self {
             binding_port,
             transform_attempt_receiver: recv_channel,
             worker_result_sender: send_channel,
+            job_completion_timeout,
         })
     }
 
@@ -67,6 +81,7 @@ impl WorkerManager for TwineWorkerManager {
             self.binding_port,
             self.worker_result_sender.clone(),
             job_mutex.clone(),
+            self.job_completion_timeout,
         )
         .await?;
 
@@ -107,8 +122,9 @@ pub async fn start_worker_register_server(
     bind_port: u64,
     sender: Sender<WorkerManagerResult<TwineBatchTransformAttempt>>,
     job_mutex: Arc<Mutex<Option<TwineBatchTransformAttempt>>>,
+    job_completion_timeout: u64,
 ) -> Result<(JoinHandle<()>, JoinHandle<()>), TwineProofSchedulerError> {
-    let address = format!("127.0.0.1:{bind_port}");
+    let address = format!("0.0.0.0:{bind_port}");
     let listener = TcpListener::bind(&address)
         .await
         .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
@@ -118,6 +134,7 @@ pub async fn start_worker_register_server(
     let connections = Arc::new(Connections {
         assigned_jobs: Mutex::new(HashMap::new()),
         connection_status: Mutex::new(HashMap::new()),
+        job_completion_timeout,
     });
 
     let cloned_connection = connections.clone();
