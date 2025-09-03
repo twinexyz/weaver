@@ -7,18 +7,14 @@
 //! the right batch is queued, in order, so workers can safely pick it up, claim
 //! it, and perform the on-chain publish.
 
-use std::collections::HashMap;
+use std::fmt::Debug;
 use std::sync::Arc;
 
 use eyre::Result;
 use sqlx::PgPool;
-use tokio::sync::RwLock;
 use tokio::task::JoinSet;
 use twine_aggregator_common::config::DispatcherConfig;
 use twine_aggregator_common::{DALayer, SettleBatch, TwineQuery};
-use twine_aggregator_database::operations::{
-    get_last_processed_da_batch, get_last_processed_on_chain_batch,
-};
 
 pub mod da;
 pub mod settlement;
@@ -33,27 +29,51 @@ impl TwineQuery for SimpleTwineQuery {
     async fn da_payload(&self, _batch_id: u64) -> Result<Option<Vec<u8>>> { Ok(None) }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 #[allow(missing_docs)]
-pub struct Dispatcher<DA: DALayer, Set: SettleBatch> {
+pub struct Dispatcher<DA: DALayer> {
     pool: PgPool,
     cfg: DispatcherConfig,
     da_client: Option<DA>,
-    settlement_clients: Vec<Set>,
+    settlement_clients: Vec<Arc<dyn SettleBatch + Send + Sync>>,
 }
 
-impl<DA, Set> Dispatcher<DA, Set>
+impl<DA> Debug for Dispatcher<DA>
+where
+    DA: DALayer + Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let da_str = self
+            .da_client
+            .as_ref()
+            .map(|da| format!("{}:{:?}", da.chain_id(), da.chain_name()))
+            .unwrap_or_else(|| "None".to_string());
+
+        let settlement_names: Vec<String> = self
+            .settlement_clients
+            .iter()
+            .map(|chain| format!("{}:{:?}", chain.chain_id(), chain.chain_name()))
+            .collect();
+
+        f.debug_struct("Dispatcher")
+            .field("pool", &self.pool)
+            .field("cfg", &self.cfg)
+            .field("da_client", &da_str)
+            .field("settlement_clients", &settlement_names)
+            .finish()
+    }
+}
+
+impl<DA> Dispatcher<DA>
 where
     DA: DALayer + Clone + Send + Sync + 'static,
-    Set: SettleBatch + Clone + Send + Sync + 'static,
 {
-    /// Simple constructor: does not hit the database; starts with empty
-    /// checkpoints.
+    /// Initialize dispatcher
     pub fn new(
         pool: PgPool,
         cfg: DispatcherConfig,
         da_client: Option<DA>,
-        settlement_clients: Vec<Set>,
+        settlement_clients: Vec<Arc<dyn SettleBatch + Send + Sync>>,
     ) -> Self {
         Self {
             pool,
@@ -64,7 +84,7 @@ where
     }
 
     /// Main dispatcher runner
-    pub async fn run(&mut self) -> Result<()> {
+    pub async fn run(&self) -> Result<()> {
         let mut tasks = JoinSet::new();
 
         // DA pipeline

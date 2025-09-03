@@ -1,5 +1,6 @@
 //! On Chain settlement pipeline
 
+use std::sync::Arc;
 use std::time::Duration;
 
 use eyre::Result;
@@ -38,9 +39,11 @@ async fn update_on_chain_progress(
 }
 
 /// Settlement pipeline function that can be spawned as a task
-pub async fn run_settlement_pipeline<S>(pool: PgPool, client: S, poll_ms: u64) -> Result<()>
-where
-    S: SettleBatch + Send + Sync + 'static, {
+pub async fn run_settlement_pipeline(
+    pool: PgPool,
+    client: Arc<dyn SettleBatch + Send + Sync>,
+    poll_ms: u64,
+) -> Result<()> {
     let chain = client.chain_id().to_string();
     let mut tick = time::interval(Duration::from_millis(poll_ms));
 

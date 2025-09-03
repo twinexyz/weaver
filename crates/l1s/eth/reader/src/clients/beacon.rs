@@ -3,12 +3,12 @@
 /// Client for querying Ethereum beacon chain data
 #[derive(Debug, Clone)]
 pub struct EthQueryBeaconClient {
-    url: String,
+    _url: String,
 }
 
 impl EthQueryBeaconClient {
     /// New ethereum beacon query client
-    pub fn new(url: String) -> Self { Self { url } }
+    pub fn new(url: String) -> Self { Self { _url: url } }
 
     // Query beacon block
 }
