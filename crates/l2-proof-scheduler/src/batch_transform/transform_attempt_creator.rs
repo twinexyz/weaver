@@ -2,6 +2,7 @@
 //! recreates transform attempts for failed transform attempts
 
 use std::collections::HashMap;
+use std::time::{self, Duration, Instant};
 
 use async_trait::async_trait;
 use orchestrator_rs::config::Config;
@@ -26,7 +27,17 @@ pub struct TwineBatchTransformAttemptCreator {
     /// will be made
     max_attempts_per_request: u64,
     /// stores the latest transform attempts for each requests
-    attempts: HashMap<TwineBatchTransformRequestID, TwineBatchTransformAttempt>, /* TODO: no need to store the full attempt */
+    attempts: HashMap<TwineBatchTransformRequestID, AttemptDetails>, /* TODO: no need to store
+                                                                      * the full attempt */
+}
+
+/// Structure that hold attempts and its creation time
+#[derive(Debug, Clone)]
+pub struct AttemptDetails {
+    /// attempts
+    attempt: TwineBatchTransformAttempt,
+    /// time of creation
+    time: time::Instant,
 }
 
 #[async_trait]
@@ -86,8 +97,13 @@ impl TransformAttemptCreator for TwineBatchTransformAttemptCreator {
 
         log::info!("new attempt for request {}", request.identifier.identifier);
 
+        let attempt_details = AttemptDetails {
+            attempt: transform_attempt.clone(),
+            time: time::Instant::now(),
+        };
+
         self.attempts
-            .insert(request.identifier.clone(), transform_attempt.clone());
+            .insert(request.identifier.clone(), attempt_details);
 
         Ok(transform_attempt)
     }
@@ -99,7 +115,7 @@ impl TransformAttemptCreator for TwineBatchTransformAttemptCreator {
         error: <Self::TransformAttempt as TransformAttempt>::ReturnPackage,
     ) -> Result<Self::TransformAttempt, Self::TransformAttemptCreationError> {
         if let Some(attempt) = self.attempts.get_mut(&request.transform_request_id) {
-            let mut new_identifier = attempt.identifier.clone();
+            let mut new_identifier = attempt.attempt.identifier.clone();
             if new_identifier.identifier >= self.max_attempts_per_request {
                 return Err(TwineProofSchedulerError::MaxReattemtsReached(format!(
                     "{:?}",
@@ -109,7 +125,13 @@ impl TransformAttemptCreator for TwineBatchTransformAttemptCreator {
             new_identifier.identifier += 1;
             let transform_attempt =
                 TwineBatchTransformAttempt::from_return_package(new_identifier, error);
-            *attempt = transform_attempt.clone();
+
+            let attempt_details = AttemptDetails {
+                attempt: transform_attempt.clone(),
+                time: Instant::now(),
+            };
+
+            *attempt = attempt_details.clone();
             return Ok(transform_attempt);
         }
 
@@ -122,17 +144,18 @@ impl TransformAttemptCreator for TwineBatchTransformAttemptCreator {
     async fn prune_attempts(
         &mut self,
         attempt_id: <Self::TransformAttempt as TransformAttempt>::Identifier,
-    ) -> Result<(), TwineProofSchedulerError> {
+    ) -> Result<Duration, TwineProofSchedulerError> {
         let transform_request_id: TwineBatchTransformRequestID = attempt_id.into();
         if let Some(attempts) = self.attempts.remove_entry(&transform_request_id) {
             log::info!("Removed {:?} from transform attempts record", attempts.0);
-            return Ok(());
+            let elapsed_time = attempts.1.time.elapsed().as_secs();
+            return Ok(Duration::from_secs(elapsed_time));
         }
 
         log::warn!(
             "Key {:?} not found in transform attempts record",
             transform_request_id
         );
-        Ok(())
+        Ok(Duration::from_secs(0))
     }
 }

@@ -1,6 +1,7 @@
 //! creates consume attempts for worker manager result
 
 use std::collections::HashMap;
+use std::time::{self, Duration};
 
 use async_trait::async_trait;
 use orchestrator_rs::config::Config;
@@ -26,7 +27,16 @@ pub struct TwineBatchTransformResultConsumeAttemptCreator {
     /// will be made
     max_attempts_per_request: u64,
     /// stores the latest transform attempts for each requests
-    attempts: HashMap<TwineBatchTransformAttemptID, TwineBatchTransformResultConsumeAttempt>,
+    attempts: HashMap<TwineBatchTransformAttemptID, AttemptDetails>,
+}
+
+/// structure that holds attempts and creation time
+#[derive(Debug)]
+pub struct AttemptDetails {
+    /// attempts
+    attempt: TwineBatchTransformResultConsumeAttempt,
+    /// creation time
+    time: time::Instant,
 }
 
 #[async_trait]
@@ -87,8 +97,13 @@ impl ConsumeAttemptCreator for TwineBatchTransformResultConsumeAttemptCreator {
                                                    * never be null */
         );
 
+        let attempt_details = AttemptDetails {
+            attempt: consume_attempt.clone(),
+            time: time::Instant::now(),
+        };
+
         self.attempts
-            .insert(request.identifier.clone(), consume_attempt.clone());
+            .insert(request.identifier.clone(), attempt_details);
 
         Ok(consume_attempt)
     }
@@ -102,7 +117,7 @@ impl ConsumeAttemptCreator for TwineBatchTransformResultConsumeAttemptCreator {
             .attempts
             .get_mut(&attempt_id.transform_attempt_identifier)
         {
-            let mut new_identifier = attempt.identifier.clone();
+            let mut new_identifier = attempt.attempt.identifier.clone();
             if new_identifier.identifier >= self.max_attempts_per_request {
                 return Err(TwineProofSchedulerError::MaxReattemtsReached(format!(
                     "{:?}",
@@ -115,7 +130,13 @@ impl ConsumeAttemptCreator for TwineBatchTransformResultConsumeAttemptCreator {
                 error.consume_context,
                 error.consume_value,
             );
-            *attempt = transform_attempt
+
+            let attempt_details = AttemptDetails {
+                attempt: transform_attempt,
+                time: time::Instant::now(),
+            };
+
+            *attempt = attempt_details
         }
 
         return Err(TwineProofSchedulerError::KeyNotFound(format!(
@@ -127,17 +148,18 @@ impl ConsumeAttemptCreator for TwineBatchTransformResultConsumeAttemptCreator {
     async fn prune_attempts(
         &mut self,
         attempt_id: <Self::ConsumeAttempt as ConsumeAttempt>::Identifier,
-    ) -> Result<(), TwineProofSchedulerError> {
+    ) -> Result<Duration, TwineProofSchedulerError> {
         let transform_request_id: TwineBatchTransformAttemptID = attempt_id.into();
         if let Some(attempts) = self.attempts.remove_entry(&transform_request_id) {
             log::info!("Removed {:?} from consume attempts record", attempts.0);
-            return Ok(());
+            let elapsed_time = attempts.1.time.elapsed().as_secs();
+            return Ok(Duration::from_secs(elapsed_time));
         }
 
         log::warn!(
             "Key {:?} not found in consume attempts record",
             transform_request_id
         );
-        Ok(())
+        Ok(Duration::from_secs(0))
     }
 }
