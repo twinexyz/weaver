@@ -100,6 +100,7 @@ impl TwineBatchApiServer for TwineBatchRPC {
             BatchVersionID::V0 => {
                 let metadata = BatchMeta {
                     block_range: blocks_in_range.unwrap(),
+                    batch_number,
                     created_at: 0,
                     prev_batch_hash: previous_hash,
                     batch_hash,

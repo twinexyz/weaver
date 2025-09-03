@@ -20,6 +20,7 @@ pub struct BlockMetadata {
 pub struct BatchMeta {
     pub block_range: RangeInclusive<BlockNumber>,
     pub created_at: u64,
+    pub batch_number: u64,
     pub prev_batch_hash: Option<B256>, // batch hash of previous block
     pub batch_hash: Option<B256>,      // batch hash of current block
     pub block_metadata: Vec<BlockMetadata>, // every hash in order

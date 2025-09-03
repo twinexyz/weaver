@@ -130,6 +130,7 @@ impl BatchStore {
             BatchVersionID::V0 => {
                 let mut meta_v0 = BatchMeta {
                     block_range: block_range.clone(),
+                    batch_number,
                     created_at: SystemTime::now()
                         .duration_since(SystemTime::UNIX_EPOCH)
                         .unwrap()
