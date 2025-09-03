@@ -1,6 +1,6 @@
 [batch_subscriber]
 twine_rpc_url = "http://127.0.0.1:8545"
-start_block = 1 
+start_block = 1
 next_transform_request_id = 0
 
 [consumer]
@@ -10,11 +10,9 @@ kafka_groups = "my-group"
 auto_offset_reset = "earliest"
 # # optional
 # security_protocol = "ssl"
-# ssl_ca_location = "ca.crt" 
+# ssl_ca_location = "ca.crt"
 # ssl_certificate_location = "user.crt"
 # ssl_key_location = "user.key"
-
-
 
 [worker_manager]
 binding_port = 8000
