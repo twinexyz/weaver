@@ -6,6 +6,11 @@ use twine_aggregator_common::{DAChains, DALayer};
 #[derive(Debug, Clone)]
 pub struct CelestiaDA {}
 
+impl CelestiaDA {
+    /// Initialize celestia da
+    pub fn new() -> Self { Self {} }
+}
+
 #[async_trait::async_trait]
 impl DALayer for CelestiaDA {
     fn chain_id(&self) -> u64 { 0 }

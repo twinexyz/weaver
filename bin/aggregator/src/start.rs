@@ -28,6 +28,9 @@ pub(crate) async fn start_aggregator(config: &AppCfg) -> eyre::Result<()> {
     // Start the DA verifier
     handles.push(crate::components::da_verifier::start_da_verifier(config, db_pool.clone()).await?);
 
+    // Start the dispatcher
+    handles.push(crate::components::dispatcher::start_dispatcher(config, db_pool.clone()).await?);
+
     // Implement proper shutdown handling that waits for tasks to complete
     info!("Aggregator started. Waiting for shutdown signal...");
 

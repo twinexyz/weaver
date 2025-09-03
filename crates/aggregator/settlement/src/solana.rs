@@ -12,10 +12,10 @@ pub struct SolanaL1 {
 
 impl SolanaL1 {
     /// Initialize solana l1
-    pub async fn new(
+    pub fn new(
         rpc_url: &str,
         chain_id: u64,
-        twine_chain_program: String,
+        twine_chain_program: &str,
         wallet_path: String,
     ) -> Self {
         Self {

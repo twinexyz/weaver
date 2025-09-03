@@ -138,7 +138,7 @@ pub(crate) async fn start_kafka_consumer(
         common: KafkaCommonConfig {
             bootstrap_servers: kafka_consumer_config.bootstrap_servers.clone(),
             client_id: kafka_consumer_config.client_id.clone(),
-            extra: Default::default(),
+            extra: config.kafka.config.clone(),
         },
         group_id: kafka_consumer_config.group_id.clone(),
         session_timeout_ms: Some(kafka_consumer_config.session_timeout_ms),
@@ -150,7 +150,7 @@ pub(crate) async fn start_kafka_consumer(
     consumer.subscribe(topics)?;
 
     // Start Kafka consumer in a separate task
-    let kafka_config = config.twine.rpcs[0].clone();
+    let kafka_config = config.twine.rpc.clone();
     let handle = tokio::spawn(async move {
         let json_deser = JsonSerde;
         loop {

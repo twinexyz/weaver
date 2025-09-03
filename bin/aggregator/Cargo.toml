@@ -18,7 +18,9 @@ tokio.workspace = true
 
 twine-aggregator-common.workspace = true
 twine-aggregator-database.workspace = true
+twine-aggregator-dispatcher.workspace = true
 twine-aggregator-metrics.workspace = true
+twine-aggregator-settlement.workspace = true
 twine-common.workspace = true
 twine-kafka-common.workspace = true
 twine-kafka-consumer.workspace = true

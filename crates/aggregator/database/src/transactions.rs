@@ -69,7 +69,7 @@ pub async fn upsert_on_chain_status(
 pub async fn set_da_progress(
     executor: &mut Transaction<'_, sqlx::Postgres>,
     da_id: &str,
-    new_batch_id: i64,
+    new_batch_id: u64,
 ) -> eyre::Result<()> {
     sqlx::query(
         r#"
@@ -81,7 +81,7 @@ pub async fn set_da_progress(
         "#,
     )
     .bind(da_id)
-    .bind(new_batch_id)
+    .bind(new_batch_id as i64)
     .execute(&mut **executor)
     .await?;
     Ok(())
@@ -92,7 +92,7 @@ pub async fn set_da_progress(
 /// verified'
 pub async fn upsert_da_status(
     executor: &mut Transaction<'_, sqlx::Postgres>,
-    batch_id: i64,
+    batch_id: u64,
     da_id: &str,
     status: DaPostingStatus,
     verification_data: Option<&JsonValue>,
@@ -111,7 +111,7 @@ pub async fn upsert_da_status(
             da_verified_at       = COALESCE(EXCLUDED.da_verified_at, batch_da_status.da_verified_at),
             updated_at           = now()
     "#)
-    .bind(batch_id)
+    .bind(batch_id as i64)
     .bind(da_id)
     .bind(status.to_string())
     .bind(verification_data)

@@ -33,8 +33,8 @@ pub struct DispatcherConfig {
 /// Ethereum blockchain configuration.
 #[derive(Debug, Deserialize, Clone)]
 pub struct EthCfg {
-    /// List of Ethereum RPC endpoints to connect to.
-    pub rpcs: Vec<String>,
+    /// Ethereum RPC endpoint to connect to.
+    pub rpc: String,
 
     /// Chain id
     pub chain_id: u64,
@@ -44,19 +44,25 @@ pub struct EthCfg {
 
     /// Number of blocks to wait for finality on Ethereum.
     pub finality_blocks: u64,
+
+    /// Ethereum Private Key
+    pub eth_private_key: String,
 }
 
 /// Solana blockchain configuration.
 #[derive(Debug, Deserialize, Clone)]
 pub struct SolCfg {
-    /// List of Solana RPC endpoints to connect to.
-    pub rpcs: Vec<String>,
+    ///  RPC endpoint to connect to.
+    pub rpc: String,
 
     /// Chain id
     pub chain_id: u64,
 
     /// Program ID of the twine chain program on Solana.
     pub twine_chain_program_id: String,
+
+    /// Solana Wallet Path
+    pub solana_wallet_path: String,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -65,8 +71,8 @@ pub struct CelestiaCfg {}
 /// Twine network configuration.
 #[derive(Debug, Deserialize, Clone)]
 pub struct TwineCfg {
-    /// List of twine RPC endpoints to connect to.
-    pub rpcs: Vec<String>,
+    /// Twine RPC endpoint to connect to.
+    pub rpc: String,
 
     /// Chain id
     pub chain_id: u64,

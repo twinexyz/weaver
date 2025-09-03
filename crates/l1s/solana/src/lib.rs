@@ -35,10 +35,10 @@ impl SolanaProvider {
     pub fn new(
         rpc: String,
         chain_id: u64,
-        twine_chain_program: String,
+        twine_chain_program: &str,
         admin_wallet_path: String,
     ) -> Self {
-        let twine_chain = Pubkey::from_str_const(&twine_chain_program);
+        let twine_chain = Pubkey::from_str_const(twine_chain_program);
         Self {
             rpc,
             chain_id,

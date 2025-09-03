@@ -1,4 +1,5 @@
 //! L1s Error
+
 use thiserror::Error;
 
 #[allow(missing_docs)]

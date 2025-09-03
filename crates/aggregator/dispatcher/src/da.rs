@@ -2,10 +2,36 @@
 
 use eyre::Result;
 use reth_tracing::tracing::{info, warn};
+use sqlx::types::JsonValue;
 use sqlx::PgPool;
 use tokio::time::{self, Duration};
 use twine_aggregator_common::{DALayer, TwineQuery};
-use twine_aggregator_database::operations;
+use twine_aggregator_database::types::DaPostingStatus;
+use twine_aggregator_database::{operations, transactions};
+
+/// Helper function to update da chain progress in a transaction
+async fn update_da_progress(
+    pool: &PgPool,
+    batch_id: u64,
+    da_id: &str,
+    status: DaPostingStatus,
+    verification_data: Option<&JsonValue>,
+) -> Result<()> {
+    let mut tx = pool.begin().await?;
+    transactions::upsert_da_status(
+        &mut tx,
+        batch_id,
+        da_id,
+        status,
+        verification_data,
+        None,
+        None,
+    )
+    .await?;
+    transactions::set_da_progress(&mut tx, da_id, batch_id).await?;
+    tx.commit().await?;
+    Ok(())
+}
 
 /// DA pipeline function that can be spawned as a task
 pub async fn run_da_pipeline<TQ, DA>(pool: PgPool, twine: TQ, da: DA, poll_ms: u64) -> Result<()>
@@ -13,13 +39,13 @@ where
     TQ: TwineQuery + Send + Sync + 'static,
     DA: DALayer + Send + Sync + 'static, {
     let mut tick = time::interval(Duration::from_millis(poll_ms));
-    let chain_id = da.chain_id().to_string();
+    let da_id = da.chain_id().to_string();
 
     loop {
         tick.tick().await;
 
         // Get the current checkpoint from the database on each iteration
-        let cp = operations::get_last_processed_da_batch(&pool, &chain_id).await?;
+        let cp = operations::get_last_processed_da_batch(&pool, &da_id).await?;
         let next = cp.saturating_add(1);
 
         // Ask Twine chain for the DA payload for this batch.
@@ -29,10 +55,16 @@ where
                     warn!(batch = next, "DA post failed: {e:?}");
                     continue; // retry on next tick
                 }
-                // Mark DA checkpoint advanced.
-                // Start a transaction
-                // Update da_status table as well as cursor
-                operations::update_last_processed_da_batch(&pool, &chain_id, next).await?;
+                // mocks, this response should come from celestia
+                let val = Some(JsonValue::Null);
+                update_da_progress(
+                    &pool,
+                    next,
+                    &da_id,
+                    DaPostingStatus::Committed,
+                    val.as_ref(),
+                )
+                .await?;
                 info!(batch = next, "DA posted and advanced");
             }
             Ok(None) => {
