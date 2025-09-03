@@ -3,7 +3,7 @@
 use std::sync::Arc;
 
 use eyre::eyre;
-use reth_tracing::tracing::info;
+use reth_tracing::tracing::debug;
 use sqlx::PgPool;
 use twine_aggregator_common::config::AppCfg;
 use twine_aggregator_common::SettleBatch;

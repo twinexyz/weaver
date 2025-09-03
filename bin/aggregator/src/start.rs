@@ -1,4 +1,4 @@
-use reth_tracing::tracing::{self, info, warn};
+use reth_tracing::tracing::{debug, info, warn};
 use sqlx::PgPool;
 #[cfg(unix)]
 use tokio::signal::unix::{signal, SignalKind};
@@ -6,13 +6,17 @@ use twine_aggregator_common::config::AppCfg;
 use twine_aggregator_database::operations::apply_migrations;
 
 pub(crate) async fn start_aggregator(config: &AppCfg) -> eyre::Result<()> {
-    tracing::info!("Starting aggregator");
+    info!("Starting aggregator with config: {:?}", config.twine);
+
     // Create database connection pool
+    info!("Connecting to database");
     let db_pool = PgPool::connect(&config.db_url).await?;
+    info!("Database connection established");
 
     // Apply migrations before we can start
+    info!("Applying database migrations");
     apply_migrations(&db_pool).await?;
-    tracing::info!("Migrations applied");
+    debug!("Migrations applied");
 
     // Start background components and collect their JoinHandles
     let mut handles: Vec<tokio::task::JoinHandle<()>> = Vec::new();
@@ -22,6 +26,7 @@ pub(crate) async fn start_aggregator(config: &AppCfg) -> eyre::Result<()> {
         .push(crate::components::batch_poller::start_batch_poller(config, db_pool.clone()).await?);
 
     // Start the Kafka consumer
+    info!("Starting Kafka consumer");
     handles.push(
         crate::components::kafka_consumer::start_kafka_consumer(config, db_pool.clone()).await?,
     );
@@ -33,8 +38,7 @@ pub(crate) async fn start_aggregator(config: &AppCfg) -> eyre::Result<()> {
     // Start the dispatcher
     handles.push(crate::components::dispatcher::start_dispatcher(config, db_pool.clone()).await?);
 
-    // Implement proper shutdown handling that waits for tasks to complete
-    info!("Aggregator started. Waiting for shutdown signal...");
+    info!("All components started. Aggregator is now running...");
 
     // Wait for shutdown signal (Ctrl-C on all platforms; SIGTERM on Unix)
     #[cfg(unix)]
@@ -42,10 +46,10 @@ pub(crate) async fn start_aggregator(config: &AppCfg) -> eyre::Result<()> {
         let mut sigterm = signal(SignalKind::terminate())?;
         tokio::select! {
             _ = tokio::signal::ctrl_c() => {
-                info!("Received Ctrl-C. Shutting down...");
+                info!("Received Ctrl-C. Initiating graceful shutdown...");
             }
             _ = sigterm.recv() => {
-                info!("Received SIGTERM. Shutting down...");
+                info!("Received SIGTERM. Initiating graceful shutdown...");
             }
         }
     }
@@ -53,13 +57,16 @@ pub(crate) async fn start_aggregator(config: &AppCfg) -> eyre::Result<()> {
     {
         // On non-Unix, only handle Ctrl-C
         tokio::signal::ctrl_c().await?;
-        info!("Received Ctrl-C. Shutting down...");
+        info!("Received Ctrl-C. Initiating graceful shutdown...");
     }
 
     // Abort background tasks (they run infinite loops) and wait for completion
+    info!("Aborting background tasks...");
     for h in &handles {
         h.abort();
     }
+
+    info!("Waiting for tasks to complete...");
     for (idx, h) in handles.into_iter().enumerate() {
         if let Err(e) = h.await {
             if !e.is_cancelled() {

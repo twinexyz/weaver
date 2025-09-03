@@ -1,6 +1,7 @@
-//! Solana queries and transactions
+//! Solana settlement implementation
 
 use borsh::{BorshDeserialize, BorshSerialize};
+use reth_tracing::tracing;
 use solana_sdk::instruction::{AccountMeta, Instruction};
 use solana_sdk::pubkey::Pubkey;
 use twine_aggregator_common::{SettleBatch, SettlementChains, TransactionStatus};
@@ -8,6 +9,7 @@ use twine_l1::error::TransactionError;
 use twine_l1_solana::SolanaProvider;
 use twine_types::settle::CommitAndFinalizeBatch;
 
+/// Instruction variants for the Twine chain program
 #[derive(Debug, BorshSerialize, BorshDeserialize)]
 #[repr(u8)]
 #[allow(missing_docs)]
@@ -32,20 +34,24 @@ pub enum TwineChainInstruction {
     _Unused10,
     _Unused11,
     CommitAndFinalizeBatch {
+        /// The batch number to commit and finalize
         batch_number: u64,
+        /// The public values for the batch
         public_values: Vec<u8>,
+        /// The execution proof for the batch
         execution_proof: Vec<u8>,
     },
 }
 
-#[allow(missing_docs)]
+/// Solana L1 settlement implementation
 #[derive(Debug, Clone)]
 pub struct SolanaL1 {
+    /// The underlying Solana provider
     pub inner: SolanaProvider,
 }
 
 impl SolanaL1 {
-    /// Initialize solana l1
+    /// Initialize a new Solana L1 settlement instance
     pub fn new(
         rpc_url: &str,
         chain_id: u64,
@@ -70,7 +76,7 @@ impl SettleBatch for SolanaL1 {
     fn chain_name(&self) -> SettlementChains { SettlementChains::Solana }
 
     async fn settle(&self, batch: &CommitAndFinalizeBatch) -> eyre::Result<TransactionStatus> {
-        let commit_and_finalize_instrcution = self
+        let commit_and_finalize_instruction = self
             .build_commit_and_finalize_batch_instruction(
                 batch.batch_number,
                 batch.public_value.clone(),
@@ -78,9 +84,15 @@ impl SettleBatch for SolanaL1 {
             )
             .await;
 
+        tracing::info!(
+            batch = batch.batch_number,
+            "Solana transaction request {:?}",
+            commit_and_finalize_instruction
+        );
+
         match self
             .inner
-            .send_and_confirm_solana_transaction(commit_and_finalize_instrcution)
+            .send_and_confirm_solana_transaction(commit_and_finalize_instruction)
             .await
         {
             Ok(tx_hash) => Ok(TransactionStatus {
@@ -104,7 +116,7 @@ impl SettleBatch for SolanaL1 {
 }
 
 impl SolanaL1 {
-    /// Build commit and finalize transaction for solana
+    /// Build a commit and finalize batch instruction for Solana
     pub async fn build_commit_and_finalize_batch_instruction(
         &self,
         batch_number: u64,
@@ -143,14 +155,14 @@ impl SolanaL1 {
     }
 }
 
+/// Prefix for commitment PDA accounts
 pub const COMMITMENT_PDA_PREFIX: &str = "twine_batch";
+/// Prefix for role manager PDA accounts
 pub const ROLE_MANAGER_PREFIX: &str = "role_manager_storage";
+/// Prefix for twine chain storage PDA accounts
 pub const TWINE_CHAIN_STORAGE_PREFIX: &str = "twine_chain_storage";
 
-/// ------------------------------------------------------------------
-/// Helpers that return (PDA, bump) for every prefix
-/// ------------------------------------------------------------------
-
+/// Generate the commitment PDA for a given batch number
 pub fn commitment_pda(program_id: &Pubkey, batch_number: u64) -> (Pubkey, u8) {
     Pubkey::find_program_address(
         &[
@@ -161,10 +173,12 @@ pub fn commitment_pda(program_id: &Pubkey, batch_number: u64) -> (Pubkey, u8) {
     )
 }
 
+/// Generate the role manager PDA
 pub fn role_manager_pda(program_id: &Pubkey) -> (Pubkey, u8) {
     Pubkey::find_program_address(&[ROLE_MANAGER_PREFIX.as_bytes()], program_id)
 }
 
+/// Generate the twine chain storage PDA
 pub fn twine_chain_storage_pda(program_id: &Pubkey) -> (Pubkey, u8) {
     Pubkey::find_program_address(&[TWINE_CHAIN_STORAGE_PREFIX.as_bytes()], program_id)
 }

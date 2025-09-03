@@ -4,7 +4,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use eyre::Result;
-use reth_tracing::tracing::{info, warn};
+use reth_tracing::tracing::{debug, info, warn};
 use sqlx::PgPool;
 use tokio::time;
 use twine_aggregator_common::{SettleBatch, TransactionStatus};
@@ -45,7 +45,11 @@ pub async fn run_settlement_pipeline(
 ) -> Result<()> {
     let chain = client.chain_id().to_string();
     let mut tick = time::interval(Duration::from_millis(poll_ms));
-    info!("Run settlement pipeline with tick of {:?}", tick.period());
+    info!(
+        "Starting settlement pipeline for chain {} with tick of {:?}",
+        chain,
+        tick.period()
+    );
 
     loop {
         tick.tick().await;
@@ -53,33 +57,60 @@ pub async fn run_settlement_pipeline(
         // Get the current checkpoint from the database on each iteration
         let cp = operations::get_last_processed_on_chain_batch(&pool, &chain).await?;
         let next = cp.saturating_add(1);
-        info!("Processing batch: {} for {}", next, chain);
+        debug!("Processing batch: {} for {}", next, chain);
 
-        if client.is_finalized(next).await? {
-            info!("Batch finalized already");
-            update_on_chain_progress(
-                &pool,
-                next,
-                &chain,
-                OnChainStatus::SendSuccessful,
-                None,
-                None,
-                None,
-            )
-            .await?;
-            tick.tick().await;
-        }
-
-        if let Ok(exists) = operations::execution_proof_exists(&pool, next).await {
-            if !exists {
-                info!("Execution proof for batch {} does not exist", next);
-                tick.tick().await;
+        // Check if batch is already finalized on chain
+        match client.is_finalized(next).await {
+            Ok(true) => {
+                debug!("Batch {} already finalized on chain {}", next, chain);
+                update_on_chain_progress(
+                    &pool,
+                    next,
+                    &chain,
+                    OnChainStatus::SendSuccessful,
+                    None,
+                    None,
+                    None,
+                )
+                .await?;
+                continue;
+            }
+            Ok(false) => {
+                debug!("Batch {} not yet finalized on chain {}", next, chain);
+            }
+            Err(e) => {
+                warn!(
+                    "Error checking if batch {} is finalized on chain {}: {:?}",
+                    next, chain, e
+                );
+                continue;
             }
         }
 
-        match operations::get_settlement_batch_by_id(&pool, next).await? {
-            Some(batch) => {
+        // Check if execution proof exists for this batch
+        match operations::execution_proof_exists(&pool, next).await {
+            Ok(exists) =>
+                if !exists {
+                    debug!(
+                        "Execution proof for batch {} does not exist, skipping",
+                        next
+                    );
+                    continue;
+                },
+            Err(e) => {
+                warn!(
+                    "Error checking if execution proof exists for batch {}: {:?}",
+                    next, e
+                );
+                continue;
+            }
+        }
+
+        match operations::get_settlement_batch_by_id(&pool, next).await {
+            Ok(Some(batch)) => {
                 let batch_id = batch.batch_number;
+                debug!("Attempting to settle batch {} on chain {}", batch_id, chain);
+
                 match client.settle(&batch).await {
                     Ok(TransactionStatus {
                         status,
@@ -98,7 +129,12 @@ pub async fn run_settlement_pipeline(
                                 None,
                             )
                             .await?;
-                            info!(batch = next, "Settlement completed successfully");
+                            info!(
+                                batch = next,
+                                chain = chain,
+                                txn_hash = txn_hash,
+                                "Settlement completed successfully"
+                            );
                         } else {
                             // Transaction failed on-chain
                             update_on_chain_progress(
@@ -111,18 +147,30 @@ pub async fn run_settlement_pipeline(
                                 None,
                             )
                             .await?;
-                            warn!(batch = next, "Settlement failed on-chain");
+                            warn!(
+                                batch = next,
+                                chain = chain,
+                                txn_hash = txn_hash,
+                                error = message,
+                                "Settlement failed on-chain"
+                            );
                         }
                     }
                     Err(e) => {
                         // Other error occurred
-                        warn!(batch = next, "Settlement failed: {e:?}");
-                        tick.tick().await;
+                        warn!(batch = next, chain = chain, error = ?e, "Settlement failed");
+                        continue;
                     }
                 }
             }
-            None => {
-                info!("Getting settlement batch by id: proof missing");
+            Ok(None) => {
+                debug!(
+                    "Settlement batch not found for batch {}, proof may be missing",
+                    next
+                );
+            }
+            Err(e) => {
+                warn!(batch = next, chain = chain, error = ?e, "Error retrieving settlement batch");
             }
         }
     }

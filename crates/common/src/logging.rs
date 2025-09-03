@@ -9,11 +9,14 @@ use tracing_subscriber::filter::Directive;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::{fmt, Layer, Registry};
 
-const DEFAULT_ENV_FILTER_DIRECTIVES: [&str; 4] = [
+const DEFAULT_ENV_FILTER_DIRECTIVES: [&str; 7] = [
     "sqlx=off",
     "jsonrpsee-server=off",
     "hyper::proto::h1=off",
     "hyper_util=off",
+    "alloy-provider=off",
+    "alloy_transport_http=off",
+    "alloy_rpc_client=off",
 ];
 
 fn build_filters() -> (EnvFilter, EnvFilter) {
