@@ -1,8 +1,7 @@
-use serde_json::json;
 use twine_kafka::twine_kafka_common::config::{KafkaCommonConfig, ProducerConfig};
 use twine_kafka::twine_kafka_common::serde::JsonSerde;
 use twine_kafka::twine_kafka_producer::{KafkaProducer, ProduceRecord};
-use twine_types::proofs::{SupportedProvers, ZkProof};
+use twine_types::proofs::{ProofData, ProofKind, SP1Proof, ZkProof};
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
@@ -18,22 +17,10 @@ async fn main() -> eyre::Result<()> {
     let producer = KafkaProducer::new(&prod_cfg).unwrap();
 
     for i in 0..100 {
-        let value = json!({
-            "code": 200,
-            "success": true,
-            "payload": {
-                "features": [
-                    "serde",
-                    "json"
-                ]
-            }
-        });
-
         let proof = ZkProof {
-            proof_type: SupportedProvers::SP1,
-            batch_number: i,
             identifier: "twine-prover-one".to_string(),
-            proof: value,
+            proof_kind: ProofKind::ExecutionProof(i),
+            proof_data: ProofData::SP1(SP1Proof::default()),
         };
 
         producer

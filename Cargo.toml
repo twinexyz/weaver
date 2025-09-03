@@ -17,7 +17,6 @@ members = [
   "crates/aggregator/dispatcher",
   "crates/aggregator/metrics",
   "crates/aggregator/settlement",
-  "crates/aggregator/types",
   "crates/common",
   "crates/constants",
   "crates/db/batch",
@@ -150,7 +149,6 @@ twine-aggregator-database = { path = "crates/aggregator/database" }
 twine-aggregator-dispatcher = { path = "crates/aggregator/dispatcher" }
 twine-aggregator-metrics = { path = "crates/aggregator/metrics" }
 twine-aggregator-settlement = { path = "crates/aggregator/settlement" }
-twine-aggregator-types = { path = "crates/aggregator/types" }
 twine-common = { path = "crates/common" }
 twine-constants = { path = "crates/constants" }
 twine-db-batch = { path = "crates/db/batch" }

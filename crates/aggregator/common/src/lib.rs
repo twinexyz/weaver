@@ -5,6 +5,7 @@
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
+use twine_types::settle::CommitAndFinalizeBatch;
 
 pub mod config;
 
@@ -65,7 +66,7 @@ pub trait SettleBatch: Send + Sync {
     /// Chain identifier for settlement chains
     fn chain_name(&self) -> SettlementChains;
     /// Commit and Finalize Transactions
-    async fn settle(&self, batch: &twine_aggregator_types::BatchData) -> eyre::Result<()>;
+    async fn settle(&self, batch: &CommitAndFinalizeBatch) -> eyre::Result<()>;
     /// Check if a batch is finalized
     async fn is_finalized(&self, batch_id: u64) -> eyre::Result<bool>;
 }
