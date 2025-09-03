@@ -19,9 +19,6 @@ use crate::batch_transform::transform_attempt::{
 use crate::batch_transform::transform_request::TwineBatchTransformRequestID;
 use crate::error::TwineProofSchedulerError;
 
-/// default job completion time out
-pub const JOB_COMPLETION_TIMEOUT: u64 = 30;
-
 /// Connection Message Types
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum ConnectionMessageTypes {
@@ -87,6 +84,8 @@ pub struct Connections {
     pub assigned_jobs: Mutex<HashMap<(TwineBatchTransformAttemptID, ConnectionID), JobDetails>>,
     /// keeps track of the existing connections to the worker instances
     pub connection_status: Mutex<HashMap<ConnectionID, ConnectionStatus>>,
+    /// job completion timeout
+    pub job_completion_timeout: u64,
 }
 
 /// Connection status of the worker instances
@@ -250,7 +249,7 @@ impl Connections {
         &self,
         _sender: Sender<WorkerManagerResult<TwineBatchTransformAttempt>>,
     ) {
-        let mut interval = time::interval(Duration::from_secs(JOB_COMPLETION_TIMEOUT));
+        let mut interval = time::interval(Duration::from_secs(self.job_completion_timeout));
         loop {
             interval.tick().await;
             let mut assigned_jobs = self.assigned_jobs.lock().await;
@@ -259,7 +258,7 @@ impl Connections {
             for (job_id, job_details) in jobs {
                 // check if the job has timed out
                 // losen the policy
-                if job_details.assigned_at.elapsed().as_secs() > JOB_COMPLETION_TIMEOUT {
+                if job_details.assigned_at.elapsed().as_secs() > self.job_completion_timeout {
                     assigned_jobs.remove(&job_id.clone()).unwrap();
                     connection_status.insert(job_id.1.clone(), ConnectionStatus::Disconnected);
                     // let mut return_package = job_details.transform_attempt.return_package;
