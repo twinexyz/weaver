@@ -13,7 +13,7 @@ use twine_executor::payload_builder::TwinePayloadBuilder;
 #[derive(Debug, Clone, Args)]
 pub struct TwineCliArgs {
     /// Maximum blocks to include per batch
-    #[arg(long = "twine.max-blocks-per-batch", default_value_t = 10)]
+    #[arg(long = "twine.max-blocks-per-batch", default_value_t = 200)]
     pub max_blocks_per_batch: u64,
 
     /// Path to json file defining batch version cutovers
