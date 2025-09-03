@@ -153,8 +153,11 @@ revm-context = { version = "3.0.0", default-features = false }
 
 test-harness = { path = "crates/test-harness" }
 twine-aggregator-common = { path = "crates/aggregator/common" }
+twine-aggregator-da-source = { path = "crates/aggregator/da-source" }
 twine-aggregator-database = { path = "crates/aggregator/database" }
+twine-aggregator-dispatcher = { path = "crates/aggregator/dispatcher" }
 twine-aggregator-metrics = { path = "crates/aggregator/metrics" }
+twine-aggregator-settlement = { path = "crates/aggregator/settlement" }
 twine-aggregator-types = { path = "crates/aggregator/types" }
 twine-common = { path = "crates/common" }
 twine-constants = { path = "crates/constants" }

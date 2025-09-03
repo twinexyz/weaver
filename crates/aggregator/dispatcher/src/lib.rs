@@ -86,7 +86,7 @@ where
 
         // One settlement pipeline per requested chain
         for client in self.settlement_clients.clone() {
-            if self.cfg.settle_targets.contains(&client.chain_id()) {
+            if self.cfg.settle_targets.contains(&client.chain_name()) {
                 let pool = self.pool.clone();
                 let poll_interval_ms = self.cfg.poll_interval_ms;
                 tasks.spawn(async move {

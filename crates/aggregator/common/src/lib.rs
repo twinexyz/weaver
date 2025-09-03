@@ -41,25 +41,29 @@ impl fmt::Display for DAChains {
 
 /// A trait for querying data from Twine
 #[async_trait::async_trait]
-pub trait TwineQuery {
+pub trait TwineQuery: Send + Sync {
     /// Fetch the data needed to post to celestia
     async fn da_payload(&self, batch_id: u64) -> eyre::Result<Option<Vec<u8>>>;
 }
 
 /// A trait for Data Availability layer implementations
 #[async_trait::async_trait]
-pub trait DALayer {
-    /// Get chain id of the da chain
-    fn chain_id(&self) -> DAChains;
+pub trait DALayer: Send + Sync {
+    /// Get chain id
+    fn chain_id(&self) -> u64;
+    /// Get chain name of the da chain
+    fn chain_name(&self) -> DAChains;
     /// Post the payload bytes fetched from Twine to the DA network.
     async fn post(&self, payload: &[u8]) -> eyre::Result<()>;
 }
 
 /// A trait for Settlement chain implementations
 #[async_trait::async_trait]
-pub trait SettleBatch {
+pub trait SettleBatch: Send + Sync {
+    /// Get chain id
+    fn chain_id(&self) -> u64;
     /// Chain identifier for settlement chains
-    fn chain_id(&self) -> SettlementChains;
+    fn chain_name(&self) -> SettlementChains;
     /// Commit and Finalize Transactions
     async fn settle(&self, batch: &twine_aggregator_types::BatchData) -> eyre::Result<()>;
     /// Check if a batch is finalized
