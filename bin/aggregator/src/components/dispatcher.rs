@@ -3,6 +3,7 @@
 use std::sync::Arc;
 
 use eyre::eyre;
+use reth_tracing::tracing::info;
 use sqlx::PgPool;
 use twine_aggregator_common::config::AppCfg;
 use twine_aggregator_common::SettleBatch;
@@ -61,7 +62,6 @@ pub(crate) async fn start_dispatcher(
         }
         settlement_chains.push(Arc::new(solana_l1));
     }
-
     let dispatcher = Dispatcher::new(
         pool,
         config.dispatcher.clone(),

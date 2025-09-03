@@ -11,6 +11,7 @@ use std::fmt::Debug;
 use std::sync::Arc;
 
 use eyre::Result;
+use reth_tracing::tracing::info;
 use sqlx::PgPool;
 use tokio::task::JoinSet;
 use twine_aggregator_common::config::DispatcherConfig;
@@ -85,10 +86,12 @@ where
 
     /// Main dispatcher runner
     pub async fn run(&self) -> Result<()> {
+        info!("Dispatcher running");
         let mut tasks = JoinSet::new();
 
         // DA pipeline
         if self.cfg.use_da {
+            info!("DA Pipeline for dispatcher running");
             if let Some(da) = self.da_client.clone() {
                 let pool = self.pool.clone();
                 let poll_interval_ms = self.cfg.poll_interval_ms;

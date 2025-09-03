@@ -83,12 +83,12 @@ impl EthWriter {
             .provider
             .send_transaction(request)
             .await
-            .wrap_err("Failed to send transaction")?;
+            .context("Failed to send transaction")?;
 
         pending_tx
             .get_receipt()
             .await
-            .wrap_err("Failed while waiting for receipt")
+            .context("Failed while waiting for receipt")
     }
 
     /// Send raw transaction and wait for receipt
@@ -100,12 +100,12 @@ impl EthWriter {
             .provider
             .send_raw_transaction(&raw_tx)
             .await
-            .wrap_err("Failed to send transaction")?;
+            .context("Failed to send transaction")?;
 
         pending_tx
             .get_receipt()
             .await
-            .wrap_err("Failed while waiting for receipt")
+            .context("Failed while waiting for receipt")
     }
 
     /// Get transaction receipt (non-blocking)

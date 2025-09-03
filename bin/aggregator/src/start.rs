@@ -12,6 +12,7 @@ pub(crate) async fn start_aggregator(config: &AppCfg) -> eyre::Result<()> {
 
     // Apply migrations before we can start
     apply_migrations(&db_pool).await?;
+    tracing::info!("Migrations applied");
 
     // Start background components and collect their JoinHandles
     let mut handles: Vec<tokio::task::JoinHandle<()>> = Vec::new();
@@ -26,7 +27,8 @@ pub(crate) async fn start_aggregator(config: &AppCfg) -> eyre::Result<()> {
     );
 
     // Start the DA verifier
-    handles.push(crate::components::da_verifier::start_da_verifier(config, db_pool.clone()).await?);
+    // handles.push(crate::components::da_verifier::start_da_verifier(config,
+    // db_pool.clone()).await?);
 
     // Start the dispatcher
     handles.push(crate::components::dispatcher::start_dispatcher(config, db_pool.clone()).await?);
