@@ -14703,6 +14703,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "twine-aggregator-da-source"
+version = "0.1.0"
+dependencies = [
+ "alloy-rlp",
+ "async-trait",
+ "eyre",
+ "twine-aggregator-common",
+ "twine-common",
+ "twine-l1-eth",
+ "twine-rpc",
+]
+
+[[package]]
 name = "twine-aggregator-database"
 version = "0.1.0"
 dependencies = [
@@ -14731,6 +14744,20 @@ version = "0.1.0"
 dependencies = [
  "once_cell",
  "prometheus",
+]
+
+[[package]]
+name = "twine-aggregator-settlement"
+version = "0.1.0"
+dependencies = [
+ "alloy-primitives",
+ "async-trait",
+ "eyre",
+ "twine-aggregator-common",
+ "twine-aggregator-types",
+ "twine-evm-contracts",
+ "twine-l1-eth",
+ "twine-l1-solana",
 ]
 
 [[package]]
@@ -14942,6 +14969,7 @@ dependencies = [
  "alloy-pubsub",
  "alloy-rpc-types",
  "alloy-signer-local",
+ "eyre",
  "twine-common",
  "twine-l1-eth-reader",
  "twine-l1-eth-writer",

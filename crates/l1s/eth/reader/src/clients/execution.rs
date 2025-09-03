@@ -3,7 +3,7 @@
 use alloy_eips::BlockId;
 use alloy_primitives::Address;
 use alloy_provider::{DynProvider, Provider, ProviderBuilder};
-use alloy_rpc_types::{Block, Filter, Log, TransactionReceipt};
+use alloy_rpc_types::{Block, BlockTransactionsKind, Filter, Log, TransactionReceipt};
 use eyre::{eyre, Context, Result};
 use reth_tracing::tracing;
 use twine_common::retry::{retry_with_metrics, RetryConfig};
@@ -49,11 +49,15 @@ impl EthQueryExecutionClient {
     }
 
     /// Gets block transactions with retry logic
-    pub async fn get_block(&self, block: BlockId) -> Result<Option<Block>> {
+    pub async fn get_block(&self, block: BlockId, full: bool) -> Result<Option<Block>> {
         let config = RetryConfig::debug_default();
         let block_data =
             retry_with_metrics(self.chain_id, "eth_getBlockByNumber", &config, || async {
-                self.provider.get_block(block).await
+                if full {
+                    self.provider.get_block(block).full().await
+                } else {
+                    self.provider.get_block(block).hashes().await
+                }
             })
             .await?;
         Ok(block_data)
