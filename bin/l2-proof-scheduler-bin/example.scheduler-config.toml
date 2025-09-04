@@ -23,7 +23,7 @@ max_attempts_per_request = 20
 max_consume_attempts_per_attempts = 20
 
 [db]
-conn_str = "postgres://twine:twine@localhost:5432/twine"
+conn_str = "postgres://postgres:postgres@localhost:5432/scheduler"
 
 [processor]
 transform_request_channel_size = 100
