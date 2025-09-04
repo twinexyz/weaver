@@ -1,5 +1,5 @@
 # Database configuration
-db_url: "postgresql://twine:twine@localhost:5432/twine"
+db_url: "postgresql://postgres:postgres@localhost:5432/aggregator"
 
 # Dispatcher configuration
 dispatcher:
@@ -32,9 +32,11 @@ eth:
 #   # RPC endpoints for Solana
 #   rpc: "http://localhost:8899"
 #   # Chain id of solana chain
-#   chain_id: 14523
+#   chain_id: 900
 #   # Program ID of the twine chain program on Solana
 #   twine_chain_program_id: "..."
+#   # path to solana wallet `id.json`
+#   solana_wallet_path:
 
 # Celestia DA configuration
 # celestia: {}
@@ -59,7 +61,7 @@ kafka:
   config: {}
   # Topics to consume from
   topics:
-    - "twine.solana.proofs"
+    - "twine.execution.proofs"
   # Kafka consumer specific configuration
   consumer:
     # Bootstrap servers for Kafka
@@ -83,7 +85,7 @@ kafka:
 # RPC server configuration
 rpc:
   # Host to bind the RPC server to
-  host: "127.0.0.1"
+  host: "0.0.0.1"
 
   # Port to bind the RPC server to
   port: 5566
