@@ -8,6 +8,7 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+rdkafka.workspace = true
 twine-kafka-common.workspace = true
 twine-kafka-consumer.workspace = true
 twine-kafka-producer.workspace = true

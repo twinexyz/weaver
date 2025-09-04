@@ -7691,7 +7691,6 @@ dependencies = [
  "libc",
  "libz-sys",
  "num_enum",
- "openssl-sys",
  "pkg-config",
 ]
 
@@ -15037,6 +15036,7 @@ dependencies = [
 name = "twine-kafka"
 version = "0.1.0"
 dependencies = [
+ "rdkafka",
  "twine-kafka-common",
  "twine-kafka-consumer",
  "twine-kafka-producer",
