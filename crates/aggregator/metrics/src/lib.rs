@@ -17,6 +17,8 @@ fn registry() -> &'static Registry { default_registry() }
 struct Metrics {
     // Events/counters
     proofs_received_total: IntCounterVec,
+    proofs_received_from_kafka_total: IntCounterVec,
+    proofs_received_from_rpc_total: IntCounterVec,
     batches_observed_total: IntCounterVec,
     finalizes_total: IntCounterVec,
     batches_dispatched_total: IntCounterVec,
@@ -48,6 +50,28 @@ static METRICS: Lazy<Metrics> = Lazy::new(|| {
     .expect("counter vec");
     reg.register(Box::new(proofs_received_total.clone()))
         .expect("register proofs_received_total");
+
+    let proofs_received_from_kafka_total = IntCounterVec::new(
+        Opts::new(
+            "twine_proofs_received_from_kafka_total",
+            "Number of execution proofs received from Kafka",
+        ),
+        &["chain_id"],
+    )
+    .expect("counter vec");
+    reg.register(Box::new(proofs_received_from_kafka_total.clone()))
+        .expect("register proofs_received_from_kafka_total");
+
+    let proofs_received_from_rpc_total = IntCounterVec::new(
+        Opts::new(
+            "twine_proofs_received_from_rpc_total",
+            "Number of execution proofs received from RPC",
+        ),
+        &["chain_id"],
+    )
+    .expect("counter vec");
+    reg.register(Box::new(proofs_received_from_rpc_total.clone()))
+        .expect("register proofs_received_from_rpc_total");
 
     let batches_observed_total = IntCounterVec::new(
         Opts::new(
@@ -159,6 +183,8 @@ static METRICS: Lazy<Metrics> = Lazy::new(|| {
 
     Metrics {
         proofs_received_total,
+        proofs_received_from_kafka_total,
+        proofs_received_from_rpc_total,
         batches_observed_total,
         finalizes_total,
         batches_dispatched_total,
@@ -190,7 +216,7 @@ pub fn record_finalized_batch(chain_id: &str, batch: u64, tx_hash: &str) {
         .last_finalized_batch
         .with_label_values(&[chain_id])
         .set(batch as i64);
-    set_last_tx_hash(chain_id, "finalize", tx_hash);
+    set_last_tx_hash(chain_id, "commit_and_finalize", tx_hash);
 }
 
 /// Execution proof pertaining to `batch` was received (e.g., from Kafka).
@@ -213,6 +239,28 @@ pub fn proof_received_from_kafka(chain_id: &str, batch: u64) {
             .with_label_values(&[chain_id])
             .set(batch as i64);
     }
+}
+
+/// Execution proof pertaining to `batch` was received from Kafka.
+pub fn proof_received_from_kafka_source(chain_id: &str, batch: u64) {
+    METRICS
+        .proofs_received_from_kafka_total
+        .with_label_values(&[chain_id])
+        .inc();
+
+    // Also call the general function to maintain consistency
+    proof_received_from_kafka(chain_id, batch);
+}
+
+/// Execution proof pertaining to `batch` was received from RPC.
+pub fn proof_received_from_rpc_source(chain_id: &str, batch: u64) {
+    METRICS
+        .proofs_received_from_rpc_total
+        .with_label_values(&[chain_id])
+        .inc();
+
+    // Also call the general function to maintain consistency
+    proof_received_from_kafka(chain_id, batch);
 }
 
 /// Observe finalize submit→finality latency.

@@ -14674,12 +14674,14 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "eyre",
+ "jsonrpsee",
  "rdkafka",
  "reth-tracing",
  "serde_json",
  "sqlx",
  "tokio",
  "twine-aggregator-common",
+ "twine-aggregator-consumer",
  "twine-aggregator-database",
  "twine-aggregator-dispatcher",
  "twine-aggregator-metrics",
@@ -14700,6 +14702,21 @@ dependencies = [
  "eyre",
  "serde",
  "serde_yaml",
+ "twine-types",
+]
+
+[[package]]
+name = "twine-aggregator-consumer"
+version = "0.1.0"
+dependencies = [
+ "eyre",
+ "reth-tracing",
+ "serde_json",
+ "sqlx",
+ "tokio",
+ "twine-aggregator-database",
+ "twine-aggregator-metrics",
+ "twine-rpc",
  "twine-types",
 ]
 
