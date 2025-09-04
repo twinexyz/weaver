@@ -18,24 +18,20 @@ struct Metrics {
     // Events/counters
     proofs_received_total: IntCounterVec,
     batches_observed_total: IntCounterVec,
-    commits_total: IntCounterVec,
     finalizes_total: IntCounterVec,
     batches_dispatched_total: IntCounterVec,
-    dispatcher_errors_total: IntCounterVec,
 
     // Current heads
     last_observed_batch: IntGaugeVec,
-    last_committed_batch: IntGaugeVec,
+    last_proof_received: IntGaugeVec,
     last_finalized_batch: IntGaugeVec,
 
     // Latencies (seconds)
-    commit_submit_latency: HistogramVec,
     finalize_submit_latency: HistogramVec,
+    settlement_operation_latency: HistogramVec,
 
     // Optional backlogs (set by scheduler)
-    commit_backlog: IntGaugeVec,
     finalize_backlog: IntGaugeVec,
-    dispatcher_queue_size: IntGaugeVec,
 }
 
 static METRICS: Lazy<Metrics> = Lazy::new(|| {
@@ -64,17 +60,6 @@ static METRICS: Lazy<Metrics> = Lazy::new(|| {
     reg.register(Box::new(batches_observed_total.clone()))
         .expect("register batches_observed_total");
 
-    let commits_total = IntCounterVec::new(
-        Opts::new(
-            "twine_commits_total",
-            "Number of commitBatch tx finalized on chain",
-        ),
-        &["chain_id"],
-    )
-    .expect("counter vec");
-    reg.register(Box::new(commits_total.clone()))
-        .expect("register commits_total");
-
     let finalizes_total = IntCounterVec::new(
         Opts::new(
             "twine_finalizes_total",
@@ -97,17 +82,6 @@ static METRICS: Lazy<Metrics> = Lazy::new(|| {
     reg.register(Box::new(batches_dispatched_total.clone()))
         .expect("register batches_dispatched_total");
 
-    let dispatcher_errors_total = IntCounterVec::new(
-        Opts::new(
-            "twine_dispatcher_errors_total",
-            "Number of errors in the dispatcher",
-        ),
-        &["error_type"],
-    )
-    .expect("counter vec");
-    reg.register(Box::new(dispatcher_errors_total.clone()))
-        .expect("register dispatcher_errors_total");
-
     // --- Gauges (heads/backlogs) ---
     let last_observed_batch = IntGaugeVec::new(
         Opts::new(
@@ -120,16 +94,16 @@ static METRICS: Lazy<Metrics> = Lazy::new(|| {
     reg.register(Box::new(last_observed_batch.clone()))
         .expect("register last_observed_batch");
 
-    let last_committed_batch = IntGaugeVec::new(
+    let last_proof_received = IntGaugeVec::new(
         Opts::new(
-            "twine_last_committed_batch",
-            "Highest batch number committed on chain",
+            "twine_last_proof_received",
+            "Batch number of the last proof received",
         ),
         &["chain_id"],
     )
     .expect("gauge vec");
-    reg.register(Box::new(last_committed_batch.clone()))
-        .expect("register last_committed_batch");
+    reg.register(Box::new(last_proof_received.clone()))
+        .expect("register last_proof_received");
 
     let last_finalized_batch = IntGaugeVec::new(
         Opts::new(
@@ -142,17 +116,6 @@ static METRICS: Lazy<Metrics> = Lazy::new(|| {
     reg.register(Box::new(last_finalized_batch.clone()))
         .expect("register last_finalized_batch");
 
-    let commit_backlog = IntGaugeVec::new(
-        Opts::new(
-            "twine_commit_backlog",
-            "Number of batches pending commit on this chain",
-        ),
-        &["chain_id"],
-    )
-    .expect("gauge vec");
-    reg.register(Box::new(commit_backlog.clone()))
-        .expect("register commit_backlog");
-
     let finalize_backlog = IntGaugeVec::new(
         Opts::new(
             "twine_finalize_backlog",
@@ -164,40 +127,17 @@ static METRICS: Lazy<Metrics> = Lazy::new(|| {
     reg.register(Box::new(finalize_backlog.clone()))
         .expect("register finalize_backlog");
 
-    let dispatcher_queue_size = IntGaugeVec::new(
-        Opts::new(
-            "twine_dispatcher_queue_size",
-            "Number of batches pending dispatch",
-        ),
-        &["chain_id"],
-    )
-    .expect("gauge vec");
-    reg.register(Box::new(dispatcher_queue_size.clone()))
-        .expect("register dispatcher_queue_size");
-
     // --- Histograms (latencies) ---
     // Use wide buckets suitable for chain latencies; tweak as needed.
     let buckets = vec![
         0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 20.0, 40.0, 60.0, 120.0,
     ];
 
-    let commit_submit_latency = HistogramVec::new(
-        histogram_opts(
-            "twine_commit_submit_latency_seconds",
-            "Time from submit to finality for commitBatch",
-            buckets.clone(),
-        ),
-        &["chain_id"],
-    )
-    .expect("hist vec");
-    reg.register(Box::new(commit_submit_latency.clone()))
-        .expect("register commit_submit_latency");
-
     let finalize_submit_latency = HistogramVec::new(
         histogram_opts(
             "twine_finalize_submit_latency_seconds",
             "Time from submit to finality for finalizeBatch",
-            buckets,
+            buckets.clone(),
         ),
         &["chain_id"],
     )
@@ -205,21 +145,29 @@ static METRICS: Lazy<Metrics> = Lazy::new(|| {
     reg.register(Box::new(finalize_submit_latency.clone()))
         .expect("register finalize_submit_latency");
 
+    let settlement_operation_latency = HistogramVec::new(
+        histogram_opts(
+            "twine_settlement_operation_latency_seconds",
+            "Time taken to execute settlement operations",
+            buckets,
+        ),
+        &["chain_id"],
+    )
+    .expect("hist vec");
+    reg.register(Box::new(settlement_operation_latency.clone()))
+        .expect("register settlement_operation_latency");
+
     Metrics {
         proofs_received_total,
         batches_observed_total,
-        commits_total,
         finalizes_total,
         batches_dispatched_total,
-        dispatcher_errors_total,
         last_observed_batch,
-        last_committed_batch,
+        last_proof_received,
         last_finalized_batch,
-        commit_submit_latency,
         finalize_submit_latency,
-        commit_backlog,
+        settlement_operation_latency,
         finalize_backlog,
-        dispatcher_queue_size,
     }
 });
 
@@ -235,18 +183,6 @@ pub fn record_twine_batch_observed(chain_id: &str, batch: u64) {
         .set(batch as i64);
 }
 
-/// When commitBatch is finalized on Ethereum or Solana.
-/// We increment a counter and set the "last committed" gauge.
-/// Tx hash is stored in a low-cardinality cache instead of labels.
-pub fn record_committed_batch(chain_id: &str, batch: u64, tx_hash: &str) {
-    METRICS.commits_total.with_label_values(&[chain_id]).inc();
-    METRICS
-        .last_committed_batch
-        .with_label_values(&[chain_id])
-        .set(batch as i64);
-    set_last_tx_hash(chain_id, "finalize", tx_hash);
-}
-
 /// When finalizeBatch is finalized on chain.
 pub fn record_finalized_batch(chain_id: &str, batch: u64, tx_hash: &str) {
     METRICS.finalizes_total.with_label_values(&[chain_id]).inc();
@@ -258,19 +194,25 @@ pub fn record_finalized_batch(chain_id: &str, batch: u64, tx_hash: &str) {
 }
 
 /// Execution proof pertaining to `batch` was received (e.g., from Kafka).
-pub fn proof_received_from_kafka(chain_id: &str, _batch: u64) {
+pub fn proof_received_from_kafka(chain_id: &str, batch: u64) {
     METRICS
         .proofs_received_total
         .with_label_values(&[chain_id])
         .inc();
-}
 
-/// Observe commit submit→finality latency.
-pub fn observe_commit_latency(chain_id: &str, seconds: f64) {
-    METRICS
-        .commit_submit_latency
+    // Only update the last_proof_received gauge if this batch number is higher than
+    // the current value
+    let current = METRICS
+        .last_proof_received
         .with_label_values(&[chain_id])
-        .observe(seconds);
+        .get();
+
+    if batch as i64 > current {
+        METRICS
+            .last_proof_received
+            .with_label_values(&[chain_id])
+            .set(batch as i64);
+    }
 }
 
 /// Observe finalize submit→finality latency.
@@ -279,14 +221,6 @@ pub fn observe_finalize_latency(chain_id: &str, seconds: f64) {
         .finalize_submit_latency
         .with_label_values(&[chain_id])
         .observe(seconds);
-}
-
-/// Set backlog sizes (call from scheduler periodically).
-pub fn set_commit_backlog(chain_id: &str, backlog: i64) {
-    METRICS
-        .commit_backlog
-        .with_label_values(&[chain_id])
-        .set(backlog);
 }
 
 /// Set the number of batches pending finalize on this chain.
@@ -305,20 +239,12 @@ pub fn record_batch_dispatched(chain_id: &str, _batch: u64) {
         .inc();
 }
 
-/// Record a dispatcher error
-pub fn record_dispatcher_error(error_type: &str) {
+/// Observe settlement operation latency
+pub fn observe_settlement_operation_latency(chain_id: &str, seconds: f64) {
     METRICS
-        .dispatcher_errors_total
-        .with_label_values(&[error_type])
-        .inc();
-}
-
-/// Set the size of the dispatcher queue for a chain
-pub fn set_dispatcher_queue_size(chain_id: &str, queue_size: i64) {
-    METRICS
-        .dispatcher_queue_size
+        .settlement_operation_latency
         .with_label_values(&[chain_id])
-        .set(queue_size);
+        .observe(seconds);
 }
 
 /// Retrieve last recorded tx hash (not a metric; for debug endpoints/logs).

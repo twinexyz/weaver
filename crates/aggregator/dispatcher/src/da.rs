@@ -8,6 +8,7 @@ use tokio::time::{self, Duration};
 use twine_aggregator_common::{DALayer, TwineQuery};
 use twine_aggregator_database::types::DaPostingStatus;
 use twine_aggregator_database::{operations, transactions};
+use twine_aggregator_metrics::record_batch_dispatched;
 
 /// Helper function to update da chain progress in a transaction
 async fn update_da_progress(
@@ -72,6 +73,8 @@ where
                         )
                         .await?;
                         debug!(batch = next, chain = da_id, "DA status updated in database");
+                        // Record successful DA post
+                        record_batch_dispatched(&da_id, next);
                     }
                     Err(e) => {
                         warn!(batch = next, chain = da_id, error = ?e, "DA post failed");
