@@ -1,0 +1,62 @@
+services:
+  redpanda:
+    image: redpandadata/redpanda:v24.1.5
+    command:
+      - redpanda
+      - start
+      - --overprovisioned
+      - --smp
+      - "1"
+      - --memory
+      - 1G
+      - --reserve-memory
+      - 0M
+      - --node-id
+      - "0"
+      - --check=false
+      # Kafka listeners (inside & outside Docker)
+      - --kafka-addr
+      - PLAINTEXT://0.0.0.0:9092,INSIDE://0.0.0.0:29092
+      - --advertise-kafka-addr
+      - PLAINTEXT://localhost:9092,INSIDE://redpanda:29092
+      # Admin API (optional, handy for healthchecks)
+      - --rpc-addr
+      - 0.0.0.0:33145
+      - --advertise-rpc-addr
+      - redpanda:33145
+    ports:
+      - "9092:9092"   # client from host -> use this
+      - "9644:9644"   # admin API
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9644/v1/status/ready || exit 1"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  init-topics:
+    image: redpandadata/redpanda:v24.1.5
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "-lc"]
+    command: >
+      rpk cluster info -X brokers=redpanda:29092 &&
+      rpk topic create
+        twine.proofs
+        twine.events
+        twine.dlq
+      -X brokers=redpanda:29092 || true
+    restart: "no"
+
+  kafka-ui:
+    image: kafbat/kafka-ui:latest   # (Kafka-UI project)
+    container_name: kafka-ui
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    ports:
+      - "8081:8080"
+    environment:
+      DYNAMIC_CONFIG_ENABLED: "true"
+      KAFKA_CLUSTERS_0_NAME: "local"
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "redpanda:29092"  # use the DOCKER listener

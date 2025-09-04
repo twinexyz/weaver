@@ -1,0 +1,4 @@
+include:
+  - docker-compose.postgres.yaml
+  - docker-compose.kafka.yaml
+  - docker-compose.prometheus.yaml
