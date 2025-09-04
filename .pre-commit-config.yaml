@@ -30,7 +30,7 @@ repos:
       - id: cargo-clippy
         name: cargo-clippy
         description: Check if all files follow the rustfmt style
-        entry: cargo clippy --all-features --all-targets
+        entry: cargo clippy --locked --all-features --all-targets
         language: system
         pass_filenames: false
 -   repo: local
