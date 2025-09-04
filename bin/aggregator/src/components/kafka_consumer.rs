@@ -7,7 +7,6 @@ use reth_tracing::tracing::{debug, error, info, trace};
 use sqlx::PgPool;
 use twine_aggregator_common::config::AppCfg;
 use twine_aggregator_database::operations::{insert_batch, insert_proof};
-use twine_aggregator_metrics::proof_received_from_kafka;
 use twine_kafka_common::config::KafkaCommonConfig;
 use twine_kafka_common::serde::JsonSerde;
 use twine_kafka_consumer::KafkaConsumer;
@@ -152,6 +151,7 @@ pub(crate) async fn start_kafka_consumer(
 
     // Start Kafka consumer in a separate task
     let twine_rpc = config.twine.rpc.clone();
+    let twine_chain_id = config.twine.chain_id;
     let handle = tokio::spawn(async move {
         info!("Kafka consumer task started");
         let json_deser = JsonSerde;
@@ -176,10 +176,13 @@ pub(crate) async fn start_kafka_consumer(
                         }
                     };
 
-                    info!("Received ZkProof for batch: {}", batch_number);
+                    info!("Received execution proof for batch: {}", batch_number);
 
                     // Record metrics for the received proof
-                    proof_received_from_kafka("twine", batch_number);
+                    twine_aggregator_metrics::proof_received_from_kafka(
+                        &twine_chain_id.to_string(),
+                        batch_number,
+                    );
 
                     // Process the proof
                     let common_proof_data: CommonProofData = match proof.proof_data {

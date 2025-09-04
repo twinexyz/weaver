@@ -6,6 +6,8 @@ use sqlx::PgPool;
 use twine_types::proofs::CommonProofData;
 use twine_types::settle::CommitAndFinalizeBatch;
 
+use crate::types::{DaPostingStatus, OnChainStatus};
+
 /// Migrate database tables
 pub async fn apply_migrations(pool: &PgPool) -> Result<(), sqlx::Error> {
     // Run all migrations using the embedded migrations
@@ -85,7 +87,7 @@ pub async fn upsert_on_chain_status(
     pool: &PgPool,
     batch_id: u64,
     chain_id: &str,
-    status: &str,
+    status: OnChainStatus,
     batch_posted_txn: Option<&str>,
     error_msg: Option<&str>,
     posted_at: Option<DateTime<Utc>>,
@@ -106,7 +108,7 @@ pub async fn upsert_on_chain_status(
     )
     .bind(batch_id as i64)
     .bind(chain_id)
-    .bind(status)
+    .bind(status.to_string())
     .bind(batch_posted_txn)
     .bind(error_msg)
     .bind(posted_at)
@@ -173,7 +175,7 @@ pub async fn upsert_da_status(
     pool: &PgPool,
     batch_id: i64,
     da_id: &str,
-    status: &str,
+    status: DaPostingStatus,
     verification_data: Option<&JsonValue>,
     da_posted_at: Option<DateTime<Utc>>,
     da_verified_at: Option<DateTime<Utc>>,
@@ -194,7 +196,7 @@ pub async fn upsert_da_status(
     )
     .bind(batch_id)
     .bind(da_id)
-    .bind(status)
+    .bind(status.to_string())
     .bind(verification_data)
     .bind(da_posted_at)
     .bind(da_verified_at)
@@ -341,7 +343,7 @@ pub async fn get_settlement_batch_by_id(
     pool: &PgPool,
     batch_id: u64,
 ) -> eyre::Result<Option<CommitAndFinalizeBatch>> {
-    let row = sqlx::query_as::<_, (i64, Vec<u8>, Vec<u8>)>(
+    let row = sqlx::query_as::<_, (i64, Vec<u8>, Option<Vec<u8>>)>(
         r#"
         SELECT batch_id, batch_hash, execution_proof_data
         FROM batches
@@ -353,7 +355,7 @@ pub async fn get_settlement_batch_by_id(
     .await?;
 
     match row {
-        Some((id, hash_vec, proof_data)) => {
+        Some((id, hash_vec, proof_data_opt)) => {
             if hash_vec.len() != 32 {
                 return Err(eyre!("Invalid batch hash length"));
             }
@@ -361,7 +363,11 @@ pub async fn get_settlement_batch_by_id(
             let mut hash = [0u8; 32];
             hash.copy_from_slice(&hash_vec);
 
-            let common_proof_data: CommonProofData = serde_json::from_slice(&proof_data)?;
+            // Return None if proof data doesn't exist yet
+            let common_proof_data: CommonProofData = match proof_data_opt {
+                Some(proof_data) if !proof_data.is_empty() => serde_json::from_slice(&proof_data)?,
+                _ => return Ok(None), // Batch exists but proof data is not ready
+            };
 
             let settlement_batch = CommitAndFinalizeBatch {
                 batch_number: id as u64,

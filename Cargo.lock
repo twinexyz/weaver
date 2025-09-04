@@ -14738,6 +14738,7 @@ dependencies = [
  "tokio",
  "twine-aggregator-common",
  "twine-aggregator-database",
+ "twine-aggregator-metrics",
  "twine-types",
 ]
 
