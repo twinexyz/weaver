@@ -31,6 +31,14 @@ pub(crate) async fn start_aggregator(config: &AppCfg) -> eyre::Result<()> {
         crate::components::kafka_consumer::start_kafka_consumer(config, db_pool.clone()).await?,
     );
 
+    // Start the RPC server
+    info!("Starting RPC server");
+    let rpc_server_handle =
+        crate::components::rpc_server::start_rpc_server(config, db_pool.clone()).await?;
+    handles.push(tokio::spawn(async move {
+        rpc_server_handle.stopped().await;
+    }));
+
     // Start the DA verifier
     // handles.push(crate::components::da_verifier::start_da_verifier(config,
     // db_pool.clone()).await?);

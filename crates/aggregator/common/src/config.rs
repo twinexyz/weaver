@@ -18,6 +18,7 @@ pub struct AppCfg {
     pub celestia: Option<CelestiaCfg>,
     pub twine: TwineCfg,
     pub kafka: KafkaConfig,
+    pub rpc: RpcConfig,
     pub verification_keys: Option<VerificationKey>,
     pub telemetry: Option<TelemetryCfg>,
 }
@@ -135,6 +136,16 @@ pub struct KafkaConfig {
 pub struct TelemetryCfg {
     /// The address of the metrics server (e.g., "127.0.0.1:3000").
     pub metrics_server: String,
+}
+
+/// RPC server configuration.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct RpcConfig {
+    /// The host to bind the RPC server to.
+    pub host: String,
+
+    /// The port to bind the RPC server to.
+    pub port: u16,
 }
 
 /// Parse the application configuration from a YAML file.

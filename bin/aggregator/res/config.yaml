@@ -80,6 +80,14 @@ kafka:
     # Enable auto commit
     enable_auto_commit: false
 
+# RPC server configuration
+rpc:
+  # Host to bind the RPC server to
+  host: "127.0.0.1"
+
+  # Port to bind the RPC server to
+  port: 5566
+
 # Verification key paths
 verification_keys:
   # Execution proof verification key
@@ -87,4 +95,4 @@ verification_keys:
 
 # Telemetry configuration (optional)
 telemetry:
-  metrics_server: "127.0.0.1:3000"
+  metrics_server: "127.0.0.1:5567"
