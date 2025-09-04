@@ -1,0 +1,208 @@
+//! Represents attempts made to convert the transform request
+//! to output
+use async_trait::async_trait;
+use orchestrator_rs::transform::TransformAttempt;
+use serde::{Deserialize, Serialize};
+
+use crate::batch_transform::transform_request::{
+    TwineBatchTransformInput, TwineBatchTransformRequestID,
+};
+use crate::error::TwineProofSchedulerError;
+
+/// Uniquely identifies the transform attempts
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct TwineBatchTransformAttemptID {
+    /// sequntial attempt identifier
+    pub identifier: u64,
+    /// represents the transform request associated with each
+    /// transform attempts
+    pub transform_request_id: TwineBatchTransformRequestID,
+}
+
+impl TwineBatchTransformAttemptID {
+    /// creates new transform attempt id
+    pub fn new(identifier: u64, transform_request_id: TwineBatchTransformRequestID) -> Self {
+        Self {
+            identifier,
+            transform_request_id,
+        }
+    }
+}
+
+impl From<TwineBatchTransformAttemptID> for TwineBatchTransformRequestID {
+    fn from(value: TwineBatchTransformAttemptID) -> Self { value.transform_request_id }
+}
+
+/// represents the attempts made to convert the transform request
+/// to desired output
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TwineBatchTransformAttempt {
+    /// identifier to identify attempts
+    pub identifier: TwineBatchTransformAttemptID,
+    /// context sent to the workers to convert the attempt to output
+    pub call_ctx: TwineBatchTransformCallCtx,
+    /// input to convert into output using the call context by the workers
+    pub call_val: TwineBatchTransformInput,
+    /// return value after the conversion by the workers
+    pub return_type: Option<TwineBatchTransformReturnType>,
+}
+
+/// call context sent alongside the input to the worker instance
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TwineBatchTransformCallCtx {
+    /// rpc url to connect to twine node
+    pub twine_node_rpc: String,
+}
+
+/// return from the worker instances
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TwineBatchTransformReturnCtx {
+    /// any additional data
+    pub extra_data: Vec<u8>,
+    /// batch transform input which was used to produce the return
+    /// package
+    pub call_type: TwineBatchTransformInput,
+    /// call context
+    pub call_context: TwineBatchTransformCallCtx,
+}
+
+/// return type from the workers
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TwineBatchTransformReturnType(pub ZKProofBundle);
+
+/// represents the zk proof structure that is returned by the worker instances
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ZKProofBundle {
+    /// proof kind
+    #[serde(rename = "kind")]
+    pub proof_kind: ProofKind,
+    /// prover identity
+    pub identifier: String,
+    /// proof structure
+    pub proof_data: ProofData,
+}
+
+/// Proof data for different provers
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ProofData {
+    /// SP1 proof
+    SP1(SP1Proof),
+    /// RISC0 proof
+    RISC0,
+}
+
+/// proof types
+#[derive(Serialize, Deserialize, Debug, Clone, clap::ValueEnum)]
+pub enum SupportedProvers {
+    /// scuccinct's proof
+    SP1,
+    /// risczero's proof
+    RISC0,
+    /// GKR proof
+    GKR,
+}
+
+impl Default for SupportedProvers {
+    fn default() -> Self { Self::SP1 }
+}
+
+impl ToString for SupportedProvers {
+    fn to_string(&self) -> String {
+        match self {
+            Self::GKR => String::from("gkr"),
+            Self::RISC0 => String::from("risc0"),
+            Self::SP1 => String::from("sp1"),
+        }
+    }
+}
+
+/// Proof kind
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ProofKind {
+    /// Twine execution proof
+    ExecutionProof(u64),
+    /// Twine transaction proof
+    SolanaConsensusProof,
+}
+
+impl Default for ProofKind {
+    fn default() -> Self { Self::ExecutionProof(0) }
+}
+
+impl ToString for ProofKind {
+    fn to_string(&self) -> String {
+        match self {
+            Self::ExecutionProof(_) => String::from("execution_proof"),
+            Self::SolanaConsensusProof => String::from("solana_consensus_proof"),
+        }
+    }
+}
+
+/// SP1 proof structure
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SP1Proof {
+    /// version of the zk proof: it is associated with the verifying key
+    pub version: u64, // TODO make it into an enum
+    /// zk proof
+    pub proof: Vec<u8>,
+    /// zk public commitments
+    pub public_value: Vec<u8>,
+    /// zk verification key,
+    pub verification_key: [u8; 32],
+}
+
+#[async_trait]
+impl TransformAttempt for TwineBatchTransformAttempt {
+    type CallArgsType = TwineBatchTransformInput;
+    type CallCtx = TwineBatchTransformCallCtx;
+    type Identifier = TwineBatchTransformAttemptID;
+    type ReturnCtx = TwineBatchTransformReturnCtx;
+    type ReturnPackage = (
+        Self::Identifier,
+        Self::ReturnCtx,
+        Result<Self::ReturnType, Self::TransformError>,
+    );
+    type ReturnType = TwineBatchTransformReturnType;
+    type SendPackage = (Self::Identifier, Self::CallCtx, Self::CallArgsType);
+    type TransformError = TwineProofSchedulerError;
+    type TransformRequestIdentifier = TwineBatchTransformRequestID;
+
+    fn request_id(&self) -> Self::TransformRequestIdentifier { self.identifier.clone().into() }
+
+    fn attempt_id(&self) -> Self::Identifier { self.identifier.clone() }
+
+    fn new(
+        attempt_id: Self::Identifier,
+        call_ctx: Self::CallCtx,
+        call_val: Self::CallArgsType,
+    ) -> Self {
+        Self {
+            identifier: attempt_id,
+            call_ctx,
+            call_val,
+            return_type: None,
+        }
+    }
+
+    fn set_return_package(&mut self, return_pkg: Self::ReturnPackage) {
+        if self.identifier != return_pkg.0 {
+            return;
+        }
+        self.call_ctx = return_pkg.1.call_context;
+        self.call_val = return_pkg.1.call_type;
+        self.return_type = return_pkg.2.ok();
+    }
+
+    fn from_return_package(
+        // TODO: redundant value
+        attempt_id: Self::Identifier,
+        return_package: Self::ReturnPackage,
+    ) -> Self {
+        Self {
+            identifier: attempt_id,
+            call_ctx: return_package.1.call_context,
+            call_val: return_package.1.call_type,
+            return_type: return_package.2.ok(),
+        }
+    }
+}
