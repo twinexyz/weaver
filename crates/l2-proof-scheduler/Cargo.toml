@@ -9,7 +9,6 @@ rust-version.workspace = true
 
 [dependencies]
 async-trait.workspace = true
-clap.workspace = true
 futures-util.workspace = true
 log.workspace = true
 orchestrator-rs.workspace = true

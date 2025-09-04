@@ -15211,6 +15211,7 @@ dependencies = [
  "tokio",
  "tokio-tungstenite 0.27.0",
  "twine-l2-proof-scheduler",
+ "twine-types",
 ]
 
 [[package]]
@@ -15218,7 +15219,6 @@ name = "twine-l2-proof-scheduler"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "clap",
  "futures-util",
  "log",
  "orchestrator-rs",

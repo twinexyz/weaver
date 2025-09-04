@@ -66,6 +66,7 @@ pub struct SolCfg {
     pub solana_wallet_path: String,
 }
 
+/// Celestia DA Configuration
 #[derive(Debug, Deserialize, Clone)]
 #[allow(dead_code)]
 #[allow(missing_docs)]
