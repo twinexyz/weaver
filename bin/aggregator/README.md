@@ -72,8 +72,7 @@ The RPC server exposes the following methods:
 <details>
 <summary>Example: Submitting a proof via RPC</summary>
 
-crates/types/src/proofs.rs
-
+The payload should be serializable to `ZkProof` structure defined [here](../../crates/types/src/proofs.rs)
 
 ```bash
 curl -X POST \
