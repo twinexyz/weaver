@@ -3,6 +3,7 @@
 use async_trait::async_trait;
 use orchestrator_rs::transform::TransformAttempt;
 use serde::{Deserialize, Serialize};
+use twine_types::proofs::ZkProof;
 
 use crate::batch_transform::transform_request::{
     TwineBatchTransformInput, TwineBatchTransformRequestID,
@@ -68,88 +69,7 @@ pub struct TwineBatchTransformReturnCtx {
 
 /// return type from the workers
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TwineBatchTransformReturnType(pub ZKProofBundle);
-
-/// represents the zk proof structure that is returned by the worker instances
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ZKProofBundle {
-    /// proof kind
-    #[serde(rename = "kind")]
-    pub proof_kind: ProofKind,
-    /// prover identity
-    pub identifier: String,
-    /// proof structure
-    pub proof_data: ProofData,
-}
-
-/// Proof data for different provers
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum ProofData {
-    /// SP1 proof
-    SP1(SP1Proof),
-    /// RISC0 proof
-    RISC0,
-}
-
-/// proof types
-#[derive(Serialize, Deserialize, Debug, Clone, clap::ValueEnum)]
-pub enum SupportedProvers {
-    /// scuccinct's proof
-    SP1,
-    /// risczero's proof
-    RISC0,
-    /// GKR proof
-    GKR,
-}
-
-impl Default for SupportedProvers {
-    fn default() -> Self { Self::SP1 }
-}
-
-impl ToString for SupportedProvers {
-    fn to_string(&self) -> String {
-        match self {
-            Self::GKR => String::from("gkr"),
-            Self::RISC0 => String::from("risc0"),
-            Self::SP1 => String::from("sp1"),
-        }
-    }
-}
-
-/// Proof kind
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum ProofKind {
-    /// Twine execution proof
-    ExecutionProof(u64),
-    /// Twine transaction proof
-    SolanaConsensusProof,
-}
-
-impl Default for ProofKind {
-    fn default() -> Self { Self::ExecutionProof(0) }
-}
-
-impl ToString for ProofKind {
-    fn to_string(&self) -> String {
-        match self {
-            Self::ExecutionProof(_) => String::from("execution_proof"),
-            Self::SolanaConsensusProof => String::from("solana_consensus_proof"),
-        }
-    }
-}
-
-/// SP1 proof structure
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SP1Proof {
-    /// version of the zk proof: it is associated with the verifying key
-    pub version: u64, // TODO make it into an enum
-    /// zk proof
-    pub proof: Vec<u8>,
-    /// zk public commitments
-    pub public_value: Vec<u8>,
-    /// zk verification key,
-    pub verification_key: [u8; 32],
-}
+pub struct TwineBatchTransformReturnType(pub ZkProof);
 
 #[async_trait]
 impl TransformAttempt for TwineBatchTransformAttempt {
