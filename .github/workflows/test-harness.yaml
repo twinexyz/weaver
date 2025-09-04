@@ -11,25 +11,46 @@ on:
 
 
 jobs:
-   test-harness:
+  test-harness:
     runs-on: self-hosted
     concurrency:
       group: ${{ github.ref }}-${{ github.workflow }}
       cancel-in-progress: true
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        profile: minimal
-        override: true
-    - name: Install Foundry
-      uses: foundry-rs/foundry-toolchain@v1
-      with:
-        version: nightly
-    # - name: Check anvil exists
-    #   run: anvil --version
-    - name: Run anvil test
-      run: cargo test --package test-harness --lib -- tests::test_start_callapi_stop_python_serve
-      # run: RUST_LOG=info cargo test --package test-harness
+      - uses: actions/checkout@v4.2.2
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+      - name: Set Git Credentials
+        run: |
+          git config --global url."https://${{ secrets.GH_ACTION_PAT }}@github.com".insteadOf "https://github.com"
+      - name: Cache Cargo registry and target
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+            ~/.rustup/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+      # - name: Check anvil exists
+      #   run: anvil --version
+      - name: Run anvil test
+        run: cargo test --package test-harness --lib -- tests::test_start_callapi_stop_python_serve
+        # run: RUST_LOG=info cargo test --package test-harness
+      - name: Clean Up private Repo
+        run: rm -rf ~/.git-credentials
+      - name: Handle build failure
+        if: ${{ failure() }}
+        run: echo "Build failed. Check logs for details."
