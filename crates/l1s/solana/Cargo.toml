@@ -1,0 +1,23 @@
+[package]
+name = "twine-l1-solana"
+version.workspace = true
+edition.workspace = true
+exclude.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+async-trait.workspace = true
+borsh.workspace = true
+eyre.workspace = true
+reth-tracing.workspace = true
+serde.workspace = true
+solana-client.workspace = true
+solana-sdk.workspace = true
+tokio.workspace = true
+twine-common.workspace = true
+twine-l1.workspace = true
+
+[lints]
+workspace = true

@@ -1,0 +1,16 @@
+[package]
+name = "twine-kafka-consumer"
+version.workspace = true
+edition.workspace = true
+exclude.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+rdkafka.workspace = true
+tokio.workspace = true
+twine-kafka-common.workspace = true
+
+[lints]
+workspace = true

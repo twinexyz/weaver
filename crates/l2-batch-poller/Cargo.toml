@@ -1,0 +1,18 @@
+[package]
+name = "twine-l2-batch-poller"
+version.workspace = true
+edition.workspace = true
+exclude.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+eyre.workspace = true
+reth-tracing.workspace = true
+tokio.workspace = true
+twine-rpc.workspace = true
+twine-types.workspace = true
+
+[lints]
+workspace = true

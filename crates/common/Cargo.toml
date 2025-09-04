@@ -1,0 +1,22 @@
+[package]
+name = "twine-common"
+version.workspace = true
+edition.workspace = true
+exclude.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+eyre.workspace = true
+once_cell.workspace = true
+prometheus.workspace = true
+reth-tracing.workspace = true
+serde.workspace = true
+tiny_http.workspace = true
+tokio.workspace = true
+tracing-appender.workspace = true
+tracing-subscriber.workspace = true
+
+[lints]
+workspace = true

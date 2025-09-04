@@ -5,14 +5,14 @@ use orchestrator_rs::worker::worker_manager::WorkerManagerResult;
 use tokio::process::Command;
 use tokio::sync::mpsc::{Receiver, Sender};
 use twine_l2_proof_scheduler::batch_transform::transform_attempt::{
-    ProofData, ProofKind, SP1Proof, TwineBatchTransformAttempt, TwineBatchTransformReturnCtx,
-    TwineBatchTransformReturnType, ZKProofBundle,
+    TwineBatchTransformAttempt, TwineBatchTransformReturnCtx, TwineBatchTransformReturnType,
 };
 use twine_l2_proof_scheduler::batch_transform::transform_request::TwineBatchTransformInput;
 use twine_l2_proof_scheduler::error::TwineProofSchedulerError;
 use twine_l2_proof_scheduler::worker_manager::connections::{
     ConnectionMessage, ConnectionMessageTypes, MessageData,
 };
+use twine_types::proofs::{ProofData, ProofKind, SP1Proof, ZkProof};
 
 use crate::errors::ProverError;
 
@@ -91,7 +91,7 @@ impl WorkerInstance {
     fn make_return_value(
         &self,
         attempt: TwineBatchTransformAttempt,
-        zk_proof_bundle: Result<ZKProofBundle, ProverError>,
+        zk_proof_bundle: Result<ZkProof, ProverError>,
     ) -> ConnectionMessage {
         let return_context = TwineBatchTransformReturnCtx {
             call_context: attempt.call_ctx,
@@ -133,7 +133,7 @@ impl WorkerInstance {
         &self,
         rpc_url: String,
         call_value: TwineBatchTransformInput,
-    ) -> Result<ZKProofBundle, ProverError> {
+    ) -> Result<ZkProof, ProverError> {
         let start_block = format!("{}", call_value.start_block);
         let end_block = format!("{}", call_value.end_block);
         let mut args = vec![
@@ -180,7 +180,7 @@ impl WorkerInstance {
                     self.proof_dir
                 ))?;
 
-                Ok(ZKProofBundle {
+                Ok(ZkProof {
                     proof_kind: ProofKind::ExecutionProof(call_value.batch_number),
                     identifier: String::new(),
                     proof_data: ProofData::SP1(proof),
