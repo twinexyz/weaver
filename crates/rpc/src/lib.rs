@@ -4,7 +4,7 @@ use std::ops::RangeInclusive;
 use alloy_primitives::B256;
 use jsonrpsee::core::RpcResult;
 use jsonrpsee::proc_macros::rpc;
-use twine_types::BatchMeta;
+use twine_types::VersionedBatchMeta;
 
 /// Twine batch related rpc definition
 pub mod batch;
@@ -23,7 +23,7 @@ pub trait TwineBatchApi {
     /// - `hydrate` - When true, Inculdes the info of all the blocks in that
     ///   batch
     #[method(name = "getFullBatch")]
-    fn get_full_batch(&self, batch: u64, hydrate: Option<bool>) -> RpcResult<BatchMeta>;
+    fn get_full_batch(&self, batch: u64, hydrate: Option<bool>) -> RpcResult<VersionedBatchMeta>;
 
     /// Get batch hash for a batch number
     #[method(name = "getBatchHash")]

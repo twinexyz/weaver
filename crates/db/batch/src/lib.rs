@@ -6,9 +6,14 @@ use std::sync::Arc;
 use std::time::SystemTime;
 
 use alloy_primitives::{BlockNumber, B256, KECCAK256_EMPTY};
+pub use batch_version::BatchVersionID;
 use rocksdb::{ColumnFamilyDescriptor, Options, DB};
-use twine_types::{BatchMeta, BlockMetadata};
+use twine_types::{BatchMeta, BlockMetadata, VersionedBatchMeta};
 
+use crate::batch_version::batch_version_for_height;
+
+/// Batch versioning
+pub mod batch_version;
 mod bincode_utils;
 
 const BATCH_META: &str = "batch_meta";
@@ -19,14 +24,6 @@ const COLUMN_FAMILY_DESCRIPTORS: [&str; 4] =
     [BATCH_META, BATCH_HASHES, BLOCK_TO_BATCH, HASH_TO_BATCH];
 
 const LAST_FINISHED_HEIGHT: &[u8; 17] = b"last_finished_hgt";
-
-#[repr(u8)]
-#[allow(missing_docs)]
-#[derive(Debug, Clone)]
-/// Version to serialize with
-pub enum ValueVersion {
-    V0 = 0x00,
-}
 
 /// Batch storage
 #[derive(Debug, Clone)]
@@ -89,7 +86,7 @@ impl BatchStore {
     }
 
     /// Load batch metadata for batch_number
-    pub fn load_batch(&self, batch_number: u64) -> eyre::Result<BatchMeta> {
+    pub fn load_batch(&self, batch_number: u64) -> eyre::Result<VersionedBatchMeta> {
         let cf = self
             .db
             .cf_handle(BATCH_META)
@@ -100,8 +97,13 @@ impl BatchStore {
             .get_cf(cf, batch_number.to_be_bytes())?
             .ok_or_else(|| eyre::eyre!("batch {batch_number} not found"))?;
 
-        let (_, payload) = bincode_utils::deserialize_versioned(&bytes)?;
-        Ok(bincode::deserialize(payload)?)
+        let (version, payload) = bincode_utils::deserialize_versioned(&bytes)?;
+        match version {
+            BatchVersionID::V0 => {
+                let metadata = bincode::deserialize::<BatchMeta>(payload)?;
+                Ok(VersionedBatchMeta::V0(metadata))
+            }
+        }
     }
 
     /// Seal a batch once ready and save to db
@@ -119,20 +121,31 @@ impl BatchStore {
         block_metadata: Vec<BlockMetadata>,
     ) -> eyre::Result<()> {
         let end_block = block_range.end();
-        let mut meta = BatchMeta {
-            block_range: block_range.clone(),
-            created_at: SystemTime::now()
-                .duration_since(SystemTime::UNIX_EPOCH)
-                .unwrap()
-                .as_secs(),
-            prev_batch_hash,
-            batch_hash: None,
-            block_metadata,
-        };
-        let batch_hash = meta.get_batch_hash();
-        meta.batch_hash = Some(batch_hash);
 
-        let serialized_value = bincode_utils::serialize_versioned(&meta, ValueVersion::V0)?;
+        let start_block = *block_range.start();
+
+        let batch_version = batch_version_for_height(start_block);
+
+        let (batch_hash, serialized_value) = match batch_version {
+            BatchVersionID::V0 => {
+                let mut meta_v0 = BatchMeta {
+                    block_range: block_range.clone(),
+                    batch_number,
+                    created_at: SystemTime::now()
+                        .duration_since(SystemTime::UNIX_EPOCH)
+                        .unwrap()
+                        .as_secs(),
+                    prev_batch_hash,
+                    batch_hash: None,
+                    block_metadata,
+                };
+                let h = meta_v0.get_batch_hash();
+                meta_v0.batch_hash = Some(h);
+
+                let bytes = bincode_utils::serialize_versioned(&meta_v0, BatchVersionID::V0)?;
+                (h, bytes)
+            }
+        };
 
         let cf_batch = self.db.cf_handle(BATCH_META).unwrap();
         let cf_batch_hashes = self.db.cf_handle(BATCH_HASHES).unwrap();
@@ -146,7 +159,7 @@ impl BatchStore {
 
         batch.put_cf(cf_batch_hashes, batch_number.to_be_bytes(), batch_hash.0);
 
-        for block_num in meta.block_range {
+        for block_num in block_range.clone() {
             batch.put_cf(
                 cf_block_to_batch,
                 block_num.to_be_bytes(),
@@ -193,10 +206,30 @@ impl BatchStore {
     pub fn get_blocks_in_batch(&self, batch_number: u64) -> Option<RangeInclusive<BlockNumber>> {
         let cf = self.db.cf_handle(BATCH_META)?;
         let bytes = self.db.get_cf(cf, batch_number.to_be_bytes()).ok()??;
-        let (_, payload) = bincode_utils::deserialize_versioned(&bytes).ok()?;
-        bincode::deserialize::<BatchMeta>(payload)
-            .ok()
-            .map(|m| m.block_range)
+        let (version, payload) = bincode_utils::deserialize_versioned(&bytes).ok()?;
+
+        let val = match version {
+            BatchVersionID::V0 => bincode::deserialize::<BatchMeta>(payload)
+                .ok()
+                .map(|batch| batch.block_range),
+        };
+        val
+    }
+
+    /// Peek the batch version
+    pub fn peek_batch_version(&self, batch_number: u64) -> eyre::Result<BatchVersionID> {
+        let cf = self
+            .db
+            .cf_handle(BATCH_META)
+            .expect("BATCH_META column family missing");
+
+        let bytes = self
+            .db
+            .get_cf(cf, batch_number.to_be_bytes())?
+            .ok_or_else(|| eyre::eyre!("batch {batch_number} not found"))?;
+
+        let (version, _) = bincode_utils::deserialize_versioned(&bytes)?;
+        Ok(version)
     }
 }
 
@@ -371,7 +404,7 @@ mod batch_db_tests {
         assert_eq!(last_height, Some(10));
 
         // Test loading a batch
-        let loaded_batch = store.load_batch(batch_number)?;
+        let twine_types::VersionedBatchMeta::V0(loaded_batch) = store.load_batch(batch_number)?;
         assert_eq!(loaded_batch.block_range, block_range);
 
         // Test getting the batch hash

@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 alloy-primitives = { workspace = true }
 alloy-sol-types = { workspace = true }
+clap = { workspace = true }
 eyre = { workspace = true }
 reth = { workspace = true }
 reth-ethereum-payload-builder.workspace = true

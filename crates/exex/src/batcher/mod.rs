@@ -1,12 +1,12 @@
 use std::marker::PhantomData;
 
-use alloy_consensus::{Block, BlockHeader};
+use alloy_consensus::BlockHeader;
 use alloy_rpc_types::BlockNumHash;
 use eyre::{eyre, Result};
 use futures_util::TryStreamExt;
 use reth_exex::{ExExContext, ExExEvent};
 use reth_node_api::{FullNodeComponents, NodeTypes};
-use reth_primitives::{EthPrimitives, TransactionSigned};
+use reth_primitives::EthPrimitives;
 use reth_provider::{BlockReader, Chain};
 use reth_tracing::tracing::info;
 use twine_db_batch::BatchStore;
@@ -45,6 +45,7 @@ where
         info!("Last stored block number: {}", last_block);
         info!("Next batch number: {}", next_batch_number);
         info!("Chain tip is: {}", chain_tip);
+        info!("Max blocks per batch: {}", config.max_blocks);
 
         Ok(Self {
             store,
@@ -79,27 +80,19 @@ where
         let bundles = chain.range().filter_map(|block_number| {
             blocks
                 .get(&block_number)
-                .map(|block| block.hash())
+                .map(|block| (block.hash(), block_number))
                 .zip(chain.execution_outcome_at_block(block_number))
         });
 
-        for (block_hash, _) in bundles {
-            let current_block = self
-                .ctx
-                .provider()
-                .block_by_hash(block_hash)?
-                .ok_or_else(|| eyre!("block not found for hash {:?}", block_hash))?;
-            let block_index = current_block.number;
-            self.process_block(&current_block).await?;
-
-            finished_height = Some(BlockNumHash::new(block_index, block_hash));
+        for ((block_hash, block_number), _) in bundles {
+            self.process_block(block_number).await?;
+            finished_height = Some(BlockNumHash::new(block_number, block_hash));
         }
 
         Ok(finished_height)
     }
 
-    async fn process_block(&mut self, block: &Block<TransactionSigned>) -> Result<()> {
-        let current_block = block.number;
+    async fn process_block(&mut self, current_block: u64) -> Result<()> {
         let last_block = self.store.load_last_height()?.unwrap_or_default();
 
         // This does not need to run in a loop

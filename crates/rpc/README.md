@@ -9,6 +9,7 @@ All endpoints are grouped under the **twine** namespace.
 | `twine_getLatestBatch` | Get the identifier of the most-recently sequenced batch. |
 | `twine_getFullBatch` | Fetch complete metadata for a given batch identifier. |
 | `twine_getBatchHash` | Get the hash for the batch payload. |
+| `twine_getBatchNumber` | Get batch number for a batch hash
 | `twine_getBatchNumberForBlock` | Find the batch identifier that contains an L2 block number. |
 | `twine_getBlocksInBatch` | Return the inclusive range of L2 block numbers that belong to a batch. |
 
@@ -119,6 +120,26 @@ Response:
 }
 ```
 
+### twine_getBatchNumber
+Request:
+```json
+{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "twine_getBatchNumber",
+    "params": [
+      "0xadfa694880897d9c486d65fec96348f7772f8e2537794551bf422cfbcc21fd07"
+    ]
+}
+```
+Response:
+```json
+{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": 2
+}
+```
 
 ### twine_getBlocksInBatch
 Request:
