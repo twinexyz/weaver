@@ -4,6 +4,8 @@ use borsh::{BorshDeserialize, BorshSerialize};
 use reth_tracing::tracing;
 use solana_sdk::instruction::{AccountMeta, Instruction};
 use solana_sdk::pubkey::Pubkey;
+#[allow(deprecated)]
+use solana_sdk::system_program;
 use twine_aggregator_common::{SettleBatch, SettlementChains, TransactionStatus};
 use twine_l1::error::TransactionError;
 use twine_l1_solana::SolanaProvider;
@@ -134,6 +136,7 @@ impl SolanaL1 {
             AccountMeta::new(commitment, false),
             AccountMeta::new_readonly(role_manager, false),
             AccountMeta::new_readonly(signer, true),
+            AccountMeta::new_readonly(system_program::id(), false),
         ];
 
         let instruction_data = TwineChainInstruction::CommitAndFinalizeBatch {
