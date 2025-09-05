@@ -45,7 +45,8 @@ impl EthWriter {
 
         let cid = provider.get_chain_id().await?;
         if let Some(_cid) = chain_id {
-            if cid != _cid {
+            // Skip for 1337 as it's default for local node
+            if cid != _cid && cid != 1337 {
                 return Err(eyre!("Invalid chain_id"));
             }
         }
