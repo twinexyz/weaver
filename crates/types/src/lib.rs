@@ -35,6 +35,50 @@ pub enum VersionedBatchMeta {
     V0(BatchMeta),
 }
 
+impl VersionedBatchMeta {
+    /// Returns the block range for this batch.
+    pub fn block_range(&self) -> &RangeInclusive<BlockNumber> {
+        match self {
+            VersionedBatchMeta::V0(meta) => &meta.block_range,
+        }
+    }
+
+    /// Returns the creation timestamp of this batch.
+    pub fn created_at(&self) -> u64 {
+        match self {
+            VersionedBatchMeta::V0(meta) => meta.created_at,
+        }
+    }
+
+    /// Returns the batch number.
+    pub fn batch_number(&self) -> u64 {
+        match self {
+            VersionedBatchMeta::V0(meta) => meta.batch_number,
+        }
+    }
+
+    /// Returns the hash of the previous batch, if any.
+    pub fn prev_batch_hash(&self) -> &Option<B256> {
+        match self {
+            VersionedBatchMeta::V0(meta) => &meta.prev_batch_hash,
+        }
+    }
+
+    /// Returns the hash of this batch, if any.
+    pub fn batch_hash(&self) -> &Option<B256> {
+        match self {
+            VersionedBatchMeta::V0(meta) => &meta.batch_hash,
+        }
+    }
+
+    /// Returns the metadata for all blocks in this batch.
+    pub fn block_metadata(&self) -> &Vec<BlockMetadata> {
+        match self {
+            VersionedBatchMeta::V0(meta) => &meta.block_metadata,
+        }
+    }
+}
+
 impl BatchMeta {
     /// Get batch hash of this batch
     pub fn get_batch_hash(&self) -> B256 {
