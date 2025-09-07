@@ -1,8 +1,11 @@
 //! Wrapper for all EVM Contracts in Twine
 
 pub mod l2_twine_messenger {
-    use alloy_sol_types::sol;
+    use alloy_primitives::{keccak256, B256};
+    use alloy_sol_types::{sol, SolValue};
     use serde::{Deserialize, Serialize};
+
+    use crate::l2_twine_messenger::TwineTypes::MessageData;
 
     sol!(
         #[allow(missing_docs)]
@@ -41,6 +44,41 @@ pub mod l2_twine_messenger {
             TokenTxn tokenTxn;
             L1Metadata l1Metadata;
             bytes contractCallData;
+        }
+
+        #[derive(Serialize, Deserialize, Debug)]
+        struct MessageDataWithHashedMessage {
+            uint8 txn_type;
+            uint64 nonce;
+            uint64 chainId;
+            uint64 blockNumber;
+            bytes32 message;
+            string fromAddress;
+            string toAddress;
+            string l1Token;
+            string l2Token;
+            string amount;
+        }
+    }
+
+    impl MessageData {
+        pub fn hash_message(&self) -> B256 { keccak256(&self.message) }
+
+        pub fn hash_message_data(&self) -> B256 {
+            let hashed_message = MessageDataWithHashedMessage {
+                txn_type: self.txnType,
+                nonce: self.nonce,
+                chainId: self.chainId,
+                blockNumber: self.blockNumber,
+                message: keccak256(&self.message),
+                fromAddress: self.fromAddress.clone(),
+                toAddress: self.toAddress.clone(),
+                l1Token: self.l1Token.clone(),
+                l2Token: self.l2Token.clone(),
+                amount: self.amount.clone(),
+            };
+
+            keccak256(hashed_message.abi_encode_packed())
         }
     }
 }

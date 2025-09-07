@@ -7,7 +7,11 @@ pub enum TransactionPrecompileError {
     #[error("invalid caller")]
     InvalidCaller,
     #[error("failed to decode verifier input")]
-    DecodeVerifierInput,
+    DecodeTransactionPrecompileInput,
+    #[error("failed to decode transaction precompile ethereum input")]
+    DecodeTransactionPrecompileEthereumInput,
+    #[error("failed to decode transaction precompile solana input")]
+    DecodeTransactionPrecompileSolanaInput,
     #[error("invalid chain id: `{0}` ")]
     InvalidChainId(u64),
     #[error("failed to decode txns and proofs")]

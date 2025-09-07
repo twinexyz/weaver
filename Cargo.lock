@@ -14975,6 +14975,7 @@ name = "twine-evm-contracts"
 version = "0.1.0"
 dependencies = [
  "alloy-contract",
+ "alloy-primitives",
  "alloy-sol-types",
  "serde",
 ]

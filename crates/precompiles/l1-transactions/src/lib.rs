@@ -15,12 +15,12 @@ use reth_revm::context::{ContextTr, JournalTr};
 use reth_revm::interpreter::{Gas, InputsImpl, InstructionResult, InterpreterResult};
 use reth_tracing::tracing::{self, debug};
 use reth_trie_common::AccountProof;
-use sol::{L1Txns, TokenTxn, VerifierInput};
 use twine_constants::precompiles::TWINE_SYSTEM_STORAGE_CONTRACT;
 use twine_evm_contracts::l2_twine_messenger::TwineTypes::MessageData;
+use twine_evm_contracts::l2_twine_messenger::{L1Metadata, L1Txns, TokenTxn};
 use twine_l1_utils::{get_chain_type, whitelisted_contract, L1ChainType};
 
-use crate::sol::{L1Metadata, StateRootVerifyParams};
+use crate::sol::{TransactionPrecompileEthereumInput, TransactionPrecompileInput};
 
 mod errors;
 mod sol;
@@ -41,19 +41,31 @@ impl TransactionPrecompile {
     ) -> Result<Option<InterpreterResult>, String> {
         tracing::info!("Transaction precompile invoked");
 
-        let (chain_id, data) = VerifierInput::abi_decode_sequence(&inputs.input)
-            .map_err(|_| TransactionPrecompileError::DecodeVerifierInput.to_string())?;
+        let (chain_id, chain_precompile_input) =
+            TransactionPrecompileInput::abi_decode_sequence(&inputs.input).map_err(|_| {
+                TransactionPrecompileError::DecodeTransactionPrecompileInput.to_string()
+            })?;
 
-        let chain_type = get_chain_type(chain_id.to()).ok_or_else(|| {
-            TransactionPrecompileError::InvalidChainId(chain_id.to::<u64>()).to_string()
-        })?;
+        let chain_type = get_chain_type(chain_id)
+            .ok_or_else(|| TransactionPrecompileError::InvalidChainId(chain_id).to_string())?;
 
         match chain_type {
             L1ChainType::Ethereum => {
                 tracing::debug!("Ethereum chain transaction");
-                handle_ethereum_event(chain_id, data)
-                    .map(Some)
-                    .map_err(|e| e.to_string())
+                let (proof_height, state_root, message_data, serialized_state_proof) =
+                    TransactionPrecompileEthereumInput::abi_decode_sequence(
+                        &chain_precompile_input,
+                    )
+                    .map_err(|_| {
+                        TransactionPrecompileError::DecodeTransactionPrecompileInput.to_string()
+                    })?;
+                handle_ethereum_transaction(
+                    proof_height.to::<u64>(),
+                    &state_root,
+                    message_data,
+                    &serialized_state_proof,
+                )
+                .map_err(|e| e.to_string())
             }
             L1ChainType::Solana => {
                 tracing::info!("Solana chain transaction");
@@ -64,45 +76,15 @@ impl TransactionPrecompile {
     }
 }
 
-/// Handles Ethereum-specific precompile processing.
-pub fn handle_ethereum_event(
-    chain_id: U256,
-    data: Bytes,
-) -> Result<InterpreterResult, TransactionPrecompileError> {
-    let state_root_params = decode_txns_and_proofs(&data)?;
-
-    if let Some(output) = process_transaction(
-        state_root_params.0,
-        &state_root_params.1,
-        &state_root_params.2,
-        &state_root_params.3,
-        chain_id,
-    )? {
-        return Ok(output);
-    }
-
-    Err(TransactionPrecompileError::NoTransactionToExecute)
-}
-
-/// Decodes the transaction and proof sequence from the input data.
-fn decode_txns_and_proofs(
-    data: &Bytes,
-) -> Result<(u64, FixedBytes<32>, Bytes, Bytes), TransactionPrecompileError> {
-    StateRootVerifyParams::abi_decode_sequence(data)
-        .map_err(|_| TransactionPrecompileError::DecodeTxnAndProofs)
-}
-
 /// Processes a single transaction and its proof.
-fn process_transaction(
-    block_number: u64,
+fn handle_ethereum_transaction(
+    proof_height: u64,
     state_root: &FixedBytes<32>,
-    message_data: &Bytes,
+    message_data: MessageData,
     state_proof: &Bytes,
-    chain_id: U256,
 ) -> Result<Option<InterpreterResult>, TransactionPrecompileError> {
-    let message_hash = keccak256(message_data);
-    let message_data = <MessageData as SolValue>::abi_decode_params(&message_data)
-        .map_err(|_| TransactionPrecompileError::DecodeMessage)?;
+    let chain_id = message_data.chainId;
+    let message_hash = message_data.hash_message_data();
 
     let account_proofs: AccountProof = serde_json::from_slice(&state_proof)
         .map_err(|_| TransactionPrecompileError::DecodedAccountProof)?;
@@ -121,14 +103,7 @@ fn process_transaction(
         return Err(TransactionPrecompileError::InvalidStateProof.into());
     }
 
-    if message_data.chainId != chain_id.to::<u64>() {
-        tracing::debug!("Chain id mismatch");
-        return Err(TransactionPrecompileError::InvalidChainId(
-            message_data.chainId,
-        ));
-    }
-
-    if message_data.blockNumber > block_number {
+    if message_data.blockNumber > proof_height {
         tracing::debug!("The message block number cannot be greater than the state root block");
         return Err(TransactionPrecompileError::InvalidStateProof.into());
     }
@@ -140,13 +115,16 @@ fn process_transaction(
     let amount = U256::from_str(&message_data.amount)
         .map_err(|e| TransactionPrecompileError::InvalidAmountError(format!("{e:?}")))?;
 
+    // 0: Deposit, 1: Withdraw
+    let is_deposit = message_data.txnType.eq(&0);
+
     let l1_txn = L1Txns {
         nonce: message_data.nonce,
         tokenTxn: TokenTxn {
             token: l2_token,
-            to: l2_user_address,
-            mint: true,
-            value: amount,
+            receiver: l2_user_address,
+            deposit: is_deposit,
+            amount,
         },
         l1Metadata: L1Metadata {
             blockHeight: message_data.blockNumber,
