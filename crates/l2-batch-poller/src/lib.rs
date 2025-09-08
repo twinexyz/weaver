@@ -6,7 +6,7 @@ use std::time::Duration;
 use reth_tracing::tracing::{self};
 use tokio::time::sleep;
 use twine_rpc::client::BatchClient;
-use twine_types::BatchMeta;
+use twine_types::VersionedBatchMeta;
 
 /// Poll Twine L2 for new batches starting from `start_from` (inclusive),
 /// and call `handler` for each batch.
@@ -19,7 +19,7 @@ use twine_types::BatchMeta;
 /// Handle batches directly with a non-async handler:
 /// ```rust
 /// use std::time::Duration;
-/// use twine_types::BatchMeta;
+/// use twine_types::VersionedBatchMeta;
 /// use twine_l2_batch_poller::poll_batches;
 ///
 /// # async fn demo() -> eyre::Result<()> {
@@ -29,7 +29,7 @@ use twine_types::BatchMeta;
 ///     Duration::from_secs(2),
 ///     |bm| {
 ///         // Handle the batch directly
-///         println!("Handling batch: {}", bm.batch_number);
+///         println!("Handling batch: {}", bm.batch_number());
 ///         // Non-async handlers should return Ok(())
 ///         Ok::<(), eyre::Error>(())
 ///     },
@@ -44,7 +44,7 @@ pub async fn poll_batches<F>(
     handler: F,
 ) -> eyre::Result<()>
 where
-    F: Fn(BatchMeta) -> eyre::Result<()> + Send + Sync + Clone + 'static, {
+    F: Fn(VersionedBatchMeta) -> eyre::Result<()> + Send + Sync + Clone + 'static, {
     let client = BatchClient::new(twine_rpc);
     let mut next = start_from;
 
@@ -119,7 +119,7 @@ pub async fn poll_batches_async<F, Fut>(
     handler: F,
 ) -> eyre::Result<()>
 where
-    F: Fn(BatchMeta) -> Fut + Send + Sync + Clone + 'static,
+    F: Fn(VersionedBatchMeta) -> Fut + Send + Sync + Clone + 'static,
     Fut: Future<Output = eyre::Result<()>> + Send, {
     let client = BatchClient::new(twine_rpc);
     let mut next = start_from;

@@ -67,6 +67,8 @@ pub struct SolCfg {
 }
 
 #[derive(Debug, Deserialize, Clone)]
+#[allow(dead_code)]
+#[allow(missing_docs)]
 pub struct CelestiaCfg {}
 
 /// Twine network configuration.

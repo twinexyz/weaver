@@ -7,6 +7,7 @@ use sqlx::PgPool;
 use twine_aggregator_common::config::AppCfg;
 
 /// Start the DA verifier
+#[allow(dead_code)]
 pub(crate) async fn start_da_verifier(
     _config: &AppCfg,
     _db_pool: PgPool,

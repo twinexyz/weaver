@@ -21,7 +21,6 @@ pub struct BlockMetadata {
 #[allow(missing_docs)]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct BatchMeta {
-    pub batch_number: u64,
     pub block_range: RangeInclusive<BlockNumber>,
     pub created_at: u64,
     pub batch_number: u64,

@@ -32,26 +32,27 @@ pub(crate) async fn start_batch_poller(
         let _l2_poller = poll_batches_async(&twine_rpc, start_batch, poll_interval, move |bm| {
             let db_pool = db_pool_clone.clone();
             async move {
-                info!("Observed twine batch: {}", bm.batch_number);
+                info!("Observed twine batch: {}", bm.batch_number());
 
                 // Record metrics for the observed batch
                 twine_aggregator_metrics::record_twine_batch_observed(
                     &twine_chain_id.to_string(),
-                    bm.batch_number,
+                    bm.batch_number(),
                 );
 
-                if let Some(hash) = bm.batch_hash {
-                    match insert_batch(&db_pool, bm.batch_number, hash.0).await {
+                if let Some(hash) = bm.batch_hash() {
+                    match insert_batch(&db_pool, bm.batch_number(), hash.0).await {
                         Ok(()) => {
                             debug!(
                                 "Successfully inserted batch {} into database",
-                                bm.batch_number
+                                bm.batch_number()
                             );
                         }
                         Err(e) => {
                             error!(
                                 "Failed to insert batch {} into database: {:?}",
-                                bm.batch_number, e
+                                bm.batch_number(),
+                                e
                             );
                             return Err(eyre::eyre!("Failed to insert batch: {:?}", e));
                         }
