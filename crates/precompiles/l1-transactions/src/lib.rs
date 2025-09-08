@@ -8,7 +8,7 @@
 
 use std::str::FromStr;
 
-use alloy_primitives::{keccak256, Address, Bytes, FixedBytes, Keccak256, U256};
+use alloy_primitives::{Address, Bytes, FixedBytes, Keccak256, U256};
 use alloy_sol_types::{SolType, SolValue};
 use borsh::BorshSerialize;
 use errors::TransactionPrecompileError;
