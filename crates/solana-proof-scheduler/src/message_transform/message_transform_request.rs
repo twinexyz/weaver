@@ -1,0 +1,102 @@
+//! message transform request
+use orchestrator_rs::transform::TransformRequest;
+use serde::{Deserialize, Serialize};
+use {serde_json, toml};
+
+/// Unique Identifier that associates every transform request
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SolanaMessageTransformRequestID {
+    /// Sequential Identifier for Transform Request
+    pub identifier: u64,
+}
+
+/// TransformRequestInput
+/// Converts this transform request input to output by doing
+/// operations on the input
+/// eg. In this case this input is taken by the worker and
+/// execution proof for the batch is calculated
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SolanaMessageTransformInput {
+    /// solana message event
+    pub solana_message_event: SolanaEvent,
+}
+
+/// Transform request output
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SolanaMessageTransformOutput {}
+
+/// Transform Request is the bundle of transform request id
+/// and input which is converted to output by the workers
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SolanaMessageTransformRequest {
+    /// unique id of request
+    pub identifier: SolanaMessageTransformRequestID,
+    /// transform input
+    pub transform_input: SolanaMessageTransformInput,
+    /// call context
+    pub call_context: SolanaBatchTransformCallCTX,
+}
+
+/// additional information to be sent to the provers to produce
+/// proofs
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SolanaBatchTransformCallCTX {
+    /// devnet rpc
+    pub solana_devnet_rpc: String,
+}
+
+/// solana message event
+#[allow(missing_docs)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SolanaEvent {
+    pub event: String,
+    pub nonce: u64,
+    pub l1_pubkey: String,
+    pub twine_address: String,
+    pub l1_token: String,
+    pub l2_token: String,
+    pub chain_id: u64,
+    pub amount: String,
+    pub data: Vec<u8>, // hex decoded bytes
+    pub message_type: String,
+    pub slot_number: u64,
+    pub prev_rolling_hash: String,
+}
+
+impl TransformRequest for SolanaMessageTransformRequest {
+    type Identifier = SolanaMessageTransformRequestID;
+    /// The type of the input for the transformation.
+    type Input = SolanaMessageTransformInput;
+    /// The type of the output expected after the transformation.
+    type Output = SolanaMessageTransformOutput;
+
+    /// Returns the unique identifier for the transformation request.
+    fn request_id(&self) -> Self::Identifier { self.identifier.clone() }
+
+    /// Returns the input for the transformation request.
+    fn input(&self) -> &Self::Input { &self.transform_input }
+
+    /// Given the TransformRequest is the latest in the stream,
+    /// what dynamic configs need to be updated, Key is always a
+    /// string, value is always a `Vec<u8>` representing the serialized
+    /// value
+    fn get_dyn_configs(&self) -> Vec<(String, Vec<u8>)> {
+        let end_block =
+            toml::Value::Integer((self.transform_input.solana_message_event.nonce + 1) as i64);
+        let end_block = serde_json::to_vec(&end_block).unwrap();
+
+        let next_transfrom_request_id =
+            toml::Value::Integer((self.identifier.identifier + 1) as i64);
+        let next_transform_request_id = serde_json::to_vec(&next_transfrom_request_id).unwrap();
+        vec![
+            (
+                "solana_message_subscriber.next_message_nonce".to_string(),
+                end_block,
+            ),
+            (
+                "solana_message_subscriber.next_transform_request_id".to_string(),
+                next_transform_request_id,
+            ),
+        ]
+    }
+}
