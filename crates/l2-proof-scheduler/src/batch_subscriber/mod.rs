@@ -8,7 +8,6 @@ use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::Mutex;
 use tokio::time::{self, Interval};
 use twine_rpc::client::BatchClient as TwineBatchClient;
-use twine_types::VersionedBatchMeta;
 
 use crate::batch_transform::transform_attempt::TwineBatchTransformCallCtx;
 use crate::batch_transform::transform_request::{
