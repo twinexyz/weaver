@@ -142,7 +142,7 @@ twine-utils = { path = "crates/utils" }
 twine-zstd-precompile = { path = "crates/precompiles/zstd" }
 
 # twine dependencies
-orchestrator-rs = { git = "https://github.com/twinexyz/orchestrator-rs.git", branch = "feature/parajuliswopnil/instrumentation" }
+orchestrator-rs = { git = "https://github.com/twinexyz/orchestrator-rs.git" }
 
 [patch.crates-io]
 # The following is required since we would like to remove
