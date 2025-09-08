@@ -2,14 +2,15 @@
 
 use std::time::Duration;
 
-use rdkafka::consumer::CommitMode;
 use reth_tracing::tracing::{debug, error, info, trace};
 use sqlx::PgPool;
 use twine_aggregator_common::config::AppCfg;
 use twine_aggregator_consumer::{process_proof, ProofSource};
-use twine_kafka_common::config::KafkaCommonConfig;
-use twine_kafka_common::serde::JsonSerde;
-use twine_kafka_consumer::KafkaConsumer;
+use twine_kafka::twine_kafka_common::config::KafkaCommonConfig;
+use twine_kafka::twine_kafka_common::serde::JsonSerde;
+use twine_kafka::twine_kafka_common::{self};
+use twine_kafka::twine_kafka_consumer::KafkaConsumer;
+use twine_kafka::CommitMode;
 use twine_types::proofs::ZkProof;
 
 /// Start the Kafka proof consumer and return a handle for graceful shutdown
