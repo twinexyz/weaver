@@ -9,9 +9,6 @@ use rdkafka::ClientConfig;
 use twine_proof_scheduler_common::error::ProofSchedulerError;
 use twine_types::proofs::ZkProof;
 
-use crate::batch_transform::transform_attempt::ZKProofBundle;
-use crate::error::TwineProofSchedulerError;
-
 /// Kafka
 #[derive(Debug)]
 pub struct KafkaProducer {
@@ -53,9 +50,9 @@ impl KafkaProducer {
     }
 
     /// push message to kafka
-    pub async fn push_to_kafka(&mut self, data: ZkProof) -> Result<(), TwineProofSchedulerError> {
-        let data = serde_json::to_string(&data)
-            .map_err(|e| TwineProofSchedulerError::Other(e.to_string()))?;
+    pub async fn push_to_kafka(&mut self, data: ZkProof) -> Result<(), ProofSchedulerError> {
+        let data =
+            serde_json::to_string(&data).map_err(|e| ProofSchedulerError::Other(e.to_string()))?;
 
         // let payload = format!(r#"{{"i": {}}}"#, 1);
 

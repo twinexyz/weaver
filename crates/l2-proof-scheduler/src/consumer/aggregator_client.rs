@@ -2,9 +2,8 @@
 
 use reqwest::Client;
 use serde_json::json;
+use twine_proof_scheduler_common::error::ProofSchedulerError;
 use twine_types::proofs::ZkProof;
-
-use crate::error::TwineProofSchedulerError;
 
 /// aggregator client
 #[derive(Debug, Clone)]
@@ -21,7 +20,7 @@ impl AggregatorClient {
     pub async fn send_proof_to_aggregator(
         &self,
         proof: ZkProof,
-    ) -> Result<(), TwineProofSchedulerError> {
+    ) -> Result<(), ProofSchedulerError> {
         let payload = json!({
             "jsonrpc": "2.0",
             "method": "twgg_sendProof",
@@ -47,7 +46,7 @@ impl AggregatorClient {
             Ok(res) => {
                 if !res.status().is_success() {
                     log::error!("could not send proof to the aggregator");
-                    return Err(TwineProofSchedulerError::Other(format!(
+                    return Err(ProofSchedulerError::Other(format!(
                         "could not send proof to aggregator"
                     )));
                 }
@@ -56,7 +55,7 @@ impl AggregatorClient {
             }
             Err(e) => {
                 log::error!("could not send proof to the aggregator");
-                return Err(TwineProofSchedulerError::Other(format!(
+                return Err(ProofSchedulerError::Other(format!(
                     "could not send proof to aggregator: {e}"
                 )));
             }
