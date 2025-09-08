@@ -12,6 +12,8 @@ use twine_constants::eth_contracts::{
     ETHEREUM_SEPOLIA_MESSAGE_QUEUE, ETHEREUM_SEPOLIA_TWINE_DVN, ETHEREUM_TWINE_DVN,
 };
 
+pub mod solana_commitment;
+
 /// L1s that Twine supports
 #[derive(Debug, Clone)]
 pub enum L1ChainType {

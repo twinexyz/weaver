@@ -12,6 +12,12 @@ pub enum TransactionPrecompileError {
     DecodeTransactionPrecompileEthereumInput,
     #[error("failed to decode transaction precompile solana input")]
     DecodeTransactionPrecompileSolanaInput,
+    #[error("failed to serialize `MessagesBuffer` for solana")]
+    SerializeSolanaAccountData,
+    #[error("solana proof slot mismatch between commitment and message data")]
+    SolanaSlotMismatch,
+    #[error("solana proof account hash mismatch with computed hash")]
+    SolanaAccountHashMismatch,
     #[error("invalid chain id: `{0}` ")]
     InvalidChainId(u64),
     #[error("failed to decode txns and proofs")]
