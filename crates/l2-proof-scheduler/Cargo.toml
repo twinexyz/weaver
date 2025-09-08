@@ -21,6 +21,7 @@ thiserror.workspace = true
 tokio.workspace = true
 tokio-tungstenite.workspace = true
 toml.workspace = true
+twine-proof-scheduler-common.workspace = true
 twine-rpc.workspace = true
 twine-types.workspace = true
 

@@ -6,8 +6,10 @@ use std::time::Duration;
 
 use rdkafka::producer::{FutureProducer, FutureRecord};
 use rdkafka::ClientConfig;
+use twine_proof_scheduler_common::error::ProofSchedulerError;
 use twine_types::proofs::ZkProof;
 
+use crate::batch_transform::transform_attempt::ZKProofBundle;
 use crate::error::TwineProofSchedulerError;
 
 /// Kafka
@@ -36,7 +38,7 @@ impl KafkaProducer {
     pub fn new(
         kafka_config: HashMap<&str, String>,
         topics: String,
-    ) -> Result<Self, TwineProofSchedulerError> {
+    ) -> Result<Self, ProofSchedulerError> {
         let mut client_config = ClientConfig::new();
         for (key, value) in kafka_config {
             client_config.set(key, value);
@@ -64,7 +66,7 @@ impl KafkaProducer {
             .producer
             .send(record, Duration::from_secs(2))
             .await
-            .map_err(|_| TwineProofSchedulerError::Other(format!("kafka error")))?;
+            .map_err(|_| ProofSchedulerError::Other(format!("kafka error")))?;
         log::info!("pushed proof to kafka");
         Ok(())
     }

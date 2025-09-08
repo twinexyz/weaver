@@ -9,13 +9,13 @@ use orchestrator_rs::consumer::consumer::ConsumeAttemptResult;
 use orchestrator_rs::consumer::Consumer;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::Mutex;
+use twine_proof_scheduler_common::config::ProofSchedulerConfig;
+use twine_proof_scheduler_common::error::ProofSchedulerError;
 
-use crate::config::TwineProofSchedulerConfig;
 use crate::consumer::consume_attempt::{
     TwineBatchTransformResultConsumeAttempt, TwineBatchTransformResultConsumeReturnContext,
 };
 use crate::consumer::kafka_producer::KafkaProducer;
-use crate::error::TwineProofSchedulerError;
 
 /// Structure that represents the worker manager result consumer
 #[derive(Debug)]
@@ -33,9 +33,9 @@ pub struct TwineBatchTransformResultConsumer {
 
 #[async_trait]
 impl Consumer for TwineBatchTransformResultConsumer {
-    type Config = TwineProofSchedulerConfig;
+    type Config = ProofSchedulerConfig;
     type ConsumeAttempt = TwineBatchTransformResultConsumeAttempt;
-    type ConsumeError = TwineProofSchedulerError;
+    type ConsumeError = ProofSchedulerError;
 
     async fn new(
         init_config: Arc<Mutex<Self::Config>>,
@@ -99,31 +99,31 @@ impl Consumer for TwineBatchTransformResultConsumer {
             .unwrap_or_default();
 
         let kafka_broker_url: toml::Value = serde_json::from_slice(&kafka_broker_url)
-            .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
-        let kafka_broker_url = kafka_broker_url.as_str().ok_or_else(|| {
-            TwineProofSchedulerError::Other("could not cast to string".to_string())
-        })?;
+            .map_err(|e| ProofSchedulerError::Other(format!("{e}")))?;
+        let kafka_broker_url = kafka_broker_url
+            .as_str()
+            .ok_or_else(|| ProofSchedulerError::Other("could not cast to string".to_string()))?;
         kafka_config.insert("bootstrap.servers", kafka_broker_url.to_string());
 
         let kafka_topics: toml::Value = serde_json::from_slice(&kafka_topics)
-            .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
-        let kafka_topics = kafka_topics.as_str().ok_or_else(|| {
-            TwineProofSchedulerError::Other("could not cast to string".to_string())
-        })?;
+            .map_err(|e| ProofSchedulerError::Other(format!("{e}")))?;
+        let kafka_topics = kafka_topics
+            .as_str()
+            .ok_or_else(|| ProofSchedulerError::Other("could not cast to string".to_string()))?;
 
         let kafka_groups: toml::Value = serde_json::from_slice(&kafka_groups)
-            .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
-        let kafka_groups = kafka_groups.as_str().ok_or_else(|| {
-            TwineProofSchedulerError::Other("could not cast to string".to_string())
-        })?;
+            .map_err(|e| ProofSchedulerError::Other(format!("{e}")))?;
+        let kafka_groups = kafka_groups
+            .as_str()
+            .ok_or_else(|| ProofSchedulerError::Other("could not cast to string".to_string()))?;
 
         kafka_config.insert("group.id", kafka_groups.to_string());
 
         let auto_offset_reset: toml::Value = serde_json::from_slice(&auto_offset_reset)
-            .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
-        let auto_offset_reset = auto_offset_reset.as_str().ok_or_else(|| {
-            TwineProofSchedulerError::Other("could not cast to string".to_string())
-        })?;
+            .map_err(|e| ProofSchedulerError::Other(format!("{e}")))?;
+        let auto_offset_reset = auto_offset_reset
+            .as_str()
+            .ok_or_else(|| ProofSchedulerError::Other("could not cast to string".to_string()))?;
 
         kafka_config.insert("auto.offset.reset", auto_offset_reset.to_string());
 
@@ -188,7 +188,7 @@ impl Consumer for TwineBatchTransformResultConsumer {
                             return_ctx,
                         ))
                         .await
-                        .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
+                        .map_err(|e| ProofSchedulerError::Other(format!("{e}")))?;
                 }
                 Err(_) => {
                     let return_ctx = TwineBatchTransformResultConsumeReturnContext {
@@ -202,12 +202,12 @@ impl Consumer for TwineBatchTransformResultConsumer {
                             return_ctx,
                         ))
                         .await
-                        .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
+                        .map_err(|e| ProofSchedulerError::Other(format!("{e}")))?;
                 }
             }
         }
 
-        Err(TwineProofSchedulerError::LoopExit(
+        Err(ProofSchedulerError::LoopExit(
             "consumer loop exit".to_string(),
         ))
     }

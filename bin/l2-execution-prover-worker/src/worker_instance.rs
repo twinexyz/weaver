@@ -8,10 +8,10 @@ use twine_l2_proof_scheduler::batch_transform::transform_attempt::{
     TwineBatchTransformAttempt, TwineBatchTransformReturnCtx, TwineBatchTransformReturnType,
 };
 use twine_l2_proof_scheduler::batch_transform::transform_request::TwineBatchTransformInput;
-use twine_l2_proof_scheduler::error::TwineProofSchedulerError;
 use twine_l2_proof_scheduler::worker_manager::connections::{
     ConnectionMessage, ConnectionMessageTypes, MessageData,
 };
+use twine_proof_scheduler_common::error::ProofSchedulerError;
 use twine_types::proofs::{ProofData, ProofKind, SP1Proof, ZkProof};
 
 use crate::errors::ProverError;
@@ -113,7 +113,7 @@ impl WorkerInstance {
                     (
                         attempt.identifier.clone(),
                         return_context,
-                        Err(TwineProofSchedulerError::Other(format!("{e}"))),
+                        Err(ProofSchedulerError::Other(format!("{e}"))),
                     ),
                 ),
             };

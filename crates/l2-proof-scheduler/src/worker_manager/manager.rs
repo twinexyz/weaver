@@ -12,10 +12,10 @@ use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 use tokio::time::sleep;
+use twine_proof_scheduler_common::config::ProofSchedulerConfig;
+use twine_proof_scheduler_common::error::ProofSchedulerError;
 
 use crate::batch_transform::transform_attempt::TwineBatchTransformAttempt;
-use crate::config::TwineProofSchedulerConfig;
-use crate::error::TwineProofSchedulerError;
 use crate::worker_manager::connections::{ConnectionID, Connections};
 
 /// Twine Worker Manager
@@ -34,9 +34,9 @@ pub struct TwineWorkerManager {
 
 #[async_trait]
 impl WorkerManager for TwineWorkerManager {
-    type Config = TwineProofSchedulerConfig;
+    type Config = ProofSchedulerConfig;
     type TransformAttempt = TwineBatchTransformAttempt;
-    type WorkerManagerError = TwineProofSchedulerError;
+    type WorkerManagerError = ProofSchedulerError;
 
     async fn new(
         init_config: Arc<Mutex<Self::Config>>,
@@ -123,11 +123,11 @@ pub async fn start_worker_register_server(
     sender: Sender<WorkerManagerResult<TwineBatchTransformAttempt>>,
     job_mutex: Arc<Mutex<Option<TwineBatchTransformAttempt>>>,
     job_completion_timeout: u64,
-) -> Result<(JoinHandle<()>, JoinHandle<()>), TwineProofSchedulerError> {
+) -> Result<(JoinHandle<()>, JoinHandle<()>), ProofSchedulerError> {
     let address = format!("0.0.0.0:{bind_port}");
     let listener = TcpListener::bind(&address)
         .await
-        .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
+        .map_err(|e| ProofSchedulerError::Other(format!("{e}")))?;
 
     log::info!("starting wss server on: {address}");
 

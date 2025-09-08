@@ -6,16 +6,16 @@ use std::time::{self, Duration};
 use async_trait::async_trait;
 use orchestrator_rs::config::Config;
 use orchestrator_rs::consumer::{ConsumeAttempt, ConsumeAttemptCreator};
+use twine_proof_scheduler_common::config::ProofSchedulerConfig;
+use twine_proof_scheduler_common::error::ProofSchedulerError;
 
 use crate::batch_transform::transform_attempt::{
     TwineBatchTransformAttempt, TwineBatchTransformAttemptID, TwineBatchTransformReturnType,
 };
-use crate::config::TwineProofSchedulerConfig;
 use crate::consumer::consume_attempt::{
     TwineBatchTransformResultConsumeAttempt, TwineBatchTransformResultConsumeAttemptID,
     TwineBatchTransformResultConsumeContext,
 };
-use crate::error::TwineProofSchedulerError;
 
 /// Max consume attempts per transform attempts
 pub const DEFAULT_MAX_CONSUME_ATTEMPTS_PER_ATTEMPTS: u64 = 10;
@@ -41,9 +41,9 @@ pub struct AttemptDetails {
 
 #[async_trait]
 impl ConsumeAttemptCreator for TwineBatchTransformResultConsumeAttemptCreator {
-    type Config = TwineProofSchedulerConfig;
+    type Config = ProofSchedulerConfig;
     type ConsumeAttempt = TwineBatchTransformResultConsumeAttempt;
-    type ConsumeAttemptCreationError = TwineProofSchedulerError;
+    type ConsumeAttemptCreationError = ProofSchedulerError;
     type Output = TwineBatchTransformReturnType;
     type TransformAttempt = TwineBatchTransformAttempt;
 
@@ -79,7 +79,7 @@ impl ConsumeAttemptCreator for TwineBatchTransformResultConsumeAttemptCreator {
         request: &Self::TransformAttempt,
     ) -> Result<Self::ConsumeAttempt, Self::ConsumeAttemptCreationError> {
         if let Some(_) = self.attempts.get(&request.identifier) {
-            return Err(TwineProofSchedulerError::KeyAlreadyExists(format!(
+            return Err(ProofSchedulerError::KeyAlreadyExists(format!(
                 "{:?}",
                 request.identifier
             )));
@@ -119,7 +119,7 @@ impl ConsumeAttemptCreator for TwineBatchTransformResultConsumeAttemptCreator {
         {
             let mut new_identifier = attempt.attempt.identifier.clone();
             if new_identifier.identifier >= self.max_attempts_per_request {
-                return Err(TwineProofSchedulerError::MaxReattemtsReached(format!(
+                return Err(ProofSchedulerError::MaxReattemtsReached(format!(
                     "{:?}",
                     attempt_id.transform_attempt_identifier.clone()
                 )));
@@ -139,7 +139,7 @@ impl ConsumeAttemptCreator for TwineBatchTransformResultConsumeAttemptCreator {
             *attempt = attempt_details
         }
 
-        return Err(TwineProofSchedulerError::KeyNotFound(format!(
+        return Err(ProofSchedulerError::KeyNotFound(format!(
             "{:?}",
             attempt_id.transform_attempt_identifier
         )));
@@ -148,7 +148,7 @@ impl ConsumeAttemptCreator for TwineBatchTransformResultConsumeAttemptCreator {
     async fn prune_attempts(
         &mut self,
         attempt_id: <Self::ConsumeAttempt as ConsumeAttempt>::Identifier,
-    ) -> Result<Duration, TwineProofSchedulerError> {
+    ) -> Result<Duration, ProofSchedulerError> {
         let transform_request_id: TwineBatchTransformAttemptID = attempt_id.into();
         if let Some(attempts) = self.attempts.remove_entry(&transform_request_id) {
             log::info!("Removed {:?} from consume attempts record", attempts.0);

@@ -12,12 +12,12 @@ use tokio::sync::mpsc::Sender;
 use tokio::sync::Mutex;
 use tokio::time::{self, Instant};
 use tokio_tungstenite;
+use twine_proof_scheduler_common::error::ProofSchedulerError;
 
 use crate::batch_transform::transform_attempt::{
     TwineBatchTransformAttempt, TwineBatchTransformAttemptID, TwineBatchTransformReturnCtx,
 };
 use crate::batch_transform::transform_request::TwineBatchTransformRequestID;
-use crate::error::TwineProofSchedulerError;
 
 /// Connection Message Types
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -270,7 +270,7 @@ impl Connections {
                             call_type: job_details.transform_attempt.call_val,
                             extra_data: vec![],
                         },
-                        Err(TwineProofSchedulerError::Other("job timed out".to_string())),
+                        Err(ProofSchedulerError::Other("job timed out".to_string())),
                     );
 
                     let result: WorkerManagerResult<TwineBatchTransformAttempt> =

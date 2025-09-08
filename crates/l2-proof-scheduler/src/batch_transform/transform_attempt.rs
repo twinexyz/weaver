@@ -3,12 +3,12 @@
 use async_trait::async_trait;
 use orchestrator_rs::transform::TransformAttempt;
 use serde::{Deserialize, Serialize};
+use twine_proof_scheduler_common::error::ProofSchedulerError;
 use twine_types::proofs::ZkProof;
 
 use crate::batch_transform::transform_request::{
     TwineBatchTransformInput, TwineBatchTransformRequestID,
 };
-use crate::error::TwineProofSchedulerError;
 
 /// Uniquely identifies the transform attempts
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -84,7 +84,7 @@ impl TransformAttempt for TwineBatchTransformAttempt {
     );
     type ReturnType = TwineBatchTransformReturnType;
     type SendPackage = (Self::Identifier, Self::CallCtx, Self::CallArgsType);
-    type TransformError = TwineProofSchedulerError;
+    type TransformError = ProofSchedulerError;
     type TransformRequestIdentifier = TwineBatchTransformRequestID;
 
     fn request_id(&self) -> Self::TransformRequestIdentifier { self.identifier.clone().into() }

@@ -7,14 +7,14 @@ use orchestrator_rs::emitter::emitter::{EmissionState, Emitter};
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::Mutex;
 use tokio::time::{self, Interval};
+use twine_proof_scheduler_common::config::ProofSchedulerConfig;
+use twine_proof_scheduler_common::error::ProofSchedulerError;
 use twine_rpc::client::BatchClient as TwineBatchClient;
 
 use crate::batch_transform::transform_attempt::TwineBatchTransformCallCtx;
 use crate::batch_transform::transform_request::{
     TwineBatchTransformInput, TwineBatchTransformRequest, TwineBatchTransformRequestID,
 };
-use crate::config::TwineProofSchedulerConfig;
-use crate::error::TwineProofSchedulerError;
 
 /// Maximum waiting time while retrying failed rpc queries
 pub const MAX_RPC_RETRY_INTERVAL: u64 = 60;
@@ -51,8 +51,8 @@ struct Backoff {
 
 #[async_trait]
 impl Emitter for TwineBatchSubscriber {
-    type Config = TwineProofSchedulerConfig;
-    type Error = TwineProofSchedulerError;
+    type Config = ProofSchedulerConfig;
+    type Error = ProofSchedulerError;
     type TransformRequest = TwineBatchTransformRequest;
 
     async fn new(
@@ -67,7 +67,7 @@ impl Emitter for TwineBatchSubscriber {
             .await
             .get("batch_subscriber.twine_rpc_url".to_string())
             .await
-            .map_err(|e| TwineProofSchedulerError::KeyNotFound(format!("{e}")))?;
+            .map_err(|e| ProofSchedulerError::KeyNotFound(format!("{e}")))?;
 
         let url: toml::Value = serde_json::from_slice(&twine_rpc_url).unwrap();
 
@@ -78,14 +78,14 @@ impl Emitter for TwineBatchSubscriber {
             .await
             .get("batch_subscriber.start_block".to_string())
             .await
-            .map_err(|e| TwineProofSchedulerError::KeyNotFound(format!("{e}")))?;
+            .map_err(|e| ProofSchedulerError::KeyNotFound(format!("{e}")))?;
 
         let block_number: toml::Value = serde_json::from_slice(&start_block)
-            .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
+            .map_err(|e| ProofSchedulerError::Other(format!("{e}")))?;
 
         let start_block = block_number
             .as_integer()
-            .ok_or(TwineProofSchedulerError::Other("parse error".to_string()))?
+            .ok_or(ProofSchedulerError::Other("parse error".to_string()))?
             as u64;
 
         let identifier = init_config
@@ -93,14 +93,14 @@ impl Emitter for TwineBatchSubscriber {
             .await
             .get("batch_subscriber.next_transform_request_id".to_string())
             .await
-            .map_err(|e| TwineProofSchedulerError::KeyNotFound(format!("{e}")))?;
+            .map_err(|e| ProofSchedulerError::KeyNotFound(format!("{e}")))?;
 
         let identifier: toml::Value = serde_json::from_slice(&identifier)
-            .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
+            .map_err(|e| ProofSchedulerError::Other(format!("{e}")))?;
 
         let identifier = identifier
             .as_integer()
-            .ok_or(TwineProofSchedulerError::Other("parse error".to_string()))?
+            .ok_or(ProofSchedulerError::Other("parse error".to_string()))?
             as u64; // TODO: map error
 
         let twine_client = TwineBatchClient::new(&twine_rpc_url);
@@ -202,13 +202,13 @@ impl Emitter for TwineBatchSubscriber {
                                 }
                             })
                             .await
-                            .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
+                            .map_err(|e| ProofSchedulerError::Other(format!("{e}")))?;
                     self.next_batch();
                     self.next_identifier();
                 }
             }
         }
-        Err(TwineProofSchedulerError::LoopExit("emitter".to_string()))
+        Err(ProofSchedulerError::LoopExit("emitter".to_string()))
     }
 }
 
