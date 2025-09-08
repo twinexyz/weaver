@@ -24,7 +24,7 @@ impl AggregatorClient {
     ) -> Result<(), TwineProofSchedulerError> {
         let payload = json!({
             "jsonrpc": "2.0",
-            "method": "twarb_sendProof",
+            "method": "twgg_sendProof",
             "params": [
                 {
                     "type": "SP1",
