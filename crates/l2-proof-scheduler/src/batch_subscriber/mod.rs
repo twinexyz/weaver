@@ -160,25 +160,20 @@ impl Emitter for TwineBatchSubscriber {
                 full_batch = self.twine_client.get_full_batch(self.batch, None) => {
                     let (start_block, end_block, batch_hash) = match full_batch {
                        Ok(batch) => {
-                            match batch {
-                                VersionedBatchMeta::V0(batch) => {
-                                    let mut blocks = batch.block_range.into_iter();
-                                    let start_block = blocks.next().unwrap_or_default();
-                                    let end_block = blocks.last().unwrap_or(start_block);
-                                    if batch.batch_hash.is_none() {
-                                        self.backoff.wait_and_backoff().await;
-                                        continue
-                                    }
-                                    self.backoff.reset_wait_and_backoff();
-                                    log::info!("received batch info for {}", self.batch);
-                                    (
-                                        start_block,
-                                        end_block,
-                                        batch.batch_hash.unwrap().0
-                                    )
-                                }
+                            let mut block_range = batch.block_range().clone().into_iter();
+                            let start_block = block_range.next().unwrap_or_default();
+                            let end_block = block_range.last().unwrap_or(start_block);
+                            if batch.batch_hash().is_none() {
+                                self.backoff.wait_and_backoff().await;
+                                continue
                             }
-
+                            self.backoff.reset_wait_and_backoff();
+                            log::info!("received batch info for {}", self.batch);
+                            (
+                                start_block,
+                                end_block,
+                                batch.batch_hash().unwrap().0
+                            )
                         }
                         Err(e) => {
                             log::warn!(
