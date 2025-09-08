@@ -9,16 +9,13 @@ sh scripts/generate_evm_contract_artifacts.sh
 
 ## Running a Twine node
 ```sh
-cargo run --bin twine-node -- \
+cargo run --release \
+    --bin twine-node -- \
     node \
     --dev \
     --chain bin/node/res/dev-genesis.json \
     --http \
-    --http.port 8570 \
     --ws \
-    --ws.port 8571 \
-    --port 8572 \
-    --authrpc.port 8573 \
     --datadir /tmp/reth \
     --rpc.eth-proof-window 1000 \
     --rpc.proof-permits 1000 \

@@ -2,13 +2,14 @@ services:
   postgres:
     image: postgres:latest
     environment:
-      POSTGRES_USER: twine
-      POSTGRES_PASSWORD: twine
-      POSTGRES_DB: twine
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - dbdata:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d:ro
 
   pgadmin:
     image: dpage/pgadmin4
@@ -20,5 +21,6 @@ services:
     depends_on:
       - postgres
 
+
 volumes:
-  postgres_data:
+  dbdata:

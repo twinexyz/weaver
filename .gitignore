@@ -9,3 +9,10 @@ geyser.*
 
 rocksdb/
 *.bk
+
+config.toml
+
+*.proof
+
+*.crt
+*.key

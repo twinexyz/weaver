@@ -9,8 +9,9 @@ rust-version = "1.85"
 [workspace]
 members = [
   "bin/devtest",
+  "bin/l2-execution-prover-worker",
+  "bin/l2-proof-scheduler-bin",
   "bin/node",
-
   "crates/constants",
   "crates/db/batch",
   "crates/ethereum-consensus-prover",
@@ -19,6 +20,7 @@ members = [
   "crates/exex",
   "crates/integration-tests",
   "crates/l1-utils",
+  "crates/l2-proof-scheduler",
   "crates/precompiles/l1-consensus-verifier",
   "crates/precompiles/l1-transactions",
   "crates/precompiles/zstd",
@@ -46,11 +48,13 @@ alloy-trie = { version = "0.8.1", default-features = false }
 
 bls12_381 = { git = "https://github.com/sp1-patches/bls12_381", branch = "n/release-latest", features = ["experimental"], package = "sp1_bls12_381" }
 
-clap = "4.5.45"
+async-trait = "0.1.88"
+clap = { version = "4.5.45", features = ["derive"] }
 env_logger = "0.11.7"
 ethereum_ssz = "0.9.0"
 ethereum_ssz_derive = "0.9.0"
 eyre = "0.6"
+futures-channel = "0.3.31"
 futures-util = "0.3"
 git2 = "0.20.1"
 hex = "0.4.3"
@@ -60,6 +64,7 @@ once_cell = "1.21.3"
 
 parking_lot = "0.12"
 rand = "0.8.5"
+rdkafka = { version = "0.36", features = ["ssl-vendored"] }
 regex = "1.11.1"
 reqwest = { version = "0.11", features = ["json"] }
 rocksdb = "0.23.0"
@@ -69,11 +74,14 @@ serde_bytes = "0.11.14"
 serde_json = "1.0.132"
 serde_yaml = "0.9.34"
 sha2 = "0.10.8"
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres"] }
 ssz_types = "0.11.0"
 strum = "0.27"
 strum_macros = "0.27"
 thiserror = "2.0.12"
 tokio = { version = "1.40.0", features = ["full"] }
+tokio-tungstenite = "0.27.0"
+toml = "0.8.23"
 tree_hash = "0.10.0"
 tree_hash_derive = "0.10.0"
 typenum = "1.12.0"
@@ -125,12 +133,16 @@ twine-integration-tests = { path = "crates/integration-tests" }
 twine-l1-consensus-verifier-precompile = { path = "crates/precompiles/l1-consensus-verifier" }
 twine-l1-transactions-precompile = { path = "crates/precompiles/l1-transactions" }
 twine-l1-utils = { path = "crates/l1-utils" }
+twine-l2-proof-scheduler = { path = "crates/l2-proof-scheduler" }
 twine-rpc = { path = "crates/rpc" }
 twine-solana-consensus-prover-lib = { path = "crates/solana-consensus-prover" }
 twine-solana-sdk = { path = "crates/solana-sdk" }
 twine-types = { path = "crates/types" }
 twine-utils = { path = "crates/utils" }
 twine-zstd-precompile = { path = "crates/precompiles/zstd" }
+
+# twine dependencies
+orchestrator-rs = { git = "https://github.com/twinexyz/orchestrator-rs.git" }
 
 [patch.crates-io]
 # The following is required since we would like to remove
