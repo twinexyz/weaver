@@ -15333,6 +15333,7 @@ name = "twine-solana-proof-scheduler"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "log",
  "orchestrator-rs",
  "serde",
  "serde_json",
@@ -15340,6 +15341,7 @@ dependencies = [
  "tokio",
  "toml 0.8.23",
  "twine-proof-scheduler-common",
+ "twine-types",
 ]
 
 [[package]]

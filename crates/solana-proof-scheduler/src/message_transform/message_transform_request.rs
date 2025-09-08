@@ -3,6 +3,8 @@ use orchestrator_rs::transform::TransformRequest;
 use serde::{Deserialize, Serialize};
 use {serde_json, toml};
 
+use crate::message_transform::message_transform_attempt::SolanaMessageTransformReturnType;
+
 /// Unique Identifier that associates every transform request
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SolanaMessageTransformRequestID {
@@ -34,13 +36,13 @@ pub struct SolanaMessageTransformRequest {
     /// transform input
     pub transform_input: SolanaMessageTransformInput,
     /// call context
-    pub call_context: SolanaBatchTransformCallCTX,
+    pub call_context: SolanaMessageTransformCallCtx,
 }
 
 /// additional information to be sent to the provers to produce
 /// proofs
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SolanaBatchTransformCallCTX {
+pub struct SolanaMessageTransformCallCtx {
     /// devnet rpc
     pub solana_devnet_rpc: String,
 }
@@ -68,7 +70,7 @@ impl TransformRequest for SolanaMessageTransformRequest {
     /// The type of the input for the transformation.
     type Input = SolanaMessageTransformInput;
     /// The type of the output expected after the transformation.
-    type Output = SolanaMessageTransformOutput;
+    type Output = SolanaMessageTransformReturnType;
 
     /// Returns the unique identifier for the transformation request.
     fn request_id(&self) -> Self::Identifier { self.identifier.clone() }
