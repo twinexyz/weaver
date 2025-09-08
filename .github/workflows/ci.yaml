@@ -20,7 +20,7 @@ jobs:
     - name: Set up Rust
       uses: actions-rs/toolchain@v1
       with:
-        toolchain: stable
+        toolchain: nightly-2025-07-13
         profile: minimal
         override: true
     - name: Add rustfmt (nightly)
