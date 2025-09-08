@@ -1,0 +1,100 @@
+# Database configuration
+db_url: "postgresql://postgres:postgres@localhost:5432/aggregator"
+
+# Dispatcher configuration
+dispatcher:
+  # Whether to use Data Availability layer
+  use_da: false
+
+  # Settlement targets - list of chains to settle to
+  settle_targets:
+    - Ethereum
+    # - solana  # Uncomment to enable Solana settlement
+
+  # Polling interval in milliseconds
+  poll_interval_ms: 10000
+
+# Ethereum chain configuration
+eth:
+  # RPC endpoints for Ethereum
+  rpc: "https://1rpc.io/sepolia"
+  # Chain id of ethereum chain
+  chain_id: 11155111
+  # Address of the twine chain contract on Ethereum
+  twine_chain_contract: "0x088E11B82b35db8EE56c5700C8ec8abBa0b189aa"
+  # Number of blocks to wait for finality on Ethereum
+  finality_blocks: 12
+  # Private Key
+  eth_private_key:  0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+
+# Solana chain configuration
+# sol:
+#   # RPC endpoints for Solana
+#   rpc: "http://localhost:8899"
+#   # Chain id of solana chain
+#   chain_id: 900
+#   # Program ID of the twine chain program on Solana
+#   twine_chain_program_id: "..."
+#   # path to solana wallet `id.json`
+#   solana_wallet_path:
+
+# Celestia DA configuration
+# celestia: {}
+
+# Twine chain configuration
+twine:
+  # RPC endpoints for the Twine chain
+  rpc: "http://127.0.0.1:8545"
+
+  # Chain id of twine chain
+  chain_id: 14523
+
+  # Starting batch number to process
+  start_batch: 1
+
+  # Polling interval in seconds
+  poll_interval: 20
+
+# Kafka configuration
+kafka:
+  # Generic Kafka configuration parameters
+  config: {}
+  # Topics to consume from
+  topics:
+    - "twine.execution.proofs"
+  # Kafka consumer specific configuration
+  consumer:
+    # Bootstrap servers for Kafka
+    bootstrap_servers: "b-1.test.7alql0.c5.kafka.us-east-1.amazonaws.com:9092"
+
+    # Client identifier
+    client_id: "twine-consumer"
+
+    # Consumer group identifier
+    group_id: "twine-workers"
+
+    # Session timeout in milliseconds
+    session_timeout_ms: 45000
+
+    # Auto offset reset policy
+    auto_offset_reset: "earliest"
+
+    # Enable auto commit
+    enable_auto_commit: false
+
+# RPC server configuration
+rpc:
+  # Host to bind the RPC server to
+  host: "0.0.0.1"
+
+  # Port to bind the RPC server to
+  port: 5566
+
+# Verification key paths
+verification_keys:
+  # Execution proof verification key
+  execution_proof: "rsp verification key"
+
+# Telemetry configuration (optional)
+telemetry:
+  metrics_server: "127.0.0.1:5567"

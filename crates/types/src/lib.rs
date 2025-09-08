@@ -5,6 +5,9 @@ use std::ops::RangeInclusive;
 use alloy_primitives::{BlockNumber, Keccak256, B256, KECCAK256_EMPTY};
 use serde::{Deserialize, Serialize};
 
+pub mod proofs;
+pub mod settle;
+
 /// Metadata for a block
 #[allow(missing_docs)]
 #[derive(Serialize, Deserialize, Debug, Clone)]

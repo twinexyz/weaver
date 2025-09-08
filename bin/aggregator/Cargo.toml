@@ -1,0 +1,32 @@
+[package]
+name = "twine-aggregator"
+version.workspace = true
+edition.workspace = true
+exclude.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+clap.workspace = true
+eyre.workspace = true
+jsonrpsee.workspace = true
+reth-tracing.workspace = true
+serde_json.workspace = true
+sqlx.workspace = true
+tokio.workspace = true
+
+twine-aggregator-common.workspace = true
+twine-aggregator-consumer.workspace = true
+twine-aggregator-database.workspace = true
+twine-aggregator-dispatcher.workspace = true
+twine-aggregator-metrics.workspace = true
+twine-aggregator-settlement.workspace = true
+twine-common.workspace = true
+twine-kafka.workspace = true
+twine-l2-batch-poller.workspace = true
+twine-rpc.workspace = true
+twine-types.workspace = true
+
+[lints]
+workspace = true

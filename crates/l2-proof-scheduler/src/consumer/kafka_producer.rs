@@ -6,8 +6,8 @@ use std::time::Duration;
 
 use rdkafka::producer::{FutureProducer, FutureRecord};
 use rdkafka::ClientConfig;
+use twine_types::proofs::ZkProof;
 
-use crate::batch_transform::transform_attempt::ZKProofBundle;
 use crate::error::TwineProofSchedulerError;
 
 /// Kafka
@@ -51,10 +51,7 @@ impl KafkaProducer {
     }
 
     /// push message to kafka
-    pub async fn push_to_kafka(
-        &mut self,
-        data: ZKProofBundle,
-    ) -> Result<(), TwineProofSchedulerError> {
+    pub async fn push_to_kafka(&mut self, data: ZkProof) -> Result<(), TwineProofSchedulerError> {
         let data = serde_json::to_string(&data)
             .map_err(|e| TwineProofSchedulerError::Other(e.to_string()))?;
 

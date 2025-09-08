@@ -1,0 +1,19 @@
+[package]
+name = "twine-l1-eth-writer"
+version.workspace = true
+edition.workspace = true
+exclude.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+alloy-primitives.workspace = true
+alloy-provider.workspace = true
+alloy-pubsub.workspace = true
+alloy-rpc-types.workspace = true
+alloy-signer-local.workspace = true
+eyre.workspace = true
+
+[lints]
+workspace = true

@@ -8,10 +8,18 @@ rust-version = "1.85"
 
 [workspace]
 members = [
+  "bin/aggregator",
   "bin/devtest",
   "bin/l2-execution-prover-worker",
   "bin/l2-proof-scheduler-bin",
   "bin/node",
+  "crates/aggregator/common",
+  "crates/aggregator/da-source",
+  "crates/aggregator/database",
+  "crates/aggregator/dispatcher",
+  "crates/aggregator/metrics",
+  "crates/aggregator/settlement",
+  "crates/common",
   "crates/constants",
   "crates/db/batch",
   "crates/ethereum-consensus-prover",
@@ -19,7 +27,17 @@ members = [
   "crates/executor",
   "crates/exex",
   "crates/integration-tests",
+  "crates/kafka",
+  "crates/kafka/common",
+  "crates/kafka/consumer",
+  "crates/kafka/producer",
   "crates/l1-utils",
+  "crates/l1s",
+  "crates/l1s/eth",
+  "crates/l1s/eth/reader",
+  "crates/l1s/eth/writer",
+  "crates/l1s/solana",
+  "crates/l2-batch-poller",
   "crates/l2-proof-scheduler",
   "crates/precompiles/l1-consensus-verifier",
   "crates/precompiles/l1-transactions",
@@ -30,6 +48,7 @@ members = [
   "crates/test-harness",
   "crates/types",
   "crates/utils",
+  "examples/kafka-proof-server",
 ]
 resolver = "3"
 
@@ -42,14 +61,18 @@ alloy-contract = { version = "0.14.0", default-features = false }
 alloy-eips = { version = "0.14.0", default-features = false }
 alloy-genesis = { version = "0.14.0", default-features = false }
 alloy-primitives = { version = "1.0.0", default-features = false, features = ["map-foldhash", "serde"] }
+alloy-provider = { version = "0.14.0", features = ["reqwest", "ws"], default-features = false }
+alloy-pubsub = { version = "0.14.0", default-features = false }
+alloy-rlp = { version = "0.3.10", default-features = false, features = ["core-net"] }
 alloy-rpc-types = { version = "0.14.0", features = ["eth"], default-features = false }
+alloy-signer-local = { version = "0.14.0", default-features = false }
 alloy-sol-types = { version = "1.0.0", default-features = false, features = ["json"] }
 alloy-trie = { version = "0.8.1", default-features = false }
 
 bls12_381 = { git = "https://github.com/sp1-patches/bls12_381", branch = "n/release-latest", features = ["experimental"], package = "sp1_bls12_381" }
 
-async-trait = "0.1.88"
-clap = { version = "4.5.45", features = ["derive"] }
+async-trait = "0.1.89"
+clap = { version = "4.5.46", features = ["derive"] }
 env_logger = "0.11.7"
 ethereum_ssz = "0.9.0"
 ethereum_ssz_derive = "0.9.0"
@@ -61,8 +84,8 @@ hex = "0.4.3"
 jsonrpsee = { version = "0.24", features = ["client", "jsonrpsee-proc-macros", "tracing", "server"] }
 log = "0.4.26"
 once_cell = "1.21.3"
-
 parking_lot = "0.12"
+prometheus = "0.14.0"
 rand = "0.8.5"
 rdkafka = { version = "0.36", features = ["ssl-vendored"] }
 regex = "1.11.1"
@@ -74,14 +97,17 @@ serde_bytes = "0.11.14"
 serde_json = "1.0.132"
 serde_yaml = "0.9.34"
 sha2 = "0.10.8"
-sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres"] }
+sqlx = { version = "0.8.6", features = ["postgres", "runtime-async-std-native-tls", "chrono", "runtime-tokio-rustls"] }
 ssz_types = "0.11.0"
 strum = "0.27"
 strum_macros = "0.27"
 thiserror = "2.0.12"
+tiny_http = "0.12"
 tokio = { version = "1.40.0", features = ["full"] }
 tokio-tungstenite = "0.27.0"
 toml = "0.8.23"
+tracing-appender = "0.2.3"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter", "json"] }
 tree_hash = "0.10.0"
 tree_hash_derive = "0.10.0"
 typenum = "1.12.0"
@@ -98,10 +124,10 @@ num-derive = "0.4"
 num-traits = { version = "0.2", features = ["i128"] }
 sha2_solana = { package = "sha2", git = "https://github.com/sp1-patches/RustCrypto-hashes", tag = "patch-0.10.8-sp1-4.0.0-rc.3" }
 smallvec = "1.13.2"
+solana-client = "2.2.0"
+solana-sdk = "2.2.1"
 solana-short-vec = "2.2.1"
 tempfile = "3.10"
-
-solana-consensus-prover-lib = { git = "ssh://git@github.com/twinexyz/solana-consensus-prover" }
 
 # RETH
 reth = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.3.10" }
@@ -123,6 +149,14 @@ reth-trie-common = { git = "https://github.com/paradigmxyz/reth", tag = "v1.3.10
 revm-context = { version = "3.0.0", default-features = false }
 
 test-harness = { path = "crates/test-harness" }
+twine-aggregator-common = { path = "crates/aggregator/common" }
+twine-aggregator-consumer = { path = "crates/aggregator/consumer" }
+twine-aggregator-da-source = { path = "crates/aggregator/da-source" }
+twine-aggregator-database = { path = "crates/aggregator/database" }
+twine-aggregator-dispatcher = { path = "crates/aggregator/dispatcher" }
+twine-aggregator-metrics = { path = "crates/aggregator/metrics" }
+twine-aggregator-settlement = { path = "crates/aggregator/settlement" }
+twine-common = { path = "crates/common" }
 twine-constants = { path = "crates/constants" }
 twine-db-batch = { path = "crates/db/batch" }
 twine-ethereum-consensus-prover-lib = { path = "crates/ethereum-consensus-prover" }
@@ -130,9 +164,19 @@ twine-evm-contracts = { path = "crates/evm-contracts" }
 twine-executor = { path = "crates/executor" }
 twine-exex = { path = "crates/exex" }
 twine-integration-tests = { path = "crates/integration-tests" }
+twine-kafka = { path = "crates/kafka" }
+twine-kafka-common = { path = "crates/kafka/common" }
+twine-kafka-consumer = { path = "crates/kafka/consumer" }
+twine-kafka-producer = { path = "crates/kafka/producer" }
+twine-l1 = { path = "crates/l1s" }
 twine-l1-consensus-verifier-precompile = { path = "crates/precompiles/l1-consensus-verifier" }
+twine-l1-eth = { path = "crates/l1s/eth" }
+twine-l1-eth-reader = { path = "crates/l1s/eth/reader" }
+twine-l1-eth-writer = { path = "crates/l1s/eth/writer" }
+twine-l1-solana = { path = "crates/l1s/solana" }
 twine-l1-transactions-precompile = { path = "crates/precompiles/l1-transactions" }
 twine-l1-utils = { path = "crates/l1-utils" }
+twine-l2-batch-poller = { path = "crates/l2-batch-poller" }
 twine-l2-proof-scheduler = { path = "crates/l2-proof-scheduler" }
 twine-rpc = { path = "crates/rpc" }
 twine-solana-consensus-prover-lib = { path = "crates/solana-consensus-prover" }

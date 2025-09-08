@@ -2,8 +2,8 @@
 
 use reqwest::Client;
 use serde_json::json;
+use twine_types::proofs::ZkProof;
 
-use crate::batch_transform::transform_attempt::ZKProofBundle;
 use crate::error::TwineProofSchedulerError;
 
 /// aggregator client
@@ -20,11 +20,11 @@ impl AggregatorClient {
     /// send proof to aggregator
     pub async fn send_proof_to_aggregator(
         &self,
-        proof: ZKProofBundle,
+        proof: ZkProof,
     ) -> Result<(), TwineProofSchedulerError> {
         let payload = json!({
             "jsonrpc": "2.0",
-            "method": "twarb_sendProof",
+            "method": "twgg_sendProof",
             "params": [
                 {
                     "type": "SP1",
