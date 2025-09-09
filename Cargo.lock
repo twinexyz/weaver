@@ -15252,21 +15252,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "twine-l2-proof-scheduler-bin"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "clap",
- "env_logger 0.11.8",
- "log",
- "orchestrator-rs",
- "serde_json",
- "tokio",
- "twine-l2-proof-scheduler",
- "twine-rpc",
-]
-
-[[package]]
 name = "twine-node"
 version = "0.1.0"
 dependencies = [
@@ -15286,6 +15271,19 @@ dependencies = [
  "twine-executor",
  "twine-exex",
  "twine-rpc",
+]
+
+[[package]]
+name = "twine-proof-scheduler-bin"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "env_logger 0.11.8",
+ "log",
+ "orchestrator-rs",
+ "tokio",
+ "twine-l2-proof-scheduler",
+ "twine-solana-proof-scheduler",
 ]
 
 [[package]]

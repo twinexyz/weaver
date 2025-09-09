@@ -15,3 +15,6 @@ pub mod worker_manager;
 
 /// consumer
 pub mod consumer;
+
+/// scheduler instance
+pub mod scheduler_instance;

@@ -22,7 +22,7 @@ pub const DEFAULT_MAX_ATTEMPTS_PER_REQUEST: u64 = 10;
 
 /// Attempt Creator
 #[derive(Debug, Clone)]
-pub struct SolanaMessageTransfromAttemptCreator {
+pub struct SolanaMessageTransformAttemptCreator {
     /// maximum attempts per request, after this is reached, no new reattempts
     /// will be made
     max_attempts_per_request: u64,
@@ -40,7 +40,7 @@ pub struct AttemptDetails {
 }
 
 #[async_trait]
-impl TransformAttemptCreator for SolanaMessageTransfromAttemptCreator {
+impl TransformAttemptCreator for SolanaMessageTransformAttemptCreator {
     type Config = ProofSchedulerConfig;
     type Input = SolanaMessageTransformInput;
     type Output = SolanaMessageTransformReturnType;
