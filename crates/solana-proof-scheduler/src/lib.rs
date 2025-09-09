@@ -9,3 +9,6 @@ pub mod message_transform;
 
 /// postgres client to connect to the merkokra db
 pub mod db;
+
+/// worker manager
+pub mod worker_manager;
