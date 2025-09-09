@@ -51,18 +51,19 @@ pub struct SolanaMessageTransformCallCtx {
 #[allow(missing_docs)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SolanaEvent {
-    pub event: String,
+    pub chain_id: u64,
     pub nonce: u64,
-    pub l1_pubkey: String,
-    pub twine_address: String,
+    pub message_type: String,
+    pub txn_hash: String,
+    pub from_address: String,
     pub l1_token: String,
     pub l2_token: String,
-    pub chain_id: u64,
+    pub to_address: String,
     pub amount: String,
-    pub data: Vec<u8>, // hex decoded bytes
-    pub message_type: String,
-    pub slot_number: u64,
-    pub prev_rolling_hash: String,
+    pub block_number: u64,
+    pub block_time: u64,
+    pub data: Vec<u8>,
+    pub prev_rolling_hash: Option<String>,
 }
 
 impl TransformRequest for SolanaMessageTransformRequest {
