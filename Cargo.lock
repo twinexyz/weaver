@@ -15341,6 +15341,7 @@ dependencies = [
  "thiserror 2.0.16",
  "tokio",
  "toml 0.8.23",
+ "twine-kafka",
  "twine-proof-scheduler-common",
  "twine-types",
 ]
@@ -15374,6 +15375,8 @@ version = "0.1.0"
 dependencies = [
  "alloy-primitives",
  "serde",
+ "serde_json",
+ "twine-kafka",
  "twine-utils",
 ]
 

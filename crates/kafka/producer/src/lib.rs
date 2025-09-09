@@ -1,5 +1,6 @@
 //! Kafka producer for twine
 
+use std::fmt::Debug;
 use std::time::Duration;
 
 use rdkafka::config::ClientConfig;
@@ -10,10 +11,18 @@ use twine_kafka_common::serde::KafkaSerializer;
 use twine_kafka_common::Result;
 
 /// The Kafka producer.
-#[allow(missing_debug_implementations)]
 pub struct KafkaProducer {
     inner: FutureProducer,
     timeout: Duration,
+}
+
+impl Debug for KafkaProducer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&format!(
+            "inner: FutureProducer, timeout: {:?}",
+            self.timeout
+        ))
+    }
 }
 
 /// A record to be produced to Kafka.

@@ -12,3 +12,6 @@ pub mod db;
 
 /// worker manager
 pub mod worker_manager;
+
+/// consumer
+pub mod consumer;
