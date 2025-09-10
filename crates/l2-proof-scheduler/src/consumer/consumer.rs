@@ -190,7 +190,8 @@ impl Consumer for TwineBatchTransformResultConsumer {
                         .await
                         .map_err(|e| ProofSchedulerError::Other(format!("{e}")))?;
                 }
-                Err(_) => {
+                Err(e) => {
+                    log::error!("failed to push to kafka. error: {e}");
                     let return_ctx = TwineBatchTransformResultConsumeReturnContext {
                         consume_context: consume_attempt.consume_context,
                         consume_value: consume_attempt.consume_value,

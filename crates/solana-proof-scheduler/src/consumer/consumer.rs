@@ -87,18 +87,6 @@ impl Consumer for SolanaProofConsumer {
             .get("consumer.kafka_topics".to_string())
             .await?;
 
-        let kafka_groups = init_config
-            .lock()
-            .await
-            .get("consumer.kafka_groups".to_string())
-            .await?;
-
-        let auto_offset_reset = init_config
-            .lock()
-            .await
-            .get("consumer.auto_offset_reset".to_string())
-            .await?;
-
         let security_protocol = init_config
             .lock()
             .await
@@ -142,25 +130,6 @@ impl Consumer for SolanaProofConsumer {
         let kafka_topics = kafka_topics
             .as_str()
             .ok_or_else(|| ProofSchedulerError::Other("could not cast to string".to_string()))?;
-
-        let kafka_groups: toml::Value = serde_json::from_slice(&kafka_groups)
-            .map_err(|e| ProofSchedulerError::Other(format!("{e}")))?;
-        let kafka_groups = kafka_groups
-            .as_str()
-            .ok_or_else(|| ProofSchedulerError::Other("could not cast to string".to_string()))?;
-
-        kafka_config.insert("group.id".to_string(), kafka_groups.to_string());
-
-        let auto_offset_reset: toml::Value = serde_json::from_slice(&auto_offset_reset)
-            .map_err(|e| ProofSchedulerError::Other(format!("{e}")))?;
-        let auto_offset_reset = auto_offset_reset
-            .as_str()
-            .ok_or_else(|| ProofSchedulerError::Other("could not cast to string".to_string()))?;
-
-        kafka_config.insert(
-            "auto.offset.reset".to_string(),
-            auto_offset_reset.to_string(),
-        );
 
         _ = serde_json::from_slice::<toml::Value>(&security_protocol).map(|security_protocol| {
             let security_protocol = security_protocol.clone();
@@ -245,6 +214,7 @@ impl Consumer for SolanaProofConsumer {
                         ))
                         .await
                         .map_err(|e| ProofSchedulerError::Other(format!("{e}")))?;
+                    log::info!("pushed proof to kafka");
                 }
                 Err(_) => {
                     let return_ctx = SolanaMessageTransformResultConsumeReturnContext {

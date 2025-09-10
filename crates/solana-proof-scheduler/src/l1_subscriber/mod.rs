@@ -114,7 +114,7 @@ impl Emitter for SolanaMessageSubscriber {
         let identifier = init_config
             .lock()
             .await
-            .get("batch_subscriber.next_transform_request_id".to_string())
+            .get("solana_emitter.next_transform_request_id".to_string())
             .await
             .map_err(|e| ProofSchedulerError::KeyNotFound(format!("{e}")))?;
 

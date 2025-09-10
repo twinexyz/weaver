@@ -97,6 +97,11 @@ impl ConsumeAttemptCreator for SolanaMessageTransformResultConsumeAttemptCreator
                                                    * never be null */
         );
 
+        log::info!(
+            "new consume attempt for request {}",
+            request.identifier.identifier
+        );
+
         let attempt_details = AttemptDetails {
             attempt: consume_attempt.clone(),
             time: time::Instant::now(),

@@ -132,7 +132,25 @@ impl SolanaProverWorkerManager {
         &self,
         transform_attempt: SolanaMessageTransformAttempt,
     ) -> Result<ZkProof, ProofSchedulerError> {
-        let args: Vec<String> = vec![];
+        let solana_event = transform_attempt.call_val.solana_message_event;
+        let message_nonce = solana_event.nonce;
+        let message_slot = solana_event.block_number;
+        let solana_event = serde_json::to_string(&solana_event)
+            .map_err(|e| ProofSchedulerError::Other(e.to_string()))?;
+        let args: Vec<String> = vec![
+            "--start-message".into(),
+            message_nonce.to_string(),
+            "--end-message".into(),
+            message_nonce.to_string(),
+            "--start-slot".into(),
+            message_slot.to_string(),
+            "--end-slot".into(),
+            message_slot.to_string(),
+            "--solana-event".into(),
+            solana_event,
+            "--execute".into(),
+        ];
+
         let cmd = Command::new(self.solana_prover.clone())
             .args(args)
             .output()
@@ -143,8 +161,8 @@ impl SolanaProverWorkerManager {
             let proof_file = File::open(format!(
                 "{}/solana_proof_{}_{}.proof",
                 self.proof_dir.clone(),
-                transform_attempt.call_val.solana_message_event.nonce,
-                transform_attempt.call_val.solana_message_event.nonce
+                message_nonce,
+                message_nonce,
             ))
             .map_err(|e| ProofSchedulerError::Other(e.to_string()))?;
 
@@ -152,7 +170,7 @@ impl SolanaProverWorkerManager {
                 .map_err(|e| ProofSchedulerError::Other(e.to_string()))?;
 
             let zk_proof = ZkProof {
-                identifier: "1".into(),
+                identifier: message_nonce.to_string(),
                 proof_kind: ProofKind::SolanaConsensusProof,
                 proof_data: ProofData::SP1(zk_proof),
             };
