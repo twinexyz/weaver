@@ -191,7 +191,7 @@ impl Consumer for SolanaProofConsumer {
             let produce_record: ProduceRecord<'_, KafkaKey, twine_types::proofs::ZkProof> =
                 ProduceRecord {
                     topic: self.kafka_topic.as_str(),
-                    key: Some(&kafka_key),
+                    key: None,
                     value: &kafka_message,
                     partition: None,
                     timestamp_ms: None,
