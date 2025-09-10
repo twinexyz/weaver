@@ -93,11 +93,11 @@ impl TransformRequest for SolanaMessageTransformRequest {
         let next_transform_request_id = serde_json::to_vec(&next_transfrom_request_id).unwrap();
         vec![
             (
-                "solana_message_subscriber.next_message_nonce".to_string(),
+                "solana_emitter.next_message_nonce".to_string(),
                 next_message_nonce,
             ),
             (
-                "solana_message_subscriber.next_transform_request_id".to_string(),
+                "solana_emitter.next_transform_request_id".to_string(),
                 next_transform_request_id,
             ),
         ]
