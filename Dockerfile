@@ -20,7 +20,12 @@ WORKDIR /app
 
 COPY . .
 
-RUN cargo build --release
+RUN cargo build --release --bin twine-node
+RUN cargo build --release --bin twine-proof-scheduler-bin --features l2-proof-scheduler
+RUN mv target/release/twine-proof-scheduler-bin target/release/twine-l2-proof-scheduler-bin
+RUN cargo build --release --bin twine-proof-scheduler-bin --features solana-proof-scheduler
+RUN mv target/release/twine-proof-scheduler-bin target/release/twine-solana-proof-scheduler-bin
+RUN cargo build --release --bin twine-l2-execution-prover-worker
 
 FROM ubuntu:24.04 AS runtime
 
@@ -36,6 +41,7 @@ RUN apt-get update && \
 
 COPY --from=builder /app/target/release/twine-node /usr/local/bin/twine-node
 COPY --from=builder /app/target/release/twine-l2-proof-scheduler-bin /usr/local/bin/twine-l2-proof-scheduler-bin
+COPY --from=builder /app/target/release/twine-l2-proof-scheduler-bin /usr/local/bin/twine-solana-proof-scheduler-bin
 COPY --from=builder /app/target/release/twine-l2-execution-prover-worker /usr/local/bin/twine-l2-execution-prover-worker
 
 COPY --from=builder /app/bin/node/res/dev-genesis.json /root/genesis.json
