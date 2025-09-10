@@ -10,4 +10,8 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
   -- Database 2 + user
   CREATE DATABASE aggregator;
   GRANT ALL PRIVILEGES ON DATABASE aggregator TO postgres;
+
+  -- Database 2 + user
+  CREATE DATABASE merkora;
+  GRANT ALL PRIVILEGES ON DATABASE merkora TO postgres;
 EOSQL

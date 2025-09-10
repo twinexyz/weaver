@@ -11,7 +11,7 @@ use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::Mutex;
 use twine_proof_scheduler_common::config::ProofSchedulerConfig;
 use twine_proof_scheduler_common::error::ProofSchedulerError;
-use twine_types::proofs::ZkProof;
+use twine_types::proofs::{ProofData, ProofKind, SP1Proof, ZkProof};
 
 use crate::message_transform::message_transform_attempt::{
     SolanaMessageTransformAttempt, SolanaMessageTransformReturnCtx,
@@ -141,15 +141,21 @@ impl SolanaProverWorkerManager {
 
         if cmd.status.success() {
             let proof_file = File::open(format!(
-                "{}/{}.proof",
+                "{}/solana_proof_{}_{}.proof",
                 self.proof_dir.clone(),
+                transform_attempt.call_val.solana_message_event.nonce,
                 transform_attempt.call_val.solana_message_event.nonce
             ))
             .map_err(|e| ProofSchedulerError::Other(e.to_string()))?;
 
-            let zk_proof: ZkProof = serde_json::from_reader(&proof_file)
+            let zk_proof: SP1Proof = serde_json::from_reader(&proof_file)
                 .map_err(|e| ProofSchedulerError::Other(e.to_string()))?;
 
+            let zk_proof = ZkProof {
+                identifier: "1".into(),
+                proof_kind: ProofKind::SolanaConsensusProof,
+                proof_data: ProofData::SP1(zk_proof),
+            };
             return Ok(zk_proof);
         }
         let std_err =
@@ -158,5 +164,72 @@ impl SolanaProverWorkerManager {
         Err(ProofSchedulerError::Other(format!(
             "proof generation failed: error: {std_err}"
         )))
+    }
+}
+
+mod tests {
+    #![allow(unused_imports)]
+    use super::*;
+    use crate::message_transform::message_transform_request::SolanaEvent;
+    #[tokio::test]
+    async fn test_prover_invocation() {
+        let solana_event = SolanaEvent {
+            chain_id: 900,
+            nonce: 1,
+            message_type: "deposit".into(),
+            txn_hash: "tx_hash".into(),
+            from_address: "from_address".into(),
+            l1_token: "l1_token".into(),
+            l2_token: "l2_token".into(),
+            to_address: "to_address".into(),
+            amount: "amount".into(),
+            block_number: 1,
+            block_time: 3,
+            data: vec![],
+            prev_rolling_hash: Some(
+                "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470".into(),
+            ),
+        };
+
+        let solana_event = serde_json::to_string(&solana_event).unwrap();
+
+        let args: Vec<String> = vec![
+            "--start-message".into(),
+            "1".into(),
+            "--end-message".into(),
+            "2".into(),
+            "--start-slot".into(),
+            "1".into(),
+            "--end-slot".into(),
+            "2".into(),
+            "--solana-event".into(),
+            solana_event,
+            "--execute".into(),
+        ];
+        let cmd = Command::new("solana-stub-prover")
+            .args(args)
+            .output()
+            .await
+            .unwrap();
+
+        if cmd.status.success() {
+            let output = String::from_utf8(cmd.stdout).unwrap();
+            let proof_file = File::open("proofs/solana_proof_1_2.proof").unwrap();
+
+            let zk_proof: SP1Proof = serde_json::from_reader(&proof_file).unwrap();
+
+            let zk_proof = ZkProof {
+                identifier: "1".into(),
+                proof_kind: ProofKind::SolanaConsensusProof,
+                proof_data: ProofData::SP1(zk_proof),
+            };
+
+            println!("{output}");
+
+            println!("{zk_proof:#?}");
+        } else {
+            let output = String::from_utf8(cmd.stderr).unwrap();
+            println!("{output}");
+        }
     }
 }

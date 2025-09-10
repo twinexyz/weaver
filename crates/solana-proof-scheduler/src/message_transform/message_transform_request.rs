@@ -84,9 +84,9 @@ impl TransformRequest for SolanaMessageTransformRequest {
     /// string, value is always a `Vec<u8>` representing the serialized
     /// value
     fn get_dyn_configs(&self) -> Vec<(String, Vec<u8>)> {
-        let end_block =
+        let next_message_nonce =
             toml::Value::Integer((self.transform_input.solana_message_event.nonce + 1) as i64);
-        let end_block = serde_json::to_vec(&end_block).unwrap();
+        let next_message_nonce = serde_json::to_vec(&next_message_nonce).unwrap();
 
         let next_transfrom_request_id =
             toml::Value::Integer((self.identifier.identifier + 1) as i64);
@@ -94,7 +94,7 @@ impl TransformRequest for SolanaMessageTransformRequest {
         vec![
             (
                 "solana_message_subscriber.next_message_nonce".to_string(),
-                end_block,
+                next_message_nonce,
             ),
             (
                 "solana_message_subscriber.next_transform_request_id".to_string(),

@@ -56,7 +56,7 @@ impl Emitter for SolanaMessageSubscriber {
         let next_message_nonce = init_config
             .lock()
             .await
-            .get("solana_emitter.last_processed_message_nonce".to_string())
+            .get("solana_emitter.next_message_nonce".to_string())
             .await
             .map_err(|e| ProofSchedulerError::KeyNotFound(format!("{e}")))?;
 
@@ -85,7 +85,7 @@ impl Emitter for SolanaMessageSubscriber {
         let solana_rpc = init_config
             .lock()
             .await
-            .get("solana_emitter.db_conn_string".to_string())
+            .get("solana_emitter.solana_rpc".to_string())
             .await
             .map_err(|e| ProofSchedulerError::KeyNotFound(format!("{e}")))?;
 
