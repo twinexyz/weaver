@@ -32,7 +32,7 @@ async fn main() -> eyre::Result<()> {
                     partition: None,
                     timestamp_ms: None,
                 },
-                &JsonSerde,
+                Some(&JsonSerde),
                 &JsonSerde,
             )
             .await?;

@@ -63,7 +63,7 @@ impl KafkaProducer {
     pub async fn send<K, V, KS, VS>(
         &self,
         rec: ProduceRecord<'_, K, V>,
-        key_ser: &KS,
+        key_ser: Option<&KS>,
         val_ser: &VS,
     ) -> Result<()>
     where
@@ -72,6 +72,7 @@ impl KafkaProducer {
         let key_bytes = match rec.key {
             Some(k) => Some(
                 key_ser
+                    .ok_or(KafkaError::Other("key_ser cannot be none".to_string()))?
                     .serialize(k)
                     .map_err(|e| KafkaError::Other(e.to_string()))?,
             ),

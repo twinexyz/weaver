@@ -14,6 +14,7 @@ use twine_kafka::twine_kafka_producer::{KafkaProducer, ProduceRecord};
 use twine_proof_scheduler_common::config::ProofSchedulerConfig;
 use twine_proof_scheduler_common::error::ProofSchedulerError;
 use twine_proof_scheduler_common::kafka::KafkaKey;
+use twine_types::proofs::ZkProof;
 
 use crate::consumer::consume_attempt::{
     SolanaMessageConsumeAttempt, SolanaMessageTransformResultConsumeReturnContext,
@@ -157,20 +158,17 @@ impl Consumer for SolanaProofConsumer {
         log::info!("consumer loop started");
         while let Some(consume_attempt) = self.consume_attempt_receiver.recv().await {
             let kafka_message = consume_attempt.consume_value.clone().0;
-            let kafka_key = KafkaKey {
-                message_id: kafka_message.identifier.clone(),
+
+            let produce_record: ProduceRecord<'_, KafkaKey, ZkProof> = ProduceRecord {
+                topic: self.kafka_topic.as_str(),
+                key: None,
+                value: &kafka_message,
+                partition: None,
+                timestamp_ms: None,
             };
-            let produce_record: ProduceRecord<'_, KafkaKey, twine_types::proofs::ZkProof> =
-                ProduceRecord {
-                    topic: self.kafka_topic.as_str(),
-                    key: None,
-                    value: &kafka_message,
-                    partition: None,
-                    timestamp_ms: None,
-                };
             match self
                 .kafka_producer
-                .send(produce_record, &kafka_key, &kafka_message)
+                .send::<_, _, KafkaKey, ZkProof>(produce_record, None, &kafka_message)
                 .await
             {
                 Ok(_) => {
