@@ -9,13 +9,15 @@ use orchestrator_rs::consumer::consumer::ConsumeAttemptResult;
 use orchestrator_rs::consumer::Consumer;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::Mutex;
+use twine_kafka::twine_kafka_common::config::{KafkaCommonConfig, ProducerConfig};
+use twine_kafka::twine_kafka_producer::{KafkaProducer, ProduceRecord};
 use twine_proof_scheduler_common::config::ProofSchedulerConfig;
 use twine_proof_scheduler_common::error::ProofSchedulerError;
+use twine_proof_scheduler_common::kafka::KafkaKey;
 
 use crate::consumer::consume_attempt::{
     TwineBatchTransformResultConsumeAttempt, TwineBatchTransformResultConsumeReturnContext,
 };
-use crate::consumer::kafka_producer::KafkaProducer;
 
 /// Structure that represents the worker manager result consumer
 #[derive(Debug)]
@@ -24,6 +26,8 @@ pub struct TwineBatchTransformResultConsumer {
     // pub aggregator_client: AggregatorClient,
     /// kafka client
     pub kafka_client: KafkaProducer,
+    /// kafka topic
+    pub kafka_topic: String,
     /// receiver to receive the consume attempts
     pub consume_attempt_receiver: Receiver<TwineBatchTransformResultConsumeAttempt>,
     /// sender to send the consume attempt results
@@ -56,18 +60,6 @@ impl Consumer for TwineBatchTransformResultConsumer {
             .lock()
             .await
             .get("consumer.kafka_topics".to_string())
-            .await?;
-
-        let kafka_groups = init_config
-            .lock()
-            .await
-            .get("consumer.kafka_groups".to_string())
-            .await?;
-
-        let auto_offset_reset = init_config
-            .lock()
-            .await
-            .get("consumer.auto_offset_reset".to_string())
             .await?;
 
         let security_protocol = init_config
@@ -103,7 +95,6 @@ impl Consumer for TwineBatchTransformResultConsumer {
         let kafka_broker_url = kafka_broker_url
             .as_str()
             .ok_or_else(|| ProofSchedulerError::Other("could not cast to string".to_string()))?;
-        kafka_config.insert("bootstrap.servers", kafka_broker_url.to_string());
 
         let kafka_topics: toml::Value = serde_json::from_slice(&kafka_topics)
             .map_err(|e| ProofSchedulerError::Other(format!("{e}")))?;
@@ -111,57 +102,52 @@ impl Consumer for TwineBatchTransformResultConsumer {
             .as_str()
             .ok_or_else(|| ProofSchedulerError::Other("could not cast to string".to_string()))?;
 
-        let kafka_groups: toml::Value = serde_json::from_slice(&kafka_groups)
-            .map_err(|e| ProofSchedulerError::Other(format!("{e}")))?;
-        let kafka_groups = kafka_groups
-            .as_str()
-            .ok_or_else(|| ProofSchedulerError::Other("could not cast to string".to_string()))?;
-
-        kafka_config.insert("group.id", kafka_groups.to_string());
-
-        let auto_offset_reset: toml::Value = serde_json::from_slice(&auto_offset_reset)
-            .map_err(|e| ProofSchedulerError::Other(format!("{e}")))?;
-        let auto_offset_reset = auto_offset_reset
-            .as_str()
-            .ok_or_else(|| ProofSchedulerError::Other("could not cast to string".to_string()))?;
-
-        kafka_config.insert("auto.offset.reset", auto_offset_reset.to_string());
-
         _ = serde_json::from_slice::<toml::Value>(&security_protocol).map(|security_protocol| {
             let security_protocol = security_protocol.clone();
             security_protocol
                 .as_str()
-                .and_then(|v| kafka_config.insert("security.protocol", v.to_string()));
+                .and_then(|v| kafka_config.insert("security.protocol".to_string(), v.to_string()));
         });
 
         _ = serde_json::from_slice::<toml::Value>(&ssl_ca_location).map(|ssl_ca_location| {
             ssl_ca_location
                 .as_str()
-                .and_then(|v| kafka_config.insert("ssl.ca.location", v.to_string()));
+                .and_then(|v| kafka_config.insert("ssl.ca.location".to_string(), v.to_string()));
         });
 
         _ = serde_json::from_slice::<toml::Value>(&ssl_certificate_location).map(
             |ssl_certificate_location| {
-                ssl_certificate_location
-                    .as_str()
-                    .and_then(|v| kafka_config.insert("ssl.certificate.location", v.to_string()));
+                ssl_certificate_location.as_str().and_then(|v| {
+                    kafka_config.insert("ssl.certificate.location".to_string(), v.to_string())
+                });
             },
         );
 
         _ = serde_json::from_slice::<toml::Value>(&ssl_key_location).map(|ssl_key_location| {
             ssl_key_location
                 .as_str()
-                .and_then(|v| kafka_config.insert("ssl.key.location", v.to_string()));
+                .and_then(|v| kafka_config.insert("ssl.key.location".to_string(), v.to_string()));
         });
 
         println!("{kafka_config:#?}");
 
-        let kafka_client = KafkaProducer::new(kafka_config, kafka_topics.to_string())?;
+        let producer_config = ProducerConfig {
+            common: KafkaCommonConfig {
+                bootstrap_servers: kafka_broker_url.to_string(),
+                client_id: "l2 proof scheduler".to_string(),
+                extra: kafka_config,
+            },
+            acks: None,
+        };
+
+        let kafka_client = KafkaProducer::new(&producer_config)
+            .map_err(|e| ProofSchedulerError::Other(e.to_string()))?;
 
         Ok(Self {
             consume_attempt_receiver: recv_channel,
             consume_attempt_result_sender: end_channel,
             kafka_client,
+            kafka_topic: kafka_topics.to_string(),
         })
     }
 
@@ -171,9 +157,22 @@ impl Consumer for TwineBatchTransformResultConsumer {
     async fn consumer_loop(&mut self) -> Result<(), Self::ConsumeError> {
         log::info!("consumer loop started");
         while let Some(consume_attempt) = self.consume_attempt_receiver.recv().await {
+            let kafka_message = consume_attempt.consume_value.clone().0;
+            let kafka_key = KafkaKey {
+                message_id: kafka_message.identifier.clone(),
+            };
+            let produce_record: ProduceRecord<'_, KafkaKey, twine_types::proofs::ZkProof> =
+                ProduceRecord {
+                    topic: self.kafka_topic.as_str(),
+                    key: None,
+                    value: &kafka_message,
+                    partition: None,
+                    timestamp_ms: None,
+                };
+
             match self
                 .kafka_client
-                .push_to_kafka(consume_attempt.consume_value.clone().0)
+                .send(produce_record, &kafka_key, &kafka_message)
                 .await
             {
                 Ok(_) => {

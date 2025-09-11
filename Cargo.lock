@@ -15246,6 +15246,7 @@ dependencies = [
  "tokio",
  "tokio-tungstenite 0.27.0",
  "toml 0.8.23",
+ "twine-kafka",
  "twine-proof-scheduler-common",
  "twine-rpc",
  "twine-types",
@@ -15296,6 +15297,7 @@ dependencies = [
  "serde_json",
  "thiserror 2.0.16",
  "toml 0.8.23",
+ "twine-kafka",
 ]
 
 [[package]]

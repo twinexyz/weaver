@@ -97,6 +97,11 @@ impl ConsumeAttemptCreator for TwineBatchTransformResultConsumeAttemptCreator {
                                                    * never be null */
         );
 
+        log::info!(
+            "new consume attempt for request {:?}",
+            request.identifier.transform_request_id
+        );
+
         let attempt_details = AttemptDetails {
             attempt: consume_attempt.clone(),
             time: time::Instant::now(),
@@ -129,6 +134,15 @@ impl ConsumeAttemptCreator for TwineBatchTransformResultConsumeAttemptCreator {
                 new_identifier,
                 error.consume_context,
                 error.consume_value,
+            );
+
+            log::info!(
+                "new consume reattempt for request {:?}",
+                attempt
+                    .attempt
+                    .identifier
+                    .transform_attempt_identifier
+                    .transform_request_id
             );
 
             let attempt_details = AttemptDetails {

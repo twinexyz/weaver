@@ -7,15 +7,13 @@ use async_trait::async_trait;
 use orchestrator_rs::config::Config;
 use orchestrator_rs::consumer::consumer::ConsumeAttemptResult;
 use orchestrator_rs::consumer::Consumer;
-use serde::de::DeserializeOwned;
-use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::Mutex;
 use twine_kafka::twine_kafka_common::config::{KafkaCommonConfig, ProducerConfig};
-use twine_kafka::twine_kafka_common::serde::{KafkaDeserializer, KafkaSerializer};
 use twine_kafka::twine_kafka_producer::{KafkaProducer, ProduceRecord};
 use twine_proof_scheduler_common::config::ProofSchedulerConfig;
 use twine_proof_scheduler_common::error::ProofSchedulerError;
+use twine_proof_scheduler_common::kafka::KafkaKey;
 
 use crate::consumer::consume_attempt::{
     SolanaMessageConsumeAttempt, SolanaMessageTransformResultConsumeReturnContext,
@@ -32,32 +30,6 @@ pub struct SolanaProofConsumer {
     pub consume_attempt_receiver: Receiver<SolanaMessageConsumeAttempt>,
     /// sender to the consume attempt result
     pub consume_attempt_result_sender: Sender<ConsumeAttemptResult<SolanaMessageConsumeAttempt>>,
-}
-
-/// Kafka key
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct KafkaKey {
-    message_id: String,
-}
-
-impl<T> KafkaSerializer<T> for KafkaKey
-where
-    T: Serialize + DeserializeOwned,
-{
-    fn serialize(&self, value: &T) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
-        let serialized_value = serde_json::to_vec(&value)?;
-        Ok(serialized_value)
-    }
-}
-
-impl<T> KafkaDeserializer<T> for KafkaKey
-where
-    T: Serialize + DeserializeOwned,
-{
-    fn deserialize(&self, bytes: &[u8]) -> Result<T, Box<dyn std::error::Error + Send + Sync>> {
-        let zk_proof = serde_json::from_slice(bytes)?;
-        Ok(zk_proof)
-    }
 }
 
 #[async_trait]

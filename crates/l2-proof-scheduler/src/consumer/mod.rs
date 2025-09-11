@@ -9,6 +9,3 @@ pub mod consume_attempt_creator;
 
 /// aggregator client
 pub mod aggregator_client;
-
-/// kafka producer
-pub mod kafka_producer;

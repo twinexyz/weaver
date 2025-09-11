@@ -95,7 +95,7 @@ impl TransformAttemptCreator for TwineBatchTransformAttemptCreator {
             request.transform_input.clone(),
         );
 
-        log::info!("new attempt for request {}", request.identifier.identifier);
+        log::info!("new attempt for request {:?}", request.identifier);
 
         let attempt_details = AttemptDetails {
             attempt: transform_attempt.clone(),
@@ -125,7 +125,10 @@ impl TransformAttemptCreator for TwineBatchTransformAttemptCreator {
             new_identifier.identifier += 1;
             let transform_attempt =
                 TwineBatchTransformAttempt::from_return_package(new_identifier, error);
-
+            log::info!(
+                "new transform reattempt for request {:?}",
+                attempt.attempt.identifier.transform_request_id
+            );
             let attempt_details = AttemptDetails {
                 attempt: transform_attempt.clone(),
                 time: Instant::now(),
