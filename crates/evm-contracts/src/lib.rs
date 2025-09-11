@@ -71,11 +71,11 @@ pub mod l2_twine_messenger {
                 chainId: self.chainId,
                 blockNumber: self.blockNumber,
                 message: keccak256(&self.message),
-                fromAddress: self.fromAddress.clone(),
-                toAddress: self.toAddress.clone(),
-                l1Token: self.l1Token.clone(),
-                l2Token: self.l2Token.clone(),
-                amount: self.amount.clone(),
+                fromAddress: self.fromAddress.to_lowercase().clone(),
+                toAddress: self.toAddress.to_lowercase().clone(),
+                l1Token: self.l1Token.to_lowercase().clone(),
+                l2Token: self.l2Token.to_lowercase().clone(),
+                amount: self.amount.to_lowercase().clone(),
             };
 
             keccak256(hashed_message.abi_encode_packed())
