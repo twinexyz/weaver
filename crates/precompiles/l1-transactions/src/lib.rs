@@ -106,16 +106,16 @@ fn handle_ethereum_transaction(
 
     let value_stored: FixedBytes<32> = account_proofs.storage_proofs[0].value.into();
     if !value_stored.eq(&message_hash) {
-        return Err(TransactionPrecompileError::InvalidStateProof.into());
+        return Err(TransactionPrecompileError::InvalidValueStored.into());
     }
 
     if !whitelisted_contract(chain_id).contains(&account_proofs.address) {
-        return Err(TransactionPrecompileError::InvalidStateProof.into());
+        return Err(TransactionPrecompileError::InvalidMessageHandlerAddress.into());
     }
 
     if message_data.blockNumber > proof_height {
         tracing::debug!("The message block number cannot be greater than the state root block");
-        return Err(TransactionPrecompileError::InvalidStateProof.into());
+        return Err(TransactionPrecompileError::InvalidHeight.into());
     }
 
     return get_return_output(&message_data);
