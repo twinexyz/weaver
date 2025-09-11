@@ -7,9 +7,9 @@ Twine Proof Scheduler schedules the execution proof of twine node and consensus 
 ## Running the Scheduler
 ```sh
 # Run L2 execution proof scheduler
-RUST_LOG=info cargo run --release --bin twine-proof-scheduler-bin --features l2-proof-scheduler
+RUST_LOG=info cargo run --release --bin twine-proof-scheduler-bin --features l2-proof-scheduler -- --config l2-scheduler-config.toml
 # Run solana execution proof scheduler
-RUST_LOG=info cargo run --release --bin twine-proof-scheduler-bin --features solana-proof-scheduler
+RUST_LOG=info cargo run --release --bin twine-proof-scheduler-bin --features solana-proof-scheduler -- --config solana-scheduler-config.toml
 ```
 
 ## Prerequisits
