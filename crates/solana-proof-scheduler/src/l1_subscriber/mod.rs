@@ -177,7 +177,7 @@ impl Emitter for SolanaMessageSubscriber {
                         }
                         Err(e) => {
                             let wait_duration = self.backoff.wait_duration();
-                            log::warn!("cannot find the next unprocessed message: error: {e}.. retrying in {wait_duration} secs");
+                            log::warn!("cannot find the next unprocessed message of nonce: {} error: {e}.. retrying in {wait_duration} secs", self.next_message_nonce);
                             self.backoff.wait_and_backoff().await;
                             continue;
                         }
@@ -215,7 +215,11 @@ impl Backoff {
 
     /// Wait duration
     pub fn wait_duration(&self) -> u64 {
-        std::cmp::min(2u64.pow(self.retry.clone() as u32), MAX_RPC_RETRY_INTERVAL)
+        std::cmp::min(
+            2u64.checked_pow(self.retry.clone() as u32)
+                .unwrap_or(MAX_RPC_RETRY_INTERVAL + 1),
+            MAX_RPC_RETRY_INTERVAL,
+        )
     }
 
     /// Reset the retry count
