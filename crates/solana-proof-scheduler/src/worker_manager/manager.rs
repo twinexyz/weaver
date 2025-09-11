@@ -79,8 +79,13 @@ impl WorkerManager for SolanaProverWorkerManager {
             let proof = self.prove(solana_message_transform_attempt.clone()).await;
 
             let worker_manager_result =
-                self.make_return_value(solana_message_transform_attempt, proof);
-
+                self.make_return_value(solana_message_transform_attempt.clone(), proof);
+            log::info!(
+                "sent worker manager result to the processor. identifier: {:?}",
+                solana_message_transform_attempt
+                    .identifier
+                    .transform_request_id
+            );
             self.worker_result_sender
                 .send(worker_manager_result)
                 .await

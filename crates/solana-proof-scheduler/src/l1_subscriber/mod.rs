@@ -159,6 +159,7 @@ impl Emitter for SolanaMessageSubscriber {
                 unprocessed_message = self.db_connection.next_solana_message(self.next_message_nonce) => {
                     match unprocessed_message {
                         Ok(unprocessed_message) => {
+                            log::info!("found solana message of nonce {}", self.next_message_nonce);
                             self.transform_request_sender.send(
                                 SolanaMessageTransformRequest {
                                     identifier: SolanaMessageTransformRequestID {
@@ -173,7 +174,6 @@ impl Emitter for SolanaMessageSubscriber {
                             self.backoff.reset_wait_and_backoff();
                             self.next_identifer();
                             self.next_message_nonce();
-
                         }
                         Err(e) => {
                             let wait_duration = self.backoff.wait_duration();

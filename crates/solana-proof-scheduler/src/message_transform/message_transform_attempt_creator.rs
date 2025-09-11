@@ -126,6 +126,11 @@ impl TransformAttemptCreator for SolanaMessageTransformAttemptCreator {
             let transform_attempt =
                 SolanaMessageTransformAttempt::from_return_package(new_identifier, error);
 
+            log::info!(
+                "new transform reattempt for request {:?}",
+                attempt.attempt.identifier.transform_request_id
+            );
+
             let attempt_details = AttemptDetails {
                 attempt: transform_attempt.clone(),
                 time: Instant::now(),

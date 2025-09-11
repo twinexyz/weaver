@@ -98,8 +98,8 @@ impl ConsumeAttemptCreator for SolanaMessageTransformResultConsumeAttemptCreator
         );
 
         log::info!(
-            "new consume attempt for request {}",
-            request.identifier.identifier
+            "new consume attempt for request {:?}",
+            request.identifier.transform_request_id
         );
 
         let attempt_details = AttemptDetails {
@@ -134,6 +134,11 @@ impl ConsumeAttemptCreator for SolanaMessageTransformResultConsumeAttemptCreator
                 new_identifier,
                 error.consume_context,
                 error.consume_value,
+            );
+
+            log::info!(
+                "new consume reattempt for request {:?}",
+                attempt.attempt.identifier.transform_attempt_identifier
             );
 
             let attempt_details = AttemptDetails {
