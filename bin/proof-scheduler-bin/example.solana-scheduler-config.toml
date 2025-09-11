@@ -1,5 +1,5 @@
 [solana_emitter]
-db_conn_string = "postgres://postgres:postgres@localhost:5432/merkora"
+db_conn_string = "postgres://postgres:postgres@localhost:5432/merkora" # connection string to merkora db
 next_message_nonce = 1
 solana_rpc = "http://127.0.0.1:8900"
 chain_id = 900
@@ -25,7 +25,7 @@ max_attempts_per_request = 20
 max_consume_attempts_per_attempts = 20
 
 [db]
-conn_str = "postgres://postgres:postgres@localhost:5432/scheduler"
+conn_str = "postgres://postgres:postgres@localhost:5432/solana-scheduler"
 
 [processor]
 transform_request_channel_size = 100
@@ -34,4 +34,4 @@ consume_attempt_channel_size = 100
 max_in_process_transform_attempts = 100
 
 [instrumentation]
-metrics_server_port = 3000
+metrics_server_port = 3001
