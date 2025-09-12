@@ -50,7 +50,6 @@ members = [
   "crates/test-harness",
   "crates/types",
   "crates/utils",
-  "examples/kafka-proof-server",
 ]
 resolver = "3"
 

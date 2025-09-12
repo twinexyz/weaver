@@ -21,6 +21,7 @@ RUST_LOG=info cargo run --release --bin twine-proof-scheduler-bin --features sol
 
 2. Start local postgres instance, kafka instance
 ```bash
+cd docker
 docker compose up -d
 ```
 3. Rename config
@@ -42,9 +43,10 @@ twine_rpc_url = "http://127.0.0.1:8545
 Postgres Database is used to store various states of scheduler.
 replace in the `example.l2-scheduler-config.toml`
 ```
-conn_str = "postgres://twine:twine@localhost:5432/twine"
+conn_str = "postgres://postgres:postgres@localhost:5432/l2-scheduler"
 ```
 with your connection string.
+
 3. Configure kafka:
 Kafka queue is used to post the proofs so that aggregator can consume them.
 replace in the `example.l2-scheduler-config.toml`
@@ -58,6 +60,7 @@ auto_offset_reset = "earliest"
 with your setup.
 
 Also replace all the other relevant configurations.
+
 4. Rename config
 ```sh
 mv example.l2-scheduler-config.toml l2-scheduler-config.toml
@@ -75,9 +78,10 @@ twine_rpc_url = "http://127.0.0.1:8545
 Postgres Database is used to store various states of scheduler.
 replace in the `example.solana-scheduler-config.toml`
 ```
-conn_str = "postgres://twine:twine@localhost:5432/twine"
+conn_str = "postgres://postgres:postgres@localhost:5432/solana-scheduler"
 ```
 with your connection string.
+
 3. Configure kafka:
 Kafka queue is used to post the proofs so that aggregator can consume them.
 replace in the `example.solana-scheduler-config.toml`
@@ -91,6 +95,7 @@ auto_offset_reset = "earliest"
 with your setup.
 
 Also replace all the other relevant configurations.
+
 4. Rename config
 ```sh
 mv example.solana-scheduler-config.toml solana-scheduler-config.toml
