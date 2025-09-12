@@ -14975,6 +14975,7 @@ name = "twine-evm-contracts"
 version = "0.1.0"
 dependencies = [
  "alloy-contract",
+ "alloy-primitives",
  "alloy-sol-types",
  "serde",
 ]
@@ -15164,11 +15165,14 @@ dependencies = [
  "alloy-eips",
  "alloy-primitives",
  "alloy-sol-types",
+ "bincode",
+ "borsh 1.5.7",
  "eyre",
  "reth-revm",
  "reth-tracing",
  "reth-trie-common",
  "serde_json",
+ "sha2 0.10.9",
  "thiserror 2.0.12",
  "twine-constants",
  "twine-evm-contracts",
@@ -15180,6 +15184,7 @@ name = "twine-l1-utils"
 version = "0.1.0"
 dependencies = [
  "reth-revm",
+ "serde",
  "twine-constants",
 ]
 

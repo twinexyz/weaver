@@ -3,7 +3,7 @@
 
 use std::collections::HashSet;
 
-use reth_revm::primitives::{Address, U256};
+use reth_revm::primitives::Address;
 use twine_constants::chains::{
     ETHEREUM_CHAIN_ID, ETHEREUM_HOLESKY_CHAIN_ID, ETHEREUM_SEPOLIA_CHAIN_ID, SOLANA_CHAIN_ID,
 };
@@ -11,6 +11,8 @@ use twine_constants::eth_contracts::{
     ETHEREUM_HOLESKY_MESSAGE_QUEUE, ETHEREUM_HOLESKY_TWINE_DVN, ETHEREUM_MESSAGE_QUEUE,
     ETHEREUM_SEPOLIA_MESSAGE_QUEUE, ETHEREUM_SEPOLIA_TWINE_DVN, ETHEREUM_TWINE_DVN,
 };
+
+pub mod solana_commitment;
 
 /// L1s that Twine supports
 #[derive(Debug, Clone)]
@@ -33,8 +35,7 @@ pub fn get_chain_type(chain_id: u64) -> Option<L1ChainType> {
 }
 
 /// Events emitted from these contracts on L1
-pub fn get_l1_bridge_address(chain_id: U256) -> Address {
-    let chain_id = chain_id.to::<u64>();
+pub fn get_l1_bridge_address(chain_id: u64) -> Address {
     match chain_id {
         ETHEREUM_CHAIN_ID => ETHEREUM_MESSAGE_QUEUE,
         ETHEREUM_HOLESKY_CHAIN_ID => ETHEREUM_HOLESKY_MESSAGE_QUEUE,
@@ -44,8 +45,7 @@ pub fn get_l1_bridge_address(chain_id: U256) -> Address {
 }
 
 /// Address of Twine DVN Contract on L1
-pub fn get_twine_dvn_address(chain_id: U256) -> Address {
-    let chain_id = chain_id.to::<u64>();
+pub fn get_twine_dvn_address(chain_id: u64) -> Address {
     match chain_id {
         ETHEREUM_CHAIN_ID => ETHEREUM_TWINE_DVN,
         ETHEREUM_HOLESKY_CHAIN_ID => ETHEREUM_HOLESKY_TWINE_DVN,
@@ -57,7 +57,7 @@ pub fn get_twine_dvn_address(chain_id: U256) -> Address {
 /// Get whitelisted contract for evm chain
 ///
 /// Accepted if events are from whitelisted contract on ethereum
-pub fn whitelisted_contract(chain_id: U256) -> HashSet<Address> {
+pub fn whitelisted_contract(chain_id: u64) -> HashSet<Address> {
     let mut whitelisted = HashSet::with_capacity(2);
     whitelisted.insert(get_l1_bridge_address(chain_id));
     whitelisted.insert(get_twine_dvn_address(chain_id));

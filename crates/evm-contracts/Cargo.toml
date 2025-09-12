@@ -9,5 +9,6 @@ rust-version.workspace = true
 
 [dependencies]
 alloy-contract.workspace = true
+alloy-primitives.workspace = true
 alloy-sol-types = { workspace = true, features = ["json"] }
 serde.workspace = true

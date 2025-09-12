@@ -7,7 +7,17 @@ pub enum TransactionPrecompileError {
     #[error("invalid caller")]
     InvalidCaller,
     #[error("failed to decode verifier input")]
-    DecodeVerifierInput,
+    DecodeTransactionPrecompileInput,
+    #[error("failed to decode transaction precompile ethereum input")]
+    DecodeTransactionPrecompileEthereumInput,
+    #[error("failed to decode transaction precompile solana input")]
+    DecodeTransactionPrecompileSolanaInput,
+    #[error("failed to serialize `MessagesBuffer` for solana")]
+    SerializeSolanaAccountData,
+    #[error("solana proof slot mismatch between commitment and message data")]
+    SolanaSlotMismatch,
+    #[error("solana proof account hash mismatch with computed hash")]
+    SolanaAccountHashMismatch,
     #[error("invalid chain id: `{0}` ")]
     InvalidChainId(u64),
     #[error("failed to decode txns and proofs")]
@@ -22,6 +32,12 @@ pub enum TransactionPrecompileError {
     DecodeMessage,
     #[error("failed to verify state proofs")]
     InvalidStateProof,
+    #[error("invalid value stored")]
+    InvalidValueStored,
+    #[error("invalid message handler")]
+    InvalidMessageHandlerAddress,
+    #[error("height in proof does not match")]
+    InvalidHeight,
     #[error("invalid nonce: current nonce `{0}")]
     InvalidNonce(u64),
     #[error("failed to query storage slot of contract")]
@@ -56,10 +72,12 @@ impl TransactionPrecompileError {
 }
 
 impl From<TransactionPrecompileError> for InterpreterResult {
-    fn from(_err: TransactionPrecompileError) -> Self {
+    fn from(err: TransactionPrecompileError) -> Self {
+        let binding = err.to_string();
+        let err_bytes = binding.as_bytes();
         InterpreterResult {
             result: InstructionResult::PrecompileError,
-            output: Bytes::new(),
+            output: Bytes::copy_from_slice(err_bytes),
             gas: Gas::new(0),
         }
     }
