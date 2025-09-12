@@ -35,6 +35,8 @@ pub struct WorkerInstance {
     runtime_env: Option<String>,
     /// network
     network: Option<String>,
+    /// genesis path
+    genesis_path: String,
 }
 
 impl WorkerInstance {
@@ -48,6 +50,7 @@ impl WorkerInstance {
         sp1_port: String,
         runtime_env: Option<String>,
         network: Option<String>,
+        genesis_path: String,
     ) -> Self {
         Self {
             prover_bin_path,
@@ -58,6 +61,7 @@ impl WorkerInstance {
             sp1_port,
             runtime_env,
             network,
+            genesis_path,
         }
     }
 
@@ -143,6 +147,8 @@ impl WorkerInstance {
             &end_block,
             "--rpc-url",
             &rpc_url,
+            "--genesis-path",
+            &self.genesis_path,
         ];
 
         env::set_var("RUST_LOG", "info");

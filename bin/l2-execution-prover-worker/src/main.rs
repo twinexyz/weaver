@@ -34,6 +34,9 @@ pub struct Args {
     /// proof kind
     #[arg(short, long)]
     pub network: Option<String>,
+    /// genesis file for twine node
+    #[arg(short, long)]
+    pub genesis_path: String,
 }
 
 #[tokio::main]
@@ -60,6 +63,7 @@ async fn main() {
         args.sp1_port,
         args.runtime_env,
         args.network,
+        args.genesis_path,
     );
 
     tokio::select! {

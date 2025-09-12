@@ -12,9 +12,9 @@ This generates the execution proof of twine node. It internally uses [rsp](https
 Worker can be run in different modes,
 1. Dummy Mode: Proof is not produced in this mode
 ```bash
-RUST_LOG=info cargo run --release --bin twine-l2-execution-prover-worker -- --worker-manager-url ws://0.0.0.0:8000
+RUST_LOG=info cargo run --release --bin twine-l2-execution-prover-worker -- --worker-manager-url ws://0.0.0.0:8000 --genesis-path <path_to_twine's_genesis file>
 ```
 2. Proving Mode: Proof is produced in this mode
 ```bash
-RUST_LOG=info cargo run --release --bin twine-l2-execution-prover-worker -- --worker-manager-url ws://0.0.0.0:8000 --prove --sp1-port <port> --runtime-env <docker_if_running_in_docker__empty otherwise> --network <network>
+RUST_LOG=info cargo run --release --bin twine-l2-execution-prover-worker -- --worker-manager-url ws://0.0.0.0:8000 --prove --sp1-port <port> --runtime-env <docker_if_running_in_docker__empty otherwise> --network <network> --genesis-path <path_to_twine's_genesis file>
 ```
