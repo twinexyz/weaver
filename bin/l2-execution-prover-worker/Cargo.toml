@@ -20,6 +20,7 @@ thiserror.workspace = true
 tokio.workspace = true
 tokio-tungstenite.workspace = true
 twine-l2-proof-scheduler.workspace = true
+twine-proof-scheduler-common.workspace = true
 twine-types.workspace = true
 
 [lints]

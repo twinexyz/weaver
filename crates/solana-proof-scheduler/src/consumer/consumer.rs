@@ -1,4 +1,4 @@
-//! consumes worker manager result
+//! kafka producer
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -17,35 +17,32 @@ use twine_proof_scheduler_common::kafka::KafkaKey;
 use twine_types::proofs::ZkProof;
 
 use crate::consumer::consume_attempt::{
-    TwineBatchTransformResultConsumeAttempt, TwineBatchTransformResultConsumeReturnContext,
+    SolanaMessageConsumeAttempt, SolanaMessageTransformResultConsumeReturnContext,
 };
 
-/// Structure that represents the worker manager result consumer
+/// Solana ZK proof consumer
 #[derive(Debug)]
-pub struct TwineBatchTransformResultConsumer {
-    /// url to connect to the aggregator
-    // pub aggregator_client: AggregatorClient,
+pub struct SolanaProofConsumer {
     /// kafka client
-    pub kafka_client: KafkaProducer,
+    pub kafka_producer: KafkaProducer,
     /// kafka topic
     pub kafka_topic: String,
-    /// receiver to receive the consume attempts
-    pub consume_attempt_receiver: Receiver<TwineBatchTransformResultConsumeAttempt>,
-    /// sender to send the consume attempt results
-    pub consume_attempt_result_sender:
-        Sender<ConsumeAttemptResult<TwineBatchTransformResultConsumeAttempt>>,
+    /// receiver for solana proof consume attempts
+    pub consume_attempt_receiver: Receiver<SolanaMessageConsumeAttempt>,
+    /// sender to the consume attempt result
+    pub consume_attempt_result_sender: Sender<ConsumeAttemptResult<SolanaMessageConsumeAttempt>>,
 }
 
 #[async_trait]
-impl Consumer for TwineBatchTransformResultConsumer {
+impl Consumer for SolanaProofConsumer {
     type Config = ProofSchedulerConfig;
-    type ConsumeAttempt = TwineBatchTransformResultConsumeAttempt;
+    type ConsumeAttempt = SolanaMessageConsumeAttempt;
     type ConsumeError = ProofSchedulerError;
 
     async fn new(
         init_config: Arc<Mutex<Self::Config>>,
         recv_channel: Receiver<Self::ConsumeAttempt>,
-        end_channel: Sender<ConsumeAttemptResult<Self::ConsumeAttempt>>,
+        send_channel: Sender<ConsumeAttemptResult<Self::ConsumeAttempt>>,
     ) -> Result<Self, Self::ConsumeError>
     where
         Self: Sized, {
@@ -96,6 +93,10 @@ impl Consumer for TwineBatchTransformResultConsumer {
         let kafka_broker_url = kafka_broker_url
             .as_str()
             .ok_or_else(|| ProofSchedulerError::Other("could not cast to string".to_string()))?;
+        kafka_config.insert(
+            "bootstrap.servers".to_string(),
+            kafka_broker_url.to_string(),
+        );
 
         let kafka_topics: toml::Value = serde_json::from_slice(&kafka_topics)
             .map_err(|e| ProofSchedulerError::Other(format!("{e}")))?;
@@ -130,25 +131,23 @@ impl Consumer for TwineBatchTransformResultConsumer {
                 .and_then(|v| kafka_config.insert("ssl.key.location".to_string(), v.to_string()));
         });
 
-        println!("{kafka_config:#?}");
-
         let producer_config = ProducerConfig {
             common: KafkaCommonConfig {
                 bootstrap_servers: kafka_broker_url.to_string(),
-                client_id: "l2 proof scheduler".to_string(),
+                client_id: "solana proof scheduler".to_string(),
                 extra: kafka_config,
             },
             acks: None,
         };
 
-        let kafka_client = KafkaProducer::new(&producer_config)
+        let kafka_producer = KafkaProducer::new(&producer_config)
             .map_err(|e| ProofSchedulerError::Other(e.to_string()))?;
 
         Ok(Self {
-            consume_attempt_receiver: recv_channel,
-            consume_attempt_result_sender: end_channel,
-            kafka_client,
+            kafka_producer,
             kafka_topic: kafka_topics.to_string(),
+            consume_attempt_receiver: recv_channel,
+            consume_attempt_result_sender: send_channel,
         })
     }
 
@@ -159,6 +158,7 @@ impl Consumer for TwineBatchTransformResultConsumer {
         log::info!("consumer loop started");
         while let Some(consume_attempt) = self.consume_attempt_receiver.recv().await {
             let kafka_message = consume_attempt.consume_value.clone().0;
+
             let produce_record: ProduceRecord<'_, KafkaKey, ZkProof> = ProduceRecord {
                 topic: self.kafka_topic.as_str(),
                 key: None,
@@ -166,29 +166,34 @@ impl Consumer for TwineBatchTransformResultConsumer {
                 partition: None,
                 timestamp_ms: None,
             };
-
             match self
-                .kafka_client
+                .kafka_producer
                 .send::<_, _, KafkaKey, ZkProof>(produce_record, None, &kafka_message)
                 .await
             {
                 Ok(_) => {
-                    let return_ctx = TwineBatchTransformResultConsumeReturnContext {
+                    let return_ctx = SolanaMessageTransformResultConsumeReturnContext {
                         consume_context: consume_attempt.consume_context,
                         consume_value: consume_attempt.consume_value,
                         consume_status: true,
                     };
                     self.consume_attempt_result_sender
                         .send(ConsumeAttemptResult::Success(
-                            consume_attempt.identifier,
+                            consume_attempt.identifier.clone(),
                             return_ctx,
                         ))
                         .await
                         .map_err(|e| ProofSchedulerError::Other(format!("{e}")))?;
+                    log::info!(
+                        "pushed proof to kafka: identifier: {:?}",
+                        consume_attempt
+                            .identifier
+                            .transform_attempt_identifier
+                            .transform_request_id
+                    );
                 }
-                Err(e) => {
-                    log::error!("failed to push to kafka. error: {e}");
-                    let return_ctx = TwineBatchTransformResultConsumeReturnContext {
+                Err(_) => {
+                    let return_ctx = SolanaMessageTransformResultConsumeReturnContext {
                         consume_context: consume_attempt.consume_context,
                         consume_value: consume_attempt.consume_value,
                         consume_status: false,

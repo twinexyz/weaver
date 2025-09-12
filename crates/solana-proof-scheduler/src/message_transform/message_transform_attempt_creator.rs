@@ -1,53 +1,52 @@
-//! creates transform attemtps for all transform requests
-//! recreates transform attempts for failed transform attempts
-
 use std::collections::HashMap;
-use std::time::{self, Duration, Instant};
+use std::time;
+use std::time::{Duration, Instant};
 
 use async_trait::async_trait;
+use log;
 use orchestrator_rs::config::Config;
 use orchestrator_rs::transform::{TransformAttempt, TransformAttemptCreator};
 use twine_proof_scheduler_common::config::ProofSchedulerConfig;
 use twine_proof_scheduler_common::error::ProofSchedulerError;
 
-use crate::batch_transform::transform_attempt::{
-    TwineBatchTransformAttempt, TwineBatchTransformAttemptID, TwineBatchTransformReturnType,
+use crate::message_transform::message_transform_attempt::{
+    SolanaMessageTransformAttempt, SolanaMessageTransformAttemptID,
+    SolanaMessageTransformReturnType,
 };
-use crate::batch_transform::transform_request::{
-    TwineBatchTransformInput, TwineBatchTransformRequest, TwineBatchTransformRequestID,
+use crate::message_transform::message_transform_request::{
+    SolanaMessageTransformInput, SolanaMessageTransformRequest, SolanaMessageTransformRequestID,
 };
 
 /// Maximum number of attempts for a request
 pub const DEFAULT_MAX_ATTEMPTS_PER_REQUEST: u64 = 10;
 
-/// Transform attempt creator
+/// Attempt Creator
 #[derive(Debug, Clone)]
-pub struct TwineBatchTransformAttemptCreator {
+pub struct SolanaMessageTransformAttemptCreator {
     /// maximum attempts per request, after this is reached, no new reattempts
     /// will be made
     max_attempts_per_request: u64,
     /// stores the latest transform attempts for each requests
-    attempts: HashMap<TwineBatchTransformRequestID, AttemptDetails>, /* TODO: no need to store
-                                                                      * the full attempt */
+    attempts: HashMap<SolanaMessageTransformRequestID, AttemptDetails>,
 }
 
 /// Structure that hold attempts and its creation time
 #[derive(Debug, Clone)]
 pub struct AttemptDetails {
     /// attempts
-    attempt: TwineBatchTransformAttempt,
+    attempt: SolanaMessageTransformAttempt,
     /// time of creation
     time: time::Instant,
 }
 
 #[async_trait]
-impl TransformAttemptCreator for TwineBatchTransformAttemptCreator {
+impl TransformAttemptCreator for SolanaMessageTransformAttemptCreator {
     type Config = ProofSchedulerConfig;
-    type Input = TwineBatchTransformInput;
-    type Output = TwineBatchTransformReturnType;
-    type TransformAttempt = TwineBatchTransformAttempt;
+    type Input = SolanaMessageTransformInput;
+    type Output = SolanaMessageTransformReturnType;
+    type TransformAttempt = SolanaMessageTransformAttempt;
     type TransformAttemptCreationError = ProofSchedulerError;
-    type TransformRequest = TwineBatchTransformRequest;
+    type TransformRequest = SolanaMessageTransformRequest;
 
     async fn new(config: std::sync::Arc<tokio::sync::Mutex<Self::Config>>) -> Self
     where
@@ -85,17 +84,18 @@ impl TransformAttemptCreator for TwineBatchTransformAttemptCreator {
                 request.identifier
             )));
         }
-        let transform_attempt_id = transform_attempt_id.unwrap_or(TwineBatchTransformAttemptID {
-            identifier: 0,
-            transform_request_id: request.identifier.clone(),
-        });
-        let transform_attempt = TwineBatchTransformAttempt::new(
+        let transform_attempt_id =
+            transform_attempt_id.unwrap_or(SolanaMessageTransformAttemptID {
+                identifier: 0,
+                transform_request_id: request.identifier.clone(),
+            });
+        let transform_attempt = SolanaMessageTransformAttempt::new(
             transform_attempt_id,
             request.call_context.clone(),
             request.transform_input.clone(),
         );
 
-        log::info!("new attempt for request {:?}", request.identifier);
+        log::info!("new attempt for request {}", request.identifier.identifier);
 
         let attempt_details = AttemptDetails {
             attempt: transform_attempt.clone(),
@@ -124,11 +124,13 @@ impl TransformAttemptCreator for TwineBatchTransformAttemptCreator {
             }
             new_identifier.identifier += 1;
             let transform_attempt =
-                TwineBatchTransformAttempt::from_return_package(new_identifier, error);
+                SolanaMessageTransformAttempt::from_return_package(new_identifier, error);
+
             log::info!(
                 "new transform reattempt for request {:?}",
                 attempt.attempt.identifier.transform_request_id
             );
+
             let attempt_details = AttemptDetails {
                 attempt: transform_attempt.clone(),
                 time: Instant::now(),
@@ -148,7 +150,7 @@ impl TransformAttemptCreator for TwineBatchTransformAttemptCreator {
         &mut self,
         attempt_id: <Self::TransformAttempt as TransformAttempt>::Identifier,
     ) -> Result<Duration, ProofSchedulerError> {
-        let transform_request_id: TwineBatchTransformRequestID = attempt_id.into();
+        let transform_request_id: SolanaMessageTransformRequestID = attempt_id.into();
         if let Some(attempts) = self.attempts.remove_entry(&transform_request_id) {
             log::info!("Removed {:?} from transform attempts record", attempts.0);
             let elapsed_time = attempts.1.time.elapsed().as_secs();

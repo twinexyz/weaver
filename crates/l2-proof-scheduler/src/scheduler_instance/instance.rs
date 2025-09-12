@@ -13,6 +13,8 @@ use orchestrator_rs::processor::simple_processor::SimpleProcessor;
 use orchestrator_rs::transform::TransformRequest;
 use orchestrator_rs::worker::worker_manager::WorkerManager;
 use sqlx::postgres::PgPoolOptions;
+use twine_proof_scheduler_common::config::ProofSchedulerConfig;
+use twine_proof_scheduler_common::error::ProofSchedulerError;
 
 use crate::batch_subscriber::TwineBatchSubscriber;
 use crate::batch_transform::transform_attempt::{
@@ -22,7 +24,6 @@ use crate::batch_transform::transform_attempt_creator::TwineBatchTransformAttemp
 use crate::batch_transform::transform_request::{
     TwineBatchTransformInput, TwineBatchTransformRequest, TwineBatchTransformRequestID,
 };
-use crate::config::TwineProofSchedulerConfig;
 use crate::consumer::consume_attempt::{
     TwineBatchTransformResultConsumeAttempt, TwineBatchTransformResultConsumeAttemptID,
 };
@@ -35,7 +36,7 @@ use crate::worker_manager::manager::TwineWorkerManager;
 pub struct TwineProofSchedulerInstance {}
 
 impl Instance for TwineProofSchedulerInstance {
-    type Config = TwineProofSchedulerConfig;
+    type Config = ProofSchedulerConfig;
     type ConsumeAttempt = TwineBatchTransformResultConsumeAttempt;
     type ConsumeAttemptCreator = TwineBatchTransformResultConsumeAttemptCreator;
     type ConsumeAttemptIdentifier = TwineBatchTransformResultConsumeAttemptID;
@@ -44,7 +45,7 @@ impl Instance for TwineProofSchedulerInstance {
         TwineBatchTransformRequest,
         TwineBatchTransformAttempt,
         TwineBatchTransformResultConsumeAttempt,
-        TwineProofSchedulerConfig,
+        ProofSchedulerConfig,
     >;
     type Emitter = TwineBatchSubscriber;
     type Input = TwineBatchTransformInput;
@@ -56,7 +57,7 @@ impl Instance for TwineProofSchedulerInstance {
     >;
     type Output = TwineBatchTransformReturnType;
     type Processor = DynamicProcessor<
-        TwineProofSchedulerConfig,
+        ProofSchedulerConfig,
         TwineBatchTransformRequest,
         TwineBatchTransformAttempt,
         TwineBatchTransformAttemptCreator,

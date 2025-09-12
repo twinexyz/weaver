@@ -5,13 +5,6 @@
 pub mod batch_subscriber;
 /// transforms batch to transform requests
 pub mod batch_transform;
-
-/// config for the scheduler
-pub mod config;
-
-/// errors
-pub mod error;
-
 /// manages connection with the connected workers and
 /// and provides and receives job results
 pub mod worker_manager;

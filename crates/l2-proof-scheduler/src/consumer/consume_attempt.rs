@@ -2,12 +2,12 @@
 
 use orchestrator_rs::consumer::ConsumeAttempt;
 use serde::{Deserialize, Serialize};
+use twine_proof_scheduler_common::error::ProofSchedulerError;
 
 use crate::batch_transform::transform_attempt::{
     TwineBatchTransformAttemptID, TwineBatchTransformReturnType,
 };
 use crate::batch_transform::transform_request::TwineBatchTransformRequestID;
-use crate::error::TwineProofSchedulerError;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
 /// uniquely identifies teh Consume Attempts
@@ -77,7 +77,7 @@ pub struct TwineBatchTransformResultConsumeAttempt {
 
 impl ConsumeAttempt for TwineBatchTransformResultConsumeAttempt {
     type ConsumeCtx = TwineBatchTransformResultConsumeContext;
-    type ConsumeError = TwineProofSchedulerError;
+    type ConsumeError = ProofSchedulerError;
     type ConsumeVal = TwineBatchTransformReturnType;
     type Identifier = TwineBatchTransformResultConsumeAttemptID;
     type ReturnCtx = TwineBatchTransformResultConsumeReturnContext;

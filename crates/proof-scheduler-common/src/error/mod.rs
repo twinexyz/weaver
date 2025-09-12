@@ -1,9 +1,11 @@
+//! common errors for all proof schedulers
+
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 /// Scheduler error types
 #[derive(Debug, Error, Clone, Serialize, Deserialize)]
-pub enum TwineProofSchedulerError {
+pub enum ProofSchedulerError {
     /// max reattemts reached
     #[error("maximum reattempts for {0} reached")]
     MaxReattemtsReached(String),

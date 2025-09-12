@@ -1,4 +1,4 @@
-//! creates consume attempts for worker manager result
+//! Consume Attempt Creator
 
 use std::collections::HashMap;
 use std::time::{self, Duration};
@@ -9,12 +9,13 @@ use orchestrator_rs::consumer::{ConsumeAttempt, ConsumeAttemptCreator};
 use twine_proof_scheduler_common::config::ProofSchedulerConfig;
 use twine_proof_scheduler_common::error::ProofSchedulerError;
 
-use crate::batch_transform::transform_attempt::{
-    TwineBatchTransformAttempt, TwineBatchTransformAttemptID, TwineBatchTransformReturnType,
-};
 use crate::consumer::consume_attempt::{
-    TwineBatchTransformResultConsumeAttempt, TwineBatchTransformResultConsumeAttemptID,
-    TwineBatchTransformResultConsumeContext,
+    SolanaMessageConsumeAttempt, SolanaMessageConsumeAttemptID,
+    SolanaMessageTransformResultConsumeContext,
+};
+use crate::message_transform::message_transform_attempt::{
+    SolanaMessageTransformAttempt, SolanaMessageTransformAttemptID,
+    SolanaMessageTransformReturnType,
 };
 
 /// Max consume attempts per transform attempts
@@ -22,30 +23,30 @@ pub const DEFAULT_MAX_CONSUME_ATTEMPTS_PER_ATTEMPTS: u64 = 10;
 
 /// consume attempt creator
 #[derive(Debug)]
-pub struct TwineBatchTransformResultConsumeAttemptCreator {
+pub struct SolanaMessageTransformResultConsumeAttemptCreator {
     /// maximum attempts per request, after this is reached, no new reattempts
     /// will be made
     max_attempts_per_request: u64,
     /// stores the latest transform attempts for each requests
-    attempts: HashMap<TwineBatchTransformAttemptID, AttemptDetails>,
+    attempts: HashMap<SolanaMessageTransformAttemptID, AttemptDetails>,
 }
 
 /// structure that holds attempts and creation time
 #[derive(Debug)]
 pub struct AttemptDetails {
     /// attempts
-    attempt: TwineBatchTransformResultConsumeAttempt,
+    attempt: SolanaMessageConsumeAttempt,
     /// creation time
     time: time::Instant,
 }
 
 #[async_trait]
-impl ConsumeAttemptCreator for TwineBatchTransformResultConsumeAttemptCreator {
+impl ConsumeAttemptCreator for SolanaMessageTransformResultConsumeAttemptCreator {
     type Config = ProofSchedulerConfig;
-    type ConsumeAttempt = TwineBatchTransformResultConsumeAttempt;
+    type ConsumeAttempt = SolanaMessageConsumeAttempt;
     type ConsumeAttemptCreationError = ProofSchedulerError;
-    type Output = TwineBatchTransformReturnType;
-    type TransformAttempt = TwineBatchTransformAttempt;
+    type Output = SolanaMessageTransformReturnType;
+    type TransformAttempt = SolanaMessageTransformAttempt;
 
     async fn new(config: std::sync::Arc<tokio::sync::Mutex<Self::Config>>) -> Self
     // constrain config
@@ -85,14 +86,13 @@ impl ConsumeAttemptCreator for TwineBatchTransformResultConsumeAttemptCreator {
             )));
         }
 
-        let consume_attempt_id =
-            consume_attempt_id.unwrap_or(TwineBatchTransformResultConsumeAttemptID {
-                identifier: 0,
-                transform_attempt_identifier: request.identifier.clone(),
-            });
-        let consume_attempt = TwineBatchTransformResultConsumeAttempt::new(
+        let consume_attempt_id = consume_attempt_id.unwrap_or(SolanaMessageConsumeAttemptID {
+            identifier: 0,
+            transform_attempt_identifier: request.identifier.clone(),
+        });
+        let consume_attempt = SolanaMessageConsumeAttempt::new(
             consume_attempt_id,
-            TwineBatchTransformResultConsumeContext {},
+            SolanaMessageTransformResultConsumeContext {},
             request.return_type.clone().unwrap(), /* can unwrap here because this field could
                                                    * never be null */
         );
@@ -130,7 +130,7 @@ impl ConsumeAttemptCreator for TwineBatchTransformResultConsumeAttemptCreator {
                 )));
             }
             new_identifier.identifier += 1;
-            let transform_attempt = TwineBatchTransformResultConsumeAttempt::new(
+            let transform_attempt = SolanaMessageConsumeAttempt::new(
                 new_identifier,
                 error.consume_context,
                 error.consume_value,
@@ -138,11 +138,7 @@ impl ConsumeAttemptCreator for TwineBatchTransformResultConsumeAttemptCreator {
 
             log::info!(
                 "new consume reattempt for request {:?}",
-                attempt
-                    .attempt
-                    .identifier
-                    .transform_attempt_identifier
-                    .transform_request_id
+                attempt.attempt.identifier.transform_attempt_identifier
             );
 
             let attempt_details = AttemptDetails {
@@ -163,7 +159,7 @@ impl ConsumeAttemptCreator for TwineBatchTransformResultConsumeAttemptCreator {
         &mut self,
         attempt_id: <Self::ConsumeAttempt as ConsumeAttempt>::Identifier,
     ) -> Result<Duration, ProofSchedulerError> {
-        let transform_request_id: TwineBatchTransformAttemptID = attempt_id.into();
+        let transform_request_id: SolanaMessageTransformAttemptID = attempt_id.into();
         if let Some(attempts) = self.attempts.remove_entry(&transform_request_id) {
             log::info!("Removed {:?} from consume attempts record", attempts.0);
             let elapsed_time = attempts.1.time.elapsed().as_secs();

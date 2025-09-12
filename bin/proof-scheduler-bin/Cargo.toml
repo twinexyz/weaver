@@ -1,0 +1,24 @@
+[package]
+name = "twine-proof-scheduler-bin"
+version.workspace = true
+edition.workspace = true
+exclude.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+clap.workspace = true
+env_logger.workspace = true
+log.workspace = true
+orchestrator-rs = { workspace = true, optional = true }
+tokio.workspace = true
+twine-l2-proof-scheduler = { workspace = true, optional = true }
+twine-solana-proof-scheduler = { workspace = true, optional = true }
+
+[features]
+l2-proof-scheduler = ["dep:twine-l2-proof-scheduler", "dep:orchestrator-rs"]
+solana-proof-scheduler = ["dep:twine-solana-proof-scheduler", "dep:orchestrator-rs"]
+
+[lints]
+workspace = true

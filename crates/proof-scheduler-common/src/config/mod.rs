@@ -1,3 +1,5 @@
+//! common configuration for proof schedulers
+
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
@@ -5,18 +7,18 @@ use std::io::Read;
 use async_trait::async_trait;
 use orchestrator_rs::config::Config;
 
-use crate::error::TwineProofSchedulerError;
+use crate::error::ProofSchedulerError;
 
-/// Configuration for the Scheduler
+/// Common configuration for proof schedulers
 #[derive(Debug, Clone)]
-pub struct TwineProofSchedulerConfig {
+pub struct ProofSchedulerConfig {
     static_config: HashMap<String, Vec<u8>>,
     dynamic_config: HashMap<String, Vec<u8>>,
 }
 
 #[async_trait]
-impl Config for TwineProofSchedulerConfig {
-    type Error = TwineProofSchedulerError;
+impl Config for ProofSchedulerConfig {
+    type Error = ProofSchedulerError;
     type KeyType = String;
     type StaticConfigHandle = String;
     type ValueType = Vec<u8>;
@@ -42,12 +44,12 @@ impl Config for TwineProofSchedulerConfig {
             for (inner_key, value) in value {
                 let main_key = format!("{key}.{inner_key}");
                 let value = serde_json::to_vec(value)
-                    .map_err(|e| TwineProofSchedulerError::Other(format!("{e}")))?;
+                    .map_err(|e| ProofSchedulerError::Other(format!("{e}")))?;
                 config.insert(main_key, value);
             }
         }
 
-        Ok(TwineProofSchedulerConfig {
+        Ok(ProofSchedulerConfig {
             static_config: config,
             dynamic_config: HashMap::new(),
         })
@@ -82,7 +84,7 @@ impl Config for TwineProofSchedulerConfig {
         let value = self
             .static_config
             .get(&key)
-            .ok_or(TwineProofSchedulerError::KeyNotFound(key))?;
+            .ok_or(ProofSchedulerError::KeyNotFound(key))?;
         Ok(value.to_owned())
     }
 }
