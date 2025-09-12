@@ -13,7 +13,7 @@ cargo run --release \
     --bin twine-node -- \
     node \
     --dev \
-    --chain bin/node/res/dev-genesis.json \
+    --chain bin/node/res/local-genesis.json \
     --http \
     --ws \
     --datadir /tmp/reth \
