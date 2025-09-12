@@ -19,70 +19,6 @@
   },
   {
     "type": "function",
-    "name": "computeTransactionHash",
-    "inputs": [
-      {
-        "name": "from",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "l2Token",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "to",
-        "type": "string",
-        "internalType": "string"
-      },
-      {
-        "name": "l1Token",
-        "type": "string",
-        "internalType": "string"
-      },
-      {
-        "name": "amount",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "value",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "messageCount",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "chainId",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "blockNumber",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "gasLimit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "stateMutability": "pure"
-  },
-  {
-    "type": "function",
     "name": "consensusPrecompileAddress",
     "inputs": [],
     "outputs": [
@@ -196,19 +132,66 @@
     "name": "handleEthereumProofAndTransactions",
     "inputs": [
       {
-        "name": "chainId",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "executionHeight",
+        "name": "proofHeight",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
         "name": "messageData",
-        "type": "bytes",
-        "internalType": "bytes"
+        "type": "tuple",
+        "internalType": "struct TwineTypes.MessageData",
+        "components": [
+          {
+            "name": "txnType",
+            "type": "uint8",
+            "internalType": "enum TwineTypes.TransactionType"
+          },
+          {
+            "name": "nonce",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "chainId",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "blockNumber",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "fromAddress",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "toAddress",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "l1Token",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "l2Token",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "amount",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "message",
+            "type": "bytes",
+            "internalType": "bytes"
+          }
+        ]
       },
       {
         "name": "serializedProof",
@@ -224,12 +207,74 @@
     "name": "handleSolanaTransactions",
     "inputs": [
       {
-        "name": "chainId",
-        "type": "uint256",
-        "internalType": "uint256"
+        "name": "prevRollingHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
       },
       {
-        "name": "precompileInput",
+        "name": "messageData",
+        "type": "tuple",
+        "internalType": "struct TwineTypes.MessageData",
+        "components": [
+          {
+            "name": "txnType",
+            "type": "uint8",
+            "internalType": "enum TwineTypes.TransactionType"
+          },
+          {
+            "name": "nonce",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "chainId",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "blockNumber",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "fromAddress",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "toAddress",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "l1Token",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "l2Token",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "amount",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "message",
+            "type": "bytes",
+            "internalType": "bytes"
+          }
+        ]
+      },
+      {
+        "name": "publicValues",
+        "type": "bytes",
+        "internalType": "bytes"
+      },
+      {
+        "name": "proof",
         "type": "bytes",
         "internalType": "bytes"
       }
