@@ -55,24 +55,6 @@
   },
   {
     "type": "function",
-    "name": "commitBatch",
-    "inputs": [
-      {
-        "name": "batchNumber",
-        "type": "uint64",
-        "internalType": "uint64"
-      },
-      {
-        "name": "batchHash",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "commitGenesisBlock",
     "inputs": [
       {
@@ -154,29 +136,6 @@
   },
   {
     "type": "function",
-    "name": "finalizeBatch",
-    "inputs": [
-      {
-        "name": "batchNumber",
-        "type": "uint64",
-        "internalType": "uint64"
-      },
-      {
-        "name": "publicValues",
-        "type": "bytes",
-        "internalType": "bytes"
-      },
-      {
-        "name": "executionProof",
-        "type": "bytes",
-        "internalType": "bytes"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "finalizeVKey",
     "inputs": [],
     "outputs": [
@@ -198,6 +157,19 @@
         "internalType": "uint64"
       }
     ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "forcedWithdrawalVKey",
+    "inputs": [],
     "outputs": [
       {
         "name": "",
@@ -315,6 +287,19 @@
         "name": "",
         "type": "bool",
         "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "l2WithdrawalVkey",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
       }
     ],
     "stateMutability": "view"
@@ -474,7 +459,12 @@
         "internalType": "bytes32"
       },
       {
-        "name": "_withdrawalVKey",
+        "name": "_forcedWithdrawalVKey",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "_l2WithdrawalVkey",
         "type": "bytes32",
         "internalType": "bytes32"
       }
@@ -543,19 +533,6 @@
         "name": "",
         "type": "address",
         "internalType": "address"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "withdrawalVKey",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
       }
     ],
     "stateMutability": "view"
@@ -630,6 +607,49 @@
   },
   {
     "type": "event",
+    "name": "ForcedWithdrawalSuccessful",
+    "inputs": [
+      {
+        "name": "nonce",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      },
+      {
+        "name": "l1Address",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "L1TokenAddress",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "chainId",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      },
+      {
+        "name": "amount",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "blockNumber",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "Initialized",
     "inputs": [
       {
@@ -686,6 +706,49 @@
   },
   {
     "type": "event",
+    "name": "RefundSuccessful",
+    "inputs": [
+      {
+        "name": "nonce",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      },
+      {
+        "name": "l1Address",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "L1TokenAddress",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "ChainId",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      },
+      {
+        "name": "amount",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "blockNumber",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "SetProgramVkey",
     "inputs": [
       {
@@ -701,7 +764,13 @@
         "internalType": "bytes32"
       },
       {
-        "name": "withdrawalVKey",
+        "name": "forcedWithdrawalVKey",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "l2WithdrawalVkey",
         "type": "bytes32",
         "indexed": false,
         "internalType": "bytes32"
