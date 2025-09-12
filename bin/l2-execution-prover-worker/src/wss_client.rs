@@ -130,7 +130,7 @@ impl WSSClient {
             serde_json::from_str(&message).map_err(|e| ProverError::Other(e.to_string()))?;
         match connection_message.message_type {
             ConnectionMessageTypes::NewJob => {
-                log::info!("received new job of identifier from the prover");
+                log::debug!("new job from the scheduler");
                 let transform_attempt: TwineBatchTransformAttempt =
                     serde_json::from_str(&connection_message.message.data)
                         .map_err(|e| ProverError::Other(e.to_string()))?;

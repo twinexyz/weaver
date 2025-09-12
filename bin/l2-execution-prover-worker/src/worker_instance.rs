@@ -76,6 +76,10 @@ impl WorkerInstance {
             .unwrap();
 
         while let Some(attempt) = self.job_receiver.recv().await {
+            log::info!(
+                "New job received in the prover: identifier: {:?}",
+                attempt.identifier.transform_request_id
+            );
             let proving_result = self
                 .prove(
                     attempt.call_ctx.clone().twine_node_rpc,
@@ -167,7 +171,12 @@ impl WorkerInstance {
 
             args.push("--prove");
         }
-
+        log::info!(
+            "starting proof generation for twine batch: {} with block range {}-{}",
+            call_value.batch_number,
+            start_block,
+            end_block
+        );
         match Command::new(self.prover_bin_path.clone())
             .args(args)
             .output()
