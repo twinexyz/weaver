@@ -80,27 +80,22 @@ pub(crate) async fn start_rpc_server(
 ) -> Result<ServerHandle> {
     info!("Starting JSON RPC server");
 
-    // Get the RPC server configuration
     let rpc_config = &config.rpc;
     let addr: SocketAddr = format!("{}:{}", rpc_config.host, rpc_config.port)
         .parse()
         .map_err(|e| eyre::eyre!("Invalid RPC server address: {}", e))?;
 
-    // Create the RPC implementation
     let rpc_impl = ProofApiImpl::new(db_pool, config.twine.rpc.clone(), config.twine.chain_id);
 
-    // Build the server
     let server = ServerBuilder::default()
         .build(addr)
         .await
         .map_err(|e| eyre::eyre!("Failed to build RPC server: {}", e))?;
 
-    // Register the RPC methods
     let module = ProofApiServer::into_rpc(rpc_impl);
 
     info!("RPC server configured on {}", addr);
 
-    // Start the server
     let handle = server.start(module);
 
     info!("JSON RPC server started");

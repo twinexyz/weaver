@@ -34,7 +34,10 @@ async fn main() -> eyre::Result<()> {
             genesis_hash: _,
         } => todo!(),
         cli::Commands::Run => start_aggregator(&config).await?,
-        cli::Commands::ShowConfig => todo!(),
+        cli::Commands::ShowConfig => {
+            let cfg = serde_json::to_string_pretty(&config)?;
+            println!("{cfg}");
+        }
     }
 
     Ok(())

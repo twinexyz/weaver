@@ -63,11 +63,8 @@ pub(crate) async fn start_kafka_consumer(
                 .await
             {
                 Ok(Some((record, msg))) => {
-                    // Handle the ZkProof record here
                     let proof = record.value;
 
-                    // Process the proof using the shared consumer logic with Kafka source and chain
-                    // ID
                     match process_proof(
                         &db_pool,
                         &twine_rpc,
@@ -77,28 +74,24 @@ pub(crate) async fn start_kafka_consumer(
                     )
                     .await
                     {
-                        Ok(_) => {
-                            // Processing was successful, so we can commit the message
+                        Ok(_) =>
                             if let Err(e) = consumer.commit_message(&msg, CommitMode::Async) {
                                 error!("Failed to commit message {:?}", e);
                             } else {
                                 debug!("Successfully committed message");
-                            }
-                        }
+                            },
                         Err(e) => {
-                            error!("Failed to process proof: {:?}", e);
                             // We don't commit the message so it can be retried
+                            error!("Failed to process proof: {:?}", e);
                         }
                     }
                 }
                 Ok(None) => {
-                    // Timeout, no message received
                     trace!("Kafka consumer timeout, no message received");
                     continue;
                 }
                 Err(e) => {
                     error!("Error polling for messages: {:?}", e);
-                    // Continue polling despite errors
                     continue;
                 }
             }
