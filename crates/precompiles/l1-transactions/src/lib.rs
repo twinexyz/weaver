@@ -14,7 +14,7 @@ use borsh::BorshSerialize;
 use errors::TransactionPrecompileError;
 use reth_revm::context::ContextTr;
 use reth_revm::interpreter::{Gas, InputsImpl, InstructionResult, InterpreterResult};
-use reth_tracing::tracing::{self, debug};
+use reth_tracing::tracing::{self, debug, error, info};
 use reth_trie_common::AccountProof;
 use sha2::Digest;
 use twine_constants::solana_pda::MESSAGE_BUFFER_PDA;
@@ -129,12 +129,14 @@ fn handle_solana_transaction(
 ) -> Result<Option<InterpreterResult>, TransactionPrecompileError> {
     let slot_changed = message_data.blockNumber;
     let message_data_hash = message_data.hash_message_data();
+    info!("message message data: {}", message_data_hash);
 
     // compute message_rolling_hash stored in `MessageBuffer` PDA
     let mut hasher = Keccak256::new();
     hasher.update(&prev_rolling_hash);
     hasher.update(&message_data_hash);
     let message_rolling_hash = hasher.finalize();
+    info!("message rolling hash: {}", message_rolling_hash);
 
     // the pda being tracked by solana prover
     #[derive(BorshSerialize)]
@@ -160,6 +162,7 @@ fn handle_solana_transaction(
     let mut sha_hasher = sha2::Sha256::new();
     sha_hasher.update(buf);
     let message_pda_data_hash = sha_hasher.finalize();
+    info!("message pda data hash: {:?}", message_pda_data_hash);
 
     // Same hashing as solana prover program
     let mut hasher = sha2::Sha256::new();
@@ -168,9 +171,20 @@ fn handle_solana_transaction(
     hasher.update(&message_pda_data_hash);
     let computed_account_data_hash = hasher.finalize();
 
+    info!(
+        "computed account data hash: {:?}",
+        computed_account_data_hash
+    );
+
     // Checks against the public commitments
     let solana_commitment =
-        bincode::deserialize::<solana_commitment::PublicCommitments>(&public_values).unwrap();
+        match bincode::deserialize::<solana_commitment::PublicCommitments>(&public_values) {
+            Ok(x) => x,
+            Err(e) => {
+                error!(error=?e, "failed to deserialize to public commitments");
+                return Err(TransactionPrecompileError::DecodeSolanaPublicValueStruct);
+            }
+        };
 
     if !computed_account_data_hash.eq((&solana_commitment.account_data_hash).into()) {
         return Err(TransactionPrecompileError::SolanaAccountHashMismatch);
