@@ -40,11 +40,9 @@ RUN apt-get update && \
     curl && \
     rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /app/target/release/twine-node /usr/local/bin/twine-node
-COPY --from=builder /app/target/release/twine-l2-proof-scheduler-bin /usr/local/bin/twine-l2-proof-scheduler-bin
-COPY --from=builder /app/target/release/twine-l2-proof-scheduler-bin /usr/local/bin/twine-solana-proof-scheduler-bin
-COPY --from=builder /app/target/release/twine-l2-execution-prover-worker /usr/local/bin/twine-l2-execution-prover-worker
-COPY --from=builder /app/target/release/twine-aggregator /usr/local/bin/twine-aggregator
-
-COPY --from=builder /app/bin/node/res/dev-genesis.json /root/genesis.json
-COPY --from=builder /app/bin/node/res/local-genesis.json /root/local-genesis.json
+COPY --from=builder /app/target/release/twine-node /usr/local/bin/node
+COPY --from=builder /app/target/release/twine-l2-proof-scheduler-bin /usr/local/bin/scheduler
+COPY --from=builder /app/target/release/twine-solana-proof-scheduler-bin /usr/local/bin/solana-scheduler
+COPY --from=builder /app/target/release/twine-l2-execution-prover-worker /usr/local/bin/prover
+COPY --from=builder /app/target/release/twine-aggregator /usr/local/bin/aggregator
+COPY ./entrypoint.sh /entrypoint.sh
