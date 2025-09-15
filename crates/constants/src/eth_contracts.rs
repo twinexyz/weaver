@@ -3,7 +3,7 @@ use alloy_primitives::{address, Address};
 pub const ETHEREUM_MESSAGE_QUEUE: Address = address!("610178dA211FEF7D417bC0e6FeD39F05609AD788");
 
 pub const ETHEREUM_SEPOLIA_MESSAGE_QUEUE: Address =
-    address!("4aDAfB6072777f0Cf880eFc8f9f445B78E92d9b9");
+    address!("559502369D9B541DA04eFa927D53CD45E9b8F3Ce");
 
 pub const ETHEREUM_HOLESKY_MESSAGE_QUEUE: Address =
     address!("f0bA90cF1fF8d81a3f3E539CF503edF937dfC46C");
