@@ -74,10 +74,20 @@ jobs:
       sha: ${{ github.sha  }}
       branch_slug: ${{ github.ref_name }}
       repo_name: ${{ github.event.repository.name }}
+  deploy:
+    needs: ["build"]
+    #needs: ["pre-notify", "build-amd64", "build-arm64"]
+    uses: twinexyz/workflows/.github/workflows/deploy.yml@main
+    secrets: inherit
+    with:
+      sha: ${{ github.sha  }}
+      branch_slug: ${{ github.ref_name }}
+      repo_name: ${{ github.event.repository.name }}
+      app_name: "aggregator,scheduler,solana-scheduler"
   post-notify:
     if: always()
     #needs: ["pre-notify", "precommit", "build"]
-    needs: ["pre-notify", "build"]
+    needs: ["pre-notify", "build", "deploy"]
     uses: twinexyz/workflows/.github/workflows/notify.yml@main
     secrets: inherit
     with:
