@@ -1,5 +1,5 @@
 //! receives the proving job from the worker manager and starts the job
-use std::{env, fs};
+use std::{env, fs, time};
 
 use orchestrator_rs::worker::worker_manager::WorkerManagerResult;
 use tokio::process::Command;
@@ -76,6 +76,10 @@ impl WorkerInstance {
             .unwrap();
 
         while let Some(attempt) = self.job_receiver.recv().await {
+            log::info!(
+                "New job received in the prover: identifier: {:?}",
+                attempt.identifier.transform_request_id
+            );
             let proving_result = self
                 .prove(
                     attempt.call_ctx.clone().twine_node_rpc,
@@ -167,6 +171,14 @@ impl WorkerInstance {
 
             args.push("--prove");
         }
+        log::info!(
+            "starting proof generation for twine batch: {} with block range {}-{}",
+            call_value.batch_number,
+            start_block,
+            end_block
+        );
+
+        let start_time = time::Instant::now();
 
         match Command::new(self.prover_bin_path.clone())
             .args(args)
@@ -174,8 +186,16 @@ impl WorkerInstance {
             .await
         {
             Ok(output) => {
+                let elapsed_time = start_time.elapsed();
+                log::info!(
+                    "proof generation completed in {} secs",
+                    elapsed_time.as_secs()
+                );
                 if !output.status.success() {
-                    log::error!("proof generation failed: for block range {start_block}-{end_block} status not success");
+                    let std_err = String::from_utf8(output.stderr)
+                        .map_err(|e| ProverError::Other(e.to_string()))?;
+
+                    log::error!("proof generation failed: for block range {start_block}-{end_block} status not success, error: {std_err}");
                     return Err(ProverError::ProofGenerationFailed(format!(
                         "failed generating proof for block range: {start_block}-{end_block}",
                     )));
@@ -193,6 +213,11 @@ impl WorkerInstance {
                 })
             }
             Err(e) => {
+                let elapsed_time = start_time.elapsed();
+                log::info!(
+                    "proof generation completed in {} secs",
+                    elapsed_time.as_secs()
+                );
                 log::error!(
                     "proof generation failed: for block range {start_block}-{end_block} {e}"
                 );

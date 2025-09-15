@@ -47,7 +47,7 @@ impl EthWriter {
         if let Some(_cid) = chain_id {
             // Skip for 1337 as it's default for local node
             if cid != _cid && cid != 1337 {
-                return Err(eyre!("Invalid chain_id"));
+                return Err(eyre!("Invalid chain_id. received {cid} from rpc"));
             }
         }
 

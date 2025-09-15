@@ -26,6 +26,7 @@ RUN mv target/release/twine-proof-scheduler-bin target/release/twine-l2-proof-sc
 RUN cargo build --release --bin twine-proof-scheduler-bin --features solana-proof-scheduler
 RUN mv target/release/twine-proof-scheduler-bin target/release/twine-solana-proof-scheduler-bin
 RUN cargo build --release --bin twine-l2-execution-prover-worker
+RUN cargo build --release --bin twine-aggregator
 
 FROM ubuntu:24.04 AS runtime
 
@@ -43,5 +44,7 @@ COPY --from=builder /app/target/release/twine-node /usr/local/bin/twine-node
 COPY --from=builder /app/target/release/twine-l2-proof-scheduler-bin /usr/local/bin/twine-l2-proof-scheduler-bin
 COPY --from=builder /app/target/release/twine-l2-proof-scheduler-bin /usr/local/bin/twine-solana-proof-scheduler-bin
 COPY --from=builder /app/target/release/twine-l2-execution-prover-worker /usr/local/bin/twine-l2-execution-prover-worker
+COPY --from=builder /app/target/release/twine-aggregator /usr/local/bin/twine-aggregator
 
 COPY --from=builder /app/bin/node/res/dev-genesis.json /root/genesis.json
+COPY --from=builder /app/bin/node/res/local-genesis.json /root/local-genesis.json

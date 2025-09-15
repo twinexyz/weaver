@@ -9,7 +9,7 @@ use crate::SettlementChains;
 
 /// The main application configuration structure.
 #[allow(missing_docs)]
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct AppCfg {
     pub db_url: String,
     pub dispatcher: DispatcherConfig,
@@ -23,7 +23,7 @@ pub struct AppCfg {
     pub telemetry: Option<TelemetryCfg>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, Serialize)]
 #[allow(missing_docs)]
 pub struct DispatcherConfig {
     pub use_da: bool,
@@ -32,7 +32,7 @@ pub struct DispatcherConfig {
 }
 
 /// Ethereum blockchain configuration.
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct EthCfg {
     /// Ethereum RPC endpoint to connect to.
     pub rpc: String,
@@ -51,7 +51,7 @@ pub struct EthCfg {
 }
 
 /// Solana blockchain configuration.
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct SolCfg {
     ///  RPC endpoint to connect to.
     pub rpc: String,
@@ -67,13 +67,13 @@ pub struct SolCfg {
 }
 
 /// Celestia DA Configuration
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, Serialize)]
 #[allow(dead_code)]
 #[allow(missing_docs)]
 pub struct CelestiaCfg {}
 
 /// Twine network configuration.
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct TwineCfg {
     /// Twine RPC endpoint to connect to.
     pub rpc: String,
