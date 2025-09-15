@@ -1,5 +1,5 @@
 //! receives the proving job from the worker manager and starts the job
-use std::{env, fs};
+use std::{env, fs, time};
 
 use orchestrator_rs::worker::worker_manager::WorkerManagerResult;
 use tokio::process::Command;
@@ -177,14 +177,25 @@ impl WorkerInstance {
             start_block,
             end_block
         );
+
+        let start_time = time::Instant::now();
+
         match Command::new(self.prover_bin_path.clone())
             .args(args)
             .output()
             .await
         {
             Ok(output) => {
+                let elapsed_time = start_time.elapsed();
+                log::info!(
+                    "proof generation completed in {} secs",
+                    elapsed_time.as_secs()
+                );
                 if !output.status.success() {
-                    log::error!("proof generation failed: for block range {start_block}-{end_block} status not success");
+                    let std_err = String::from_utf8(output.stderr)
+                        .map_err(|e| ProverError::Other(e.to_string()))?;
+
+                    log::error!("proof generation failed: for block range {start_block}-{end_block} status not success, error: {std_err}");
                     return Err(ProverError::ProofGenerationFailed(format!(
                         "failed generating proof for block range: {start_block}-{end_block}",
                     )));
@@ -202,6 +213,11 @@ impl WorkerInstance {
                 })
             }
             Err(e) => {
+                let elapsed_time = start_time.elapsed();
+                log::info!(
+                    "proof generation completed in {} secs",
+                    elapsed_time.as_secs()
+                );
                 log::error!(
                     "proof generation failed: for block range {start_block}-{end_block} {e}"
                 );
