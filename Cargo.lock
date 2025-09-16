@@ -15064,6 +15064,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.16",
+ "twine-types",
 ]
 
 [[package]]
@@ -15365,8 +15366,6 @@ version = "0.1.0"
 dependencies = [
  "alloy-primitives",
  "serde",
- "serde_json",
- "twine-kafka",
  "twine-utils",
 ]
 
