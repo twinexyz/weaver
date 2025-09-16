@@ -37,6 +37,7 @@ RUN apt update && \
     clang \
     libssl-dev \
     pkg-config \
+    wget \
     ca-certificates && \
     rm -rf /var/lib/apt/lists/* && \
     wget -c https://github.com/mikefarah/yq/releases/download/v4.45.1/yq_linux_amd64 -O /usr/bin/yq && \
