@@ -53,8 +53,10 @@ RUN cargo build --release --bin twine-aggregator
 
 RUN cargo install tomq
 
-RUN  git clone --branch v0.1.0-devnet https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${GITHUB_ORGANIZATION}/twine-rsp.git && \
-     git clone --branch v0.1.0-devnet https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${GITHUB_ORGANIZATION}/solana-stub-prover.git
+RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
+    --mount=type=secret,id=github_username,env=GITHUB_USERNAME \
+    git clone --branch v0.1.0-devnet https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${GITHUB_ORGANIZATION}/twine-rsp.git && \
+    git clone --branch v0.1.0-devnet https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${GITHUB_ORGANIZATION}/solana-stub-prover.git
 
 ############################################
 # build twine docker
