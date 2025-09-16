@@ -1,8 +1,5 @@
 //! Proofs
-
-use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
-use twine_kafka::twine_kafka_common::serde::{KafkaDeserializer, KafkaSerializer};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[allow(missing_docs)]
@@ -22,26 +19,6 @@ pub struct ZkProof {
     pub proof_kind: ProofKind,
     /// Proof Data
     pub proof_data: ProofData,
-}
-
-impl<T> KafkaSerializer<T> for ZkProof
-where
-    T: Serialize + DeserializeOwned,
-{
-    fn serialize(&self, value: &T) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
-        let serialized_value = serde_json::to_vec(&value)?;
-        Ok(serialized_value)
-    }
-}
-
-impl<T> KafkaDeserializer<T> for ZkProof
-where
-    T: Serialize + DeserializeOwned,
-{
-    fn deserialize(&self, bytes: &[u8]) -> Result<T, Box<dyn std::error::Error + Send + Sync>> {
-        let zk_proof = serde_json::from_slice(bytes)?;
-        Ok(zk_proof)
-    }
 }
 
 /// Proof kind

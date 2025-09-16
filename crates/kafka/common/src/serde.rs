@@ -5,6 +5,7 @@
 
 use serde::de::DeserializeOwned;
 use serde::Serialize;
+use twine_types::proofs::ZkProof;
 
 /// A trait for serializing Kafka messages.
 pub trait KafkaSerializer<T>: Send + Sync + 'static {
@@ -31,5 +32,25 @@ impl<T: Serialize> KafkaSerializer<T> for JsonSerde {
 impl<T: DeserializeOwned> KafkaDeserializer<T> for JsonSerde {
     fn deserialize(&self, bytes: &[u8]) -> Result<T, Box<dyn std::error::Error + Send + Sync>> {
         Ok(serde_json::from_slice(bytes)?)
+    }
+}
+
+impl<T> KafkaSerializer<T> for ZkProof
+where
+    T: Serialize + DeserializeOwned,
+{
+    fn serialize(&self, value: &T) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
+        let serialized_value = serde_json::to_vec(&value)?;
+        Ok(serialized_value)
+    }
+}
+
+impl<T> KafkaDeserializer<T> for ZkProof
+where
+    T: Serialize + DeserializeOwned,
+{
+    fn deserialize(&self, bytes: &[u8]) -> Result<T, Box<dyn std::error::Error + Send + Sync>> {
+        let zk_proof = serde_json::from_slice(bytes)?;
+        Ok(zk_proof)
     }
 }
