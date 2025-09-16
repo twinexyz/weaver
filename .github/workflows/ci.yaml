@@ -25,6 +25,9 @@ jobs:
         override: true
     - name: Add rustfmt (nightly)
       run: rustup component add --toolchain nightly rustfmt clippy
+    - name: Set Git Credentials
+      run: |
+        git config --global url."https://${{ secrets.GH_ACTION_PAT }}@github.com".insteadOf "https://github.com"
     - name: Cache cargo-udeps
       id: cache-cargo-udeps
       uses: actions/cache@v4.2.3
@@ -42,3 +45,5 @@ jobs:
     - uses: actions/setup-python@v3
     - run: rustup component add clippy
     - uses: pre-commit/action@v3.0.1
+    - name: Clean Up private Repo
+      run: rm -rf ~/.git-credentials
