@@ -27,24 +27,26 @@ RUN cargo build --release --bin twine-proof-scheduler-bin --features solana-proo
 RUN mv target/release/twine-proof-scheduler-bin target/release/twine-solana-proof-scheduler-bin
 RUN cargo build --release --bin twine-l2-execution-prover-worker
 RUN cargo build --release --bin twine-aggregator
+RUN cargo install tomq
 
 FROM ubuntu:24.04 AS runtime
 
-RUN apt-get update && \
-    apt-get install -y \
+RUN apt update && \
+    apt install -y \
     build-essential \
     clang \
     libssl-dev \
     pkg-config \
-    ca-certificates \
-    curl && \
-    rm -rf /var/lib/apt/lists/*
+    wget \
+    ca-certificates && \
+    rm -rf /var/lib/apt/lists/* && \
+    wget -c https://github.com/mikefarah/yq/releases/download/v4.45.1/yq_linux_amd64 -O /usr/bin/yq && \
+    chmod +x /usr/bin/yq
 
-COPY --from=builder /app/target/release/twine-node /usr/local/bin/twine-node
-COPY --from=builder /app/target/release/twine-l2-proof-scheduler-bin /usr/local/bin/twine-l2-proof-scheduler-bin
-COPY --from=builder /app/target/release/twine-l2-proof-scheduler-bin /usr/local/bin/twine-solana-proof-scheduler-bin
-COPY --from=builder /app/target/release/twine-l2-execution-prover-worker /usr/local/bin/twine-l2-execution-prover-worker
-COPY --from=builder /app/target/release/twine-aggregator /usr/local/bin/twine-aggregator
-
-COPY --from=builder /app/bin/node/res/dev-genesis.json /root/genesis.json
-COPY --from=builder /app/bin/node/res/local-genesis.json /root/local-genesis.json
+COPY --from=builder /app/target/release/twine-node /usr/local/bin/node
+COPY --from=builder /app/target/release/twine-l2-proof-scheduler-bin /usr/local/bin/scheduler
+COPY --from=builder /app/target/release/twine-solana-proof-scheduler-bin /usr/local/bin/solana-scheduler
+COPY --from=builder /app/target/release/twine-l2-execution-prover-worker /usr/local/bin/prover
+COPY --from=builder /app/target/release/twine-aggregator /usr/local/bin/aggregator
+COPY --from=builder /usr/local/cargo/bin/tomq /usr/local/bin/tomq
+COPY ./entrypoint.sh /entrypoint.sh
