@@ -27,6 +27,7 @@ RUN cargo build --release --bin twine-proof-scheduler-bin --features solana-proo
 RUN mv target/release/twine-proof-scheduler-bin target/release/twine-solana-proof-scheduler-bin
 RUN cargo build --release --bin twine-l2-execution-prover-worker
 RUN cargo build --release --bin twine-aggregator
+RUN cargo install tomq
 
 FROM ubuntu:24.04 AS runtime
 
@@ -45,4 +46,5 @@ COPY --from=builder /app/target/release/twine-l2-proof-scheduler-bin /usr/local/
 COPY --from=builder /app/target/release/twine-solana-proof-scheduler-bin /usr/local/bin/solana-scheduler
 COPY --from=builder /app/target/release/twine-l2-execution-prover-worker /usr/local/bin/prover
 COPY --from=builder /app/target/release/twine-aggregator /usr/local/bin/aggregator
+COPY --from=builder /usr/local/cargo/bin/tomq /usr/local/bin/tomq
 COPY ./entrypoint.sh /entrypoint.sh
