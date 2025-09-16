@@ -58,29 +58,7 @@ RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
     git clone --branch v0.1.0-devnet https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${GITHUB_ORGANIZATION}/twine-rsp.git && \
     git clone --branch v0.1.0-devnet https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${GITHUB_ORGANIZATION}/solana-stub-prover.git
 
-############################################
-# build twine docker
-############################################
-FROM ubuntu:24.04 AS twine-node
-
-ENV DEBIAN_FRONTEND=noninteractive \
-    RUSTUP_HOME=/root/.rustup \
-    CARGO_HOME=/root/.cargo \
-    PATH="/root/.cargo/bin:${PATH}"
-
-RUN  apt update && \
-     apt install -y \
-     cmake \
-     wget \
-     ca-certificates && \
-     rm -rf /var/lib/apt/lists/*
-
-COPY --from=builder /app/target/release/twine-node /usr/local/bin/twine-node
-
-############################################
-#build prover docker with gpu
-############################################
-FROM nvidia/cuda:12.9.1-cudnn-runtime-ubuntu24.04 AS combined
+FROM nvidia/cuda:12.9.1-cudnn-runtime-ubuntu24.04 AS final
 
 ARG RSP_FILENAME
 ARG SOLANA_STUB_PROVER_FILENAME
@@ -120,6 +98,7 @@ COPY --from=builder /root/.cargo/bin/tomq /usr/local/bin/tomq
 COPY --from=builder /app/twine-rsp/$RSP_FILENAME /usr/local/bin/rsp
 COPY --from=builder /app/solana-stub-prover/$SOLANA_STUB_PROVER_FILENAME /usr/local/bin/solana-stub-prover
 
+COPY --from=builder /app/target/release/twine-node /usr/local/bin/twine-node
 COPY --from=builder /app/target/release/twine-aggregator /usr/local/bin/aggregator
 COPY --from=builder /app/target/release/twine-l2-proof-scheduler-bin /usr/local/bin/scheduler
 COPY --from=builder /app/target/release/twine-solana-proof-scheduler-bin /usr/local/bin/solana-scheduler
