@@ -67,6 +67,7 @@ jobs:
       branch_slug: ${{ github.ref_name }}
       repo_name: ${{ github.event.repository.name }}
       docker_targets: '["final", "aggregator", "scheduler", "solana-scheduler", "prover"]'
+      dependency_clone: false
   container-scan:
     needs: ["build"]
     uses: twinexyz/workflows/.github/workflows/container-scan.yml@main
