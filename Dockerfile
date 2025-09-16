@@ -1,20 +1,43 @@
-FROM rust:1.86 AS builder
+FROM ubuntu:24.04 AS builder
 
-#ARG GITHUB_TOKEN
-#ARG GITHUB_USERNAME
+ARG GITHUB_TOKEN
+ARG GITHUB_USERNAME
+ARG GITHUB_ORGANIZATION
+ARG SOLANA_STUB_PROVER_FILENAME
+ARG RSP_FILENAME
+
 RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
     --mount=type=secret,id=github_username,env=GITHUB_USERNAME \
-    apt-get update && \
-    apt-get install -y \
+    apt update && \
+    apt install -y \
     build-essential \
     clang \
     libssl-dev \
+    pkg-config \
     cmake \
     gcc \
-    pkg-config && \
+    wget \
+    bash \
+    curl \
+    git \
+    jq && \
     git config --global credential.helper store && \
     echo "https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com" > ~/.git-credentials && \
     chmod 600 ~/.git-credentials
+
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain none -y
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+RUN rustup toolchain install nightly --allow-downgrade --profile minimal --component clippy
+
+RUN wget -c https://github.com/mikefarah/yq/releases/download/v4.45.1/yq_linux_amd64 -O /usr/bin/yq && \
+    chmod +x /usr/bin/yq
+
+RUN curl -OL https://go.dev/dl/go1.24.0.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go1.24.0.linux-amd64.tar.gz && \
+    rm go1.24.0.linux-amd64.tar.gz
+
+RUN curl -L https://sp1.succinct.xyz | bash && ~/.sp1/bin/sp1up
 
 WORKDIR /app
 
@@ -27,26 +50,193 @@ RUN cargo build --release --bin twine-proof-scheduler-bin --features solana-proo
 RUN mv target/release/twine-proof-scheduler-bin target/release/twine-solana-proof-scheduler-bin
 RUN cargo build --release --bin twine-l2-execution-prover-worker
 RUN cargo build --release --bin twine-aggregator
+
 RUN cargo install tomq
 
-FROM ubuntu:24.04 AS runtime
+RUN  git clone --branch v0.1.0-devnet https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${GITHUB_ORGANIZATION}/twine-rsp.git && \
+     git clone --branch v0.1.0-devnet https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${GITHUB_ORGANIZATION}/solana-stub-prover.git
 
-RUN apt update && \
-    apt install -y \
-    build-essential \
-    clang \
-    libssl-dev \
-    pkg-config \
-    wget \
-    ca-certificates && \
-    rm -rf /var/lib/apt/lists/* && \
-    wget -c https://github.com/mikefarah/yq/releases/download/v4.45.1/yq_linux_amd64 -O /usr/bin/yq && \
-    chmod +x /usr/bin/yq
+############################################
+# build twine docker
+############################################
+FROM ubuntu:24.04 AS final
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    RUSTUP_HOME=/root/.rustup \
+    CARGO_HOME=/root/.cargo \
+    PATH="/root/.cargo/bin:${PATH}"
+
+RUN  apt update && \
+     apt install -y \
+     cmake \
+     wget \
+     ca-certificates && \
+     rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /app/target/release/twine-node /usr/local/bin/node
-COPY --from=builder /app/target/release/twine-l2-proof-scheduler-bin /usr/local/bin/scheduler
-COPY --from=builder /app/target/release/twine-solana-proof-scheduler-bin /usr/local/bin/solana-scheduler
-COPY --from=builder /app/target/release/twine-l2-execution-prover-worker /usr/local/bin/prover
+
+############################################
+#build aggregator docker
+############################################
+FROM ubuntu:24.04 AS aggregator
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    RUSTUP_HOME=/root/.rustup \
+    CARGO_HOME=/root/.cargo \
+    PATH="/root/.cargo/bin:${PATH}"
+
+RUN  apt update && \
+     apt install -y \
+     cmake \
+     wget \
+     ca-certificates && \
+     rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /usr/bin/yq /usr/local/bin/yq
+COPY --from=builder /root/.cargo/bin/tomq /usr/local/bin/tomq
 COPY --from=builder /app/target/release/twine-aggregator /usr/local/bin/aggregator
-COPY --from=builder /usr/local/cargo/bin/tomq /usr/local/bin/tomq
 COPY ./entrypoint.sh /entrypoint.sh
+
+############################################
+# build scheduler docker
+############################################
+FROM ubuntu:24.04 AS scheduler
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    RUSTUP_HOME=/root/.rustup \
+    CARGO_HOME=/root/.cargo \
+    PATH="/root/.cargo/bin:${PATH}"
+
+RUN  apt update && \
+     apt install -y \
+     cmake \
+     wget \
+     ca-certificates && \
+     rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /usr/bin/yq /usr/local/bin/yq
+COPY --from=builder /root/.cargo/bin/tomq /usr/local/bin/tomq
+COPY --from=builder /app/target/release/twine-l2-proof-scheduler-bin /usr/local/bin/scheduler
+COPY ./entrypoint.sh /entrypoint.sh
+
+############################################
+# build solana-scheduler docker
+############################################
+FROM ubuntu:24.04 AS solana-scheduler
+
+ARG SOLANA_STUB_PROVER_FILENAME
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    RUSTUP_HOME=/root/.rustup \
+    CARGO_HOME=/root/.cargo \
+    PATH="/root/.cargo/bin:${PATH}"
+
+RUN  apt update && \
+     apt install -y \
+     cmake \
+     wget \
+     ca-certificates && \
+     rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /usr/bin/yq /usr/local/bin/yq
+COPY --from=builder /root/.cargo/bin/tomq /usr/local/bin/tomq
+COPY --from=builder /app/solana-stub-prover/$SOLANA_STUB_PROVER_FILENAME /usr/local/bin/solana-stub-prover
+COPY --from=builder /app/target/release/twine-solana-proof-scheduler-bin /usr/local/bin/solana-scheduler
+COPY ./entrypoint.sh /entrypoint.sh
+
+############################################
+#build prover docker with gpu
+############################################
+FROM nvidia/cuda:12.9.1-cudnn-runtime-ubuntu24.04 AS prover
+
+ARG RSP_FILENAME
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    RUSTUP_HOME=/root/.rustup \
+    CARGO_HOME=/root/.cargo \
+    PATH="/root/.cargo/bin:${PATH}"
+
+RUN  apt update && \
+     apt install ca-certificates curl -y && \
+     install -m 0755 -d /etc/apt/keyrings && \
+     curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc && \
+     chmod a+r /etc/apt/keyrings/docker.asc && \
+     echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+      $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
+       tee /etc/apt/sources.list.d/docker.list > /dev/null && \
+     apt update && \
+     apt install -y \
+     docker-ce \
+     docker-ce-cli \
+     containerd.io \
+     docker-buildx-plugin \
+     cmake \
+     wget \
+     ca-certificates && \
+     rm -rf /var/lib/apt/lists/*
+
+# Install Rust (stable)
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+
+COPY --from=builder /root/.sp1/bin/sp1up /usr/local/bin/sp1up
+COPY --from=builder /usr/bin/yq /usr/local/bin/yq
+COPY --from=builder /root/.cargo/bin/tomq /usr/local/bin/tomq
+COPY --from=builder /app/twine-rsp/$RSP_FILENAME /usr/local/bin/rsp
+COPY --from=builder /app/target/release/twine-l2-execution-prover-worker /usr/local/bin/prover
+COPY ./entrypoint.sh /entrypoint.sh
+
+
+# backup
+# FROM rust:1.86 AS builder
+
+# #ARG GITHUB_TOKEN
+# #ARG GITHUB_USERNAME
+# RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
+#     --mount=type=secret,id=github_username,env=GITHUB_USERNAME \
+#     apt-get update && \
+#     apt-get install -y \
+#     build-essential \
+#     clang \
+#     libssl-dev \
+#     cmake \
+#     gcc \
+#     pkg-config && \
+#     git config --global credential.helper store && \
+#     echo "https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com" > ~/.git-credentials && \
+#     chmod 600 ~/.git-credentials
+
+# WORKDIR /app
+
+# COPY . .
+
+# RUN cargo build --release --bin twine-node
+# RUN cargo build --release --bin twine-proof-scheduler-bin --features l2-proof-scheduler
+# RUN mv target/release/twine-proof-scheduler-bin target/release/twine-l2-proof-scheduler-bin
+# RUN cargo build --release --bin twine-proof-scheduler-bin --features solana-proof-scheduler
+# RUN mv target/release/twine-proof-scheduler-bin target/release/twine-solana-proof-scheduler-bin
+# RUN cargo build --release --bin twine-l2-execution-prover-worker
+# RUN cargo build --release --bin twine-aggregator
+# RUN cargo install tomq
+
+# FROM ubuntu:24.04 AS runtime
+
+# RUN apt update && \
+#     apt install -y \
+#     build-essential \
+#     clang \
+#     libssl-dev \
+#     pkg-config \
+#     wget \
+#     ca-certificates && \
+#     rm -rf /var/lib/apt/lists/* && \
+#     wget -c https://github.com/mikefarah/yq/releases/download/v4.45.1/yq_linux_amd64 -O /usr/bin/yq && \
+#     chmod +x /usr/bin/yq
+
+# COPY --from=builder /app/target/release/twine-node /usr/local/bin/node
+# COPY --from=builder /app/target/release/twine-l2-proof-scheduler-bin /usr/local/bin/scheduler
+# COPY --from=builder /app/target/release/twine-solana-proof-scheduler-bin /usr/local/bin/solana-scheduler
+# COPY --from=builder /app/target/release/twine-l2-execution-prover-worker /usr/local/bin/prover
+# COPY --from=builder /app/target/release/twine-aggregator /usr/local/bin/aggregator
+# COPY --from=builder /usr/local/cargo/bin/tomq /usr/local/bin/tomq
+# COPY ./entrypoint.sh /entrypoint.sh
