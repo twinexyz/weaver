@@ -17,7 +17,7 @@ case "$CONFIG_FILE" in
     ;;
   *.toml)
     echo "Converting JSON to TOML..."
-    cat /config.json | tomq > "$CONFIG_FILE"
+    cat /config.json | tomq -T > "$CONFIG_FILE"
     ;;
   *)
     echo "Unsupported config file format. Please use .yaml or .toml"
