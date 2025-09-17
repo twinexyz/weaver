@@ -140,6 +140,10 @@ impl WSSClient {
                     .map_err(|e| ProverError::Other(e.to_string()))
             }
             ConnectionMessageTypes::MessageNotReady => Err(ProverError::MessageNotReady),
+            ConnectionMessageTypes::KeepAlive => {
+                log::info!("keep alive signal from the server");
+                Ok(())
+            }
             _ => Err(ProverError::UnexpectedMessageType),
         }
     }
