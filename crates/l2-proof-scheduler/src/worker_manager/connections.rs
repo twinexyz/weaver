@@ -115,7 +115,7 @@ impl Connections {
     /// them according to the connection message
     pub async fn accept_connection(
         &self,
-        connection_id: ConnectionID,
+        connection_id: Arc<Mutex<ConnectionID>>,
         stream: TcpStream,
         _sender: Sender<WorkerManagerResult<TwineBatchTransformAttempt>>,
         job_mutex: Arc<Mutex<Option<TwineBatchTransformAttempt>>>,
@@ -130,8 +130,13 @@ impl Connections {
             .expect("Error during the websocket handshake occurred");
 
         log::info!("New WebSocket connection: {addr}");
+        let mut connection_id = connection_id.lock().await;
+        let new_connection_id = ConnectionID(connection_id.0 + 1);
+        *connection_id = new_connection_id.clone();
+        drop(connection_id);
+
         let mut connection_status = self.connection_status.lock().await;
-        connection_status.insert(connection_id.clone(), ConnectionStatus::Healthy);
+        connection_status.insert(new_connection_id.clone(), ConnectionStatus::Healthy);
         drop(connection_status);
 
         let (mut write, mut read) = ws_stream.split();
@@ -149,7 +154,7 @@ impl Connections {
 
                     match connection_message.message_type {
                         ConnectionMessageTypes::NewJob => {
-                            if !self.check_connection_status(&connection_id).await {
+                            if !self.check_connection_status(&new_connection_id).await {
                                 return;
                             }
                             let mut job = job_mutex.lock().await;
@@ -172,7 +177,7 @@ impl Connections {
 
                                 message = serde_json::to_string(&job_msg).unwrap();
                                 self.assigned_jobs.lock().await.insert(
-                                    (proof_job.identifier.clone(), connection_id.clone()),
+                                    (proof_job.identifier.clone(), new_connection_id.clone()),
                                     JobDetails {
                                         transform_attempt: proof_job.clone(),
                                         assigned_at: Instant::now(),
@@ -190,14 +195,14 @@ impl Connections {
                             write.flush().await.unwrap();
                             log::info!(
                                 "sent new job to the prover with connection id: {:?}",
-                                connection_id
+                                new_connection_id
                             );
                         }
                         ConnectionMessageTypes::JobResult => {
                             log::info!(
-                                "received job result from prover with connection id: {connection_id:?}",
+                                "received job result from prover with connection id: {new_connection_id:?}",
                             );
-                            if !self.check_connection_status(&connection_id).await {
+                            if !self.check_connection_status(&new_connection_id).await {
                                 return;
                             }
 
@@ -206,7 +211,7 @@ impl Connections {
                                 .assigned_jobs
                                 .lock()
                                 .await
-                                .remove(&(attempt_id.clone(), connection_id.clone()))
+                                .remove(&(attempt_id.clone(), new_connection_id.clone()))
                                 .is_some()
                             {
                                 let worker_manager_result: WorkerManagerResult<
