@@ -26,6 +26,12 @@ case "$CONFIG_FILE" in
     ;;
 esac
 
+# Start nginx in background if available
+if command -v nginx >/dev/null 2>&1; then
+  echo "Starting nginx..."
+  nginx -g 'daemon off;' &
+fi
+
 # Run the scheduler with the provided config file
 if [ -n "$OPTION" ]; then
   RUST_LOG=info /usr/local/bin/"$MODE" --config "$CONFIG_FILE" "$OPTION"
