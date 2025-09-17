@@ -105,7 +105,7 @@ strum_macros = "0.27"
 thiserror = "2.0.12"
 tiny_http = "0.12"
 tokio = { version = "1.40.0", features = ["full"] }
-tokio-tungstenite = "0.27.0"
+tokio-tungstenite = { version = "0.27.0", features = ["native-tls-vendored"] }
 toml = "0.8.23"
 tracing-appender = "0.2.3"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter", "json"] }
