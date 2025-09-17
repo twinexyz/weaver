@@ -1,13 +1,11 @@
 //! receives the proving job from the worker manager and starts the job
 use std::process::Stdio;
-use std::time::Duration;
 use std::{env, fs, time};
 
 use orchestrator_rs::worker::worker_manager::WorkerManagerResult;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 use tokio::sync::mpsc::{Receiver, Sender};
-use tokio::time::interval;
 use twine_l2_proof_scheduler::batch_transform::transform_attempt::{
     TwineBatchTransformAttempt, TwineBatchTransformReturnCtx, TwineBatchTransformReturnType,
 };
@@ -83,34 +81,24 @@ impl WorkerInstance {
             .await
             .unwrap();
 
-        let mut keep_alive_interval = interval(Duration::from_secs(5));
-        loop {
-            tokio::select! {
-                Some(attempt) = self.job_receiver.recv() => {
-                    log::info!(
-                    "New job received in the prover: identifier: {:?}",
-                    attempt.identifier.transform_request_id
-                );
-                let proving_result = self
-                    .prove(
-                        attempt.call_ctx.clone().twine_node_rpc,
-                        attempt.call_val.clone(),
-                    )
-                    .await;
-                let return_value = self.make_return_value(attempt, proving_result);
-                log::info!("sending job result to worker manager");
-                self.result_sender.send(return_value).await.unwrap();
-                self.result_sender
-                    .send(new_job_request.clone())
-                    .await
-                    .unwrap();
-                }
-
-                _ = keep_alive_interval.tick() => {
-                    let keep_alive_request = ConnectionMessage::default_message_with_type(ConnectionMessageTypes::KeepAlive);
-                    self.result_sender.send(keep_alive_request).await.unwrap();
-                }
-            }
+        while let Some(attempt) = self.job_receiver.recv().await {
+            log::info!(
+                "New job received in the prover: identifier: {:?}",
+                attempt.identifier.transform_request_id
+            );
+            let proving_result = self
+                .prove(
+                    attempt.call_ctx.clone().twine_node_rpc,
+                    attempt.call_val.clone(),
+                )
+                .await;
+            let return_value = self.make_return_value(attempt, proving_result);
+            log::info!("sending job result to worker manager");
+            self.result_sender.send(return_value).await.unwrap();
+            self.result_sender
+                .send(new_job_request.clone())
+                .await
+                .unwrap();
         }
     }
 
