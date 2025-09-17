@@ -30,6 +30,8 @@ pub enum ConnectionMessageTypes {
     InvalidParams,
     /// Message not ready
     MessageNotReady,
+    /// Keep alive
+    KeepAlive,
 }
 
 /// Message structure sent by the worker instances
@@ -227,6 +229,16 @@ impl Connections {
                                     "ignored job result received from different connection boundry"
                                 );
                             }
+                        }
+                        ConnectionMessageTypes::KeepAlive => {
+                            let message = ConnectionMessage::default_message_with_type(
+                                ConnectionMessageTypes::KeepAlive,
+                            );
+                            let message = serde_json::to_string(&message).unwrap();
+
+                            write.send(message.into()).await.unwrap();
+                            write.flush().await.unwrap();
+                            log::info!("keep alive signal from prover {:?}", new_connection_id);
                         }
                         ConnectionMessageTypes::InvalidParams
                         | ConnectionMessageTypes::MessageNotReady => {} /* todo: terminate
