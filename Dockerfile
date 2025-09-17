@@ -84,6 +84,7 @@ RUN  apt update && \
      containerd.io \
      docker-buildx-plugin \
      cmake \
+     nginx \
      wget \
      ca-certificates && \
      rm -rf /var/lib/apt/lists/*
@@ -103,4 +104,5 @@ COPY --from=builder /app/target/release/twine-aggregator /usr/local/bin/aggregat
 COPY --from=builder /app/target/release/twine-l2-proof-scheduler-bin /usr/local/bin/scheduler
 COPY --from=builder /app/target/release/twine-solana-proof-scheduler-bin /usr/local/bin/solana-scheduler
 COPY --from=builder /app/target/release/twine-l2-execution-prover-worker /usr/local/bin/prover
+COPY ./nginx.conf /etc/nginx/nginx.conf
 COPY ./entrypoint.sh /entrypoint.sh
