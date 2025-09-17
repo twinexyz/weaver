@@ -8,7 +8,7 @@ use futures_util::{SinkExt, StreamExt};
 use tokio::net::TcpStream;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::Mutex;
-use tokio::time::sleep;
+use tokio::time::{interval, sleep};
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 use twine_l2_proof_scheduler::batch_transform::transform_attempt::{
@@ -67,8 +67,14 @@ impl WSSClient {
         log::info!("WebSocket handshake has been successfully completed");
         let write = Arc::new(Mutex::new(write));
 
+        let mut keep_alive_interval = interval(Duration::from_secs(5));
+
         loop {
             tokio::select! {
+                _ = keep_alive_interval.tick() => {
+                    let keep_alive_request = ConnectionMessage::default_message_with_type(ConnectionMessageTypes::KeepAlive);
+                    self.ws_message_writer(&keep_alive_request, write.clone()).await
+                }
                 Some(connection_message) = self.worker_to_manager_message_receiver.recv() => {
                     self.ws_message_writer(&connection_message, write.clone()).await
                 }
