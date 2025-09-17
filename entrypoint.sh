@@ -2,10 +2,11 @@
 
 MODE=$1
 CONFIG_FILE=$2
+OPTION=$3
 
 # Check if both arguments are provided
 if [ -z "$MODE" ] || [ -z "$CONFIG_FILE" ]; then
-  echo "Usage: $0 <mode> <config_file.yaml|toml>"
+  echo "Usage: $0 <mode> <config_file.yaml|toml> [option]"
   exit 1
 fi
 
@@ -26,4 +27,8 @@ case "$CONFIG_FILE" in
 esac
 
 # Run the scheduler with the provided config file
-RUST_LOG=info /usr/local/bin/"$MODE" --config "$CONFIG_FILE" run
+if [ -n "$OPTION" ]; then
+  RUST_LOG=info /usr/local/bin/"$MODE" --config "$CONFIG_FILE" "$OPTION"
+else
+  RUST_LOG=info /usr/local/bin/"$MODE" --config "$CONFIG_FILE"
+fi
