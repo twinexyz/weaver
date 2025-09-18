@@ -192,13 +192,8 @@ impl Connections {
                                     proof_job.identifier.transform_request_id
                                 );
                             }
-
                             write.send(message.into()).await.unwrap();
                             write.flush().await.unwrap();
-                            log::info!(
-                                "sent new job to the prover with connection id: {:?}",
-                                new_connection_id
-                            );
                         }
                         ConnectionMessageTypes::JobResult => {
                             log::info!(
@@ -264,21 +259,24 @@ impl Connections {
     /// manages job assignments timeouts
     pub async fn handle_assigned_jobs(
         &self,
-        _sender: Sender<WorkerManagerResult<TwineBatchTransformAttempt>>,
+        sender: Sender<WorkerManagerResult<TwineBatchTransformAttempt>>,
     ) {
         let mut interval = time::interval(Duration::from_secs(self.job_completion_timeout));
         loop {
             interval.tick().await;
+            log::info!("checking if there are any timed out jobs");
             let mut assigned_jobs = self.assigned_jobs.lock().await;
             let mut connection_status = self.connection_status.lock().await;
             let jobs = assigned_jobs.clone();
             for (job_id, job_details) in jobs {
-                // check if the job has timed out
-                // losen the policy
                 if job_details.assigned_at.elapsed().as_secs() > self.job_completion_timeout {
                     assigned_jobs.remove(&job_id.clone()).unwrap();
                     connection_status.insert(job_id.1.clone(), ConnectionStatus::Disconnected);
-                    // let mut return_package = job_details.transform_attempt.return_package;
+
+                    log::warn!(
+                        "removed timed out prover with connection id: {:?} from the assigned jobs",
+                        job_id.1
+                    );
 
                     let return_package = (
                         job_id.0.clone(),
@@ -292,7 +290,7 @@ impl Connections {
 
                     let result: WorkerManagerResult<TwineBatchTransformAttempt> =
                         WorkerManagerResult::Failure(job_id.0, return_package);
-                    _sender.send(result).await.unwrap();
+                    sender.send(result).await.unwrap();
                 }
             }
         }

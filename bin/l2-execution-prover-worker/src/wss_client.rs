@@ -79,7 +79,13 @@ impl WSSClient {
                     self.ws_message_writer(&connection_message, write.clone()).await
                 }
                 Some(message) = read.next() => {
-                    let message = message.unwrap();
+                    let message = match message {
+                        Ok(message) => message,
+                        Err(e) => {
+                            log::error!("error message received, {e}");
+                            continue;
+                        }
+                    };
                     match self.send_ws_message_to_processor(message).await {
                         Ok(_) => {},
                         Err(e) => {
