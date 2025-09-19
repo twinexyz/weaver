@@ -1,16 +1,14 @@
 //! manages connection with the worker managers
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::time::Duration;
 
 use futures_util::{SinkExt, StreamExt};
-use log::info;
 use orchestrator_rs::worker::worker_manager::WorkerManagerResult;
 use serde::{Deserialize, Serialize};
 use tokio::net::TcpStream;
 use tokio::sync::mpsc::Sender;
 use tokio::sync::Mutex;
-use tokio::time::{self, Instant};
+use tokio::time::Instant;
 use tokio_tungstenite;
 use twine_proof_scheduler_common::error::ProofSchedulerError;
 
@@ -88,6 +86,8 @@ pub struct Connections {
     pub connection_status: Mutex<HashMap<ConnectionID, ConnectionStatus>>,
     /// job completion timeout
     pub job_completion_timeout: u64,
+    /// last timed out job checked
+    pub last_timed_out_check: Mutex<Instant>,
 }
 
 /// Connection status of the worker instances
@@ -142,8 +142,8 @@ impl Connections {
         drop(connection_status);
 
         let (mut write, mut read) = ws_stream.split();
-
         while let Some(message) = read.next().await {
+            self.handle_assigned_jobs(_sender.clone()).await;
             match message {
                 Ok(message) => {
                     let message = String::from_utf8(message.into_data().to_vec()).unwrap();
@@ -214,7 +214,7 @@ impl Connections {
                                 let worker_manager_result: WorkerManagerResult<
                                     TwineBatchTransformAttempt,
                                 > = serde_json::from_str(&connection_message.message.data).unwrap(); // TODO: write some message
-                                info!(
+                                log::info!(
                                     "received job result for job with request id: {:?}",
                                     attempt_id.transform_request_id
                                 );
@@ -261,37 +261,57 @@ impl Connections {
         &self,
         sender: Sender<WorkerManagerResult<TwineBatchTransformAttempt>>,
     ) {
-        let mut interval = time::interval(Duration::from_secs(self.job_completion_timeout));
-        loop {
-            interval.tick().await;
-            log::info!("checking if there are any timed out jobs");
-            let mut assigned_jobs = self.assigned_jobs.lock().await;
-            let mut connection_status = self.connection_status.lock().await;
-            let jobs = assigned_jobs.clone();
-            for (job_id, job_details) in jobs {
-                if job_details.assigned_at.elapsed().as_secs() > self.job_completion_timeout {
-                    assigned_jobs.remove(&job_id.clone()).unwrap();
-                    connection_status.insert(job_id.1.clone(), ConnectionStatus::Disconnected);
+        let last_timed_out_check = {
+            let last_timed_out_check = self.last_timed_out_check.lock().await;
+            *last_timed_out_check
+        };
+        if last_timed_out_check.elapsed().as_secs() > self.job_completion_timeout {
+            log::info!("Checking for timed out jobs");
 
-                    log::warn!(
-                        "removed timed out prover with connection id: {:?} from the assigned jobs",
-                        job_id.1
-                    );
-
-                    let return_package = (
-                        job_id.0.clone(),
-                        TwineBatchTransformReturnCtx {
-                            call_context: job_details.transform_attempt.call_ctx,
-                            call_type: job_details.transform_attempt.call_val,
-                            extra_data: vec![],
-                        },
-                        Err(ProofSchedulerError::Other("job timed out".to_string())),
-                    );
-
-                    let result: WorkerManagerResult<TwineBatchTransformAttempt> =
-                        WorkerManagerResult::Failure(job_id.0, return_package);
-                    sender.send(result).await.unwrap();
+            let mut jobs = vec![];
+            {
+                let assigned_jobs = self.assigned_jobs.lock().await;
+                log::debug!("total assigned jobs {}", assigned_jobs.len());
+                for (job_id, job_details) in assigned_jobs.clone() {
+                    if job_details.assigned_at.elapsed().as_secs() > self.job_completion_timeout {
+                        jobs.push((job_id.clone(), job_details));
+                    }
                 }
+            }
+
+            let mut last_timed_out_check = self.last_timed_out_check.lock().await;
+            *last_timed_out_check = Instant::now();
+
+            if jobs.len() == 0 {
+                log::info!("no timed out jobs found");
+                return;
+            }
+
+            log::warn!(
+                "found some timed out jobs. total timed out jobs {}",
+                jobs.len()
+            );
+            for (job_id, job_details) in jobs {
+                if let Some(_) = self.assigned_jobs.lock().await.remove(&job_id) {
+                    log::warn!("removed from assigned jobs {:?}", job_id);
+                }
+                if let Some(_) = self.connection_status.lock().await.remove(&job_id.1) {
+                    log::warn!("removed from connection {:?}", job_id.1);
+                }
+
+                let return_package = (
+                    job_id.0.clone(),
+                    TwineBatchTransformReturnCtx {
+                        call_context: job_details.transform_attempt.call_ctx,
+                        call_type: job_details.transform_attempt.call_val,
+                        extra_data: vec![],
+                    },
+                    Err(ProofSchedulerError::Other("job timed out".to_string())),
+                );
+
+                let result: WorkerManagerResult<TwineBatchTransformAttempt> =
+                    WorkerManagerResult::Failure(job_id.0, return_package);
+                sender.send(result).await.unwrap();
             }
         }
     }
