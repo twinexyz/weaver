@@ -1,0 +1,34 @@
+[package]
+name = "twine-egressa"
+version.workspace = true
+edition.workspace = true
+exclude.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+eyre.workspace = true
+toml.workspace=true
+tokio.workspace=true
+reth-tracing.workspace=true
+twine-evm-contracts.workspace = true
+twine-l1.workspace = true
+twine-l1-eth.workspace = true
+twine-l1-solana.workspace = true
+twine-types.workspace = true
+alloy-consensus.workspace = true
+alloy-eips.workspace = true
+alloy-primitives.workspace = true
+alloy-rpc-types.workspace = true
+alloy-provider.workspace = true
+alloy-signer-local.workspace = true
+alloy-sol-types.workspace = true
+hex.workspace = true
+thiserror.workspace = true
+async-trait.workspace = true
+
+[lints]
+workspace = true

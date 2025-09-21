@@ -15343,6 +15343,48 @@ dependencies = [
 ]
 
 [[package]]
+name = "twine-egressa"
+version = "0.1.0"
+dependencies = [
+ "alloy-consensus",
+ "alloy-eips",
+ "alloy-primitives",
+ "alloy-provider",
+ "alloy-rpc-types",
+ "alloy-signer-local",
+ "alloy-sol-types",
+ "async-trait",
+ "eyre",
+ "hex",
+ "reth-tracing",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.16",
+ "tokio",
+ "toml 0.8.23",
+ "twine-evm-contracts",
+ "twine-l1",
+ "twine-l1-eth",
+ "twine-l1-solana",
+ "twine-types",
+]
+
+[[package]]
+name = "twine-egressa-bin"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "env_logger 0.11.8",
+ "eyre",
+ "log",
+ "sqlx",
+ "tokio",
+ "toml 0.8.23",
+ "twine-common",
+ "twine-egressa",
+]
+
+[[package]]
 name = "twine-ethereum-consensus-prover-lib"
 version = "0.1.0"
 dependencies = [

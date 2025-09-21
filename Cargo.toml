@@ -13,6 +13,7 @@ members = [
   "bin/l2-execution-prover-worker",
   "bin/node",
   "bin/proof-scheduler-bin",
+  "bin/egressa",
   "crates/aggregator/common",
   "crates/aggregator/da-source",
   "crates/aggregator/database",
@@ -21,7 +22,7 @@ members = [
   "crates/aggregator/settlement",
   "crates/common",
   "crates/constants",
-  "crates/db/batch",
+  "crates/db/batch", "crates/egressa",
   "crates/ethereum-consensus-prover",
   "crates/evm-contracts",
   "crates/executor",
@@ -175,6 +176,7 @@ twine-db-batch = { path = "crates/db/batch" }
 twine-ethereum-consensus-prover-lib = { path = "crates/ethereum-consensus-prover" }
 twine-evm-contracts = { path = "crates/evm-contracts" }
 twine-executor = { path = "crates/executor", default-features = false }
+twine-egressa = {path = "crates/egressa"}
 twine-exex = { path = "crates/exex" }
 twine-integration-tests = { path = "crates/integration-tests" }
 twine-kafka = { path = "crates/kafka" }
