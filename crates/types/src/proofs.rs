@@ -28,6 +28,19 @@ pub enum ProofKind {
     ExecutionProof(u64),
     /// Solana consensus proofs
     SolanaConsensusProof,
+    /// Twine Transaction Proofs
+    TwineTransactionProof(TwineTxnProofTypes),
+}
+
+/// Twine Transaction Proof Types
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum TwineTxnProofTypes {
+    /// Forced withdrawal proofs from L1
+    L1ForcedWithdraw,
+    /// Refund proofs in case transaction fails on L2
+    L1Refund,
+    /// L2 initiated withdrawal proofs
+    L2Withdraw,
 }
 
 /// The proof file normally is large, but we only need some parts of it.
