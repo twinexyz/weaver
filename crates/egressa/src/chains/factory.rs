@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use crate::chains::ethereum::sender::EthereumSender;
+use crate::chains::solana::sender::SolanaSender;
 use crate::chains::L1TransactionSender;
 use crate::config::ChainConfig;
 
@@ -50,8 +51,13 @@ impl L1SenderFactory {
                 Some(Box::new(sender))
             }
             "solana" => {
-                // TODO: Implement SolanaSender
-                None
+                // let solana_contracts = match &chain.contracts {
+                //     crate::config::Contracts::Svm(svm) => svm.clone(),
+                //     _ => return None,
+                // };
+
+                let sender = SolanaSender::new(chain.clone()).await.ok()?;
+                Some(Box::new(sender))
             }
             _ => None,
         }

@@ -9,6 +9,7 @@ use crate::{
     chains::factory::L1SenderFactory, 
     config::AppCfg,
     processor::WithdrawalProcessor,
+    proof_generator::ProofGenerator,
     polling::DummyWithdrawalEventPoller,
     WithdrawalEventPoller,
 };
@@ -19,7 +20,8 @@ pub async fn run_service(config: AppCfg) {
 
     // Initialize components
     let l1_sender_factory = L1SenderFactory::new(config.chains);
-    let processor = WithdrawalProcessor::new(l1_sender_factory);
+    let proof_generator = ProofGenerator::new(config.prover, config.twine);
+    let processor = WithdrawalProcessor::new(l1_sender_factory, proof_generator);
     let poller = DummyWithdrawalEventPoller;
 
     info!("Egressa service initialized successfully");

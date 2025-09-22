@@ -3,7 +3,7 @@
 use thiserror::Error;
 
 #[allow(missing_docs)]
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Clone)]
 pub enum TransactionError {
     #[error("failed to query rpc: {0}")]
     RpcQueryError(String),

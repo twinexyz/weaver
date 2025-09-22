@@ -17,4 +17,17 @@
 
 -- Add your egressa-specific database schema here
 
-CREATE TABLE IF NOT EXISTS 
+CREATE TABLE IF NOT EXISTS withdrawal_events (
+    id SERIAL PRIMARY KEY,
+    event_type VARCHAR(255) NOT NULL,
+    l1_chain_id BIGINT NOT NULL,
+    l2_transaction_hash VARCHAR(255) NOT NULL,
+    l1_token VARCHAR(255) NOT NULL,
+    l1_address VARCHAR(255) NOT NULL,
+    public_values BYTEA NOT NULL,
+    l1_txn_hash VARCHAR(255) NOT NULL,
+    is_processed BOOLEAN NOT NULL DEFAULT FALSE,
+    proof BYTEA NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);

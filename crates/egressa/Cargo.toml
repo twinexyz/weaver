@@ -29,6 +29,11 @@ alloy-sol-types.workspace = true
 hex.workspace = true
 thiserror.workspace = true
 async-trait.workspace = true
+solana-sdk.workspace = true
+borsh.workspace = true
+spl-token.workspace = true
+solana-client.workspace = true
+spl-associated-token-account.workspace = true
 
 [lints]
 workspace = true

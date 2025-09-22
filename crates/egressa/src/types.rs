@@ -16,8 +16,7 @@ pub struct WithdrawalEvent {
     pub l2_transaction_hash: String,
     pub l1_token: String,
     pub l1_address: String,
-    pub public_values: Bytes,
-    pub proof: Bytes,
+    pub nonce: u64,
 }
 
 /// Polling service trait for getting withdrawal events

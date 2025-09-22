@@ -12,31 +12,20 @@ impl WithdrawalEventPoller for DummyWithdrawalEventPoller {
         // Return dummy events for testing
         vec![
             WithdrawalEvent {
-                event_type: WithdrawalEventType::ForcedWithdraw,
-                chain_id: 1,
-                l2_transaction_hash: "0x1234567890abcdef".to_string(),
+                event_type: WithdrawalEventType::L2Withdraw,
+                chain_id: 11155111,
+                l2_transaction_hash: "0xbc36533aea1b5ffb18cc1b0b088e05c24496726497fd43c931861535f5e91e71".to_string(),
                 l1_token: "0xTokenAddress".to_string(),
                 l1_address: "0xUserAddress".to_string(),
-                public_values: Bytes::from(vec![1, 2, 3, 4]),
-                proof: Bytes::from(vec![5, 6, 7, 8]),
+                nonce: 1,
             },
             WithdrawalEvent {
                 event_type: WithdrawalEventType::L2Withdraw,
-                chain_id: 1,
-                l2_transaction_hash: "0xabcdef1234567890".to_string(),
+                chain_id: 11155111,
+                l2_transaction_hash: "0x395c3fea31a1b11d30289aa2eb21d9cd240d7544146ff57048351007fb4e471e".to_string(),
                 l1_token: "0xTokenAddress2".to_string(),
                 l1_address: "0xUserAddress2".to_string(),
-                public_values: Bytes::from(vec![9, 10, 11, 12]),
-                proof: Bytes::from(vec![13, 14, 15, 16]),
-            },
-            WithdrawalEvent {
-                event_type: WithdrawalEventType::RefundDeposit,
-                chain_id: 137, // Polygon
-                l2_transaction_hash: "0xfedcba0987654321".to_string(),
-                l1_token: "0xTokenAddress3".to_string(),
-                l1_address: "0xUserAddress3".to_string(),
-                public_values: Bytes::from(vec![17, 18, 19, 20]),
-                proof: Bytes::from(vec![21, 22, 23, 24]),
+                nonce: 2,
             },
         ]
     }
