@@ -40,6 +40,12 @@ pub struct Args {
     /// skip prover logs
     #[arg(short, long)]
     pub skip_prover_logs: bool,
+    /// keep alive signal sending interval
+    #[arg(short, long, default_value_t = 5)]
+    pub keep_alive_signal_interval: u64,
+    /// skip prover logs
+    #[arg(short, long, default_value_t = 30)]
+    pub new_job_request_interval: u64,
 }
 
 #[tokio::main]
@@ -55,6 +61,8 @@ async fn main() {
         args.worker_manager_url,
         worker_to_manager_message_rx,
         job_from_wss_tx,
+        args.new_job_request_interval,
+        args.keep_alive_signal_interval,
     );
 
     let mut instance = WorkerInstance::new(
