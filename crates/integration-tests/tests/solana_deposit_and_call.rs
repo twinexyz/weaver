@@ -61,6 +61,22 @@ mod solana_deposit_and_call_test {
         true
     }
 
+    fn validate_config(cfg: &TestConfig) -> bool {
+        if cfg.merkora.url.is_none() && cfg.merkora.repo_path.is_none() {
+            eprintln!("Merkora must have either repo_path or url");
+            return false;
+        }
+
+        if cfg.smart_contracts.solidity.url.is_none()
+            && cfg.smart_contracts.solidity.repo_path.is_none()
+        {
+            eprintln!("Solidity contracts must have either repo_path or url");
+            return false;
+        }
+
+        true
+    }
+
     #[test]
     fn test_deposit_and_call() -> eyre::Result<()> {
         let _ = env_logger::try_init();
