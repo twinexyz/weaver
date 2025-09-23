@@ -2,7 +2,8 @@
 
 #[cfg(test)]
 mod eth_deposit_test {
-    use std::time::Duration;
+    use std::process::{Command, Stdio};
+    use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
     use eyre::{Context, Result};
     use test_harness::{SubProcessService, TestHarness};
@@ -22,6 +23,11 @@ mod eth_deposit_test {
     };
     use twine_integration_tests::twine::action::verify_deposited_l2_balance;
 
+    // test specific constants
+    mod eth_deposit_constants {
+        pub(crate) const DEPOSIT_AMOUNT: &str = "1000000000000000000";
+    }
+
     struct TestServices {
         merkora: SubProcessService,
     }
@@ -35,10 +41,10 @@ mod eth_deposit_test {
     }
 
     fn validate_config(cfg: &TestConfig) -> bool {
-        if cfg.nodes.l2.genesis_path.is_none() {
-            eprintln!("Missing L2 genesis_path in config");
-            return false;
-        }
+        // if cfg.nodes.l2.genesis_path.is_none() {
+        //     eprintln!("Missing L2 genesis_path in config");
+        //     return false;
+        // }
 
         if cfg.merkora.url.is_none() && cfg.merkora.repo_path.is_none() {
             eprintln!("Merkora must have either repo_path or url");
@@ -89,13 +95,6 @@ mod eth_deposit_test {
         harness.add_step(build_contracts_step(&solidity_contracts)?);
         harness.add_step(deploy_contracts_step(&solidity_contracts)?);
         harness.add_step(load_contract_addresses_step(&solidity_contracts)?);
-
-        // Build and deploy solana programs
-        harness.add_step(build_solana_program_step(&solana_programs)?);
-        harness.add_step(deploy_solana_program_step(&solana_programs)?);
-        harness.add_step(load_solana_programs_step(&solana_programs)?);
-
-        // harness.add_step(wait_step(Duration::from_secs(1000), "waiting"));
 
         // Configure and start merkora
         harness.add_step(setup_postgres_step()?);

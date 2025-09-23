@@ -33,6 +33,7 @@ pub(crate) async fn deploy_contract(contracts_dir: &PathBuf) -> eyre::Result<Str
     }
 
     let stdout = String::from_utf8(output.stdout)?;
+    info!("Forge output: {}", stdout);
     parse_contract_address(&stdout)
 }
 
