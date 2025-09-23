@@ -1,4 +1,8 @@
+use eyre::eyre;
+use log::info;
 use std::path::PathBuf;
+use std::process::{Command, Stdio};
+use test_harness::{AsyncFnStep, TestStep};
 
 use crate::cfg::NodeConfig;
 use crate::consts;
@@ -73,4 +77,96 @@ pub fn prepare_solana_node(cfg: &NodeConfig) -> Vec<String> {
         "--ledger".into(),
         consts::SOLANA_DATA_DIR.into(),
     ]
+}
+
+/// Build solidity contracts
+pub fn deploy_l1_nodes(script_path: PathBuf) -> eyre::Result<TestStep> {
+    let path = script_path.clone();
+    Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
+        name: "Deploy L1 Nodes".to_string(),
+        description: "Deploy L1 nodes".to_string(),
+        futurefn: Box::new(move |_ctx| {
+            Box::new(async move {
+                info!("Deploying L1 nodes using scripts in {:?}", path);
+                let reth_status = Command::new("bash")
+                    .arg("./deploy_reth.sh")
+                    .current_dir(&path)
+                    .stdout(Stdio::null())
+                    .stderr(Stdio::inherit())
+                    .status()?;
+
+                if !reth_status.success() {
+                    return Err(eyre!("Could not start reth node"));
+                }
+
+                let twine_status = Command::new("bash")
+                    .arg("./deploy_twine.sh")
+                    .current_dir(&path)
+                    .stdout(Stdio::null())
+                    .stderr(Stdio::inherit())
+                    .status()?;
+
+                if !twine_status.success() {
+                    return Err(eyre!("Could not start twine node"));
+                }
+
+                let solana_status = Command::new("bash")
+                    .arg("./deploy_solana.sh")
+                    .current_dir(&path)
+                    .stdout(Stdio::null())
+                    .stderr(Stdio::inherit())
+                    .status()?;
+                if !solana_status.success() {
+                    return Err(eyre!("Could not start solana test validator"));
+                }
+
+                info!("All L1 nodes deployed");
+                Ok(())
+            })
+        }),
+    })))
+}
+
+// should kill both the nodes spawned above using pkill -f
+pub fn kill_l1_nodes() -> eyre::Result<TestStep> {
+    Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
+        name: "Kill L1 Nodes".to_string(),
+        description: "Kill L1 nodes".to_string(),
+        futurefn: Box::new(move |_ctx| {
+            Box::new(async move {
+                let reth_status = Command::new("pkill")
+                    .arg("-f")
+                    .arg("reth")
+                    .stdout(Stdio::null())
+                    .stderr(Stdio::inherit())
+                    .status()?;
+
+                if !reth_status.success() {
+                    return Err(eyre!("Could not kill reth node"));
+                }
+
+                let twine_status = Command::new("pkill")
+                    .arg("-f")
+                    .arg("twine-node")
+                    .stdout(Stdio::null())
+                    .stderr(Stdio::inherit())
+                    .status()?;
+                if !twine_status.success() {
+                    return Err(eyre!("Could not kill twine node"));
+                }
+
+                let solana_status = Command::new("pkill")
+                    .arg("-f")
+                    .arg("solana-test-validator")
+                    .stdout(Stdio::null())
+                    .stderr(Stdio::inherit())
+                    .status()?;
+                if !solana_status.success() {
+                    return Err(eyre!("Could not kill solana test validator"));
+                }
+                info!("All L1 nodes killed");
+                Ok(())
+            })
+        }),
+    })))
 }

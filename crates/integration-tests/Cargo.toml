@@ -13,6 +13,8 @@ alloy-sol-types.workspace = true
 eyre.workspace = true
 git2.workspace = true
 log.workspace = true
+once_cell.workspace = true
+regex.workspace = true
 ruzstd.workspace = true
 serde.workspace = true
 serde_json.workspace = true
@@ -20,6 +22,7 @@ serde_yaml.workspace = true
 test-harness.workspace = true
 testcontainers = { version = "0.24.0" }
 testcontainers-modules = { version = "0.12.1", features = ["postgres", "blocking"] }
+tokio.workspace = true
 
 [dev-dependencies]
 env_logger = { workspace = true }

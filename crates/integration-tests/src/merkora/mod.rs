@@ -2,6 +2,7 @@ use std::io::BufWriter;
 use std::process::Command;
 
 use alloy_primitives::Address;
+use log::info;
 use test_harness::{AsyncFnStep, TestStep};
 
 use crate::cfg::MerkoraConfig;
@@ -13,10 +14,8 @@ use crate::{consts, ctx};
 
 mod merkora_config;
 
-/// Prepare merkora by building it from repo_path or cloning from git url.
-/// Returns (binary_path, config_path).
-pub fn prepare_merkora(config: &MerkoraConfig) -> String {
-    let repo_path = if let Some(repo_path) = &config.repo_path {
+fn get_merkora_path(config: &MerkoraConfig) -> String {
+    let merkora_path = if let Some(repo_path) = &config.repo_path {
         repo_path.clone()
     } else if let Some(git_url) = &config.url {
         let repo =
@@ -27,7 +26,13 @@ pub fn prepare_merkora(config: &MerkoraConfig) -> String {
     } else {
         panic!("Neither repo_path nor url is set in merkora config");
     };
+    merkora_path
+}
 
+/// Prepare merkora by building it from repo_path or cloning from git url.
+/// Returns (binary_path, config_path).
+pub fn prepare_merkora(config: &MerkoraConfig) -> String {
+    let repo_path = get_merkora_path(config);
     if config.build.unwrap_or(true) {
         let status = Command::new("cargo")
             .arg("build")
@@ -40,9 +45,7 @@ pub fn prepare_merkora(config: &MerkoraConfig) -> String {
             panic!("Merkora build failed at {repo_path}");
         }
     }
-
     let binary_path = format!("{repo_path}/target/release/merkora");
-
     binary_path
 }
 
@@ -53,22 +56,36 @@ pub fn setup_merkora_config() -> eyre::Result<TestStep> {
         futurefn: Box::new(move |ctx| {
             Box::new(async move {
                 let c = ctx.borrow();
+                info!("Setting up merkora config");
+                info!("the context is: {:#?}", c);
+
+                let solana_placeholder =
+                    String::from("6Y6EiTMNZEW2VtpEgvEbWM1D9GqkpbQhecuRKXLrMLMi");
+                let ethereum_placeholder =
+                    String::from("0x610178dA211FEF7D417bC0e6FeD39F05609AD788");
+
                 let l2_messenger = c
                     .get(ctx::twine_ctx_keys::TWINE_MESSENGER)
                     .expect("Failed getting twine messenger address")
                     .clone();
+
                 let l1_message_handler = c
                     .get(ctx::ethereum_ctx_keys::ETHEREUM_MESSAGE_QUEUE)
-                    .expect("Failed getting twine messenger address")
-                    .clone();
+                    .map_or(ethereum_placeholder.clone(), |v| v.clone());
+
                 let solana_twine_chain = c
                     .get(ctx::solana_ctx_keys::SOLANA_TWINE_CHAIN)
-                    .expect("Failed getting twine messenger address")
-                    .clone();
+                    .map_or(solana_placeholder.clone(), |v| v.clone());
                 let db_connection_string = c
                     .get(ctx::common_ctx_keys::MERKORA_DB_CONNECTION_STRING)
-                    .expect("Failed getting twine messenger address")
+                    .expect("Failed getting merkora db connection string")
                     .clone();
+
+                //FIXME: Hardcoded path, change later
+                // let migration_path = format!("{}/crates/database", merkora_path);
+                let migration_path = format!("/home/nobel/dev/merkora/crates/database");
+                run_merkora_migrations(&migration_path, &db_connection_string)?;
+
                 generate_merkora_config(
                     l2_messenger,
                     l1_message_handler,
@@ -79,6 +96,33 @@ pub fn setup_merkora_config() -> eyre::Result<TestStep> {
             })
         }),
     })))
+}
+
+/// Run merkora migrations using sqlx cli
+pub fn run_merkora_migrations(migration_path: &str, db_connection: &str) -> eyre::Result<()> {
+    let status = Command::new("cargo")
+        .arg("sqlx")
+        .arg("prepare")
+        .current_dir(migration_path)
+        .status()
+        .expect("Failed to run cargo sqlx prepare");
+    if !status.success() {
+        panic!("Merkora sqlx prepare failed");
+    }
+
+    let status = Command::new("sqlx")
+        .arg("migrate")
+        .arg("run")
+        .arg("--database-url")
+        .arg(db_connection)
+        .current_dir(migration_path)
+        .status()
+        .expect("Failed to run sqlx migrate run");
+
+    if !status.success() {
+        panic!("Merkora migrations failed");
+    }
+    Ok(())
 }
 
 /// Generate merkora config
@@ -96,7 +140,7 @@ pub fn generate_merkora_config(
             dummy_mode: true,
         },
         twine: Twine {
-            chain_id: 14523,
+            // chain_id: 1,
             l2_messenger_contract: l2_messenger,
             sp1_helios: Address::ZERO.to_string(), // helios not needed here
             twine_system_storage_contract: String::from(
@@ -109,7 +153,7 @@ pub fn generate_merkora_config(
         l1s: L1s {
             ethereum: Some(EthereumChain {
                 name: String::from("ethereum"),
-                chain_id: 17000,
+                chain_id: 11155111,
                 confirmations: 2,
                 rpc: consts::RETH_RPC_URL.to_string(),
                 start_height: 1,
@@ -127,10 +171,11 @@ pub fn generate_merkora_config(
             }),
         },
     };
-
+    info!("Generated merkora config: {:#?}", config);
     let file = std::fs::File::create(consts::MERKORA_CONFIG_PATH)?;
     let writer = BufWriter::new(file);
     serde_yaml::to_writer(writer, &config)?;
-    std::env::set_var("MERKORA_CONFIG", consts::MERKORA_CONFIG_PATH);
+    std::env::set_var("TWINE_CONFIG", consts::MERKORA_CONFIG_PATH);
+    info!("Wrote merkora config to {}", consts::MERKORA_CONFIG_PATH);
     Ok(())
 }

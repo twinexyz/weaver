@@ -83,7 +83,9 @@ impl TestHarness {
     }
 
     /// Adds a test step to be executed later.
-    pub fn add_step(&mut self, step: TestStep) { self.steps.push(step); }
+    pub fn add_step(&mut self, step: TestStep) {
+        self.steps.push(step);
+    }
 
     /// Executes all added services and test steps in order.
     pub fn execute(mut self) -> Result<()> {
@@ -95,8 +97,9 @@ impl TestHarness {
         for (idx, step) in self.steps.into_iter().enumerate() {
             info!("Executing step {}/{}:\n   {:?}", idx + 1, total_steps, step);
             let result = match step {
-                TestStep::Service(step_executor) =>
-                    step_executor.execute(self.context_arena.clone(), self.services.as_mut_slice()),
+                TestStep::Service(step_executor) => {
+                    step_executor.execute(self.context_arena.clone(), self.services.as_mut_slice())
+                }
                 TestStep::AsyncFn(async_step) => {
                     let runtime = tokio::runtime::Runtime::new()
                         .map_err(|e| eyre::eyre!("Failed to create runtime: {}", e))?;
@@ -389,9 +392,17 @@ impl Service for SubProcessService {
         let mut cmd = Command::new(&command[0]);
         cmd.args(&command[1..]);
 
-        cmd.stdout(Stdio::piped());
-        cmd.stderr(Stdio::piped());
-
+        // FIXME:
+        // 1. remove the inherit of stdout and stderr.
+        // 2. better way to pass the config env var
+        if self.name == "Merkora" {
+            cmd.stdout(Stdio::inherit());
+            cmd.stderr(Stdio::inherit());
+            cmd.env("TWINE_CONFIG", "/tmp/merkora_config.yaml");
+        } else {
+            cmd.stdout(Stdio::piped());
+            cmd.stderr(Stdio::piped());
+        }
         let mut child = cmd.spawn().map_err(|e| {
             eyre::eyre!(format!("Failed to start subprocess '{}': {}", self.name, e))
         })?;
@@ -403,7 +414,9 @@ impl Service for SubProcessService {
         Ok(())
     }
 
-    fn is_running(&self) -> bool { self.child.is_some() }
+    fn is_running(&self) -> bool {
+        self.child.is_some()
+    }
 
     fn stop(&mut self) -> Result<()> {
         if let Some(ctx) = &self.context_arena {
@@ -423,9 +436,13 @@ impl Service for SubProcessService {
         Ok(())
     }
 
-    fn take_stdout_stream(&mut self) -> Option<ChildStdout> { self.stdout_stream.take() }
+    fn take_stdout_stream(&mut self) -> Option<ChildStdout> {
+        self.stdout_stream.take()
+    }
 
-    fn take_stderr_stream(&mut self) -> Option<ChildStderr> { self.stderr_stream.take() }
+    fn take_stderr_stream(&mut self) -> Option<ChildStderr> {
+        self.stderr_stream.take()
+    }
 }
 
 #[cfg(test)]
@@ -491,7 +508,7 @@ mod tests {
                     .await;
 
                     match response {
-                        Ok(resp) =>
+                        Ok(resp) => {
                             if resp.status() == 200 {
                                 Ok(())
                             } else {
@@ -499,7 +516,8 @@ mod tests {
                                     "API call failed: Status code {}",
                                     resp.status()
                                 )))
-                            },
+                            }
+                        }
                         Err(e) => Err(eyre::eyre!(format!("Failed to make API call: {}", e))),
                     }
                 })
@@ -614,7 +632,7 @@ mod tests {
                         .await;
 
                     match response {
-                        Ok(resp) =>
+                        Ok(resp) => {
                             if resp.status() == 200 {
                                 Ok(())
                             } else {
@@ -622,7 +640,8 @@ mod tests {
                                     "API call failed: Status code{}",
                                     resp.status()
                                 )))
-                            },
+                            }
+                        }
                         Err(e) => Err(eyre::eyre!(format!("Failed to make API call: {}", e))),
                     }
                 })

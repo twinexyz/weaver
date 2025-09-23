@@ -50,12 +50,25 @@ pub fn build_contracts_step(contract_path: &PathBuf) -> eyre::Result<TestStep> {
         description: "Compile solidity contracts".to_string(),
         futurefn: Box::new(move |_ctx| {
             Box::new(async move {
-                let status = Command::new("sh")
-                    .arg("./script/updateSp1Version.sh")
+                info!("Building contracts in {:?}", path);
+                let status = Command::new("forge")
+                    .arg("build")
                     .current_dir(&path)
                     .stdout(Stdio::null())
                     .stderr(Stdio::inherit())
                     .status()?;
+
+                if !status.success() {
+                    return Err(eyre!("Forge clean failed"));
+                }
+
+                let status = Command::new("bash")
+                    .arg("./script/updateSp1Version.sh")
+                    .current_dir(&path)
+                    .stdout(Stdio::inherit())
+                    .stderr(Stdio::inherit())
+                    .status()?;
+
                 if !status.success() {
                     return Err(eyre!("Contract build failed"));
                 }
@@ -73,13 +86,13 @@ pub fn deploy_contracts_step(contract_path: &PathBuf) -> eyre::Result<TestStep> 
         description: "Deploy contracts to L1 and L2 chain".to_string(),
         futurefn: Box::new(move |_ctx| {
             Box::new(async move {
-                let status = Command::new("sh")
-                    .arg("./script/configure.sh")
-                    .arg("--clear")
+                let status = Command::new("bash")
+                    .args(["-lc", "./script/configure.sh --clear"])
                     .current_dir(&path)
-                    .stdout(Stdio::null())
+                    .stdout(Stdio::inherit())
                     .stderr(Stdio::inherit())
                     .status()?;
+
                 if !status.success() {
                     return Err(eyre!("Contract deployment failed"));
                 }
@@ -120,7 +133,7 @@ pub fn load_contract_addresses_step(contract_path: &PathBuf) -> eyre::Result<Tes
                 );
                 c.insert(
                     ctx::ethereum_ctx_keys::ETHEREUM_MESSAGE_QUEUE.into(),
-                    addresses.dev1.l1_message_handler.clone(),
+                    addresses.dev1.l1_message_queue.clone(),
                 );
                 c.insert(
                     ctx::ethereum_ctx_keys::ETHEREUM_ROLE_MANAGER.into(),
@@ -223,8 +236,8 @@ pub struct Dev1Contracts {
     pub l1_eth_gateway: String,
     #[serde(rename = "L1GatewayRouter")]
     pub l1_gateway_router: String,
-    #[serde(rename = "L1MessageHandler")]
-    pub l1_message_handler: String,
+    #[serde(rename = "L1MessageQueue", alias = "L1MessageHandler")]
+    pub l1_message_queue: String,
     #[serde(rename = "L1RoleManager")]
     pub l1_role_manager: String,
     #[serde(rename = "L1TwineMessenger")]
@@ -235,11 +248,11 @@ pub struct Dev1Contracts {
     pub twine_chain: String,
     #[serde(rename = "Verifier")]
     pub verifier: String,
-    #[serde(rename = "executionVkey")]
-    pub execution_vkey: String,
-    #[serde(rename = "inclusionVkey")]
-    pub inclusion_vkey: String,
-    #[serde(rename = "withdrawalVkey")]
+    #[serde(rename = "finalizeVkey")]
+    pub finalize_vkey: String,
+    #[serde(rename = "refundVkey")]
+    pub refund_vkey: String,
+    #[serde(rename = "l2WithdrawalVkey")]
     pub withdrawal_vkey: String,
 }
 

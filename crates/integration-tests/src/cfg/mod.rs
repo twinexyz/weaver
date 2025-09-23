@@ -9,6 +9,7 @@ pub struct TestConfig {
     pub nodes: NodesConfig,
     pub merkora: MerkoraConfig,
     pub smart_contracts: SmartContractsConfig,
+    pub test_scripts: TestScripts,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -56,6 +57,11 @@ pub struct ContractRepoConfig {
     pub branch: Option<String>,
 }
 
+#[derive(Debug, Deserialize, Clone)]
+pub struct TestScripts {
+    pub path: String,
+}
+
 /// Load a configuration from a YAML file.
 pub fn load_config<P: AsRef<Path>>(path: P) -> eyre::Result<TestConfig> {
     let content = fs::read_to_string(path)?;
@@ -99,6 +105,9 @@ smart_contracts:
     url: "git@github.com:twinexyz/twine-solidity-contracts.git"
     name: "twine-solidity-contracts"
     branch: "main"
+
+test_scripts:
+  path: "./scripts"
 "#;
 
         let cfg: TestConfig = serde_yaml::from_str(yaml).unwrap();

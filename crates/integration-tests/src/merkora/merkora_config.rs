@@ -21,8 +21,8 @@ pub struct Global {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Twine {
-    #[serde(rename = "chain-id")]
-    pub chain_id: u64,
+    // #[serde(rename = "chain-id")]
+    // pub chain_id: u64,
     #[serde(rename = "l2-messenger-contract")]
     pub l2_messenger_contract: String,
     #[serde(rename = "sp1-helios")]

@@ -88,7 +88,6 @@ pub fn load_app_config(config_file_path: &Path) -> eyre::Result<AppConfig> {
     Ok(app_config)
 }
 
-/// Contracts config
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Dev1Contracts {
     #[serde(rename = "FauxCoin")]
@@ -99,7 +98,7 @@ pub struct Dev1Contracts {
     pub l1_eth_gateway: String,
     #[serde(rename = "L1GatewayRouter")]
     pub l1_gateway_router: String,
-    #[serde(rename = "L1MessageQueue")]
+    #[serde(rename = "L1MessageQueue", alias = "L1MessageHandler")]
     pub l1_message_queue: String,
     #[serde(rename = "L1RoleManager")]
     pub l1_role_manager: String,
@@ -111,12 +110,12 @@ pub struct Dev1Contracts {
     pub twine_chain: String,
     #[serde(rename = "Verifier")]
     pub verifier: String,
-    #[serde(rename = "executionVkey")]
-    pub execution_vkey: String,
-    #[serde(rename = "inclusionVkey")]
-    pub inclusion_vkey: String,
-    #[serde(rename = "withdrawalVkey")]
-    pub withdrawal_vkey: String,
+    #[serde(rename = "finalizeVkey")]
+    pub finalize_vkey: String,
+    #[serde(rename = "refundVkey")]
+    pub refund_vkey: String,
+    // #[serde(rename = "withdrawalVkey")]
+    // pub withdrawal_vkey: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -279,7 +278,8 @@ impl MerkoraConfigBuilder {
 
 pub fn save_yaml_to_file<T>(config: &T, path: &str) -> eyre::Result<()>
 where
-    T: Serialize, {
+    T: Serialize,
+{
     // Serialize the config to YAML string
     let yaml = serde_yaml::to_string(config).wrap_err("Failed to serialize config to YAML")?;
 

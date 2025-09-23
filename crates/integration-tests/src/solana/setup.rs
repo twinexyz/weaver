@@ -1,11 +1,15 @@
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
-use eyre::{eyre, ContextCompat, Ok};
+use eyre::{eyre, Context, ContextCompat, Ok};
+use log::info;
+use regex::Regex;
 use test_harness::{AsyncFnStep, TestStep};
 
+use crate::consts;
+use crate::ctx::{common_ctx_keys, solana_ctx_keys, twine_ctx_keys};
 use crate::solana::scripts::load_solana_program_pubkeys;
-use crate::solana::{self, constants, ctx_keys};
+use crate::solana::{self, scripts};
 use crate::{generate_random_eth_address, twine};
 
 /// Set solana config
@@ -25,7 +29,7 @@ pub fn set_solana_config_step() -> eyre::Result<TestStep> {
                 }
 
                 // Set environment variable
-                std::env::set_var("SOLANA_RPC_URL", constants::SOLANA_RPC_URL);
+                std::env::set_var("SOLANA_RPC_URL", consts::SOLANA_RPC_URL);
 
                 Ok(())
             })
@@ -48,7 +52,7 @@ pub fn get_solana_address_step() -> eyre::Result<TestStep> {
 
                 let address = String::from_utf8(output.stdout)?.trim().to_string();
                 ctx.borrow_mut()
-                    .insert(ctx_keys::SOLANA_ADDRESS.into(), address);
+                    .insert(solana_ctx_keys::SOLANA_ADDRESS.into(), address);
 
                 Ok(())
             })
@@ -66,7 +70,7 @@ pub fn update_solana_program_step(program_path: PathBuf) -> eyre::Result<TestSte
             Box::new(async move {
                 let binding = ctx.borrow();
                 let address = binding
-                    .get(ctx_keys::SOLANA_ADDRESS)
+                    .get(solana_ctx_keys::SOLANA_ADDRESS)
                     .ok_or_else(|| eyre!("Solana address not found in context"))?;
 
                 // replace twine chain admin
@@ -163,22 +167,131 @@ pub fn deploy_solana_program_step(program_path: PathBuf) -> eyre::Result<TestSte
     Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
         name: "Deploy Solana Program".to_string(),
         description: "Deploy the Solana program".to_string(),
-        futurefn: Box::new(|_ctx| {
+        futurefn: Box::new(|ctx| {
             Box::new(async move {
+                let program_path = program_path.clone();
                 let status = Command::new("solana").arg("airdrop").arg("10").status()?;
 
                 if !status.success() {
                     return Err(eyre!("Airdrop failed"));
                 }
 
-                let status = Command::new("make")
-                    .arg("deploy")
-                    .current_dir(program_path)
-                    .status()?;
-
-                if !status.success() {
-                    return Err(eyre!("Deploy failed"));
+                let out = Command::new("make")
+                    .arg("clean")
+                    .current_dir(&program_path)
+                    .stderr(Stdio::inherit())
+                    .stdout(Stdio::inherit())
+                    .output()
+                    .context("failed to run `make clean`")?;
+                if !out.status.success() {
+                    let stderr = String::from_utf8_lossy(&out.stderr);
+                    return Err(eyre!("Make clean failed: {stderr}"));
                 }
+
+                let status = Command::new("solana")
+                    .arg("address")
+                    .stdout(Stdio::piped())
+                    .stderr(Stdio::inherit())
+                    .output()
+                    .context("failed to run `solana address`")?;
+                if !status.status.success() {
+                    let stderr = String::from_utf8_lossy(&status.stderr);
+                    return Err(eyre!("Solana address command failed: {stderr}"));
+                }
+
+                let address = String::from_utf8_lossy(&status.stdout).trim().to_string();
+                info!("Solana address: {address}");
+                ctx.borrow_mut()
+                    .insert(solana_ctx_keys::SOLANA_ADDRESS.into(), address.clone());
+
+                let out = Command::new("make")
+                    .args(&["update-admin", &format!("ADMIN={}", address)])
+                    .current_dir(&program_path)
+                    .stderr(Stdio::inherit())
+                    .stdout(Stdio::inherit())
+                    .output()
+                    .context("failed to run `make update-admin`")?;
+                if !out.status.success() {
+                    let stderr = String::from_utf8_lossy(&out.stderr);
+                    return Err(eyre!("Make update-admin failed: {stderr}"));
+                }
+
+                let out = Command::new("make")
+                    .arg("build")
+                    .current_dir(&program_path)
+                    .stderr(Stdio::inherit())
+                    .stdout(Stdio::inherit())
+                    .output()
+                    .context("failed to run `make build`")?;
+                if !out.status.success() {
+                    let stderr = String::from_utf8_lossy(&out.stderr);
+                    return Err(eyre!("Make build failed: {stderr}"));
+                }
+
+                let out = Command::new("make")
+                    .arg("build-sbf")
+                    .current_dir(&program_path)
+                    .stderr(Stdio::inherit())
+                    .stdout(Stdio::inherit())
+                    .output()
+                    .context("failed to run `make build-sbf`")?;
+                if !out.status.success() {
+                    let stderr = String::from_utf8_lossy(&out.stderr);
+                    return Err(eyre!("Make build-sbf failed: {stderr}"));
+                }
+
+                let out = Command::new("make")
+                    .arg("sync-keys")
+                    .current_dir(&program_path)
+                    .stderr(Stdio::inherit())
+                    .stdout(Stdio::inherit())
+                    .output()
+                    .context("failed to run `make sync-keys`")?;
+                if !out.status.success() {
+                    let stderr = String::from_utf8_lossy(&out.stderr);
+                    return Err(eyre!("Sync keys failed: {stderr}"));
+                }
+
+                let out = Command::new("make")
+                    .arg("build-sbf")
+                    .current_dir(&program_path)
+                    .stderr(Stdio::inherit())
+                    .stdout(Stdio::inherit())
+                    .output()
+                    .context("failed to run `make build-sbf`")?;
+
+                if !out.status.success() {
+                    let stderr = String::from_utf8_lossy(&out.stderr);
+                    return Err(eyre!("Build SBF failed: {stderr}"));
+                }
+
+                // 2) Deploy and CAPTURE OUTPUT
+                let out = Command::new("make")
+                    .arg("deploy")
+                    .current_dir(&program_path)
+                    .stderr(Stdio::inherit())
+                    // .stdout(Stdio::inherit())
+                    .output()
+                    .context("failed to run `make deploy`")?;
+                if !out.status.success() {
+                    let stderr = String::from_utf8_lossy(&out.stderr);
+                    return Err(eyre!("Deploy failed: {stderr}"));
+                }
+
+                let stdout = String::from_utf8_lossy(&out.stdout);
+                info!("Deploy output: {stdout}");
+                let re =
+                    Regex::new(r"(?m)Twine Chain:\s*([A-Za-z0-9]+)\s*$").expect("regex compiles");
+
+                //FIXME: use the existing make command instead of parsing here
+                let program_id = re
+                    .captures(&stdout)
+                    .and_then(|c| c.get(1).map(|m| m.as_str().to_string()))
+                    .ok_or_else(|| eyre!("Could not find `Twine Chain:` line in deploy output"))?;
+
+                info!("Twine Chain Program ID: {}", program_id);
+                ctx.borrow_mut()
+                    .insert(solana_ctx_keys::SOLANA_TWINE_CHAIN.into(), program_id);
 
                 Ok(())
             })
@@ -234,13 +347,13 @@ pub fn update_sol_token_mapping(program_path: PathBuf) -> eyre::Result<TestStep>
                 let binding = ctx.borrow();
 
                 let sol_token = binding
-                    .get(twine::ctx_keys::L2_SOL_TOKEN)
+                    .get(twine_ctx_keys::TWINE_SOL_TOKEN)
                     .context("No l2 sol token in context")?;
 
                 let status = Command::new("make")
                     .args(&[
                         "update-token-mapping",
-                        &format!("l1_token={}", solana::constants::SOLANA_NATIVECOIN),
+                        &format!("l1_token={}", consts::SOLANA_NATIVECOIN),
                         &format!("l2_token={}", sol_token),
                         "l1_decimals=9",
                         "l2_decimals=9",
@@ -269,15 +382,15 @@ pub fn deposit_sol_step(program_path: PathBuf) -> eyre::Result<TestStep> {
                 let ethereum_address = generate_random_eth_address();
                 {
                     ctx.borrow_mut().insert(
-                        twine::ctx_keys::L2_RANDOM_ADDRESS.to_string(),
+                        common_ctx_keys::RANDOM_ADDRESS.to_string(),
                         ethereum_address.clone(),
                     );
                 }
                 let binding = ctx.borrow();
                 let l2_token = binding
-                    .get(twine::ctx_keys::L2_SOL_TOKEN)
+                    .get(twine_ctx_keys::TWINE_SOL_TOKEN)
                     .context("L2 sol token not in context")?;
-                let compressed_calldata = binding.get(twine::ctx_keys::L2_CALL_PARAM_COMPRESSED);
+                let compressed_calldata = binding.get(twine_ctx_keys::TWINE_CALL_PARAM_COMPRESSED);
 
                 let data_arg = if let Some(calldata) = compressed_calldata {
                     format!("data={}", calldata)
@@ -288,7 +401,7 @@ pub fn deposit_sol_step(program_path: PathBuf) -> eyre::Result<TestStep> {
                 let status = Command::new("make")
                     .args(&[
                         "deposit-native-token",
-                        &format!("amount={}", solana::constants::SOLANA_DEPOSIT_AMOUNT),
+                        &format!("amount={}", consts::SOLANA_DEPOSIT_AMOUNT),
                         &format!("receiver_address={}", ethereum_address),
                         &format!("l2_token={}", l2_token),
                         &data_arg,

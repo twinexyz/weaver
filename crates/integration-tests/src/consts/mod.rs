@@ -12,9 +12,14 @@ pub const TWINE_WS_URL: &str = "ws://127.0.0.1:8546";
 
 pub const SOLANA_RPC_URL: &str = "http://127.0.0.1:8899";
 pub const SOLANA_DATA_DIR: &str = "/tmp/int_test/solana";
+pub const SOLANA_CHAIN_ID: &str = "900";
+pub const SOLANA_WS_URL: &str = "ws://127.0.0.1:8900";
+pub const SOLANA_NATIVECOIN: &str = "11111111111111111111111111111111";
+pub const SOLANA_DEPOSIT_AMOUNT: &str = "1000000000";
 
+pub const TEST_DATA_ROOT_DIR: &str = "/tmp/int_test/";
 pub const MERKORA_PATH: &str = "/tmp/int_test/merkora";
-pub const MERKORA_CONFIG_PATH: &str = "/tmp/int_test/merkora_config.yaml";
+pub const MERKORA_CONFIG_PATH: &str = "/tmp/merkora_config.yaml";
 pub const TWINE_SOLIDITY_CONTRACTS_DIR: &str = "/tmp/int_test/twine_solidity_contracts";
 pub const TWINE_SOLANA_CONTRACTS_DIR: &str = "/tmp/int_test/twine_native_solana_programs";
 

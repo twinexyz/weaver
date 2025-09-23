@@ -15439,6 +15439,8 @@ dependencies = [
  "eyre",
  "git2",
  "log",
+ "once_cell",
+ "regex",
  "ruzstd",
  "serde",
  "serde_json",

@@ -4,6 +4,7 @@ use std::thread::sleep;
 use std::time::Duration;
 
 use eyre::eyre;
+use log::info;
 use test_harness::{AsyncFnStep, TestStep};
 
 use crate::cfg::ContractRepoConfig;
@@ -200,8 +201,16 @@ pub fn load_solana_programs_step(contract_path: &PathBuf) -> eyre::Result<TestSt
                 if !output.status.success() {
                     eyre::bail!("keygen-twine-chain-program-id failed");
                 }
-
-                let pk = String::from_utf8(output.stdout)?.trim().to_string();
+                info!("solana-keygen output: {:?}", output);
+                // let pk = String::from_utf8(output.stdout)?.trim().to_string();
+                let pk = String::from_utf8(output.stdout)?
+                    .trim()
+                    .lines()
+                    .last()
+                    .ok_or_else(|| eyre::eyre!("no pubkey found in solana-keygen output"))?
+                    .trim()
+                    .to_string();
+                info!("solana twine chain program id: {}", pk);
                 c.insert(ctx::solana_ctx_keys::SOLANA_TWINE_CHAIN.into(), pk);
 
                 Ok(())

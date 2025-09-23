@@ -12,7 +12,7 @@ fn build_contracts_step(contract_path: &PathBuf) -> eyre::Result<TestStep> {
         description: "Compile solidity contracts".to_string(),
         futurefn: Box::new(move |_ctx| {
             Box::new(async move {
-                let status = Command::new("sh")
+                let status = Command::new("bash")
                     .arg("./script/updateSp1Version.sh")
                     .current_dir(&path)
                     .stdout(Stdio::null())

@@ -19,6 +19,7 @@ pub mod solana_ctx_keys {
     pub const SOLANA_FAUX_COIN: &str = "solana_faux_coin";
     pub const SOLANA_TOKEN_GATEWAY: &str = "solana_tokens_gateway";
     pub const SOLANA_TWINE_CHAIN: &str = "solana_twine_chain";
+    pub const SOLANA_ADDRESS: &str = "solana_address";
 }
 
 pub mod twine_ctx_keys {
@@ -32,8 +33,12 @@ pub mod twine_ctx_keys {
     pub const TWINE_MESSENGER: &str = "twine_messenger";
     pub const TWINE_XERC20_GATEWAY: &str = "twine_xerc20_gateway";
     pub const TWINE_SOL_TOKEN: &str = "twine_sol_token";
+    pub const TWINE_CAT_CONTRACT: &str = "twine_cat_contract";
+    pub const TWINE_CALL_PARAM_COMPRESSED: &str = "twine_call_param_compressed";
+    pub const SETTER_VALUE: &str = "setter_value";
 }
 
 pub mod common_ctx_keys {
     pub const MERKORA_DB_CONNECTION_STRING: &str = "merkora_db_connection_string";
+    pub const RANDOM_ADDRESS: &str = "random_address";
 }
