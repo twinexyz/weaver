@@ -46,8 +46,9 @@ impl TransactionPrecompile {
     ) -> Result<Option<InterpreterResult>, String> {
         tracing::info!("Transaction precompile invoked");
 
+        let input_bytes = inputs.input.bytes(_context);
         let (chain_id, chain_precompile_input) =
-            TransactionPrecompileInput::abi_decode_sequence(&inputs.input).map_err(|_| {
+            TransactionPrecompileInput::abi_decode_sequence(&input_bytes).map_err(|_| {
                 TransactionPrecompileError::DecodeTransactionPrecompileInput.to_string()
             })?;
 
@@ -86,6 +87,44 @@ impl TransactionPrecompile {
     }
 }
 
+/// Stateless entry point compatible with EVM PrecompilesMap integration
+pub fn execute(input: &[u8], gas_limit: u64) -> Result<(Bytes, u64, bool), String> {
+    // ABI: (chain_id, chain_input)
+    let (chain_id, chain_precompile_input) = TransactionPrecompileInput::abi_decode_sequence(input)
+        .map_err(|_| TransactionPrecompileError::DecodeTransactionPrecompileInput.to_string())?;
+
+    let chain_type = get_chain_type(chain_id)
+        .ok_or_else(|| TransactionPrecompileError::InvalidChainId(chain_id).to_string())?;
+
+    match chain_type {
+        L1ChainType::Ethereum => {
+            let (proof_height, state_root, message_data, serialized_state_proof) =
+                TransactionPrecompileEthereumInput::abi_decode_sequence(&chain_precompile_input)
+                    .map_err(|_| {
+                        TransactionPrecompileError::DecodeTransactionPrecompileInput.to_string()
+                    })?;
+            let output = execute_ethereum(
+                proof_height.to::<u64>(),
+                &state_root,
+                message_data.clone(),
+                &serialized_state_proof,
+            )
+            .map_err(|e| e.to_string())?;
+            Ok((output, gas_limit.saturating_sub(25_000), false))
+        }
+        L1ChainType::Solana => {
+            let (prev_rolling_hash, message_data, public_values) =
+                TransactionPrecompileSolanaInput::abi_decode_sequence(&chain_precompile_input)
+                    .map_err(|_| {
+                        TransactionPrecompileError::DecodeTransactionPrecompileInput.to_string()
+                    })?;
+            let output = execute_solana(&prev_rolling_hash, message_data.clone(), &public_values)
+                .map_err(|e| e.to_string())?;
+            Ok((output, gas_limit.saturating_sub(50_000), false))
+        }
+    }
+}
+
 /// Processes ethereum transaction and its proof.
 fn handle_ethereum_transaction(
     proof_height: u64,
@@ -119,6 +158,41 @@ fn handle_ethereum_transaction(
     }
 
     return get_return_output(&message_data);
+}
+
+fn execute_ethereum(
+    proof_height: u64,
+    state_root: &FixedBytes<32>,
+    message_data: MessageData,
+    state_proof: &Bytes,
+) -> Result<Bytes, TransactionPrecompileError> {
+    // share logic with stateful path
+    handle_ethereum_transaction(proof_height, state_root, message_data.clone(), state_proof)?;
+    // build return ABI like stateful path
+    let l2_token = Address::from_str(&message_data.l2Token)
+        .map_err(|_| TransactionPrecompileError::InvalidAddress)?;
+    let l2_user_address = Address::from_str(&message_data.toAddress)
+        .map_err(|_| TransactionPrecompileError::InvalidAddress)?;
+    let amount = U256::from_str(&message_data.amount)
+        .map_err(|e| TransactionPrecompileError::InvalidAmountError(format!("{e:?}")))?;
+
+    let is_deposit = message_data.txnType.eq(&0);
+    let l1_txn = L1Txns {
+        nonce: message_data.nonce,
+        tokenTxn: TokenTxn {
+            token: l2_token,
+            receiver: l2_user_address,
+            deposit: is_deposit,
+            amount,
+        },
+        l1Metadata: L1Metadata {
+            blockHeight: message_data.blockNumber,
+            fromAddress: message_data.fromAddress.clone(),
+            l1Token: message_data.l1Token.clone(),
+        },
+        contractCallData: message_data.message.clone(),
+    };
+    Ok(l1_txn.abi_encode().into())
 }
 
 /// Processes solana transaction and its proof.
@@ -195,6 +269,38 @@ fn handle_solana_transaction(
     }
 
     return get_return_output(&message_data);
+}
+
+fn execute_solana(
+    prev_rolling_hash: &FixedBytes<32>,
+    message_data: MessageData,
+    public_values: &Bytes,
+) -> Result<Bytes, TransactionPrecompileError> {
+    handle_solana_transaction(prev_rolling_hash, message_data.clone(), public_values)?;
+    let l2_token = Address::from_str(&message_data.l2Token)
+        .map_err(|_| TransactionPrecompileError::InvalidAddress)?;
+    let l2_user_address = Address::from_str(&message_data.toAddress)
+        .map_err(|_| TransactionPrecompileError::InvalidAddress)?;
+    let amount = U256::from_str(&message_data.amount)
+        .map_err(|e| TransactionPrecompileError::InvalidAmountError(format!("{e:?}")))?;
+
+    let is_deposit = message_data.txnType.eq(&0);
+    let l1_txn = L1Txns {
+        nonce: message_data.nonce,
+        tokenTxn: TokenTxn {
+            token: l2_token,
+            receiver: l2_user_address,
+            deposit: is_deposit,
+            amount,
+        },
+        l1Metadata: L1Metadata {
+            blockHeight: message_data.blockNumber,
+            fromAddress: message_data.fromAddress.clone(),
+            l1Token: message_data.l1Token.clone(),
+        },
+        contractCallData: message_data.message.clone(),
+    };
+    Ok(l1_txn.abi_encode().into())
 }
 
 fn get_return_output(
