@@ -1,5 +1,3 @@
-use eyre::eyre;
-use log::info;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 

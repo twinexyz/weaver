@@ -31,6 +31,17 @@ mod eth_refund_test {
         merkora: SubProcessService,
     }
 
+    #[derive(Debug, Deserialize)]
+    #[allow(dead_code, non_snake_case)]
+    struct CastLog {
+        address: String,
+        topics: Vec<String>,
+        data: String,
+        blockNumber: String,
+        transactionHash: String,
+        logIndex: String,
+    }
+
     impl TestServices {
         fn new(config: &TestConfig) -> Self {
             Self {
