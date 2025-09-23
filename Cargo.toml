@@ -61,6 +61,7 @@ alloy-contract = { version = "0.14.0", default-features = false }
 # needed to implement `encode_2718` function which comes from `use alloy_eips::Encodable2718;`
 alloy-eips = { version = "0.14.0", default-features = false }
 alloy-genesis = { version = "0.14.0", default-features = false }
+alloy-node-bindings = { version = "0.14.0", default-features = false }
 alloy-primitives = { version = "1.0.0", default-features = false, features = ["map-foldhash", "serde"] }
 alloy-provider = { version = "0.14.0", features = ["reqwest", "ws"], default-features = false }
 alloy-pubsub = { version = "0.14.0", default-features = false }
@@ -68,12 +69,15 @@ alloy-rlp = { version = "0.3.10", default-features = false, features = ["core-ne
 alloy-rpc-types = { version = "0.14.0", features = ["eth"], default-features = false }
 alloy-signer-local = { version = "0.14.0", default-features = false }
 alloy-sol-types = { version = "1.0.0", default-features = false, features = ["json"] }
+alloy-transport = { version = "0.14.0", default-features = false }
 alloy-trie = { version = "0.8.1", default-features = false }
 
 bls12_381 = { git = "https://github.com/sp1-patches/bls12_381", branch = "n/release-latest", features = ["experimental"], package = "sp1_bls12_381" }
 
 async-trait = "0.1.89"
+chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "4.5.46", features = ["derive"] }
+derive_more = { version = "2", features = ["debug"] }
 env_logger = "0.11.7"
 ethereum_ssz = "0.9.0"
 ethereum_ssz_derive = "0.9.0"
@@ -84,6 +88,7 @@ git2 = "0.20.1"
 hex = "0.4.3"
 jsonrpsee = { version = "0.24", features = ["client", "jsonrpsee-proc-macros", "tracing", "server"] }
 log = "0.4.26"
+metrics = "0.24.2"
 once_cell = "1.21.3"
 parking_lot = "0.12"
 prometheus = "0.14.0"
@@ -109,6 +114,7 @@ tiny_http = "0.12"
 tokio = { version = "1.40.0", features = ["full"] }
 tokio-tungstenite = "0.27.0"
 toml = "0.8.23"
+tracing = "0.1.41"
 tracing-appender = "0.2.3"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter", "json"] }
 tree_hash = "0.10.0"
