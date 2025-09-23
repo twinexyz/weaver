@@ -11,7 +11,6 @@ mod solana_deposit_and_call_test {
     use test_harness::{AsyncFnStep, SubProcessService, TestHarness, TestStep};
     use twine_integration_tests::cfg::{load_config, TestConfig};
     use twine_integration_tests::common::{start_service_step, stop_service_step};
-    use twine_integration_tests::consts;
     use twine_integration_tests::ctx::*;
     use twine_integration_tests::merkora::{prepare_merkora, setup_merkora_config};
     use twine_integration_tests::nodes::{deploy_l1_nodes, kill_l1_nodes};
@@ -21,7 +20,7 @@ mod solana_deposit_and_call_test {
         build_contracts_step, deploy_contracts_step, load_contract_addresses_step,
         prepare_contract_repo,
     };
-    use twine_integration_tests::{remove_dir_if_exists, solana, twine};
+    use twine_integration_tests::{consts, remove_dir_if_exists, solana, twine};
 
     struct TestServices {
         merkora: SubProcessService,
@@ -35,7 +34,14 @@ mod solana_deposit_and_call_test {
                     description: "Merkora service".into(),
                     cmd_gen: Box::new({
                         let binary_path = prepare_merkora(&config.merkora);
-                        move |_ctx| vec![binary_path.clone()]
+                        move |_ctx| {
+                            vec![
+                                binary_path.clone(),
+                                "run".into(),
+                                "-c".into(),
+                                consts::MERKORA_CONFIG_PATH.into(),
+                            ]
+                        }
                     }),
                     child: None,
                     context_arena: None,

@@ -39,7 +39,14 @@ mod eth_deposit_test {
                     description: "Start merkora relayer".into(),
                     cmd_gen: Box::new({
                         let binary_path = merkora::prepare_merkora(&config.merkora);
-                        move |_ctx| vec![binary_path.clone()]
+                        move |_ctx| {
+                            vec![
+                                binary_path.clone(),
+                                "run".into(),
+                                "-c".into(),
+                                consts::MERKORA_CONFIG_PATH.into(),
+                            ]
+                        }
                     }),
                     child: None,
                     context_arena: None,

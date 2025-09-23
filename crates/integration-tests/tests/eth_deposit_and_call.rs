@@ -41,7 +41,14 @@ mod eth_deposit_and_call_test {
                     description: "Start merkora relayer".into(),
                     cmd_gen: Box::new({
                         let binary_path = merkora::prepare_merkora(&config.merkora);
-                        move |_ctx| vec![binary_path.clone()]
+                        move |_ctx| {
+                            vec![
+                                binary_path.clone(),
+                                "run".into(),
+                                "-c".into(),
+                                consts::MERKORA_CONFIG_PATH.into(),
+                            ]
+                        }
                     }),
                     child: None,
                     context_arena: None,
@@ -187,9 +194,13 @@ mod eth_deposit_and_call_test {
                     let compressed_calldata = binding
                         .get(twine_ctx_keys::TWINE_CALL_PARAM_COMPRESSED)
                         .unwrap();
-
-                    let mut foo = Command::new("cast");
-                    let cmd = foo
+                    info!(
+                        "Depositing {} wei to L1 gateway for address {}",
+                        eth_deposit_constants::DEPOSIT_AMOUNT,
+                        addr_str
+                    );
+                    let mut cmd = Command::new("cast");
+                    let output = cmd
                         .args(&[
                             "send",
                             gateway,
@@ -205,19 +216,15 @@ mod eth_deposit_and_call_test {
                             "--rpc-url",
                             consts::RETH_RPC_URL,
                         ])
-                        .stdout(Stdio::piped())
-                        .stderr(Stdio::piped());
-                    info!(
-                        "Depositing {} wei to L1 gateway {} for address {}",
-                        eth_deposit_constants::DEPOSIT_AMOUNT,
-                        gateway,
-                        addr_str
-                    );
-                    let result = cmd.output()?;
-                    info!("Deposit command output: {:?}", result);
-                    if !result.status.success() {
+                        .output()
+                        .context("Failed to execute ETH deposit command")?;
+
+                    if !output.status.success() {
+                        let stderr = String::from_utf8_lossy(&output.stderr);
+                        error!("ETH deposit command failed: {}", stderr);
                         return Err(eyre!("ETH deposit command failed"));
                     }
+
                     Ok(())
                 })
             }),

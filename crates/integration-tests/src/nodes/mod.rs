@@ -1,7 +1,8 @@
-use eyre::eyre;
-use log::info;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
+
+use eyre::eyre;
+use log::info;
 use test_harness::{AsyncFnStep, TestStep};
 
 use crate::cfg::NodeConfig;

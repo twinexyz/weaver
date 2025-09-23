@@ -8,10 +8,9 @@ use eyre::{eyre, Context, ContextCompat};
 use log::info;
 use test_harness::{AsyncFnStep, TestStep};
 
-use crate::consts;
 use crate::ctx::twine_ctx_keys;
 use crate::twine::scripts::load_twine_addresses;
-use crate::{solana, zstd_compress};
+use crate::{consts, solana, zstd_compress};
 
 pub(crate) async fn deploy_contract(contracts_dir: &PathBuf) -> eyre::Result<String> {
     let output = Command::new("forge")
@@ -33,7 +32,6 @@ pub(crate) async fn deploy_contract(contracts_dir: &PathBuf) -> eyre::Result<Str
     }
 
     let stdout = String::from_utf8(output.stdout)?;
-    info!("Forge output: {}", stdout);
     parse_contract_address(&stdout)
 }
 

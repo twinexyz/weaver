@@ -25,3 +25,7 @@ pub const TWINE_SOLANA_CONTRACTS_DIR: &str = "/tmp/int_test/twine_native_solana_
 
 pub const L1_ADMIN: &str = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 pub const L2_ADMIN: &str = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+
+pub const MESSAGE_TRANSACTION_TOPIC: &str =
+    "0x08d7da3129aa9ea9d53e9d9058503d83eef259b694257c54f31a37640e2a78f9";
+pub const TWINE_SYSTEM_STORAGE_ADDRESS: &str = "0x0000000000000000000000000000000000000017";

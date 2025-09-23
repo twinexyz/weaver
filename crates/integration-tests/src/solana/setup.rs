@@ -6,11 +6,10 @@ use log::info;
 use regex::Regex;
 use test_harness::{AsyncFnStep, TestStep};
 
-use crate::consts;
 use crate::ctx::{common_ctx_keys, solana_ctx_keys, twine_ctx_keys};
 use crate::solana::scripts::load_solana_program_pubkeys;
 use crate::solana::{self, scripts};
-use crate::{generate_random_eth_address, twine};
+use crate::{consts, generate_random_eth_address, twine};
 
 /// Set solana config
 pub fn set_solana_config_step() -> eyre::Result<TestStep> {
@@ -283,7 +282,7 @@ pub fn deploy_solana_program_step(program_path: PathBuf) -> eyre::Result<TestSte
                 let re =
                     Regex::new(r"(?m)Twine Chain:\s*([A-Za-z0-9]+)\s*$").expect("regex compiles");
 
-                //FIXME: use the existing make command instead of parsing here
+                // FIXME: use the existing make command instead of parsing here
                 let program_id = re
                     .captures(&stdout)
                     .and_then(|c| c.get(1).map(|m| m.as_str().to_string()))

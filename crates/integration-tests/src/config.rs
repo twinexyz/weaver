@@ -278,8 +278,7 @@ impl MerkoraConfigBuilder {
 
 pub fn save_yaml_to_file<T>(config: &T, path: &str) -> eyre::Result<()>
 where
-    T: Serialize,
-{
+    T: Serialize, {
     // Serialize the config to YAML string
     let yaml = serde_yaml::to_string(config).wrap_err("Failed to serialize config to YAML")?;
 

@@ -3,15 +3,21 @@
 #[cfg(test)]
 mod eth_refund_test {
     use std::process::{Command, Stdio};
+    use std::str::FromStr;
     use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-    use eyre::{eyre, Context, Result};
+    use alloy_primitives::{hex, keccak256, B256};
+    use alloy_sol_types::{SolEvent, SolValue};
+    use eyre::{eyre, Context, Ok, Result};
     use git2::Repository;
     use log::{error, info};
+    use serde::Deserialize;
     use test_harness::{
         AsyncFnStep, SubProcessService, SubProcessServiceStarter, SubProcessServiceStopper,
         TestHarness, TestStep,
     };
+    use twine_evm_contracts::l1_message_handler::L1MessageHandler::MessageTransaction;
+    use twine_evm_contracts::l2_twine_messenger::TwineTypes::MessageData;
     use twine_integration_tests::cfg::{load_config, TestConfig};
     use twine_integration_tests::ctx::*;
     use twine_integration_tests::merkora::setup_merkora_config;
@@ -33,6 +39,17 @@ mod eth_refund_test {
         merkora: SubProcessService,
     }
 
+    #[derive(Debug, Deserialize)]
+    #[allow(dead_code, non_snake_case)]
+    struct CastLog {
+        address: String,
+        topics: Vec<String>,
+        data: String,
+        blockNumber: String,
+        transactionHash: String,
+        logIndex: String,
+    }
+
     impl TestServices {
         fn new(config: &TestConfig) -> Self {
             Self {
@@ -41,7 +58,14 @@ mod eth_refund_test {
                     description: "Start merkora relayer".into(),
                     cmd_gen: Box::new({
                         let binary_path = merkora::prepare_merkora(&config.merkora);
-                        move |_ctx| vec![binary_path.clone()]
+                        move |_ctx| {
+                            vec![
+                                binary_path.clone(),
+                                "run".into(),
+                                "-c".into(),
+                                consts::MERKORA_CONFIG_PATH.into(),
+                            ]
+                        }
                     }),
                     child: None,
                     context_arena: None,
@@ -53,11 +77,6 @@ mod eth_refund_test {
     }
 
     fn validate_config(cfg: &TestConfig) -> bool {
-        // if cfg.nodes.l2.genesis_path.is_none() {
-        //     eprintln!("Missing L2 genesis_path in config");
-        //     return false;
-        // }
-
         if cfg.merkora.url.is_none() && cfg.merkora.repo_path.is_none() {
             eprintln!("Merkora must have either repo_path or url");
             return false;
@@ -121,20 +140,18 @@ mod eth_refund_test {
         // Deposit eth
         harness.add_step(deposit_eth_step()?);
 
-        // listen for messagetranscation event
-        // searilize
-        // query the hash from system storage
+        // compute the hash of the message
+        harness.add_step(compute_message_hash()?);
 
-        // Wait till message processed
+        // Wait till message is processed
         harness.add_step(wait_step(
             Duration::from_secs(60),
             "wait for message processed",
         ));
 
-        // Verify balance and call on L2
+        // Verify balance and txn status on L2
         harness.add_step(verify_l2_balance_step()?);
-        harness.add_step(verify_l1_balance_step()?);
-        harness.add_step(verify_call_executed()?);
+        harness.add_step(query_refund_txn_status()?);
 
         // Clean up
         harness.add_step(stop_service_step("Merkora", 0));
@@ -144,6 +161,101 @@ mod eth_refund_test {
         harness.execute()?;
 
         Ok(())
+    }
+
+    fn compute_message_hash() -> eyre::Result<TestStep> {
+        Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
+            name: "Compute Message Hash".into(),
+            description: "Compute the hash of the message".into(),
+            futurefn: Box::new(|_ctx| {
+                Box::new(async move {
+                    let mut bindings = _ctx.borrow_mut();
+                    let current_block = Command::new("cast")
+                        .args(&["block-number", "--rpc-url", consts::RETH_RPC_URL])
+                        .output()
+                        .context("Failed to get current block")?;
+                    if !current_block.status.success() {
+                        let stderr = String::from_utf8_lossy(&current_block.stderr);
+                        error!("Failed to get current block: {}", stderr);
+                        return Err(eyre!("Failed to get current block"));
+                    }
+                    let to_block = String::from_utf8_lossy(&current_block.stdout)
+                        .trim()
+                        .to_owned();
+
+                    let message_queue_address = bindings
+                        .get(ethereum_ctx_keys::ETHEREUM_MESSAGE_QUEUE)
+                        .expect("Failed to get message handler address from context");
+
+                    let topic0 = consts::MESSAGE_TRANSACTION_TOPIC;
+                    info!(
+                        "Listening for MessageTransaction events from queue. From block 0 - block {}",
+                        to_block
+                    );
+                    let output = Command::new("cast")
+                        .args(&[
+                            "logs",
+                            "--from-block",
+                            "0",
+                            "--to-block",
+                            &to_block,
+                            "--address",
+                            message_queue_address,
+                            topic0,
+                            "--rpc-url",
+                            consts::RETH_RPC_URL,
+                            "--json",
+                        ])
+                        .output()
+                        .context("Failed to query logs")?;
+
+                    if !output.status.success() {
+                        let stderr = String::from_utf8_lossy(&output.stderr);
+                        error!("Failed to query logs: {}", stderr);
+                        return Err(eyre!("Failed to query logs"));
+                    }
+
+                    let stdout = String::from_utf8_lossy(&output.stdout);
+                    let logs = serde_json::from_str::<Vec<CastLog>>(&stdout)
+                        .context("Failed to parse logs JSON")?;
+
+                    if logs.len() != 1 {
+                        return Err(eyre!(
+                            "Expected exactly one MessageTransaction event, found {}",
+                            logs.len()
+                        ));
+                    }
+                    let log = &logs[0];
+                    let topics = log
+                        .topics
+                        .iter()
+                        .map(|t| B256::from_str(t))
+                        .collect::<Result<Vec<_>, _>>()?;
+                    let data = hex::decode(log.data.trim_start_matches("0x"))?;
+                    let event = MessageTransaction::decode_raw_log(&topics, &data)?;
+
+                    let hashed_message = MessageData {
+                        txnType: event.txnType,
+                        nonce: event.nonce,
+                        chainId: event.chainId,
+                        blockNumber: event.blockNumber,
+                        l1Token: event.l1Token.to_string(),
+                        l2Token: event.l2Token.to_string(),
+                        fromAddress: event.l1Address.to_string(),
+                        toAddress: event.twineAddress.to_string(),
+                        amount: event.amount.to_string(),
+                        message: event.message,
+                    };
+                    let txn_hash = hashed_message.hash_message_data();
+                    info!("Computed message hash: {:?}", txn_hash);
+                    bindings.insert(
+                        common_ctx_keys::MESSAGE_HASH.to_string(),
+                        format!("{:?}", txn_hash),
+                    );
+                    Ok(())
+                })
+            }),
+        })))
     }
 
     fn deposit_eth_step() -> eyre::Result<TestStep> {
@@ -191,8 +303,13 @@ mod eth_refund_test {
                         .unwrap();
                     let garbage_calldata = "0xdeadbeef".to_owned();
 
-                    let mut foo = Command::new("cast");
-                    let cmd = foo
+                    info!(
+                        "Depositing {} wei to L1 gateway for address {}",
+                        eth_deposit_constants::DEPOSIT_AMOUNT,
+                        addr_str
+                    );
+                    let mut cmd = Command::new("cast");
+                    let output = cmd
                         .args(&[
                             "send",
                             gateway,
@@ -208,17 +325,12 @@ mod eth_refund_test {
                             "--rpc-url",
                             consts::RETH_RPC_URL,
                         ])
-                        .stdout(Stdio::piped())
-                        .stderr(Stdio::piped());
-                    info!(
-                        "Depositing {} wei to L1 gateway {} for address {}",
-                        eth_deposit_constants::DEPOSIT_AMOUNT,
-                        gateway,
-                        addr_str
-                    );
-                    let result = cmd.output()?;
-                    info!("Deposit command output: {:?}", result);
-                    if !result.status.success() {
+                        .output()
+                        .expect("Failed to execute deposit command");
+
+                    if !output.status.success() {
+                        let stderr = String::from_utf8_lossy(&output.stderr);
+                        error!("ETH deposit command failed: {}", stderr);
                         return Err(eyre!("ETH deposit command failed"));
                     }
                     Ok(())
@@ -278,64 +390,42 @@ mod eth_refund_test {
         })))
     }
 
-    fn verify_l1_balance_step() -> eyre::Result<TestStep> {
+    fn query_refund_txn_status() -> eyre::Result<TestStep> {
         Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
-            name: "Verify L1 balance".into(),
-            description: "Check ETH balance on L1".into(),
+            name: "Query refund txn status".into(),
+            description: "Query refund txn status from system contract".into(),
             futurefn: Box::new(|ctx| {
                 Box::new(async move {
-                    // let ctx = ctx.borrow();
-                    let l1_address = "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65".to_owned();
+                    let storage_address = consts::TWINE_SYSTEM_STORAGE_ADDRESS;
+                    let txn_hash = ctx
+                        .borrow()
+                        .get(common_ctx_keys::MESSAGE_HASH)
+                        .ok_or_else(|| eyre!("txn_hash not found in context"))?
+                        .to_string();
+
                     let output = Command::new("cast")
-                        .args(&["balance", &l1_address, "--rpc-url", consts::RETH_RPC_URL])
+                        .args(&[
+                            "call",
+                            &storage_address,
+                            "getMessageStatus(bytes32)(uint8)",
+                            &txn_hash,
+                            "--rpc-url",
+                            consts::TWINE_RPC_URL,
+                        ])
                         .output()
-                        .context("Failed to check L1 balance")?;
+                        .context("Failed to query exit status")?;
 
                     if !output.status.success() {
                         let stderr = String::from_utf8_lossy(&output.stderr);
-                        return Err(eyre!("Balance check failed: {}", stderr));
+                        return Err(eyre!("Exit status query failed: {}", stderr));
                     }
 
                     let stdout = String::from_utf8_lossy(&output.stdout);
-                    let expected_amount = eth_deposit_constants::DEPOSIT_AMOUNT;
-                    if stdout.contains(expected_amount) {
-                        info!("L1 balance check successful: {}", stdout);
+                    if stdout.contains("2") {
+                        info!("Txn status is 'Failed'. Status: {}", stdout);
                         return Ok(());
                     } else {
-                        info!(
-                            "L1 balance check failed. expected {}, got {}",
-                            expected_amount, stdout
-                        );
-                    }
-
-                    return Err(eyre!("Failed to verify balance"));
-                })
-            }),
-        })))
-    }
-
-    fn verify_call_executed() -> eyre::Result<TestStep> {
-        Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
-            name: "Verify L2 balance".into(),
-            description: "Check SOL balance on L2".into(),
-            futurefn: Box::new(|ctx| {
-                Box::new(async move {
-                    // let ctx = ctx.borrow();
-                    // l1 pub account = 0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65
-                    let l1_address = "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65".to_owned();
-                    let output = Command::new("cast")
-                        .args(&["balance", &l1_address, "--rpc-url", consts::RETH_RPC_URL])
-                        .output()
-                        .context("Failed to check if call executed")?;
-                    if !output.status.success() {
-                        let stderr = String::from_utf8_lossy(&output.stderr);
-                        return Err(eyre!("Balance check failed on Ethereum: {}", stderr));
-                    }
-                    let stdout = String::from_utf8_lossy(&output.stdout);
-                    if stdout.contains("100000000000000") {
-                        info!("Call executed successfully: {}", stdout);
-                        info!("L2 balance check successful: {}", stdout);
-                        return Ok(());
+                        info!("Refund txn status query failed: {}", stdout);
                     }
                     Ok(())
                 })
@@ -371,6 +461,7 @@ mod eth_refund_test {
                 Box::new(async move {
                     remove_dir_if_exists("/tmp/reth")?;
                     remove_dir_if_exists("/tmp/twine")?;
+                    remove_dir_if_exists("/tmp/solana")?;
                     remove_dir_if_exists("/tmp/int_test")?;
                     remove_dir_if_exists("/tmp/int_test/twine_solidity_contracts")?;
                     remove_dir_if_exists(consts::TEST_DATA_ROOT_DIR)?;

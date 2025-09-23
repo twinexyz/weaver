@@ -7,6 +7,19 @@ pub struct RootConfig {
     #[serde(default)]
     pub telemetry: Telemetry,
     pub l1s: L1s,
+    pub kafka: Kafka,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct Kafka {
+    #[serde(rename = "bootstrap-servers")]
+    pub bootstrap_servers: String,
+    #[serde(rename = "client-id")]
+    pub client_id: String,
+    #[serde(rename = "group-id")]
+    pub group_id: String,
+    #[serde(rename = "topic")]
+    pub topic: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

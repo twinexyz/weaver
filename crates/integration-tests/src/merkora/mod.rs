@@ -2,13 +2,13 @@ use std::io::BufWriter;
 use std::process::Command;
 
 use alloy_primitives::Address;
-use log::info;
+use log::{debug, info};
 use test_harness::{AsyncFnStep, TestStep};
 
 use crate::cfg::MerkoraConfig;
 use crate::git::{checkout_branch, clone_private_repo};
 use crate::merkora::merkora_config::{
-    EthereumChain, Global, L1s, RootConfig, SolanaChain, Telemetry, Twine,
+    EthereumChain, Global, Kafka, L1s, RootConfig, SolanaChain, Telemetry, Twine,
 };
 use crate::{consts, ctx};
 
@@ -57,7 +57,6 @@ pub fn setup_merkora_config() -> eyre::Result<TestStep> {
             Box::new(async move {
                 let c = ctx.borrow();
                 info!("Setting up merkora config");
-                info!("the context is: {:#?}", c);
 
                 let solana_placeholder =
                     String::from("6Y6EiTMNZEW2VtpEgvEbWM1D9GqkpbQhecuRKXLrMLMi");
@@ -81,11 +80,6 @@ pub fn setup_merkora_config() -> eyre::Result<TestStep> {
                     .expect("Failed getting merkora db connection string")
                     .clone();
 
-                //FIXME: Hardcoded path, change later
-                // let migration_path = format!("{}/crates/database", merkora_path);
-                let migration_path = format!("/home/nobel/dev/merkora/crates/database");
-                run_merkora_migrations(&migration_path, &db_connection_string)?;
-
                 generate_merkora_config(
                     l2_messenger,
                     l1_message_handler,
@@ -99,31 +93,31 @@ pub fn setup_merkora_config() -> eyre::Result<TestStep> {
 }
 
 /// Run merkora migrations using sqlx cli
-pub fn run_merkora_migrations(migration_path: &str, db_connection: &str) -> eyre::Result<()> {
-    let status = Command::new("cargo")
-        .arg("sqlx")
-        .arg("prepare")
-        .current_dir(migration_path)
-        .status()
-        .expect("Failed to run cargo sqlx prepare");
-    if !status.success() {
-        panic!("Merkora sqlx prepare failed");
-    }
+// pub fn run_merkora_migrations(migration_path: &str, db_connection: &str) -> eyre::Result<()> {
+//     let status = Command::new("cargo")
+//         .arg("sqlx")
+//         .arg("prepare")
+//         .current_dir(migration_path)
+//         .status()
+//         .expect("Failed to run cargo sqlx prepare");
+//     if !status.success() {
+//         panic!("Merkora sqlx prepare failed");
+//     }
 
-    let status = Command::new("sqlx")
-        .arg("migrate")
-        .arg("run")
-        .arg("--database-url")
-        .arg(db_connection)
-        .current_dir(migration_path)
-        .status()
-        .expect("Failed to run sqlx migrate run");
+//     let status = Command::new("sqlx")
+//         .arg("migrate")
+//         .arg("run")
+//         .arg("--database-url")
+//         .arg(db_connection)
+//         .current_dir(migration_path)
+//         .status()
+//         .expect("Failed to run sqlx migrate run");
 
-    if !status.success() {
-        panic!("Merkora migrations failed");
-    }
-    Ok(())
-}
+//     if !status.success() {
+//         panic!("Merkora migrations failed");
+//     }
+//     Ok(())
+// }
 
 /// Generate merkora config
 pub fn generate_merkora_config(
@@ -143,9 +137,7 @@ pub fn generate_merkora_config(
             // chain_id: 1,
             l2_messenger_contract: l2_messenger,
             sp1_helios: Address::ZERO.to_string(), // helios not needed here
-            twine_system_storage_contract: String::from(
-                "0x0000000000000000000000000000000000000017",
-            ),
+            twine_system_storage_contract: consts::TWINE_SYSTEM_STORAGE_ADDRESS.to_string(),
             rpc: consts::TWINE_RPC_URL.to_string(),
             private_key: consts::L2_ADMIN.to_string(),
         },
@@ -170,12 +162,16 @@ pub fn generate_merkora_config(
                 rpc_url: consts::SOLANA_RPC_URL.to_string(),
             }),
         },
+        kafka: Kafka {
+            bootstrap_servers: "localhost:9092".to_string(),
+            client_id: "merkora".to_string(),
+            group_id: "merkora-group".to_string(),
+            topic: "twine.solana.proofs".to_string(),
+        },
     };
-    info!("Generated merkora config: {:#?}", config);
+    debug!("Generated merkora config: {:#?}", config);
     let file = std::fs::File::create(consts::MERKORA_CONFIG_PATH)?;
     let writer = BufWriter::new(file);
     serde_yaml::to_writer(writer, &config)?;
-    std::env::set_var("TWINE_CONFIG", consts::MERKORA_CONFIG_PATH);
-    info!("Wrote merkora config to {}", consts::MERKORA_CONFIG_PATH);
     Ok(())
 }

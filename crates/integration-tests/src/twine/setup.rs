@@ -180,7 +180,6 @@ pub fn deploy_cat_contract(contracts_dir: PathBuf) -> eyre::Result<TestStep> {
                 // Define the setter value once at the start
                 const SETTER_VALUE: &str = "0x7b565656565656565656565656565656567d";
 
-                info!("Deploying Cat contract at {}", contracts_dir.display());
                 let cat_address = action::deploy_contract(&contracts_dir).await?;
                 info!("Cat deployed at address: {}", cat_address);
                 let call_params = action::get_call_params(&cat_address, SETTER_VALUE).await?;
