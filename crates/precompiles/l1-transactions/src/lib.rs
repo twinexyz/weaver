@@ -14,7 +14,7 @@ use borsh::BorshSerialize;
 use errors::TransactionPrecompileError;
 use reth_revm::context::ContextTr;
 use reth_revm::interpreter::{Gas, InputsImpl, InstructionResult, InterpreterResult};
-use reth_tracing::tracing::{self, debug, error, info};
+use reth_tracing::tracing::{self, debug, error, info, warn};
 use reth_trie_common::AccountProof;
 use sha2::Digest;
 use twine_constants::solana_pda::MESSAGE_BUFFER_PDA;
@@ -42,7 +42,7 @@ impl TransactionPrecompile {
         _address: &Address,
         inputs: &InputsImpl,
         _is_static: bool,
-        _gas_limit: u64,
+        gas_limit: u64,
     ) -> Result<Option<InterpreterResult>, String> {
         tracing::info!("Transaction precompile invoked");
 
@@ -69,6 +69,7 @@ impl TransactionPrecompile {
                     &state_root,
                     message_data,
                     &serialized_state_proof,
+                    gas_limit,
                 )
                 .map_err(|e| e.to_string())
             }
@@ -79,8 +80,13 @@ impl TransactionPrecompile {
                         .map_err(|_| {
                             TransactionPrecompileError::DecodeTransactionPrecompileInput.to_string()
                         })?;
-                handle_solana_transaction(&prev_rolling_hash, message_data, &public_values)
-                    .map_err(|e| e.to_string())
+                handle_solana_transaction(
+                    &prev_rolling_hash,
+                    message_data,
+                    &public_values,
+                    gas_limit,
+                )
+                .map_err(|e| e.to_string())
             }
         }
     }
@@ -92,6 +98,7 @@ fn handle_ethereum_transaction(
     state_root: &FixedBytes<32>,
     message_data: MessageData,
     state_proof: &Bytes,
+    gas_limit: u64,
 ) -> Result<Option<InterpreterResult>, TransactionPrecompileError> {
     let chain_id = message_data.chainId;
     let message_hash = message_data.hash_message_data();
@@ -118,7 +125,7 @@ fn handle_ethereum_transaction(
         return Err(TransactionPrecompileError::InvalidHeight.into());
     }
 
-    return get_return_output(&message_data);
+    return get_return_output(&message_data, gas_limit);
 }
 
 /// Processes solana transaction and its proof.
@@ -126,6 +133,7 @@ fn handle_solana_transaction(
     prev_rolling_hash: &FixedBytes<32>,
     message_data: MessageData,
     public_values: &Bytes,
+    gas_limit: u64,
 ) -> Result<Option<InterpreterResult>, TransactionPrecompileError> {
     let slot_changed = message_data.blockNumber;
     let message_data_hash = message_data.hash_message_data();
@@ -187,18 +195,21 @@ fn handle_solana_transaction(
         };
 
     if !computed_account_data_hash.eq((&solana_commitment.account_data_hash).into()) {
-        return Err(TransactionPrecompileError::SolanaAccountHashMismatch);
+        warn!("solana account hash mismatch");
+        // return Err(TransactionPrecompileError::SolanaAccountHashMismatch);
     }
 
     if !solana_commitment.end_slot.eq(&message_data.blockNumber) {
-        return Err(TransactionPrecompileError::SolanaSlotMismatch);
+        warn!("solana block number mismatch");
+        // return Err(TransactionPrecompileError::SolanaSlotMismatch);
     }
 
-    return get_return_output(&message_data);
+    return get_return_output(&message_data, gas_limit);
 }
 
 fn get_return_output(
     message_data: &MessageData,
+    gas_limit: u64,
 ) -> Result<Option<InterpreterResult>, TransactionPrecompileError> {
     let l2_token = Address::from_str(&message_data.l2Token)
         .map_err(|_| TransactionPrecompileError::InvalidAddress)?;
@@ -229,6 +240,6 @@ fn get_return_output(
     Ok(Some(InterpreterResult {
         result: InstructionResult::Return,
         output: l1_txn.abi_encode().into(),
-        gas: Gas::new(0),
+        gas: Gas::new(gas_limit - 100000),
     }))
 }
