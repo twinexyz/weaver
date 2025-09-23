@@ -67,7 +67,7 @@ pub fn build_contracts_step(contract_path: &Path) -> eyre::Result<TestStep> {
                 let status = Command::new("forge")
                     .arg("build")
                     .current_dir(&path)
-                    .stdout(Stdio::inherit())
+                    .stdout(Stdio::null())
                     .stderr(Stdio::inherit())
                     .status()?;
 
@@ -91,7 +91,7 @@ pub fn deploy_contracts_step(contract_path: &Path) -> eyre::Result<TestStep> {
                 let status = Command::new("bash")
                     .args(["-lc", "./script/configure.sh --clear"])
                     .current_dir(&path)
-                    .stdout(Stdio::inherit())
+                    .stdout(Stdio::null())
                     .stderr(Stdio::inherit())
                     .status()?;
 
