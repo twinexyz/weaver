@@ -45,8 +45,7 @@ impl SettleBatch for EthereumL1 {
 
     /// Settle a batch on the Ethereum chain
     async fn settle(&self, batch: &CommitAndFinalizeBatch) -> eyre::Result<TransactionStatus> {
-        let twine_chain_contract =
-            TwineChain::new(self.twine_chain_contract, &self.inner.writer.provider);
+        let twine_chain_contract = TwineChain::new(self.twine_chain_contract, &self.inner.provider);
         let batch_number = batch.batch_number;
         let public_values: Bytes = batch.public_value.clone().into();
         let proofs: Bytes = batch.proofs.clone().into();
@@ -60,8 +59,7 @@ impl SettleBatch for EthereumL1 {
         );
         let tx_receipt = self
             .inner
-            .writer
-            .send_transaction_and_wait(txn_request)
+            .submit_transaction_request_and_wait(txn_request)
             .await?;
         let mut txn_status = TransactionStatus::default();
         let tx_hash = tx_receipt.transaction_hash.to_string();
@@ -78,7 +76,7 @@ impl SettleBatch for EthereumL1 {
 
     /// Check if a batch is already finalized on the Ethereum chain
     async fn is_finalized(&self, batch_id: u64) -> eyre::Result<bool> {
-        let provider = TwineChain::new(self.twine_chain_contract, &self.inner.writer.provider);
+        let provider = TwineChain::new(self.twine_chain_contract, &self.inner.provider);
         let last_finalized = provider
             .lastFinalizedBatchNumber()
             .call()

@@ -15385,11 +15385,11 @@ dependencies = [
 name = "twine-l1-eth"
 version = "0.1.0"
 dependencies = [
+ "alloy-primitives",
  "alloy-provider",
- "alloy-pubsub",
  "alloy-rpc-types",
- "alloy-signer-local",
  "eyre",
+ "tokio",
  "twine-common",
  "twine-l1-eth-reader",
  "twine-l1-eth-writer",
