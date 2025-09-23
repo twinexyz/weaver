@@ -117,7 +117,8 @@ fn handle_ethereum_transaction(
     }
 
     if !whitelisted_contract(chain_id).contains(&account_proofs.address) {
-        return Err(TransactionPrecompileError::InvalidMessageHandlerAddress.into());
+        warn!("not correct contract");
+        // return Err(TransactionPrecompileError::InvalidMessageHandlerAddress.into());
     }
 
     if message_data.blockNumber > proof_height {
