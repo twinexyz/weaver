@@ -5,11 +5,11 @@ use alloy_primitives::Bytes;
 use async_trait::async_trait;
 use reth_tracing::tracing::info;
 use solana_client::nonblocking::rpc_client::RpcClient;
+use solana_sdk::account::ReadableAccount;
 use solana_sdk::commitment_config::{CommitmentConfig, CommitmentLevel};
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::signature::Keypair;
 use solana_sdk::signer::Signer as _;
-
 
 use crate::chains::solana::transaction_builder::TransactionBuilder;
 use crate::chains::solana::transaction_processor::TransactionProcessor;
@@ -24,6 +24,7 @@ pub struct SolanaSender {
     pub transaction_processor: TransactionProcessor,
     pub chain_id: u64,
     pub relayer_address: Pubkey,
+    pub rpc: Arc<RpcClient>,
 }
 
 impl SolanaSender {
@@ -32,7 +33,7 @@ impl SolanaSender {
             config.http_rpc_url.clone(),
             Duration::from_secs(60),
             CommitmentConfig {
-                commitment: CommitmentLevel::Confirmed,
+                commitment: CommitmentLevel::Finalized,
             },
         );
 
@@ -40,6 +41,8 @@ impl SolanaSender {
 
         let relayer_keypair = Keypair::from_base58_string(&config.private_key);
         let relayer_pubkey = relayer_keypair.pubkey();
+
+        info!("Relayer public key: {:?}", relayer_pubkey.to_string());
 
         let contracts = match config.clone().contracts {
             Contracts::Svm(svm) => svm.clone(),
@@ -53,7 +56,7 @@ impl SolanaSender {
             config.chain.clone(),
         );
         let transaction_processor = TransactionProcessor::new(
-            10,
+            1,
             Duration::from_secs(1),
             rpc.clone(),
             relayer_keypair,
@@ -64,6 +67,7 @@ impl SolanaSender {
             transaction_processor,
             chain_id: config.chain_id,
             relayer_address: relayer_pubkey,
+            rpc: rpc.clone(),
         })
     }
 
@@ -97,10 +101,15 @@ impl SolanaSender {
         public_values: Bytes,
         withdraw_proof: Bytes,
     ) -> eyre::Result<String> {
+        info!(
+            "Executing native l2 withdrawal: {:?} token: {:?}",
+            event, event.l1_token
+        );
         let instruction = self
             .transaction_builder
             .prepare_execute_l2_withdraw_transaction(
                 self.relayer_address,
+                event.l1_address.parse::<Pubkey>()?,
                 event.nonce,
                 public_values.to_vec(),
                 withdraw_proof.to_vec(),
@@ -120,6 +129,7 @@ impl SolanaSender {
         public_values: Bytes,
         withdrawal_proof: Bytes,
     ) -> eyre::Result<String> {
+        info!("Executing SPL forced withdrawal: {:?} token: {:?}", event, event.l1_token);
         let instruction = self
             .transaction_builder
             .prepare_execute_forced_spl_withdrawal_transaction(
@@ -145,6 +155,11 @@ impl SolanaSender {
         public_values: Bytes,
         withdraw_proof: Bytes,
     ) -> eyre::Result<String> {
+        info!(
+            "Executing SPL L2 withdraw: {:?} token: {:?}",
+            event, event.l1_token
+        );
+
         let instruction = self
             .transaction_builder
             .prepare_execute_l2_spl_withdrawal_transaction(
@@ -222,7 +237,7 @@ impl L1TransactionSender for SolanaSender {
         public_values: Bytes,
         withdrawal_proof: Bytes,
     ) -> eyre::Result<String> {
-        if withdrawal_event.l1_address == SOLANA_NATIVE_TOKEN_ADDRESS {
+        if withdrawal_event.l1_token == SOLANA_NATIVE_TOKEN_ADDRESS {
             self.execute_native_forced_withdrawal(withdrawal_event, public_values, withdrawal_proof)
                 .await
         } else {
@@ -237,7 +252,7 @@ impl L1TransactionSender for SolanaSender {
         public_values: Bytes,
         withdraw_proof: Bytes,
     ) -> eyre::Result<String> {
-        if withdrawal_event.l1_address == SOLANA_NATIVE_TOKEN_ADDRESS {
+        if withdrawal_event.l1_token == SOLANA_NATIVE_TOKEN_ADDRESS {
             self.execute_native_l2_withdraw(withdrawal_event, public_values, withdraw_proof)
                 .await
         } else {
@@ -252,7 +267,7 @@ impl L1TransactionSender for SolanaSender {
         public_values: Bytes,
         refund_proof: Bytes,
     ) -> eyre::Result<String> {
-        if withdrawal_event.l1_address == SOLANA_NATIVE_TOKEN_ADDRESS {
+        if withdrawal_event.l1_token == SOLANA_NATIVE_TOKEN_ADDRESS {
             self.refund_native_deposit(withdrawal_event, public_values, refund_proof)
                 .await
         } else {

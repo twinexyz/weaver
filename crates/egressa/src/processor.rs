@@ -64,7 +64,7 @@ impl WithdrawalProcessor {
                     withdrawal_event.l2_transaction_hash
                 );
                 // Convert ZkProof to Bytes for L1 sender
-              zk_proof
+                zk_proof
             }
             Err(e) => {
                 error!(
@@ -101,15 +101,27 @@ impl WithdrawalProcessor {
         let result = match withdrawal_event.event_type {
             WithdrawalEventType::ForcedWithdraw =>
                 l1_sender
-                    .execute_forced_withdrawal(withdrawal_event, Bytes::from(public_values), Bytes::from(proof))
+                    .execute_forced_withdrawal(
+                        withdrawal_event,
+                        Bytes::from(public_values),
+                        Bytes::from(proof),
+                    )
                     .await,
             WithdrawalEventType::L2Withdraw =>
                 l1_sender
-                    .execute_l2_withdraw(withdrawal_event, Bytes::from(public_values), Bytes::from(proof))
+                    .execute_l2_withdraw(
+                        withdrawal_event,
+                        Bytes::from(public_values),
+                        Bytes::from(proof),
+                    )
                     .await,
             WithdrawalEventType::RefundDeposit =>
                 l1_sender
-                    .refund_deposit(withdrawal_event, Bytes::from(public_values), Bytes::from(proof))
+                    .refund_deposit(
+                        withdrawal_event,
+                        Bytes::from(public_values),
+                        Bytes::from(proof),
+                    )
                     .await,
         };
 

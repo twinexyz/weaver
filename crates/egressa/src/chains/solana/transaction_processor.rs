@@ -257,18 +257,18 @@ impl TransactionProcessor {
             TransactionError::ReceiptError(format!("Failed to get latest blockhash: {}", e))
         })?;
 
+        info!("Latest blockhash: {:?}", recent.to_string());
+
         let payer = &self.relay_signer;
         let payer_pubkey = payer.pubkey();
-        let tx = Transaction::new(
-            &[payer],
-            Message::new(&[instruction], Some(&payer_pubkey)),
-            recent,
-        );
+        let mut tx = Transaction::new_with_payer(&[instruction], Some(&payer_pubkey));
+
+        tx.message.recent_blockhash = recent;
+
+        tx.sign(&[&self.relay_signer], tx.message.recent_blockhash);
 
         // Step 1: Process transaction with retry logic
-        let signature = self
-            .process_transaction_with_retry(tx, from_pubkey)
-            .await?;
+        let signature = self.process_transaction_with_retry(tx, from_pubkey).await?;
 
         // Step 2: Wait for confirmation
         if should_wait_for_confirmation {

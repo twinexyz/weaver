@@ -22,3 +22,4 @@ logs/
 artifacts/build-info/
 artifacts/*.sol/
 compat/
+proofs/

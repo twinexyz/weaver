@@ -42,11 +42,6 @@ impl ProofGenerator {
         &self,
         event: &WithdrawalEvent,
     ) -> Result<ZkProof, ProofGenerationError> {
-        info!(
-            "Generating proof for withdrawal event: type={:?}, chain_id={}, txn_hash={}",
-            event.event_type, event.chain_id, event.l2_transaction_hash
-        );
-
         let start_time = time::Instant::now();
 
         // Determine which binary to use and what arguments to pass
@@ -57,8 +52,8 @@ impl ProofGenerator {
         env::set_var("RUST_BACKTRACE", "1");
 
         info!(
-            "Starting proof generation for withdrawal event with binary: {}",
-            binary_path
+            "Generating proof for withdrawal event: type={:?}, chain_id={}, txn_hash={} binary: {}",
+            event.event_type, event.chain_id, event.l2_transaction_hash, binary_path
         );
 
         // Execute the prover binary

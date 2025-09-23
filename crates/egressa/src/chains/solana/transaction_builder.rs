@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use borsh::BorshDeserialize as _;
 use eyre::Result;
+use reth_tracing::tracing::{error, info};
 use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::instruction::Instruction;
 use solana_sdk::pubkey::Pubkey;
@@ -47,6 +48,14 @@ impl TransactionBuilder {
         }
     }
 
+    async fn does_account_exist(&self, address: Pubkey) -> eyre::Result<bool> {
+        let account = self.rpc.get_account(&address).await;
+        match account {
+            Ok(acc) => Ok(acc.lamports > 0),
+            Err(_) => Ok(false),
+        }
+    }
+
     pub async fn get_twine_chain_storage(&self) -> Result<TwineChainStorage> {
         let twine_chain_storage = self
             .rpc
@@ -60,13 +69,14 @@ impl TransactionBuilder {
     pub async fn prepare_execute_l2_withdraw_transaction(
         &self,
         from: Pubkey,
+        l1_receiver_address: Pubkey,
         message_nonce: u64,
         public_values: Vec<u8>,
         execution_proof: Vec<u8>,
     ) -> Result<Instruction> {
         let instruction = create_execute_l2_native_withdrawal_instruction(
             &from,
-            from,
+            l1_receiver_address,
             message_nonce,
             public_values,
             execution_proof,
@@ -96,6 +106,7 @@ impl TransactionBuilder {
             &derive_spl_vault_authority(&self.program_addresses.tokens_gateway_id).0,
             &token_mint,
         );
+
         let instruction = create_execute_l2_spl_withdrawal_instruction(
             &from,
             l1_receiver_address,
@@ -181,6 +192,17 @@ impl TransactionBuilder {
                 e
             )
         })?;
+
+        let accounts = instruction.accounts.clone();
+        for account in accounts {
+            info!("Checking account: {:?}", account.pubkey.to_string());
+            // let does_account_exist =
+            // self.does_account_exist(account.pubkey).await?;
+            // if !does_account_exist {
+            //     return Err(eyre::eyre!("Account does not exist: {:?}",
+            // account.pubkey.to_string())); }
+        }
+
         Ok(instruction)
     }
 

@@ -77,31 +77,43 @@ impl EthereumSender {
             .expect("Invalid address")
     }
 
-    async fn is_forced_withdraw_executed(&self, hash: Bytes) -> eyre::Result<bool> {
+    async fn is_forced_withdraw_executed(&self, public_values: Bytes) -> eyre::Result<bool> {
         let twine_chain =
             TwineChain::new(self.get_twine_chain_address(), &self.inner.writer.provider);
+
+        // Hash the public values to get a 32-byte hash
+        let hash = alloy_primitives::keccak256(public_values.as_ref());
+
         twine_chain
-            .isForcedWithdrawExecuted(FixedBytes::from_slice(hash.as_ref()))
+            .isForcedWithdrawExecuted(hash)
             .call()
             .await
             .map_err(|e| eyre::eyre!("Failed to call isForcedWithdrawExecuted: {}", e))
     }
 
-    async fn is_refund_deposit_executed(&self, hash: Bytes) -> eyre::Result<bool> {
+    async fn is_refund_deposit_executed(&self, public_values: Bytes) -> eyre::Result<bool> {
         let twine_chain =
             TwineChain::new(self.get_twine_chain_address(), &self.inner.writer.provider);
+
+        // Hash the public values to get a 32-byte hash
+        let hash = alloy_primitives::keccak256(public_values.as_ref());
+
         twine_chain
-            .isRefundExecuted(FixedBytes::from_slice(hash.as_ref()))
+            .isRefundExecuted(hash)
             .call()
             .await
             .map_err(|e| eyre::eyre!("Failed to call isRefundExecuted: {}", e))
     }
 
-    async fn is_l2_withdraw_executed(&self, hash: Bytes) -> eyre::Result<bool> {
+    async fn is_l2_withdraw_executed(&self, public_values: Bytes) -> eyre::Result<bool> {
         let twine_chain =
             TwineChain::new(self.get_twine_chain_address(), &self.inner.writer.provider);
+
+        // Hash the public values to get a 32-byte hash
+        let hash = alloy_primitives::keccak256(public_values.as_ref());
+
         twine_chain
-            .isL2WithdrawExecuted(FixedBytes::from_slice(hash.as_ref()))
+            .isL2WithdrawExecuted(hash)
             .call()
             .await
             .map_err(|e| eyre::eyre!("Failed to call isL2WithdrawExecuted: {}", e))
@@ -116,7 +128,9 @@ impl L1TransactionSender for EthereumSender {
         public_values: Bytes,
         withdrawal_proof: Bytes,
     ) -> eyre::Result<String> {
-        let is_executed = self.is_forced_withdraw_executed(public_values.clone()).await?;
+        let is_executed = self
+            .is_forced_withdraw_executed(public_values.clone())
+            .await?;
         if is_executed {
             return Err(eyre::eyre!("Withdrawal already executed"));
         }
@@ -143,10 +157,10 @@ impl L1TransactionSender for EthereumSender {
         public_values: Bytes,
         withdraw_proof: Bytes,
     ) -> eyre::Result<String> {
-        // let is_executed = self.is_l2_withdraw_executed(public_values.clone()).await?;
-        // if is_executed {
-        //     return Err(eyre::eyre!("L2 withdraw already executed"));
-        // }
+        let is_executed = self.is_l2_withdraw_executed(public_values.clone()).await?;
+        if is_executed {
+            return Err(eyre::eyre!("L2 withdraw already executed"));
+        }
 
         let transaction = self
             .transaction_builder
@@ -170,7 +184,9 @@ impl L1TransactionSender for EthereumSender {
         public_values: Bytes,
         refund_proof: Bytes,
     ) -> eyre::Result<String> {
-        let is_executed = self.is_refund_deposit_executed(public_values.clone()).await?;
+        let is_executed = self
+            .is_refund_deposit_executed(public_values.clone())
+            .await?;
         if is_executed {
             return Err(eyre::eyre!("Refund already executed"));
         }
