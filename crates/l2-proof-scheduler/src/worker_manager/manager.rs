@@ -16,7 +16,9 @@ use twine_proof_scheduler_common::config::ProofSchedulerConfig;
 use twine_proof_scheduler_common::error::ProofSchedulerError;
 
 use crate::batch_transform::transform_attempt::TwineBatchTransformAttempt;
-use crate::worker_manager::connections::{ConnectionID, Connections};
+use crate::worker_manager::connections::{
+    ConnectionID, Connections, WorkerAssignmentConnectionDetails,
+};
 
 /// Twine Worker Manager
 #[derive(Debug)]
@@ -130,8 +132,10 @@ pub async fn start_worker_register_server(
     log::info!("starting wss server on: {address}");
 
     let connections = Arc::new(Connections {
-        assigned_jobs: Mutex::new(HashMap::new()),
-        connection_status: Mutex::new(HashMap::new()),
+        worker_connection_details: Mutex::new(WorkerAssignmentConnectionDetails {
+            assigned_jobs: HashMap::new(),
+            connection_status: HashMap::new(),
+        }),
         job_completion_timeout,
         last_timed_out_check: Mutex::new(Instant::now()),
     });

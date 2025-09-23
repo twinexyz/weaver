@@ -35,8 +35,6 @@ pub struct WSSClient {
     pub worker_to_manager_message_receiver: Receiver<ConnectionMessage>,
     /// message sender
     pub job_from_wss_sender: Sender<TwineBatchTransformAttempt>,
-    /// new job request interval
-    pub new_job_request_interval: u64,
     /// keep alive request interval
     pub keep_alive_signal_interval: u64,
 }
@@ -47,14 +45,12 @@ impl WSSClient {
         worker_manager_url: String,
         worker_to_manager_message_receiver: Receiver<ConnectionMessage>,
         job_from_wss_sender: Sender<TwineBatchTransformAttempt>,
-        new_job_request_interval: u64,
         keep_alive_signal_interval: u64,
     ) -> Self {
         Self {
             worker_manager_url,
             worker_to_manager_message_receiver,
             job_from_wss_sender,
-            new_job_request_interval,
             keep_alive_signal_interval,
         }
     }
@@ -102,7 +98,7 @@ impl WSSClient {
                             match e {
                                 ProverError::MessageNotReady => {
                                     let error_message = ConnectionMessage::default_message_with_type(ConnectionMessageTypes::NewJob);
-                                    sleep(Duration::from_secs(self.new_job_request_interval)).await;
+                                    sleep(Duration::from_secs(self.keep_alive_signal_interval)).await;
                                     self.ws_message_writer(&error_message, write.clone()).await;
                                     log::info!("message not ready, resending new job request");
                                }
@@ -118,7 +114,7 @@ impl WSSClient {
                                                         data: format!("{e}"),
                                                     },
                                         };
-                                    sleep(Duration::from_secs(2)).await;
+                                    sleep(Duration::from_secs(self.keep_alive_signal_interval)).await;
                                     self.ws_message_writer(&error_message, write.clone()).await;
                                     log::error!("error from prover, sending error message to worker manager: {e}")
                                }
