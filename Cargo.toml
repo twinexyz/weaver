@@ -77,6 +77,7 @@ bls12_381 = { git = "https://github.com/sp1-patches/bls12_381", branch = "n/rele
 async-trait = "0.1.89"
 chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "4.5.46", features = ["derive"] }
+dashmap = "6.1.0"
 derive_more = { version = "2", features = ["debug"] }
 env_logger = "0.11.7"
 ethereum_ssz = "0.9.0"

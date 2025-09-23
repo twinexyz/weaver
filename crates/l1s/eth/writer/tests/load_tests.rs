@@ -76,7 +76,7 @@ async fn processes_queued_transactions_against_anvil() -> eyre::Result<()> {
         let tx = make_transfer(recipient, value);
         total_value += value;
         tracked_txs.push(tx.id);
-        storage_backend.enqueue(ANVIL_CHAIN_ID, tx).await;
+        storage_backend.enqueue(ANVIL_CHAIN_ID, tx);
     }
     info!(
         count = tracked_txs.len(),
@@ -131,14 +131,14 @@ async fn processes_queued_transactions_against_anvil() -> eyre::Result<()> {
         loop {
             let mut all_confirmed = true;
             for &tx_id in &tracked_txs {
-                if storage_backend.is_confirmed(tx_id).await {
+                if storage_backend.is_confirmed(tx_id) {
                     if newly_confirmed.insert(tx_id) {
                         debug!(?tx_id, "transaction confirmed");
                     }
                     continue;
                 }
 
-                if let Some(status) = storage_backend.status(tx_id).await {
+                if let Some(status) = storage_backend.status(tx_id) {
                     if status.is_failed() {
                         panic!("transaction {tx_id:?} failed: {status:?}");
                     }

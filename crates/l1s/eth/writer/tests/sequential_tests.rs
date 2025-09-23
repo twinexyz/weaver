@@ -2,6 +2,7 @@
 
 use std::time::Duration;
 
+use alloy_node_bindings::Anvil;
 use alloy_primitives::hex::FromHex;
 use alloy_primitives::{Bytes, ChainId, TxKind, U256};
 use alloy_provider::{DynProvider, Provider, ProviderBuilder};
@@ -26,14 +27,14 @@ async fn increments_sequential_counter() -> eyre::Result<()> {
         .with_test_writer()
         .try_init();
 
-    // let anvil = Anvil::new()
-    //     .block_time(1)
-    //     .chain_id(ANVIL_CHAIN_ID)
-    //     .try_spawn()?;
-    // let provider = ProviderBuilder::new().on_http(anvil.endpoint_url());
+    let anvil = Anvil::new()
+        .block_time(1)
+        .chain_id(ANVIL_CHAIN_ID)
+        .try_spawn()?;
+    let provider = ProviderBuilder::new().on_http(anvil.endpoint_url());
 
-    let rpc_url = "http://127.0.0.1:8570".parse().unwrap();
-    let provider = ProviderBuilder::new().on_http(rpc_url);
+    // let rpc_url = "http://127.0.0.1:8570".parse().unwrap();
+    // let provider = ProviderBuilder::new().on_http(rpc_url);
 
     let dyn_provider = DynProvider::new(provider);
     let (_storage_backend, storage) = make_storage();
@@ -41,7 +42,6 @@ async fn increments_sequential_counter() -> eyre::Result<()> {
     let mut config = TransactionServiceConfig::default();
     config.transaction_timeout = Duration::from_secs(120);
     config.nonce_check_interval = Duration::from_secs(1);
-    // config.skip_transaction_simulation = true;
 
     // This bytecode is bytecode for the contract at
     // `testing/precompile-caller/src/Sequential.sol`
