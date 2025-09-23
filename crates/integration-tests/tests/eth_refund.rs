@@ -1,0 +1,405 @@
+//! Test refunding on ethereum
+
+#[cfg(test)]
+mod eth_refund_test {
+    use std::process::{Command, Stdio};
+    use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
+    use eyre::{eyre, Context, Result};
+    use git2::Repository;
+    use log::{error, info};
+    use test_harness::{
+        AsyncFnStep, SubProcessService, SubProcessServiceStarter, SubProcessServiceStopper,
+        TestHarness, TestStep,
+    };
+    use twine_integration_tests::cfg::{load_config, TestConfig};
+    use twine_integration_tests::ctx::*;
+    use twine_integration_tests::merkora::setup_merkora_config;
+    use twine_integration_tests::nodes::{deploy_l1_nodes, kill_l1_nodes};
+    use twine_integration_tests::postgresql::setup_postgres_step;
+    use twine_integration_tests::solidity_contracts::{
+        build_contracts_step, deploy_contracts_step, load_contract_addresses_step,
+        prepare_contract_repo,
+    };
+    use twine_integration_tests::twine::setup::deploy_cat_contract;
+    use twine_integration_tests::{consts, merkora, remove_dir_if_exists};
+
+    // test specific constants
+    mod eth_deposit_constants {
+        pub(crate) const DEPOSIT_AMOUNT: &str = "1000000000000000000";
+    }
+
+    struct TestServices {
+        merkora: SubProcessService,
+    }
+
+    impl TestServices {
+        fn new(config: &TestConfig) -> Self {
+            Self {
+                merkora: SubProcessService {
+                    name: "Merkora".into(),
+                    description: "Start merkora relayer".into(),
+                    cmd_gen: Box::new({
+                        let binary_path = merkora::prepare_merkora(&config.merkora);
+                        move |_ctx| vec![binary_path.clone()]
+                    }),
+                    child: None,
+                    context_arena: None,
+                    stdout_stream: None,
+                    stderr_stream: None,
+                },
+            }
+        }
+    }
+
+    fn validate_config(cfg: &TestConfig) -> bool {
+        // if cfg.nodes.l2.genesis_path.is_none() {
+        //     eprintln!("Missing L2 genesis_path in config");
+        //     return false;
+        // }
+
+        if cfg.merkora.url.is_none() && cfg.merkora.repo_path.is_none() {
+            eprintln!("Merkora must have either repo_path or url");
+            return false;
+        }
+
+        if cfg.smart_contracts.solidity.url.is_none()
+            && cfg.smart_contracts.solidity.repo_path.is_none()
+        {
+            eprintln!("Solidity contracts must have either repo_path or url");
+            return false;
+        }
+
+        true
+    }
+
+    #[test]
+    fn test_refund() -> Result<()> {
+        let _ = env_logger::try_init();
+
+        let mut harness = TestHarness::new("Ethereum refund flow", ".");
+
+        // Initial cleanup if anything left from previous runs
+        cleanup_cache()?;
+
+        let test_config = load_config("./res/ethereum-deposit.yaml")
+            .context("Failed to load application config")?;
+        assert!(validate_config(&test_config));
+        let solidity_contracts = prepare_contract_repo(&test_config.smart_contracts.solidity)
+            .expect("Failed to prepare contract repo");
+        let services = TestServices::new(&test_config);
+
+        let repo = Repository::discover(".")?;
+        let repo_root = repo
+            .workdir()
+            .ok_or_else(|| eyre::eyre!("No working directory found"))?
+            .to_path_buf();
+
+        // Register services
+        harness.add_service(Box::new(services.merkora));
+
+        // Start nodes
+        harness.add_step(deploy_l1_nodes(test_config.test_scripts.path.into())?);
+
+        harness.add_step(wait_step(
+            Duration::from_secs(10),
+            "Wait for L1 Nodes to start",
+        ));
+
+        // Build and deploy contracts
+        harness.add_step(build_contracts_step(&solidity_contracts)?);
+        harness.add_step(deploy_contracts_step(&solidity_contracts)?);
+        harness.add_step(load_contract_addresses_step(&solidity_contracts)?);
+
+        harness.add_step(deploy_cat_contract(repo_root)?);
+
+        // Configure and start merkora
+        harness.add_step(setup_postgres_step()?);
+        harness.add_step(setup_merkora_config()?);
+        harness.add_step(start_service_step("Merkora", 0, Duration::from_secs(10)));
+
+        // Deposit eth
+        harness.add_step(deposit_eth_step()?);
+
+        // listen for messagetranscation event
+        // searilize
+        // query the hash from system storage
+
+        // Wait till message processed
+        harness.add_step(wait_step(
+            Duration::from_secs(60),
+            "wait for message processed",
+        ));
+
+        // Verify balance and call on L2
+        harness.add_step(verify_l2_balance_step()?);
+        harness.add_step(verify_l1_balance_step()?);
+        harness.add_step(verify_call_executed()?);
+
+        // Clean up
+        harness.add_step(stop_service_step("Merkora", 0));
+        harness.add_step(kill_l1_nodes()?);
+        harness.add_step(cleanup_step()?);
+
+        harness.execute()?;
+
+        Ok(())
+    }
+
+    fn deposit_eth_step() -> eyre::Result<TestStep> {
+        Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
+            name: "Deposit ETH".to_string(),
+            description: "Send ETH to L1 Gateway".to_string(),
+            futurefn: Box::new(move |ctx| {
+                Box::new(async move {
+                    fn pseudo_random_bytes(mut seed: u64) -> [u8; 20] {
+                        let mut bytes = [0u8; 20];
+
+                        for byte in bytes.iter_mut() {
+                            seed ^= seed << 13;
+                            seed ^= seed >> 7;
+                            seed ^= seed << 17;
+                            *byte = (seed & 0xff) as u8;
+                        }
+
+                        bytes
+                    }
+
+                    let start = SystemTime::now();
+                    let since_epoch = start
+                        .duration_since(UNIX_EPOCH)
+                        .expect("Time went backwards");
+                    let seed = since_epoch.as_nanos() as u64;
+
+                    let addr_bytes = pseudo_random_bytes(seed);
+                    let addr_str = format!(
+                        "0x{}",
+                        addr_bytes
+                            .iter()
+                            .map(|b| format!("{:02x}", b))
+                            .collect::<String>()
+                    );
+
+                    {
+                        ctx.borrow_mut()
+                            .insert(common_ctx_keys::RANDOM_ADDRESS.into(), addr_str.clone());
+                    }
+
+                    let binding = ctx.borrow();
+                    let gateway = binding
+                        .get(ethereum_ctx_keys::ETHEREUM_ETH_GATEWAY)
+                        .unwrap();
+                    let garbage_calldata = "0xdeadbeef".to_owned();
+
+                    let mut foo = Command::new("cast");
+                    let cmd = foo
+                        .args(&[
+                            "send",
+                            gateway,
+                            "depositETHAndCall(address,uint256,uint256,bytes)",
+                            &addr_str,
+                            eth_deposit_constants::DEPOSIT_AMOUNT,
+                            "0",
+                            &garbage_calldata,
+                            "--value",
+                            eth_deposit_constants::DEPOSIT_AMOUNT,
+                            "--private-key",
+                            "0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a",
+                            "--rpc-url",
+                            consts::RETH_RPC_URL,
+                        ])
+                        .stdout(Stdio::piped())
+                        .stderr(Stdio::piped());
+                    info!(
+                        "Depositing {} wei to L1 gateway {} for address {}",
+                        eth_deposit_constants::DEPOSIT_AMOUNT,
+                        gateway,
+                        addr_str
+                    );
+                    let result = cmd.output()?;
+                    info!("Deposit command output: {:?}", result);
+                    if !result.status.success() {
+                        return Err(eyre!("ETH deposit command failed"));
+                    }
+                    Ok(())
+                })
+            }),
+        })))
+    }
+
+    fn verify_l2_balance_step() -> eyre::Result<TestStep> {
+        Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
+            name: "Verify L2 balance".into(),
+            description: "Check ETH balance on L2".into(),
+            futurefn: Box::new(|ctx| {
+                Box::new(async move {
+                    let ctx = ctx.borrow();
+
+                    let random_address = ctx
+                        .get(common_ctx_keys::RANDOM_ADDRESS)
+                        .ok_or_else(|| eyre!("Random address not found in context"))?;
+
+                    let l2_eth_token = ctx
+                        .get(twine_ctx_keys::TWINE_ETH_TOKEN)
+                        .ok_or_else(|| eyre!("L2 ETH token address not found in context"))?;
+
+                    let output = Command::new("cast")
+                        .args(&[
+                            "call",
+                            l2_eth_token,
+                            "balanceOf(address)(uint256)",
+                            random_address,
+                            "--rpc-url",
+                            consts::TWINE_RPC_URL,
+                        ])
+                        .output()
+                        .context("Failed to check L2 balance")?;
+
+                    if !output.status.success() {
+                        let stderr = String::from_utf8_lossy(&output.stderr);
+                        return Err(eyre!("Balance check failed: {}", stderr));
+                    }
+
+                    let stdout = String::from_utf8_lossy(&output.stdout);
+                    let expected_amount = "0".to_owned();
+                    if stdout.contains(&expected_amount) {
+                        info!("L2 balance check successful: {}", stdout);
+                        return Ok(());
+                    } else {
+                        info!(
+                            "L2 balance check failed. expected {}, got {}",
+                            expected_amount, stdout
+                        );
+                    }
+
+                    return Err(eyre!("Failed to verify balance"));
+                })
+            }),
+        })))
+    }
+
+    fn verify_l1_balance_step() -> eyre::Result<TestStep> {
+        Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
+            name: "Verify L1 balance".into(),
+            description: "Check ETH balance on L1".into(),
+            futurefn: Box::new(|ctx| {
+                Box::new(async move {
+                    // let ctx = ctx.borrow();
+                    let l1_address = "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65".to_owned();
+                    let output = Command::new("cast")
+                        .args(&["balance", &l1_address, "--rpc-url", consts::RETH_RPC_URL])
+                        .output()
+                        .context("Failed to check L1 balance")?;
+
+                    if !output.status.success() {
+                        let stderr = String::from_utf8_lossy(&output.stderr);
+                        return Err(eyre!("Balance check failed: {}", stderr));
+                    }
+
+                    let stdout = String::from_utf8_lossy(&output.stdout);
+                    let expected_amount = eth_deposit_constants::DEPOSIT_AMOUNT;
+                    if stdout.contains(expected_amount) {
+                        info!("L1 balance check successful: {}", stdout);
+                        return Ok(());
+                    } else {
+                        info!(
+                            "L1 balance check failed. expected {}, got {}",
+                            expected_amount, stdout
+                        );
+                    }
+
+                    return Err(eyre!("Failed to verify balance"));
+                })
+            }),
+        })))
+    }
+
+    fn verify_call_executed() -> eyre::Result<TestStep> {
+        Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
+            name: "Verify L2 balance".into(),
+            description: "Check SOL balance on L2".into(),
+            futurefn: Box::new(|ctx| {
+                Box::new(async move {
+                    // let ctx = ctx.borrow();
+                    // l1 pub account = 0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65
+                    let l1_address = "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65".to_owned();
+                    let output = Command::new("cast")
+                        .args(&["balance", &l1_address, "--rpc-url", consts::RETH_RPC_URL])
+                        .output()
+                        .context("Failed to check if call executed")?;
+                    if !output.status.success() {
+                        let stderr = String::from_utf8_lossy(&output.stderr);
+                        return Err(eyre!("Balance check failed on Ethereum: {}", stderr));
+                    }
+                    let stdout = String::from_utf8_lossy(&output.stdout);
+                    if stdout.contains("100000000000000") {
+                        info!("Call executed successfully: {}", stdout);
+                        info!("L2 balance check successful: {}", stdout);
+                        return Ok(());
+                    }
+                    Ok(())
+                })
+            }),
+        })))
+    }
+
+    // Helper functions for creating test steps
+    fn start_service_step(name: &str, idx: usize, wait: Duration) -> TestStep {
+        TestStep::Service(Box::new(SubProcessServiceStarter {
+            name: name.to_string(),
+            description: format!("Starts {}", name),
+            service_idx: idx,
+            wait_after: Some(wait),
+        }))
+    }
+
+    // Helper functions to stop test service
+    fn stop_service_step(name: &str, idx: usize) -> TestStep {
+        TestStep::Service(Box::new(SubProcessServiceStopper {
+            name: name.to_string(),
+            description: format!("Stops {}", name),
+            service_idx: idx,
+            wait_after: None,
+        }))
+    }
+
+    fn cleanup_step() -> eyre::Result<TestStep> {
+        Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
+            name: "Cleanup".to_string(),
+            description: "Remove test artifacts".to_string(),
+            futurefn: Box::new(|_ctx| {
+                Box::new(async move {
+                    remove_dir_if_exists("/tmp/reth")?;
+                    remove_dir_if_exists("/tmp/twine")?;
+                    remove_dir_if_exists("/tmp/int_test")?;
+                    remove_dir_if_exists("/tmp/int_test/twine_solidity_contracts")?;
+                    remove_dir_if_exists(consts::TEST_DATA_ROOT_DIR)?;
+                    Ok(())
+                })
+            }),
+        })))
+    }
+
+    fn cleanup_cache() -> eyre::Result<()> {
+        remove_dir_if_exists("/tmp/reth")?;
+        remove_dir_if_exists("/tmp/twine")?;
+        remove_dir_if_exists("/tmp/solana")?;
+        remove_dir_if_exists("/tmp/merkora-config.yaml")?;
+        remove_dir_if_exists("/tmp/int_test/twine_solidity_contracts")?;
+        remove_dir_if_exists(consts::TEST_DATA_ROOT_DIR)?;
+        Ok(())
+    }
+
+    fn wait_step(duration: Duration, desc: &str) -> TestStep {
+        TestStep::AsyncFn(Box::new(AsyncFnStep {
+            name: "Wait".into(),
+            description: desc.into(),
+            futurefn: Box::new(move |_ctx| {
+                Box::new(async move {
+                    tokio::time::sleep(duration).await;
+                    Ok(())
+                })
+            }),
+        }))
+    }
+}
