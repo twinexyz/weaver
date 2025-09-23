@@ -1,15 +1,18 @@
-use alloy_primitives::Address;
+use alloy_evm::precompiles::{DynPrecompile, PrecompileInput, PrecompilesMap};
+use alloy_primitives::{Address, Bytes};
 use reth::revm::context::{Cfg, ContextTr};
 use reth::revm::handler::{EthPrecompiles, PrecompileProvider};
 use reth::revm::interpreter::{InputsImpl, InterpreterResult};
-use reth::revm::precompile::Precompiles;
+use reth::revm::precompile::{PrecompileId, PrecompileOutput, PrecompileResult, Precompiles};
+use reth::revm::primitives::hardfork::SpecId;
 use twine_constants::precompiles::{
     TWINE_CONSENSUS_VERIFIER_PRECOMPILE_ADDRESS, TWINE_TRANSACTION_PRECOMPILE_ADDRESS,
     TWINE_ZSTD_PRECOMPILE_ADDRESS,
 };
-use twine_l1_consensus_verifier_precompile::ConsensusVerifierPrecompile;
-use twine_l1_transactions_precompile::TransactionPrecompile;
-use twine_zstd_precompile::ZStdPrecompile;
+use {
+    twine_l1_consensus_verifier_precompile as consensus, twine_l1_transactions_precompile as l1tx,
+    twine_zstd_precompile as zstd,
+};
 
 /// Twine specific precompiles
 #[derive(Clone, Debug)]
@@ -37,6 +40,100 @@ impl TwinePrecompiles {
         }
 
         false
+    }
+
+    /// Create a PrecompilesMap with standard Ethereum precompiles and Twine
+    /// custom precompiles
+    pub fn create_precompiles_map() -> PrecompilesMap {
+        // Start with standard Ethereum precompiles
+        let mut precompiles = PrecompilesMap::from_static(&Precompiles::prague());
+
+        // Add Twine custom precompiles
+        #[cfg(feature = "twine-l1-transactions-precompile")]
+        {
+            let tx: DynPrecompile = (
+                PrecompileId::custom("twine_transaction"),
+                move |input: PrecompileInput<'_>| -> PrecompileResult {
+                    match l1tx::execute(input.data, input.gas) {
+                        Ok((bytes, gas_used, reverted)) => Ok(PrecompileOutput {
+                            gas_used,
+                            bytes,
+                            reverted,
+                        }),
+                        Err(err) => Ok(PrecompileOutput {
+                            gas_used: 0,
+                            bytes: Bytes::copy_from_slice(err.as_bytes()),
+                            reverted: true,
+                        }),
+                    }
+                },
+            )
+                .into();
+            precompiles.apply_precompile(&TWINE_TRANSACTION_PRECOMPILE_ADDRESS, |_| Some(tx));
+        }
+
+        #[cfg(feature = "twine-l1-consensus-verifier-precompile")]
+        {
+            let cons: DynPrecompile = (
+                PrecompileId::custom("twine_consensus_verifier"),
+                move |input: PrecompileInput<'_>| -> PrecompileResult {
+                    match consensus::execute(input.data, input.gas) {
+                        Ok((bytes, gas_used, reverted)) => Ok(PrecompileOutput {
+                            gas_used,
+                            bytes,
+                            reverted,
+                        }),
+                        Err(err) => Ok(PrecompileOutput {
+                            gas_used: 0,
+                            bytes: Bytes::copy_from_slice(err.as_bytes()),
+                            reverted: true,
+                        }),
+                    }
+                },
+            )
+                .into();
+            precompiles
+                .apply_precompile(&TWINE_CONSENSUS_VERIFIER_PRECOMPILE_ADDRESS, |_| Some(cons));
+        }
+
+        #[cfg(feature = "twine-zstd-precompile")]
+        {
+            let z: DynPrecompile = (
+                PrecompileId::custom("twine_zstd"),
+                move |input: PrecompileInput<'_>| -> PrecompileResult {
+                    match zstd::execute(input.data, input.gas) {
+                        Ok((bytes, gas_used, reverted)) => Ok(PrecompileOutput {
+                            gas_used,
+                            bytes,
+                            reverted,
+                        }),
+                        Err(err) => Ok(PrecompileOutput {
+                            gas_used: 0,
+                            bytes: Bytes::copy_from_slice(err.as_bytes()),
+                            reverted: true,
+                        }),
+                    }
+                },
+            )
+                .into();
+            precompiles.apply_precompile(&TWINE_ZSTD_PRECOMPILE_ADDRESS, |_| Some(z));
+        }
+
+        precompiles
+    }
+
+    /// Create a TwineCustomPrecompile that integrates with the EVM context
+    /// properly
+    pub fn create_twine_precompile_provider() -> TwineCustomPrecompile {
+        let eth_precompiles = EthPrecompiles {
+            precompiles: Precompiles::prague(),
+            spec: SpecId::PRAGUE,
+        };
+
+        TwineCustomPrecompile {
+            inner: eth_precompiles,
+            twine_precompiles: TwinePrecompiles::default(),
+        }
     }
 }
 
@@ -77,28 +174,7 @@ impl<CTX: ContextTr> PrecompileProvider<CTX> for TwineCustomPrecompile {
         is_static: bool,
         gas_limit: u64,
     ) -> Result<Option<Self::Output>, String> {
-        #[cfg(feature = "twine-l1-transactions-precompile")]
-        {
-            if address.eq(&self.twine_precompiles.transaction_precompile) {
-                return TransactionPrecompile::run(context, address, inputs, is_static, gas_limit);
-            }
-        }
-
-        #[cfg(feature = "twine-l1-consensus-verifier-precompile")]
-        {
-            if address.eq(&self.twine_precompiles.consensus_precompile) {
-                return ConsensusVerifierPrecompile::run(
-                    context, address, inputs, is_static, gas_limit,
-                );
-            }
-        }
-
-        #[cfg(feature = "twine-zstd-precompile")]
-        {
-            if address.eq(&self.twine_precompiles.zstd_precompile) {
-                return ZStdPrecompile::run(context, address, inputs, is_static, gas_limit);
-            }
-        }
+        // No direct calls: precompiles are handled via PrecompilesMap closures now.
 
         self.inner
             .run(context, address, inputs, is_static, gas_limit)

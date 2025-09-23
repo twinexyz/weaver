@@ -20,7 +20,7 @@ pub struct EthQueryExecutionClient {
 impl EthQueryExecutionClient {
     /// Creates new client with given RPC endpoint
     pub async fn new(rpc_url: &str) -> Result<Self> {
-        let execution_provider = ProviderBuilder::new().on_http(rpc_url.parse()?);
+        let execution_provider = ProviderBuilder::new().connect_http(rpc_url.parse()?);
         let chain_id = execution_provider.get_chain_id().await?;
         Ok(Self {
             provider: DynProvider::new(execution_provider),
@@ -30,7 +30,7 @@ impl EthQueryExecutionClient {
 
     /// Creates new client with given RPC endpoint and chain id
     pub fn new_with_chain_id(rpc_url: &str, chain_id: u64) -> Result<Self> {
-        let execution_provider = ProviderBuilder::new().on_http(rpc_url.parse()?);
+        let execution_provider = ProviderBuilder::new().connect_http(rpc_url.parse()?);
         Ok(Self {
             provider: DynProvider::new(execution_provider),
             chain_id,
