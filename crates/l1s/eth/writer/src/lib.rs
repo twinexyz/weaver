@@ -41,7 +41,7 @@ impl EthWriter {
 
         let provider = ProviderBuilder::new()
             .wallet(signer)
-            .on_http(rpc_url.parse().context("Invalid RPC URL")?);
+            .connect_http(rpc_url.parse().context("Invalid RPC URL")?);
 
         let cid = provider.get_chain_id().await?;
         if let Some(_cid) = chain_id {
