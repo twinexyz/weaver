@@ -13,6 +13,6 @@ rustfmt.toml
 rust-toolchain.toml
 scripts
 testing
-twine-solidaty-contracts
+twine-solidity-contracts
 proofs/
 .vscode/
