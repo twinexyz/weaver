@@ -5,7 +5,6 @@ use alloy_primitives::Bytes;
 use async_trait::async_trait;
 use reth_tracing::tracing::info;
 use solana_client::nonblocking::rpc_client::RpcClient;
-use solana_sdk::account::ReadableAccount;
 use solana_sdk::commitment_config::{CommitmentConfig, CommitmentLevel};
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::signature::Keypair;
@@ -19,11 +18,18 @@ use crate::WithdrawalEvent;
 
 const SOLANA_NATIVE_TOKEN_ADDRESS: &str = "11111111111111111111111111111111";
 
+/// Solana Transaction sender
+#[allow(missing_debug_implementations)]
 pub struct SolanaSender {
+    /// Transaction builder
     pub transaction_builder: TransactionBuilder,
+    /// Transaction processor
     pub transaction_processor: TransactionProcessor,
+    /// Chain ID
     pub chain_id: u64,
+    /// Relayer address
     pub relayer_address: Pubkey,
+    /// RPC client
     pub rpc: Arc<RpcClient>,
 }
 
@@ -46,7 +52,11 @@ impl SolanaSender {
 
         let contracts = match config.clone().contracts {
             Contracts::Svm(svm) => svm.clone(),
-            Contracts::Evm(_) => return eyre::bail!("Invalid contracts"),
+            Contracts::Evm(_) => {
+                return Err(eyre::eyre!(
+                    "Solana sender requires SVM contracts, not EVM contracts"
+                ));
+            }
         };
 
         let transaction_builder = TransactionBuilder::new(
@@ -129,14 +139,17 @@ impl SolanaSender {
         public_values: Bytes,
         withdrawal_proof: Bytes,
     ) -> eyre::Result<String> {
-        info!("Executing SPL forced withdrawal: {:?} token: {:?}", event, event.l1_token);
+        info!(
+            "Executing SPL forced withdrawal: {:?} token: {:?}",
+            event, event.l1_token
+        );
         let instruction = self
             .transaction_builder
             .prepare_execute_forced_spl_withdrawal_transaction(
                 self.relayer_address,
                 event.l1_address.parse::<Pubkey>()?,
                 event.nonce,
-                event.l1_address.parse::<Pubkey>()?,
+                event.l1_token.parse::<Pubkey>()?,
                 public_values.to_vec(),
                 withdrawal_proof.to_vec(),
             )

@@ -12,7 +12,7 @@ pub struct AppCfg {
     pub chains: HashMap<String, ChainConfig>,
     /// Prover configuration
     pub prover: ProverConfig,
-
+    /// Twine configuration
     pub twine: TwineConfig,
 }
 
@@ -86,7 +86,9 @@ pub enum Contracts {
 /// Twine configuration
 #[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct TwineConfig {
+    /// Twine RPC URL
     pub rpc: String,
+    /// Twine messenger contract address
     pub twine_messenger_contract: String,
 }
 
@@ -316,7 +318,7 @@ impl EvmContracts {
         // Basic Ethereum address validation (42 characters, starts with 0x)
         if !self.twine_chain_contract.starts_with("0x") || self.twine_chain_contract.len() != 42 {
             return Err(eyre::eyre!(
-                "Chain '{}': Invalid Twine chain contract address format. Must be a valid Ethereum address (0x followed by 40 hex characters)", 
+                "Chain '{}': Invalid Twine chain contract address format. Must be a valid Ethereum address (0x followed by 40 hex characters)",
                 chain_name
             ));
         }
@@ -354,14 +356,14 @@ impl SvmContracts {
         // Basic Solana address validation (32-44 base58 characters)
         if self.tokens_gateway.len() < 32 || self.tokens_gateway.len() > 44 {
             return Err(eyre::eyre!(
-                "Chain '{}': Invalid tokens gateway address length. Solana addresses are typically 32-44 characters", 
+                "Chain '{}': Invalid tokens gateway address length. Solana addresses are typically 32-44 characters",
                 chain_name
             ));
         }
 
         if self.twine_chain_program.len() < 32 || self.twine_chain_program.len() > 44 {
             return Err(eyre::eyre!(
-                "Chain '{}': Invalid twine chain program address length. Solana addresses are typically 32-44 characters", 
+                "Chain '{}': Invalid twine chain program address length. Solana addresses are typically 32-44 characters",
                 chain_name
             ));
         }
@@ -377,7 +379,6 @@ impl SvmContracts {
     }
 }
 
-
 impl TwineConfig {
     /// Validate twine configuration
     pub fn validate(&self) -> eyre::Result<()> {
@@ -386,11 +387,15 @@ impl TwineConfig {
         }
 
         if !self.rpc.starts_with("http://") && !self.rpc.starts_with("https://") {
-            return Err(eyre::eyre!("Twine RPC URL must start with 'http://' or 'https://'"));
+            return Err(eyre::eyre!(
+                "Twine RPC URL must start with 'http://' or 'https://'"
+            ));
         }
 
         if self.twine_messenger_contract.is_empty() {
-            return Err(eyre::eyre!("Twine messenger contract address cannot be empty"));
+            return Err(eyre::eyre!(
+                "Twine messenger contract address cannot be empty"
+            ));
         }
 
         Ok(())

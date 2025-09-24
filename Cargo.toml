@@ -10,10 +10,10 @@ rust-version = "1.88"
 members = [
   "bin/aggregator",
   "bin/devtest",
+  "bin/egressa",
   "bin/l2-execution-prover-worker",
   "bin/node",
   "bin/proof-scheduler-bin",
-  "bin/egressa",
   "crates/aggregator/common",
   "crates/aggregator/da-source",
   "crates/aggregator/database",
@@ -22,7 +22,8 @@ members = [
   "crates/aggregator/settlement",
   "crates/common",
   "crates/constants",
-  "crates/db/batch", "crates/egressa",
+  "crates/db/batch",
+  "crates/egressa",
   "crates/ethereum-consensus-prover",
   "crates/evm-contracts",
   "crates/executor",
@@ -128,12 +129,12 @@ typenum = "1.12.0"
 # SOLANA
 bincode = "1.3"
 blake3 = { git = "https://github.com/twinexyz/BLAKE3" }
-chrono = { version = "0.4", features = ["serde"] }
 borsh = { version = "1.2.1", features = ["derive", "unstable__schema"] }
 borsh0_10 = { package = "borsh", version = "0.10.3" }
 borsh0_9 = { package = "borsh", version = "0.9.3" }
 bs58 = "0.4.0"
 bytemuck = { version = "1.14.0", features = ["derive"] }
+chrono = { version = "0.4", features = ["serde"] }
 num-derive = "0.4"
 num-traits = { version = "0.2", features = ["i128"] }
 sha2_solana = { package = "sha2", git = "https://github.com/sp1-patches/RustCrypto-hashes", tag = "patch-0.10.8-sp1-4.0.0-rc.3" }
@@ -141,9 +142,9 @@ smallvec = "1.13.2"
 solana-client = "2.2.0"
 solana-sdk = "2.2.1"
 solana-short-vec = "2.2.1"
-tempfile = "3.10"
-spl-token = { version = "8.0.0", features = ["no-entrypoint"] }
 spl-associated-token-account = { version = "4.0.0", features = ["no-entrypoint"] }
+spl-token = { version = "8.0.0", features = ["no-entrypoint"] }
+tempfile = "3.10"
 
 # RETH
 reth = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1" }
@@ -176,10 +177,10 @@ twine-aggregator-settlement = { path = "crates/aggregator/settlement" }
 twine-common = { path = "crates/common" }
 twine-constants = { path = "crates/constants" }
 twine-db-batch = { path = "crates/db/batch" }
+twine-egressa = { path = "crates/egressa" }
 twine-ethereum-consensus-prover-lib = { path = "crates/ethereum-consensus-prover" }
 twine-evm-contracts = { path = "crates/evm-contracts" }
 twine-executor = { path = "crates/executor", default-features = false }
-twine-egressa = {path = "crates/egressa"}
 twine-exex = { path = "crates/exex" }
 twine-integration-tests = { path = "crates/integration-tests" }
 twine-kafka = { path = "crates/kafka" }

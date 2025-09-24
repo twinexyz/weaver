@@ -15708,7 +15708,7 @@ dependencies = [
  "clap",
  "env_logger 0.11.8",
  "eyre",
- "log",
+ "reth-tracing",
  "sqlx",
  "tokio",
  "toml 0.8.23",

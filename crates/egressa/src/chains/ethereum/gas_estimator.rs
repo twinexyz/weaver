@@ -1,3 +1,6 @@
+/// Gas estimator for Ethereum
+#[allow(missing_docs)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum GasEstimator {
     ExecuteForcedWithdrawal,
     ExecuteL2Withdraw,

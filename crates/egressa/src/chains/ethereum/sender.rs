@@ -1,7 +1,7 @@
 use std::str::FromStr as _;
 use std::time::Duration;
 
-use alloy_primitives::{Address, Bytes, FixedBytes};
+use alloy_primitives::{Address, Bytes};
 use async_trait::async_trait;
 use eyre::ContextCompat as _;
 use reth_tracing::tracing::info;
@@ -124,7 +124,7 @@ impl EthereumSender {
 impl L1TransactionSender for EthereumSender {
     async fn execute_forced_withdrawal(
         &self,
-        event: WithdrawalEvent,
+        _event: WithdrawalEvent,
         public_values: Bytes,
         withdrawal_proof: Bytes,
     ) -> eyre::Result<String> {
@@ -153,7 +153,7 @@ impl L1TransactionSender for EthereumSender {
 
     async fn execute_l2_withdraw(
         &self,
-        event: WithdrawalEvent,
+        _event: WithdrawalEvent,
         public_values: Bytes,
         withdraw_proof: Bytes,
     ) -> eyre::Result<String> {
@@ -180,7 +180,7 @@ impl L1TransactionSender for EthereumSender {
 
     async fn refund_deposit(
         &self,
-        event: WithdrawalEvent,
+        _event: WithdrawalEvent,
         public_values: Bytes,
         refund_proof: Bytes,
     ) -> eyre::Result<String> {

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use borsh::BorshDeserialize as _;
 use eyre::Result;
-use reth_tracing::tracing::{error, info};
+use reth_tracing::tracing::info;
 use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::instruction::Instruction;
 use solana_sdk::pubkey::Pubkey;
@@ -19,12 +19,18 @@ use crate::chains::solana::TwineProgramAddresses;
 use crate::config::SvmContracts;
 
 #[derive(Clone)]
+#[allow(missing_debug_implementations)]
 /// Transaction builder for Solana
 pub struct TransactionBuilder {
+    /// Chain ID
     pub chain_id: u64,
+    /// Chain
     pub chain: String,
+    /// Program addresses
     pub program_addresses: TwineProgramAddresses,
+    /// PDA nonce gap
     pub pda_nonce_gap: u64,
+    /// RPC client
     pub rpc: Arc<RpcClient>,
 }
 
@@ -48,7 +54,8 @@ impl TransactionBuilder {
         }
     }
 
-    async fn does_account_exist(&self, address: Pubkey) -> eyre::Result<bool> {
+    /// Check if an account exists
+    async fn _does_account_exist(&self, address: Pubkey) -> eyre::Result<bool> {
         let account = self.rpc.get_account(&address).await;
         match account {
             Ok(acc) => Ok(acc.lamports > 0),
@@ -56,6 +63,7 @@ impl TransactionBuilder {
         }
     }
 
+    /// Get twine chain storage
     pub async fn get_twine_chain_storage(&self) -> Result<TwineChainStorage> {
         let twine_chain_storage = self
             .rpc
@@ -66,6 +74,7 @@ impl TransactionBuilder {
         )?)
     }
 
+    /// Prepare execute L2 withdraw transaction
     pub async fn prepare_execute_l2_withdraw_transaction(
         &self,
         from: Pubkey,
@@ -92,6 +101,7 @@ impl TransactionBuilder {
         Ok(instruction)
     }
 
+    /// Prepare execute L2 SPL withdrawal transaction
     pub async fn prepare_execute_l2_spl_withdrawal_transaction(
         &self,
         from: Pubkey,
@@ -126,6 +136,7 @@ impl TransactionBuilder {
         Ok(instruction)
     }
 
+    /// Prepare execute forced withdrawal transaction
     pub async fn prepare_execute_forced_withdrawal_transaction(
         &self,
         from: Pubkey,
@@ -157,6 +168,7 @@ impl TransactionBuilder {
         Ok(instruction)
     }
 
+    /// Prepare execute forced SPL withdrawal transaction
     pub async fn prepare_execute_forced_spl_withdrawal_transaction(
         &self,
         from: Pubkey,
@@ -206,6 +218,7 @@ impl TransactionBuilder {
         Ok(instruction)
     }
 
+    /// Prepare execute refund transaction
     pub async fn prepare_execute_refund_transaction(
         &self,
         from: Pubkey,
@@ -232,6 +245,7 @@ impl TransactionBuilder {
         Ok(instruction)
     }
 
+    /// Prepare execute refund SPL transaction
     pub async fn prepare_execute_refund_spl_transaction(
         &self,
         from: Pubkey,

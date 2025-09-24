@@ -1,12 +1,10 @@
 use std::sync::Arc;
 
-use alloy_primitives::Address;
 use reth_tracing::tracing::{debug, error, info, warn};
 use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_client::rpc_config::RpcSendTransactionConfig;
 use solana_sdk::commitment_config::{CommitmentConfig, CommitmentLevel};
 use solana_sdk::instruction::Instruction;
-use solana_sdk::message::Message;
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::signature::{Keypair, Signature, Signer};
 use solana_sdk::transaction::Transaction;
@@ -19,11 +17,17 @@ use twine_l1::error::TransactionError;
 /// - Sending signed transactions to the blockchain
 /// - Retry logic for failed transactions
 /// - Waiting for transaction confirmation
+#[allow(missing_debug_implementations)]
 pub struct TransactionProcessor {
+    /// Max retries
     pub max_retries: i32,
+    /// Retry delay
     pub retry_delay: Duration,
+    /// Client
     pub client: Arc<RpcClient>,
+    /// Relay signer
     pub relay_signer: Keypair,
+    /// Chain ID
     pub chain_id: u64,
 }
 
@@ -146,7 +150,7 @@ impl TransactionProcessor {
     async fn process_single_transaction(
         &self,
         unsigned_tx: &mut Transaction,
-        from_pubkey: &Pubkey,
+        _from_pubkey: &Pubkey,
     ) -> Result<String, TransactionError> {
         debug!("Processing single transaction attempt");
 

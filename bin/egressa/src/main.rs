@@ -1,15 +1,17 @@
 //! Egressa binary
 
-use clap::Parser;
 use std::path::Path;
+
+use clap::Parser;
 
 mod cli;
 mod start;
 
+use twine_common::logging;
+use twine_egressa::config::parse_config;
+
 use crate::cli::Args;
 use crate::start::start_egressa;
-use twine_egressa::config::parse_config;
-use twine_common::logging;
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
     env_logger::init();

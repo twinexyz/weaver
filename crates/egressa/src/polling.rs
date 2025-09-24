@@ -1,8 +1,7 @@
-use async_trait::async_trait;
 use eyre::Result;
 use reth_tracing::tracing::{info, warn};
 
-use crate::find_pending_transaction_events;
+use crate::database::client::DbClient;
 use crate::types::{WithdrawalEvent, WithdrawalEventType};
 
 /// Dummy polling service for testing
@@ -10,15 +9,14 @@ use crate::types::{WithdrawalEvent, WithdrawalEventType};
 pub struct WithdrawalEventPoller;
 
 impl WithdrawalEventPoller {
-    pub async fn poll_events(
-        &self,
-        indexer_db_pool: sqlx::PgPool,
-        _db_pool: sqlx::PgPool,
-    ) -> Result<Vec<WithdrawalEvent>> {
+    /// Poll for pending transaction events from indexer database
+    pub async fn poll_events(&self, db_client: DbClient) -> Result<Vec<WithdrawalEvent>> {
         info!("Polling for pending transaction events from database...");
 
         // Query the database for pending events
-        let events = find_pending_transaction_events(&indexer_db_pool)
+        let events = db_client
+            .indexer()
+            .find_pending_transaction_events()
             .await
             .map_err(|e| {
                 warn!("Failed to query pending transaction events: {}", e);
@@ -31,30 +29,15 @@ impl WithdrawalEventPoller {
             .into_iter()
             .map(|event| {
                 let event_type = WithdrawalEventType::from_db_string(event.transaction_type);
-                let l2_transaction_hash = match event_type {
-                    WithdrawalEventType::L2Withdraw => event.transaction_hash.unwrap_or_default(),
-                    _ => event.handle_tx_hash.unwrap_or_default(),
-                };
-
-                let chain_id = match event_type {
-                    WithdrawalEventType::L2Withdraw =>
-                        event.destination_chain_id.unwrap_or(0) as u64,
-                    _ => event.chain_id as u64,
-                };
-
-                let height = match event_type {
-                    WithdrawalEventType::L2Withdraw => event.block_number,
-                    _ => event.handle_block_number.unwrap_or(0),
-                };
 
                 WithdrawalEvent {
                     event_type,
-                    chain_id,
-                    l2_transaction_hash,
+                    l1_chain_id: event.l1_chain_id as u64,
+                    l2_transaction_hash: event.l2_transaction_hash.unwrap_or_default(),
                     l1_token: event.l1_token,
                     l1_address: event.l1_address,
                     nonce: event.nonce as u64,
-                    height: height as u64,
+                    height: event.l2_block_height as u64,
                     status: event.handle_status.unwrap_or(0) as u16,
                 }
             })

@@ -123,20 +123,25 @@ impl EthQueryExecutionClient {
     /// Gets fee estimation with retry logic
     pub async fn get_fee_estimation(&self) -> Result<(u128, u128)> {
         let config = RetryConfig::debug_default();
-        let fee_estimation = retry_with_metrics(self.chain_id, "eth_feeHistory", &config, || async {
-            self.provider.estimate_eip1559_fees().await
-        })
-        .await?;
-        Ok((fee_estimation.max_fee_per_gas, fee_estimation.max_priority_fee_per_gas))
+        let fee_estimation =
+            retry_with_metrics(self.chain_id, "eth_feeHistory", &config, || async {
+                self.provider.estimate_eip1559_fees().await
+            })
+            .await?;
+        Ok((
+            fee_estimation.max_fee_per_gas,
+            fee_estimation.max_priority_fee_per_gas,
+        ))
     }
 
     /// Gets gas estimation with retry logic
     pub async fn get_gas_estimation(&self, tx: &TransactionRequest) -> Result<u64> {
         let config = RetryConfig::debug_default();
-        let gas_estimation = retry_with_metrics(self.chain_id, "eth_estimateGas", &config, || async {
-            self.provider.estimate_gas(tx.clone()).await
-        })
-        .await?;
+        let gas_estimation =
+            retry_with_metrics(self.chain_id, "eth_estimateGas", &config, || async {
+                self.provider.estimate_gas(tx.clone()).await
+            })
+            .await?;
         Ok(gas_estimation)
     }
 }

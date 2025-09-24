@@ -9,15 +9,15 @@ rust-version.workspace = true
 
 [dependencies]
 clap.workspace = true
-eyre.workspace = true
 env_logger.workspace = true
-toml.workspace = true
-log.workspace = true
-tokio.workspace = true
+eyre.workspace = true
+reth-tracing.workspace = true
 sqlx.workspace = true
+tokio.workspace = true
+toml.workspace = true
 
-twine-egressa.workspace = true
 twine-common.workspace = true
+twine-egressa.workspace = true
 
 [lints]
 workspace = true

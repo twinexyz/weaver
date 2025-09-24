@@ -1,7 +1,7 @@
 use std::str::FromStr;
 use std::sync::Arc;
 
-use alloy_primitives::{Address, TxHash};
+use alloy_primitives::TxHash;
 use alloy_provider::Provider;
 use alloy_rpc_types::TransactionRequest;
 use eyre::Result;

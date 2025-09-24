@@ -12,6 +12,7 @@ use crate::types::{WithdrawalEvent, WithdrawalEventType};
 
 /// Error types for proof generation
 #[derive(Debug, thiserror::Error)]
+#[allow(missing_docs)]
 pub enum ProofGenerationError {
     #[error("Proof generation failed: {0}")]
     ProofGenerationFailed(String),
@@ -53,7 +54,7 @@ impl ProofGenerator {
 
         info!(
             "Generating proof for withdrawal event: type={:?}, chain_id={}, txn_hash={} binary: {}",
-            event.event_type, event.chain_id, event.l2_transaction_hash, binary_path
+            event.event_type, event.l1_chain_id, event.l2_transaction_hash, binary_path
         );
 
         // Execute the prover binary
