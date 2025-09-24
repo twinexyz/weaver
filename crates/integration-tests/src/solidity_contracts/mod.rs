@@ -52,7 +52,7 @@ pub fn build_contracts_step(contract_path: &Path) -> eyre::Result<TestStep> {
             Box::new(async move {
                 info!("Building contracts in {path:?}");
                 let status = Command::new("forge")
-                    .arg("build")
+                    .arg("clean")
                     .current_dir(&path)
                     .stdout(Stdio::null())
                     .stderr(Stdio::inherit())
@@ -65,7 +65,7 @@ pub fn build_contracts_step(contract_path: &Path) -> eyre::Result<TestStep> {
                 let status = Command::new("bash")
                     .arg("./script/updateSp1Version.sh")
                     .current_dir(&path)
-                    .stdout(Stdio::null())
+                    .stdout(Stdio::inherit())
                     .stderr(Stdio::inherit())
                     .status()?;
 
@@ -89,7 +89,7 @@ pub fn deploy_contracts_step(contract_path: &Path) -> eyre::Result<TestStep> {
                 let status = Command::new("bash")
                     .args(["-lc", "./script/configure.sh --clear"])
                     .current_dir(&path)
-                    .stdout(Stdio::null())
+                    .stdout(Stdio::inherit())
                     .stderr(Stdio::inherit())
                     .status()?;
 

@@ -11,7 +11,7 @@ use test_harness::{AsyncFnStep, TestStep};
 use crate::ctx::twine_ctx_keys;
 use crate::twine::scripts::load_twine_addresses;
 use crate::twine::{self, action};
-use crate::{consts, solana, zstd_compress};
+use crate::{consts, zstd_compress};
 
 /// Create a .env file in contracts folder
 pub fn create_env_file_step(target_dir: PathBuf) -> eyre::Result<TestStep> {

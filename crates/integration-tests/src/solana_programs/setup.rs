@@ -7,8 +7,7 @@ use regex::Regex;
 use test_harness::{AsyncFnStep, TestStep};
 
 use crate::ctx::{common_ctx_keys, solana_ctx_keys, twine_ctx_keys};
-use crate::solana::scripts::load_solana_program_pubkeys;
-use crate::solana::{self, scripts};
+// use crate::solana_programs::scripts::load_solana_program_pubkeys;
 use crate::{consts, generate_random_eth_address, twine};
 
 /// Set solana config
@@ -29,131 +28,6 @@ pub fn set_solana_config_step() -> eyre::Result<TestStep> {
 
                 // Set environment variable
                 std::env::set_var("SOLANA_RPC_URL", consts::SOLANA_RPC_URL);
-
-                Ok(())
-            })
-        }),
-    })))
-}
-
-/// Load solana address to context
-pub fn get_solana_address_step() -> eyre::Result<TestStep> {
-    Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
-        name: "Get Solana Address".to_string(),
-        description: "Get solana address and store in context".to_string(),
-        futurefn: Box::new(|ctx| {
-            Box::new(async move {
-                let output = Command::new("solana").args(&["address"]).output()?;
-
-                if !output.status.success() {
-                    return Err(eyre!("Failed to get solana address"));
-                }
-
-                let address = String::from_utf8(output.stdout)?.trim().to_string();
-                ctx.borrow_mut()
-                    .insert(solana_ctx_keys::SOLANA_ADDRESS.into(), address);
-
-                Ok(())
-            })
-        }),
-    })))
-}
-
-/// Update admin on solana programs
-/// Replace the INITIAL_CHAIN_ADMIN constant in the Solana program
-pub fn update_solana_program_step(program_path: PathBuf) -> eyre::Result<TestStep> {
-    Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
-        name: "Update Solana Program".to_string(),
-        description: "Update program ID and build".to_string(),
-        futurefn: Box::new(|ctx| {
-            Box::new(async move {
-                let binding = ctx.borrow();
-                let address = binding
-                    .get(solana_ctx_keys::SOLANA_ADDRESS)
-                    .ok_or_else(|| eyre!("Solana address not found in context"))?;
-
-                // replace twine chain admin
-                {
-                    let lib_path = program_path.join("programs/twine_chain/src/lib.rs");
-                    let content = std::fs::read_to_string(&lib_path)?;
-
-                    let updated_content = content.replace(
-                        "pub const INITIAL_CHAIN_ADMIN: &str = ",
-                        &format!("pub const INITIAL_CHAIN_ADMIN: &str = \"{}\"", address),
-                    );
-
-                    if content == updated_content {
-                        return Err(eyre!(
-                            "Failed to find INITIAL_CHAIN_ADMIN in lib.rs of twine chain"
-                        ));
-                    }
-
-                    std::fs::write(&lib_path, updated_content)?;
-                }
-
-                // replace gateway admin
-                {
-                    let lib_path = program_path.join("programs/tokens_gateway/src/lib.rs");
-                    let content = std::fs::read_to_string(&lib_path)?;
-
-                    let updated_content = content.replace(
-                        "pub const INITIAL_CHAIN_ADMIN: &str = ",
-                        &format!("pub const INITIAL_CHAIN_ADMIN: &str = \"{}\"", address),
-                    );
-
-                    if content == updated_content {
-                        return Err(eyre!(
-                            "Failed to find INITIAL_CHAIN_ADMIN in lib.rs of token gateway"
-                        ));
-                    }
-
-                    std::fs::write(&lib_path, updated_content)?;
-                }
-
-                Ok(())
-            })
-        }),
-    })))
-}
-
-/// Build anchor programs
-pub fn build_solana_program_step(program_path: PathBuf) -> eyre::Result<TestStep> {
-    Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
-        name: "Build Solana Program".to_string(),
-        description: "Build the Solana program".to_string(),
-        futurefn: Box::new(|_ctx| {
-            Box::new(async move {
-                // First build
-                let status = Command::new("make")
-                    .arg("build")
-                    .current_dir(program_path.clone())
-                    .status()?;
-
-                if !status.success() {
-                    return Err(eyre!("First build failed"));
-                }
-
-                // Sync keys 3 times
-                for _ in 0..3 {
-                    let status = Command::new("anchor")
-                        .args(&["keys", "sync"])
-                        .current_dir(program_path.clone())
-                        .status()?;
-
-                    if !status.success() {
-                        return Err(eyre!("Anchor keys sync failed"));
-                    }
-                }
-
-                // Build again
-                let status = Command::new("make")
-                    .arg("build")
-                    .current_dir(program_path)
-                    .status()?;
-
-                if !status.success() {
-                    return Err(eyre!("Second build failed"));
-                }
 
                 Ok(())
             })
@@ -269,28 +143,12 @@ pub fn deploy_solana_program_step(program_path: PathBuf) -> eyre::Result<TestSte
                     .arg("deploy")
                     .current_dir(&program_path)
                     .stderr(Stdio::inherit())
-                    // .stdout(Stdio::inherit())
                     .output()
                     .context("failed to run `make deploy`")?;
                 if !out.status.success() {
                     let stderr = String::from_utf8_lossy(&out.stderr);
                     return Err(eyre!("Deploy failed: {stderr}"));
                 }
-
-                let stdout = String::from_utf8_lossy(&out.stdout);
-                info!("Deploy output: {stdout}");
-                let re =
-                    Regex::new(r"(?m)Twine Chain:\s*([A-Za-z0-9]+)\s*$").expect("regex compiles");
-
-                // FIXME: use the existing make command instead of parsing here
-                let program_id = re
-                    .captures(&stdout)
-                    .and_then(|c| c.get(1).map(|m| m.as_str().to_string()))
-                    .ok_or_else(|| eyre!("Could not find `Twine Chain:` line in deploy output"))?;
-
-                info!("Twine Chain Program ID: {}", program_id);
-                ctx.borrow_mut()
-                    .insert(solana_ctx_keys::SOLANA_TWINE_CHAIN.into(), program_id);
 
                 Ok(())
             })
@@ -314,22 +172,6 @@ pub fn initialize_solana_program_step(program_path: PathBuf) -> eyre::Result<Tes
                     return Err(eyre!("Initialize failed"));
                 }
 
-                Ok(())
-            })
-        }),
-    })))
-}
-
-/// Load program addresses
-pub fn load_program_addresses_step(program_path: PathBuf) -> eyre::Result<TestStep> {
-    let mut path = program_path.clone();
-    path.push("solanaPrograms.json");
-    Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
-        name: "Load Solana Addresses".to_string(),
-        description: "Load deployed solana program addresses into context".to_string(),
-        futurefn: Box::new(move |_ctx| {
-            Box::new(async move {
-                let _addresses = load_solana_program_pubkeys(&path)?;
                 Ok(())
             })
         }),
@@ -389,19 +231,15 @@ pub fn deposit_sol_step(program_path: PathBuf, garbage_calldata: bool) -> eyre::
                     .context("L2 sol token not in context")?;
 
                 let calldata = if garbage_calldata {
-                    Some("deadbeef")
+                    "data=deadbeef".to_owned()
                 } else {
-                    let calldata = bindings
-                        .get(twine_ctx_keys::TWINE_CALL_PARAM_COMPRESSED)
-                        .unwrap();
-                    let trimmed = calldata.strip_prefix("0x").unwrap_or(calldata);
-                    Some(trimmed)
-                };
-
-                let data_arg = if let Some(calldata) = calldata {
-                    format!("data={}", calldata)
-                } else {
-                    "data=\"\"".to_string()
+                    let calldata = bindings.get(twine_ctx_keys::TWINE_CALL_PARAM_COMPRESSED);
+                    if let Some(calldata) = calldata {
+                        let trimmed = calldata.strip_prefix("0x").unwrap_or(calldata);
+                        format!("data={}", trimmed)
+                    } else {
+                        "data=\"\"".to_string()
+                    }
                 };
 
                 let status = Command::new("make")
@@ -410,7 +248,7 @@ pub fn deposit_sol_step(program_path: PathBuf, garbage_calldata: bool) -> eyre::
                         &format!("amount={}", consts::SOLANA_DEPOSIT_AMOUNT),
                         &format!("receiver_address={}", ethereum_address),
                         &format!("l2_token={}", l2_token),
-                        &data_arg,
+                        &calldata,
                     ])
                     .current_dir(program_path)
                     .stderr(Stdio::inherit())

@@ -10,7 +10,7 @@ use test_harness::{AsyncFnStep, TestStep};
 
 use crate::ctx::twine_ctx_keys;
 use crate::twine::scripts::load_twine_addresses;
-use crate::{consts, solana, zstd_compress};
+use crate::{consts, zstd_compress};
 
 pub(crate) async fn deploy_contract(contracts_dir: &PathBuf) -> eyre::Result<String> {
     let output = Command::new("forge")

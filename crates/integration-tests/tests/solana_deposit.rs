@@ -16,12 +16,14 @@ mod solana_deposit {
     use twine_integration_tests::merkora::{prepare_merkora, setup_merkora_config};
     use twine_integration_tests::nodes::{deploy_l1_nodes, kill_l1_nodes};
     use twine_integration_tests::postgresql::setup_postgres_step;
-    use twine_integration_tests::solana_programs::prepare_solana_programs_repo;
+    use twine_integration_tests::solana_programs::{
+        load_solana_programs_step, prepare_solana_programs_repo,
+    };
     use twine_integration_tests::solidity_contracts::{
         build_contracts_step, deploy_contracts_step, load_contract_addresses_step,
         prepare_contract_repo,
     };
-    use twine_integration_tests::{consts, solana, twine};
+    use twine_integration_tests::{consts, solana_programs, twine};
 
     struct TestServices {
         merkora: SubProcessService,
@@ -116,20 +118,20 @@ mod solana_deposit {
         harness.add_step(load_contract_addresses_step(&solidity_contracts)?);
 
         // Configure Solana environment
-        harness.add_step(solana::setup::set_solana_config_step()?);
-        harness.add_step(solana::setup::get_solana_address_step()?);
+        harness.add_step(solana_programs::setup::set_solana_config_step()?);
 
         // Deploy and setup solana programs
-        harness.add_step(solana::setup::deploy_solana_program_step(
+        harness.add_step(solana_programs::setup::deploy_solana_program_step(
             solana_programs.clone(),
         )?);
         harness.add_step(wait_step(
             Duration::from_secs(30),
             "Waiting for Solana program to initialize",
         ));
-        harness.add_step(solana::setup::initialize_solana_program_step(
+        harness.add_step(solana_programs::setup::initialize_solana_program_step(
             solana_programs.clone(),
         )?);
+        harness.add_step(load_solana_programs_step(&solana_programs.clone())?);
 
         // Wait for slot to get rooted before stopping
         harness.add_step(wait_step(
@@ -140,7 +142,7 @@ mod solana_deposit {
         harness.add_service(Box::new(services.merkora));
 
         // Update token mapping for sol token
-        harness.add_step(solana::setup::update_sol_token_mapping(
+        harness.add_step(solana_programs::setup::update_sol_token_mapping(
             solana_programs.clone(),
         )?);
 
@@ -150,7 +152,10 @@ mod solana_deposit {
         harness.add_step(start_service_step("Merkora", 0, Duration::from_secs(10)));
 
         // Deposit SOL
-        harness.add_step(solana::setup::deposit_sol_step(solana_programs, false)?);
+        harness.add_step(solana_programs::setup::deposit_sol_step(
+            solana_programs,
+            false,
+        )?);
 
         // Wait for message processing
         harness.add_step(wait_step(

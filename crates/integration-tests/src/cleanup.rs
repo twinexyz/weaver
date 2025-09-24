@@ -41,14 +41,6 @@ pub fn cleanup_step() -> eyre::Result<TestStep> {
     Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
         name: "Cleanup".to_string(),
         description: "Remove test artifacts".to_string(),
-        futurefn: Box::new(|_ctx| {
-            Box::new(async move {
-                remove_dir_if_exists("/tmp/reth")?;
-                remove_dir_if_exists("/tmp/twine")?;
-                remove_dir_if_exists("/tmp/int_test")?;
-                remove_dir_if_exists("/tmp/int_test/twine_solidity_contracts")?;
-                Ok(())
-            })
-        }),
+        futurefn: Box::new(|_ctx| Box::new(async move { cleanup_test_data() })),
     })))
 }
