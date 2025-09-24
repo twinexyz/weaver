@@ -92,33 +92,6 @@ pub fn setup_merkora_config() -> eyre::Result<TestStep> {
     })))
 }
 
-/// Run merkora migrations using sqlx cli
-// pub fn run_merkora_migrations(migration_path: &str, db_connection: &str) -> eyre::Result<()> {
-//     let status = Command::new("cargo")
-//         .arg("sqlx")
-//         .arg("prepare")
-//         .current_dir(migration_path)
-//         .status()
-//         .expect("Failed to run cargo sqlx prepare");
-//     if !status.success() {
-//         panic!("Merkora sqlx prepare failed");
-//     }
-
-//     let status = Command::new("sqlx")
-//         .arg("migrate")
-//         .arg("run")
-//         .arg("--database-url")
-//         .arg(db_connection)
-//         .current_dir(migration_path)
-//         .status()
-//         .expect("Failed to run sqlx migrate run");
-
-//     if !status.success() {
-//         panic!("Merkora migrations failed");
-//     }
-//     Ok(())
-// }
-
 /// Generate merkora config
 pub fn generate_merkora_config(
     l2_messenger: String,

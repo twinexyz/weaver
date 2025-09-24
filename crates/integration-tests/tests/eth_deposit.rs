@@ -12,6 +12,7 @@ mod eth_deposit_test {
         TestHarness, TestStep,
     };
     use twine_integration_tests::cfg::{load_config, TestConfig};
+    use twine_integration_tests::cleanup::{cleanup_step, cleanup_test_data};
     use twine_integration_tests::ctx::*;
     use twine_integration_tests::merkora::setup_merkora_config;
     use twine_integration_tests::nodes::{deploy_l1_nodes, kill_l1_nodes};
@@ -20,7 +21,7 @@ mod eth_deposit_test {
         build_contracts_step, deploy_contracts_step, load_contract_addresses_step,
         prepare_contract_repo,
     };
-    use twine_integration_tests::{consts, merkora, remove_dir_if_exists};
+    use twine_integration_tests::{consts, merkora};
 
     // test specific constants
     mod eth_deposit_constants {
@@ -85,7 +86,7 @@ mod eth_deposit_test {
         let mut harness = TestHarness::new("Ethereum deposit flow", ".");
 
         // Initial cleanup if anything left from previous runs
-        cleanup_cache()?;
+        cleanup_test_data()?;
 
         let test_config = load_config("./res/ethereum-deposit.yaml")
             .context("Failed to load application config")?;
@@ -287,30 +288,6 @@ mod eth_deposit_test {
             service_idx: idx,
             wait_after: None,
         }))
-    }
-
-    fn cleanup_step() -> eyre::Result<TestStep> {
-        Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
-            name: "Cleanup".to_string(),
-            description: "Remove test artifacts".to_string(),
-            futurefn: Box::new(|_ctx| {
-                Box::new(async move {
-                    remove_dir_if_exists("/tmp/reth")?;
-                    remove_dir_if_exists("/tmp/twine")?;
-                    remove_dir_if_exists("/tmp/int_test")?;
-                    remove_dir_if_exists("/tmp/int_test/twine_solidity_contracts")?;
-                    Ok(())
-                })
-            }),
-        })))
-    }
-
-    fn cleanup_cache() -> eyre::Result<()> {
-        remove_dir_if_exists("/tmp/reth")?;
-        remove_dir_if_exists("/tmp/twine")?;
-        remove_dir_if_exists("/tmp/solana")?;
-        remove_dir_if_exists("/tmp/int_test/twine_solidity_contracts")?;
-        Ok(())
     }
 
     fn wait_step(duration: Duration, desc: &str) -> TestStep {

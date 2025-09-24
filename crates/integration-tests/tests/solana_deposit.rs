@@ -10,6 +10,7 @@ mod solana_deposit {
     use log::{error, info};
     use test_harness::{AsyncFnStep, SubProcessService, TestHarness, TestStep};
     use twine_integration_tests::cfg::{load_config, TestConfig};
+    use twine_integration_tests::cleanup::{cleanup_step, cleanup_test_data};
     use twine_integration_tests::common::{start_service_step, stop_service_step};
     use twine_integration_tests::ctx::*;
     use twine_integration_tests::merkora::{prepare_merkora, setup_merkora_config};
@@ -20,7 +21,7 @@ mod solana_deposit {
         build_contracts_step, deploy_contracts_step, load_contract_addresses_step,
         prepare_contract_repo,
     };
-    use twine_integration_tests::{consts, remove_dir_if_exists, solana, twine};
+    use twine_integration_tests::{consts, solana, twine};
 
     struct TestServices {
         merkora: SubProcessService,
@@ -77,7 +78,7 @@ mod solana_deposit {
     fn test_deposit() -> eyre::Result<()> {
         let _ = env_logger::try_init();
 
-        cleanup_cache()?;
+        cleanup_test_data()?;
 
         let test_config =
             load_config("./res/ethereum-deposit.yaml").context("Failed to load test config")?;
@@ -223,21 +224,5 @@ mod solana_deposit {
                 })
             }),
         }))
-    }
-
-    fn cleanup_step() -> eyre::Result<TestStep> {
-        Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
-            name: "Cleanup".to_string(),
-            description: "Remove test artifacts".to_string(),
-            futurefn: Box::new(|_ctx| Box::new(async move { Ok(()) })),
-        })))
-    }
-
-    fn cleanup_cache() -> eyre::Result<()> {
-        remove_dir_if_exists("/tmp/reth")?;
-        remove_dir_if_exists("/tmp/twine")?;
-        remove_dir_if_exists("/tmp/solana")?;
-        remove_dir_if_exists("/tmp/int_test/twine_solidity_contracts")?;
-        Ok(())
     }
 }

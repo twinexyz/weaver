@@ -9,8 +9,8 @@ use alloy_primitives::Bytes;
 use log::info;
 use ruzstd::encoding::{compress_to_vec, CompressionLevel};
 
+pub mod cleanup;
 pub mod common;
-pub mod config;
 pub mod evm;
 pub mod solana;
 pub mod twine;
@@ -24,17 +24,6 @@ pub mod nodes;
 pub mod postgresql;
 pub mod solana_programs;
 pub mod solidity_contracts;
-
-/// Utility function to remove a folder or file
-pub fn remove_dir_if_exists(path: &str) -> eyre::Result<()> {
-    if std::path::Path::new(path).exists() {
-        std::fs::remove_dir_all(path)?;
-        info!("Successfully removed directory: {}", path);
-    } else {
-        info!("Directory does not exist, skipping: {}", path);
-    }
-    Ok(())
-}
 
 /// Generate random ethereum address
 pub fn generate_random_eth_address() -> String {
