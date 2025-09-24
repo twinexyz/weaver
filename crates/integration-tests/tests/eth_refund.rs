@@ -2,12 +2,12 @@
 
 #[cfg(test)]
 mod eth_refund_test {
-    use std::process::{Command, Stdio};
+    use std::process::Command;
     use std::str::FromStr;
     use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-    use alloy_primitives::{hex, keccak256, B256};
-    use alloy_sol_types::{SolEvent, SolValue};
+    use alloy_primitives::{hex, B256};
+    use alloy_sol_types::SolEvent;
     use eyre::{eyre, Context, Ok, Result};
     use git2::Repository;
     use log::{error, info};

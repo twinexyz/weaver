@@ -372,7 +372,7 @@ pub fn update_sol_token_mapping(program_path: PathBuf) -> eyre::Result<TestStep>
 }
 
 /// Deposit solana token
-pub fn deposit_sol_step(program_path: PathBuf) -> eyre::Result<TestStep> {
+pub fn deposit_sol_step(program_path: PathBuf, garbage_calldata: bool) -> eyre::Result<TestStep> {
     Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
         name: "Deposit SOL".to_string(),
         description: "Deposit SOL from solana to twine".to_string(),
@@ -388,9 +388,17 @@ pub fn deposit_sol_step(program_path: PathBuf) -> eyre::Result<TestStep> {
                     .get(twine_ctx_keys::TWINE_SOL_TOKEN)
                     .context("L2 sol token not in context")?;
 
-                let garbage_calldata = Some("deadbeef");
+                let calldata = if garbage_calldata {
+                    Some("deadbeef")
+                } else {
+                    let calldata = bindings
+                        .get(twine_ctx_keys::TWINE_CALL_PARAM_COMPRESSED)
+                        .unwrap();
+                    let trimmed = calldata.strip_prefix("0x").unwrap_or(calldata);
+                    Some(trimmed)
+                };
 
-                let data_arg = if let Some(calldata) = garbage_calldata {
+                let data_arg = if let Some(calldata) = calldata {
                     format!("data={}", calldata)
                 } else {
                     "data=\"\"".to_string()

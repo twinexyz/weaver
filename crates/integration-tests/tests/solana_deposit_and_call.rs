@@ -158,7 +158,10 @@ mod solana_deposit_and_call_test {
         harness.add_step(start_service_step("Merkora", 0, Duration::from_secs(10)));
 
         // Deposit ETH
-        harness.add_step(solana::setup::deposit_sol_step(solana_programs.clone())?);
+        harness.add_step(solana::setup::deposit_sol_step(
+            solana_programs.clone(),
+            false,
+        )?);
 
         // Wait for message processing
         harness.add_step(wait_step(

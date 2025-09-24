@@ -181,7 +181,10 @@ mod solana_refund_test {
         harness.add_step(start_service_step("Merkora", 0, Duration::from_secs(10)));
 
         // Deposit ETH
-        harness.add_step(solana::setup::deposit_sol_step(solana_programs.clone())?);
+        harness.add_step(solana::setup::deposit_sol_step(
+            solana_programs.clone(),
+            true,
+        )?);
 
         // Get message hash
         harness.add_step(get_message_hash()?);
