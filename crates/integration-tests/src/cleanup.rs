@@ -17,8 +17,18 @@ fn remove_dir_if_exists(path: &str) -> eyre::Result<()> {
     Ok(())
 }
 
+fn remove_file_if_exists(path: &str) -> eyre::Result<()> {
+    if std::path::Path::new(path).exists() {
+        std::fs::remove_file(path)?;
+        info!("Successfully removed file: {}", path);
+    } else {
+        info!("File does not exist, skipping: {}", path);
+    }
+    Ok(())
+}
+
 pub fn cleanup_test_data() -> eyre::Result<()> {
-    remove_dir_if_exists(MERKORA_CONFIG_PATH)?;
+    remove_file_if_exists(MERKORA_CONFIG_PATH)?;
     remove_dir_if_exists(RETH_DATA_DIR)?;
     remove_dir_if_exists(SOLANA_DATA_DIR)?;
     remove_dir_if_exists(TWINE_DATA_DIR)?;
