@@ -243,7 +243,7 @@ pub fn deposit_sol_step(
                         let trimmed = calldata.strip_prefix("0x").unwrap_or(calldata);
                         format!("data={}", trimmed)
                     }
-                    SolanaTestType::Refund => "deadbeef".to_string(), // garbage calldata
+                    SolanaTestType::Refund => "data=deadbeef".to_string(), // garbage calldata
                 };
 
                 let status = Command::new("make")

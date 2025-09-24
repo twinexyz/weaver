@@ -62,15 +62,15 @@ pub fn build_contracts_step(contract_path: &Path) -> eyre::Result<TestStep> {
                     return Err(eyre!("Forge clean failed"));
                 }
 
-                let status = Command::new("bash")
-                    .arg("./script/updateSp1Version.sh")
+                let status = Command::new("forge")
+                    .arg("build")
                     .current_dir(&path)
                     .stdout(Stdio::inherit())
                     .stderr(Stdio::inherit())
                     .status()?;
 
                 if !status.success() {
-                    return Err(eyre!("Contract build failed"));
+                    return Err(eyre!("Forge build failed"));
                 }
                 Ok(())
             })
