@@ -144,7 +144,7 @@ pub fn update_sol_token_mapping() -> eyre::Result<TestStep> {
                     .context("No l2 erc20 gateway in context")?;
 
                 let status = Command::new("cast")
-                    .args(&[
+                    .args([
                         "send",
                         l2_erc20_gateway,
                         "updateTokenMapping(uint256,address,string)",
@@ -181,7 +181,7 @@ pub fn deploy_cat_contract(contracts_dir: PathBuf) -> eyre::Result<TestStep> {
                 const SETTER_VALUE: &str = "0x7b565656565656565656565656565656567d";
 
                 let cat_address = action::deploy_contract(&contracts_dir).await?;
-                info!("Cat deployed at address: {}", cat_address);
+                info!("Cat deployed at address: {cat_address}");
                 let call_params = action::get_call_params(&cat_address, SETTER_VALUE).await?;
                 action::prepare_and_store_call_data(&cat_address, &call_params, SETTER_VALUE, ctx)?;
 

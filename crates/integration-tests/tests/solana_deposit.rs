@@ -90,8 +90,8 @@ mod solana_deposit {
         let solana_programs = prepare_solana_programs_repo(&test_config.smart_contracts.solana)
             .expect("Failed to prepare solana programs repository");
 
-        info!("Using solidity contracts at {:?}", solidity_contracts);
-        info!("Using solana programs at {:?}", solana_programs);
+        info!("Using solidity contracts at {solidity_contracts:?}");
+        info!("Using solana programs at {solana_programs:?}");
 
         let mut harness = TestHarness::new("Deposit flow", ".");
 
@@ -100,7 +100,7 @@ mod solana_deposit {
         // Start nodes
         harness.add_step(deploy_l1_nodes(
             test_config.test_scripts.path.into(),
-            test_config.nodes.clone(),
+            test_config.nodes,
         )?);
         harness.add_step(wait_step(
             Duration::from_secs(10),
@@ -150,7 +150,7 @@ mod solana_deposit {
         harness.add_step(start_service_step("Merkora", 0, Duration::from_secs(10)));
 
         // Deposit SOL
-        harness.add_step(solana::setup::deposit_sol_step(solana_programs.clone())?);
+        harness.add_step(solana::setup::deposit_sol_step(solana_programs, false)?);
 
         // Wait for message processing
         harness.add_step(wait_step(
@@ -185,7 +185,7 @@ mod solana_deposit {
                         .ok_or_else(|| eyre!("L2 SOL token address not found in context"))?;
 
                     let output = Command::new("cast")
-                        .args(&[
+                        .args([
                             "call",
                             l2_sol_token,
                             "balanceOf(address)(uint256)",
@@ -202,7 +202,7 @@ mod solana_deposit {
                     }
 
                     let stdout = String::from_utf8_lossy(&output.stdout);
-                    info!("L2 balance check successful: {}", stdout);
+                    info!("L2 balance check successful: {stdout}");
                     if !(stdout.contains(consts::SOLANA_DEPOSIT_AMOUNT)) {
                         error!("Balance not minted to address");
                         return Err(eyre!("Balance check failed"));

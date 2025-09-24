@@ -9,7 +9,7 @@ if [[ -n "${TWINE_GENESIS_FILE:-}" ]]; then
 else
     SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
     PARENT_DIR="$(dirname "$SCRIPT_DIR")"
-    GENESIS="$PARENT_DIR/bin/node/res/dev-genesis.json"
+    GENESIS="$PARENT_DIR/bin/node/res/local-genesis.json"
 fi
 
 # Data directory: from $TWINE_DATA_DIR or fallback to /tmp/twine

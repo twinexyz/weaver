@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 use eyre::{eyre, Context};
@@ -18,7 +18,7 @@ pub fn prepare_contract_repo(
     if let Some(ref repo_path) = cfg.repo_path {
         let path = PathBuf::from(repo_path);
         if !path.exists() {
-            return Err(format!("Provided repo_path does not exist: {}", repo_path).into());
+            return Err(format!("Provided repo_path does not exist: {repo_path}").into());
         }
         return Ok(path);
     }
@@ -28,7 +28,7 @@ pub fn prepare_contract_repo(
         .as_ref()
         .ok_or("Neither repo_path nor url provided in contract repo config")?;
 
-    let target_path = PathBuf::from(format!("{}", consts::TWINE_SOLIDITY_CONTRACTS_DIR,));
+    let target_path = PathBuf::from(consts::TWINE_SOLIDITY_CONTRACTS_DIR.to_string());
 
     // Ensure parent directory exists
     if let Some(parent) = target_path.parent() {
@@ -43,14 +43,14 @@ pub fn prepare_contract_repo(
 }
 
 /// Build solidity contracts
-pub fn build_contracts_step(contract_path: &PathBuf) -> eyre::Result<TestStep> {
-    let path = contract_path.clone();
+pub fn build_contracts_step(contract_path: &Path) -> eyre::Result<TestStep> {
+    let path = contract_path.to_path_buf();
     Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
         name: "Build Contracts".to_string(),
         description: "Compile solidity contracts".to_string(),
         futurefn: Box::new(move |_ctx| {
             Box::new(async move {
-                info!("Building contracts in {:?}", path);
+                info!("Building contracts in {path:?}");
                 let status = Command::new("forge")
                     .arg("build")
                     .current_dir(&path)
@@ -79,8 +79,8 @@ pub fn build_contracts_step(contract_path: &PathBuf) -> eyre::Result<TestStep> {
 }
 
 /// Deploy solidity contracts
-pub fn deploy_contracts_step(contract_path: &PathBuf) -> eyre::Result<TestStep> {
-    let path = contract_path.clone();
+pub fn deploy_contracts_step(contract_path: &Path) -> eyre::Result<TestStep> {
+    let path = contract_path.to_path_buf();
     Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
         name: "Deploy Contracts".to_string(),
         description: "Deploy contracts to L1 and L2 chain".to_string(),
@@ -103,8 +103,8 @@ pub fn deploy_contracts_step(contract_path: &PathBuf) -> eyre::Result<TestStep> 
 }
 
 /// load contracts after deployment
-pub fn load_contract_addresses_step(contract_path: &PathBuf) -> eyre::Result<TestStep> {
-    let mut path = contract_path.clone();
+pub fn load_contract_addresses_step(contract_path: &Path) -> eyre::Result<TestStep> {
+    let mut path = contract_path.to_path_buf();
     path.push("script/utils/deployedContracts.json");
     Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
         name: "Load Addresses".to_string(),
@@ -195,7 +195,7 @@ pub fn load_contract_addresses_step(contract_path: &PathBuf) -> eyre::Result<Tes
                 );
                 c.insert(
                     ctx::twine_ctx_keys::TWINE_SOL_TOKEN.into(),
-                    addresses.twine.sol_token.clone(),
+                    addresses.twine.sol_token,
                 );
                 Ok(())
             })
@@ -205,15 +205,11 @@ pub fn load_contract_addresses_step(contract_path: &PathBuf) -> eyre::Result<Tes
 
 // Helper function to parse the JSON
 pub fn load_contract_addresses(addresses_path: &PathBuf) -> eyre::Result<ContractAddresses> {
-    info!(
-        "Loading application configuration from JSON file: {:?}",
-        addresses_path
-    );
+    info!("Loading application configuration from JSON file: {addresses_path:?}");
     if !addresses_path.exists() {
-        error!("Configuration file not found: {:?}", addresses_path);
+        error!("Configuration file not found: {addresses_path:?}");
         return Err(eyre::eyre!(
-            "Configuration file not found: {:?}",
-            addresses_path
+            "Configuration file not found: {addresses_path:?}"
         ));
     }
 

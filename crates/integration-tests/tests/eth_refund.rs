@@ -126,7 +126,7 @@ mod eth_refund_test {
         // Start nodes
         harness.add_step(deploy_l1_nodes(
             test_config.test_scripts.path.into(),
-            test_config.nodes.clone(),
+            test_config.nodes,
         )?);
 
         harness.add_step(wait_step(
@@ -180,12 +180,12 @@ mod eth_refund_test {
                 Box::new(async move {
                     let mut bindings = _ctx.borrow_mut();
                     let current_block = Command::new("cast")
-                        .args(&["block-number", "--rpc-url", consts::RETH_RPC_URL])
+                        .args(["block-number", "--rpc-url", consts::RETH_RPC_URL])
                         .output()
                         .context("Failed to get current block")?;
                     if !current_block.status.success() {
                         let stderr = String::from_utf8_lossy(&current_block.stderr);
-                        error!("Failed to get current block: {}", stderr);
+                        error!("Failed to get current block: {stderr}");
                         return Err(eyre!("Failed to get current block"));
                     }
                     let to_block = String::from_utf8_lossy(&current_block.stdout)
@@ -198,11 +198,10 @@ mod eth_refund_test {
 
                     let topic0 = consts::MESSAGE_TRANSACTION_TOPIC;
                     info!(
-                        "Listening for MessageTransaction events from queue. From block 0 - block {}",
-                        to_block
+                        "Listening for MessageTransaction events from queue. From block 0 - block {to_block}"
                     );
                     let output = Command::new("cast")
-                        .args(&[
+                        .args([
                             "logs",
                             "--from-block",
                             "0",
@@ -220,7 +219,7 @@ mod eth_refund_test {
 
                     if !output.status.success() {
                         let stderr = String::from_utf8_lossy(&output.stderr);
-                        error!("Failed to query logs: {}", stderr);
+                        error!("Failed to query logs: {stderr}");
                         return Err(eyre!("Failed to query logs"));
                     }
 
@@ -256,10 +255,10 @@ mod eth_refund_test {
                         message: event.message,
                     };
                     let txn_hash = hashed_message.hash_message_data();
-                    info!("Computed message hash: {:?}", txn_hash);
+                    info!("Computed message hash: {txn_hash:?}");
                     bindings.insert(
                         common_ctx_keys::MESSAGE_HASH.to_string(),
-                        format!("{:?}", txn_hash),
+                        format!("{txn_hash:?}"),
                     );
                     Ok(())
                 })
@@ -276,7 +275,7 @@ mod eth_refund_test {
                     fn pseudo_random_bytes(mut seed: u64) -> [u8; 20] {
                         let mut bytes = [0u8; 20];
 
-                        for byte in bytes.iter_mut() {
+                        for byte in &mut bytes {
                             seed ^= seed << 13;
                             seed ^= seed >> 7;
                             seed ^= seed << 17;
@@ -297,7 +296,7 @@ mod eth_refund_test {
                         "0x{}",
                         addr_bytes
                             .iter()
-                            .map(|b| format!("{:02x}", b))
+                            .map(|b| format!("{b:02x}"))
                             .collect::<String>()
                     );
 
@@ -319,7 +318,7 @@ mod eth_refund_test {
                     );
                     let mut cmd = Command::new("cast");
                     let output = cmd
-                        .args(&[
+                        .args([
                             "send",
                             gateway,
                             "depositETHAndCall(address,uint256,uint256,bytes)",
@@ -339,7 +338,7 @@ mod eth_refund_test {
 
                     if !output.status.success() {
                         let stderr = String::from_utf8_lossy(&output.stderr);
-                        error!("ETH deposit command failed: {}", stderr);
+                        error!("ETH deposit command failed: {stderr}");
                         return Err(eyre!("ETH deposit command failed"));
                     }
                     Ok(())
@@ -365,7 +364,7 @@ mod eth_refund_test {
                         .ok_or_else(|| eyre!("L2 ETH token address not found in context"))?;
 
                     let output = Command::new("cast")
-                        .args(&[
+                        .args([
                             "call",
                             l2_eth_token,
                             "balanceOf(address)(uint256)",
@@ -384,16 +383,15 @@ mod eth_refund_test {
                     let stdout = String::from_utf8_lossy(&output.stdout);
                     let expected_amount = "0".to_owned();
                     if stdout.contains(&expected_amount) {
-                        info!("L2 balance check successful: {}", stdout);
+                        info!("L2 balance check successful: {stdout}");
                         return Ok(());
-                    } else {
-                        info!(
-                            "L2 balance check failed. expected {}, got {}",
-                            expected_amount, stdout
-                        );
                     }
 
-                    return Err(eyre!("Failed to verify balance"));
+                    info!(
+                        "L2 balance check failed. expected {}, got {}",
+                        expected_amount, stdout
+                    );
+                    Err(eyre!("Failed to verify balance"))
                 })
             }),
         })))
@@ -413,9 +411,9 @@ mod eth_refund_test {
                         .to_string();
 
                     let output = Command::new("cast")
-                        .args(&[
+                        .args([
                             "call",
-                            &storage_address,
+                            storage_address,
                             "getMessageStatus(bytes32)(uint8)",
                             &txn_hash,
                             "--rpc-url",
@@ -426,16 +424,15 @@ mod eth_refund_test {
 
                     if !output.status.success() {
                         let stderr = String::from_utf8_lossy(&output.stderr);
-                        return Err(eyre!("Exit status query failed: {}", stderr));
+                        return Err(eyre!("Exit status query failed: {stderr}"));
                     }
 
                     let stdout = String::from_utf8_lossy(&output.stdout);
                     if stdout.contains("2") {
-                        info!("Txn status is 'Failed'. Status: {}", stdout);
+                        info!("Txn status is 'Failed'. Status: {stdout}");
                         return Ok(());
-                    } else {
-                        info!("Refund txn status query failed: {}", stdout);
                     }
+                    info!("Refund txn status query failed: {stdout}");
                     Ok(())
                 })
             }),
@@ -446,7 +443,7 @@ mod eth_refund_test {
     fn start_service_step(name: &str, idx: usize, wait: Duration) -> TestStep {
         TestStep::Service(Box::new(SubProcessServiceStarter {
             name: name.to_string(),
-            description: format!("Starts {}", name),
+            description: format!("Starts {name}"),
             service_idx: idx,
             wait_after: Some(wait),
         }))
@@ -456,7 +453,7 @@ mod eth_refund_test {
     fn stop_service_step(name: &str, idx: usize) -> TestStep {
         TestStep::Service(Box::new(SubProcessServiceStopper {
             name: name.to_string(),
-            description: format!("Stops {}", name),
+            description: format!("Stops {name}"),
             service_idx: idx,
             wait_after: None,
         }))

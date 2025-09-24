@@ -81,14 +81,13 @@ pub fn prepare_solana_node(cfg: &NodeConfig) -> Vec<String> {
 }
 
 /// Build solidity contracts
-pub fn deploy_l1_nodes(script_path: PathBuf, cfg: NodesConfig) -> eyre::Result<TestStep> {
-    let path = script_path.clone();
+pub fn deploy_l1_nodes(path: PathBuf, cfg: NodesConfig) -> eyre::Result<TestStep> {
     Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
         name: "Deploy L1 Nodes".to_string(),
         description: "Deploy L1 nodes".to_string(),
         futurefn: Box::new(move |_ctx| {
             Box::new(async move {
-                info!("Deploying L1 nodes using scripts in {:?}", path);
+                info!("Deploying L1 nodes using scripts in {path:?}");
 
                 let reth_status = Command::new("bash")
                     .arg("./deploy_reth.sh")
@@ -107,7 +106,7 @@ pub fn deploy_l1_nodes(script_path: PathBuf, cfg: NodesConfig) -> eyre::Result<T
                     .genesis_path
                     .clone()
                     .unwrap_or_else(|| panic!("Missing genesis_path for Twine node"));
-                info!("Using genesis file at {:?}", genesis_path);
+                info!("Using genesis file at {genesis_path:?}");
                 let twine_status = Command::new("bash")
                     .arg("./deploy_twine.sh")
                     .env("TWINE_DATA_DIR", consts::TWINE_DATA_DIR)

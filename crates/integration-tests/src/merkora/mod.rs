@@ -29,8 +29,7 @@ fn get_merkora_path(config: &MerkoraConfig) -> String {
     merkora_path
 }
 
-/// Prepare merkora by building it from repo_path or cloning from git url.
-/// Returns (binary_path, config_path).
+/// Prepare merkora by building it from repo path or cloning from git url.
 pub fn prepare_merkora(config: &MerkoraConfig) -> String {
     let repo_path = get_merkora_path(config);
     if config.build.unwrap_or(true) {
@@ -41,9 +40,7 @@ pub fn prepare_merkora(config: &MerkoraConfig) -> String {
             .status()
             .expect("Failed to run cargo build --release");
 
-        if !status.success() {
-            panic!("Merkora build failed at {repo_path}");
-        }
+        assert!(status.success(), "Merkora build failed at {repo_path}")
     }
     let binary_path = format!("{repo_path}/target/release/merkora");
     binary_path
@@ -70,11 +67,12 @@ pub fn setup_merkora_config() -> eyre::Result<TestStep> {
 
                 let l1_message_handler = c
                     .get(ctx::ethereum_ctx_keys::ETHEREUM_MESSAGE_QUEUE)
-                    .map_or(ethereum_placeholder.clone(), |v| v.clone());
+                    .map_or(ethereum_placeholder, |v| v.clone());
 
                 let solana_twine_chain = c
                     .get(ctx::solana_ctx_keys::SOLANA_TWINE_CHAIN)
-                    .map_or(solana_placeholder.clone(), |v| v.clone());
+                    .map_or(solana_placeholder, |v| v.clone());
+
                 let db_connection_string = c
                     .get(ctx::common_ctx_keys::MERKORA_DB_CONNECTION_STRING)
                     .expect("Failed getting merkora db connection string")
@@ -142,7 +140,6 @@ pub fn generate_merkora_config(
             topic: "twine.solana.proofs".to_string(),
         },
     };
-    debug!("Generated merkora config: {:#?}", config);
     let file = std::fs::File::create(consts::MERKORA_CONFIG_PATH)?;
     let writer = BufWriter::new(file);
     serde_yaml::to_writer(writer, &config)?;

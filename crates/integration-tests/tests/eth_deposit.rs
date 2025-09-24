@@ -101,7 +101,7 @@ mod eth_deposit_test {
         // Start nodes
         harness.add_step(deploy_l1_nodes(
             test_config.test_scripts.path.into(),
-            test_config.nodes.clone(),
+            test_config.nodes,
         )?);
 
         harness.add_step(wait_step(
@@ -150,7 +150,7 @@ mod eth_deposit_test {
                     fn pseudo_random_bytes(mut seed: u64) -> [u8; 20] {
                         let mut bytes = [0u8; 20];
 
-                        for byte in bytes.iter_mut() {
+                        for byte in &mut bytes {
                             seed ^= seed << 13;
                             seed ^= seed >> 7;
                             seed ^= seed << 17;
@@ -171,7 +171,7 @@ mod eth_deposit_test {
                         "0x{}",
                         addr_bytes
                             .iter()
-                            .map(|b| format!("{:02x}", b))
+                            .map(|b| format!("{b:02x}"))
                             .collect::<String>()
                     );
 
@@ -256,14 +256,13 @@ mod eth_deposit_test {
                     if stdout.contains(eth_deposit_constants::DEPOSIT_AMOUNT) {
                         info!("L2 balance check successful: {}", stdout);
                         return Ok(());
-                    } else {
-                        info!(
-                            "L2 balance check failed. expected {}, got {}",
-                            eth_deposit_constants::DEPOSIT_AMOUNT,
-                            stdout
-                        );
                     }
 
+                    info!(
+                        "L2 balance check failed. expected {}, got {}",
+                        eth_deposit_constants::DEPOSIT_AMOUNT,
+                        stdout
+                    );
                     return Err(eyre!("Failed to verify balance"));
                 })
             }),

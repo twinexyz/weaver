@@ -119,8 +119,8 @@ mod solana_refund_test {
         let solana_programs = prepare_solana_programs_repo(&test_config.smart_contracts.solana)
             .expect("Failed to prepare solana programs repository");
 
-        info!("Using solidity contracts at {:?}", solidity_contracts);
-        info!("Using solana programs at {:?}", solana_programs);
+        info!("Using solidity contracts at {solidity_contracts:?}");
+        info!("Using solana programs at {solana_programs:?}");
 
         let mut harness = TestHarness::new("Deposit and Call flow", ".");
         let services = TestServices::new(&test_config);
@@ -128,7 +128,7 @@ mod solana_refund_test {
         // Start nodes
         harness.add_step(deploy_l1_nodes(
             test_config.test_scripts.path.into(),
-            test_config.nodes.clone(),
+            test_config.nodes,
         )?);
         harness.add_step(wait_step(
             Duration::from_secs(10),
@@ -181,10 +181,7 @@ mod solana_refund_test {
         harness.add_step(start_service_step("Merkora", 0, Duration::from_secs(10)));
 
         // Deposit ETH
-        harness.add_step(solana::setup::deposit_sol_step(
-            solana_programs.clone(),
-            true,
-        )?);
+        harness.add_step(solana::setup::deposit_sol_step(solana_programs, true)?);
 
         // Get message hash
         harness.add_step(get_message_hash()?);
@@ -220,15 +217,14 @@ mod solana_refund_test {
                         .get(solana_ctx_keys::SOLANA_TX_SIGNATURE)
                         .ok_or_else(|| eyre!("Transaction signature not found in context"))?;
                     let output = Command::new("curl")
-                        .args(&[
+                        .args([
                             "-X",
                             "POST",
                             "-H",
                             "Content-Type: application/json",
                             "-d",
                             &format!(
-                                r#"{{"jsonrpc":"2.0","id":1,"method":"getTransaction","params":["{}"]}}"#,
-                                tx_signature
+                                r#"{{"jsonrpc":"2.0","id":1,"method":"getTransaction","params":["{tx_signature}"]}}"#
                             ),
                             consts::SOLANA_RPC_URL,
                         ])
@@ -239,27 +235,25 @@ mod solana_refund_test {
                         return Err(eyre!("Curl command failed: {}", stderr));
                     }
                     let stdout = String::from_utf8_lossy(&output.stdout);
-                    // info!("Transaction details: {}", stdout);
 
                     let response: serde_json::Value =
                         serde_json::from_str(&stdout).context("Failed to parse JSON response")?;
                     let logs = &response["result"]["meta"]["logMessages"]
                         .as_array()
                         .expect("Could not find logs array in transaction response");
-                    for log in logs.into_iter() {
-                        match log {
-                            serde_json::Value::String(msg) =>
-                                if msg.contains("Program log: ") {
-                                    let message = parse_handle_message_event(&msg)?;
-                                    let message_hash = message.hash_message_data();
-                                    info!("Message hash: {:?}", message_hash);
-                                    bindings.insert(
-                                        common_ctx_keys::MESSAGE_HASH.into(),
-                                        format!("{:?}", message_hash),
-                                    );
-                                    break;
-                                },
-                            _ => continue,
+
+                    for log in logs.iter() {
+                        if let serde_json::Value::String(msg) = log {
+                            if msg.contains("Program log: ") {
+                                let message = parse_handle_message_event(msg)?;
+                                let message_hash = message.hash_message_data();
+                                info!("Message hash: {message_hash:?}");
+                                bindings.insert(
+                                    common_ctx_keys::MESSAGE_HASH.into(),
+                                    format!("{message_hash:?}"),
+                                );
+                                break;
+                            }
                         }
                     }
                     Ok(())
@@ -269,12 +263,9 @@ mod solana_refund_test {
     }
 
     fn parse_handle_message_event(line: &str) -> eyre::Result<MessageData> {
-        info!("Parsing log line: {}", line);
         let s = line.strip_prefix(PROGRAM_LOG_PREFIX).unwrap_or(line);
-        info!("After strippping prefix");
-        info!("{}", s);
         let solana_event =
-            serde_json::from_str::<SolanaEvent>(&s).context("Failed to deserialize SolanaEvent")?;
+            serde_json::from_str::<SolanaEvent>(s).context("Failed to deserialize SolanaEvent")?;
 
         if !solana_event.event.eq(MESSAGE_TRANSACTION) {
             error!("invalid message type");
@@ -316,7 +307,7 @@ mod solana_refund_test {
                         .ok_or_else(|| eyre!("L2 SOL token address not found in context"))?;
 
                     let output = Command::new("cast")
-                        .args(&[
+                        .args([
                             "call",
                             l2_sol_token,
                             "balanceOf(address)(uint256)",
@@ -337,7 +328,7 @@ mod solana_refund_test {
                         error!("Balance not minted to address");
                         return Err(eyre!("Balance check failed"));
                     }
-                    info!("L2 balance check successful: {}", stdout);
+                    info!("L2 balance check successful: {stdout}");
                     Ok(())
                 })
             }),
@@ -358,9 +349,9 @@ mod solana_refund_test {
                         .to_string();
 
                     let output = Command::new("cast")
-                        .args(&[
+                        .args([
                             "call",
-                            &storage_address,
+                            storage_address,
                             "getMessageStatus(bytes32)(uint8)",
                             &txn_hash,
                             "--rpc-url",
@@ -371,17 +362,17 @@ mod solana_refund_test {
 
                     if !output.status.success() {
                         let stderr = String::from_utf8_lossy(&output.stderr);
-                        return Err(eyre!("Exit status query failed: {}", stderr));
+                        return Err(eyre!("Exit status query failed: {stderr}"));
                     }
 
                     let stdout = String::from_utf8_lossy(&output.stdout);
                     if stdout.contains("2") {
-                        info!("Txn status is 'Failed'. Status: {}", stdout);
+                        info!("Txn status is 'Failed'. Status: {stdout}");
                         return Ok(());
-                    } else {
-                        info!("Refund txn status query failed: {}", stdout);
                     }
-                    Ok(())
+
+                    info!("Refund txn status query failed: {stdout}");
+                    Err(eyre!("Refund txn status query failed"))
                 })
             }),
         })))

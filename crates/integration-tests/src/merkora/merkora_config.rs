@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct RootConfig {
+pub(super) struct RootConfig {
     pub global: Global,
     pub twine: Twine,
     #[serde(default)]
@@ -11,7 +11,7 @@ pub struct RootConfig {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct Kafka {
+pub(super) struct Kafka {
     #[serde(rename = "bootstrap-servers")]
     pub bootstrap_servers: String,
     #[serde(rename = "client-id")]
@@ -23,7 +23,7 @@ pub struct Kafka {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct Global {
+pub(super) struct Global {
     pub port: u16,
     pub log: String,
     #[serde(rename = "db-path")]
@@ -33,7 +33,7 @@ pub struct Global {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct Twine {
+pub(super) struct Twine {
     // #[serde(rename = "chain-id")]
     // pub chain_id: u64,
     #[serde(rename = "l2-messenger-contract")]
@@ -48,7 +48,7 @@ pub struct Twine {
 }
 
 #[derive(Debug, Clone, Deserialize, Default, Serialize)]
-pub struct Telemetry {
+pub(super) struct Telemetry {
     #[serde(default)]
     pub json: bool,
     pub otlp_endpoint: Option<String>,
@@ -57,13 +57,13 @@ pub struct Telemetry {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct L1s {
+pub(super) struct L1s {
     pub ethereum: Option<EthereumChain>,
     pub solana: Option<SolanaChain>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct EthereumChain {
+pub(super) struct EthereumChain {
     pub name: String,
     #[serde(rename = "chain-id")]
     pub chain_id: u64,
@@ -76,7 +76,7 @@ pub struct EthereumChain {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct SolanaChain {
+pub(super) struct SolanaChain {
     pub name: String,
     #[serde(rename = "chain-id")]
     pub chain_id: u64,

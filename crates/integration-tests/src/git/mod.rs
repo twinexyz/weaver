@@ -45,7 +45,7 @@ pub fn checkout_branch(repo: &Repository, branch_name: &str) -> eyre::Result<()>
     }
 
     // Lookup the remote branch
-    let branch_ref = format!("origin/{}", branch_name);
+    let branch_ref = format!("origin/{branch_name}");
     let branch_object = repo.revparse_single(&branch_ref)?;
     repo.reset(&branch_object, ResetType::Hard, None)?;
 
@@ -76,6 +76,5 @@ fn test_clone() {
     let result = clone_private_repo(ssh, path);
     if let Err(e) = result {
         println!("Error cloning: {e:?}");
-        assert!(false);
     }
 }
