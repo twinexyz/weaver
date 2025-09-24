@@ -14,7 +14,7 @@ nodes:
     type_: "evm"
     name: "twine-node"
     binary_name: "/home/nobel/dev/weaver_copy/target/debug/twine-node"
-    genesis_path: "/home/nobel/dev/weaver/bin/node/res/dev-genesis.json"
+    genesis_path: "/home/nobel/dev/weaver_copy/bin/node/res/local-genesis.json"
 
 # Merkora configuration - building from repository
 # If you provide repo path: you can skip url, branch, build and build command
