@@ -185,7 +185,7 @@ mod solana_refund_test {
         // Deposit ETH
         harness.add_step(solana_programs::setup::deposit_sol_step(
             solana_programs,
-            true,
+            solana_programs::SolanaTestType::Refund,
         )?);
 
         // Get message hash

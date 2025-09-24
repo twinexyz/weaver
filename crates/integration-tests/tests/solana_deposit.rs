@@ -17,7 +17,7 @@ mod solana_deposit {
     use twine_integration_tests::nodes::{deploy_l1_nodes, kill_l1_nodes};
     use twine_integration_tests::postgresql::setup_postgres_step;
     use twine_integration_tests::solana_programs::{
-        load_solana_programs_step, prepare_solana_programs_repo,
+        load_solana_programs_step, prepare_solana_programs_repo, SolanaTestType,
     };
     use twine_integration_tests::solidity_contracts::{
         build_contracts_step, deploy_contracts_step, load_contract_addresses_step,
@@ -154,7 +154,7 @@ mod solana_deposit {
         // Deposit SOL
         harness.add_step(solana_programs::setup::deposit_sol_step(
             solana_programs,
-            false,
+            SolanaTestType::Deposit,
         )?);
 
         // Wait for message processing

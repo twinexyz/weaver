@@ -13,6 +13,13 @@ use crate::cfg::ContractRepoConfig;
 use crate::git::{checkout_branch, clone_private_repo};
 use crate::{consts, ctx};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SolanaTestType {
+    Deposit,
+    DepositAndCall,
+    Refund,
+}
+
 /// Build solana contracts
 pub fn prepare_solana_programs_repo(
     cfg: &ContractRepoConfig,

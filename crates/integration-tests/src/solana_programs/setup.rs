@@ -6,6 +6,7 @@ use log::info;
 use regex::Regex;
 use test_harness::{AsyncFnStep, TestStep};
 
+use super::SolanaTestType;
 use crate::ctx::{common_ctx_keys, solana_ctx_keys, twine_ctx_keys};
 // use crate::solana_programs::scripts::load_solana_program_pubkeys;
 use crate::{consts, generate_random_eth_address, twine};
@@ -214,7 +215,10 @@ pub fn update_sol_token_mapping(program_path: PathBuf) -> eyre::Result<TestStep>
 }
 
 /// Deposit solana token
-pub fn deposit_sol_step(program_path: PathBuf, garbage_calldata: bool) -> eyre::Result<TestStep> {
+pub fn deposit_sol_step(
+    program_path: PathBuf,
+    test_type: SolanaTestType,
+) -> eyre::Result<TestStep> {
     Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
         name: "Deposit SOL".to_string(),
         description: "Deposit SOL from solana to twine".to_string(),
@@ -230,16 +234,16 @@ pub fn deposit_sol_step(program_path: PathBuf, garbage_calldata: bool) -> eyre::
                     .get(twine_ctx_keys::TWINE_SOL_TOKEN)
                     .context("L2 sol token not in context")?;
 
-                let calldata = if garbage_calldata {
-                    "data=deadbeef".to_owned()
-                } else {
-                    let calldata = bindings.get(twine_ctx_keys::TWINE_CALL_PARAM_COMPRESSED);
-                    if let Some(calldata) = calldata {
+                let calldata = match test_type {
+                    SolanaTestType::Deposit => "data=\"\"".to_string(),
+                    SolanaTestType::DepositAndCall => {
+                        let calldata = bindings
+                            .get(twine_ctx_keys::TWINE_CALL_PARAM_COMPRESSED)
+                            .context("No calldata in context for deposit and call")?;
                         let trimmed = calldata.strip_prefix("0x").unwrap_or(calldata);
                         format!("data={}", trimmed)
-                    } else {
-                        "data=\"\"".to_string()
                     }
+                    SolanaTestType::Refund => "deadbeef".to_string(), // garbage calldata
                 };
 
                 let status = Command::new("make")
