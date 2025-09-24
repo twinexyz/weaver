@@ -41,10 +41,10 @@ mod eth_deposit_test {
     }
 
     fn validate_config(cfg: &TestConfig) -> bool {
-        // if cfg.nodes.l2.genesis_path.is_none() {
-        //     eprintln!("Missing L2 genesis_path in config");
-        //     return false;
-        // }
+        if cfg.nodes.l2.genesis_path.is_none() {
+            eprintln!("Missing L2 genesis_path in config");
+            return false;
+        }
 
         if cfg.merkora.url.is_none() && cfg.merkora.repo_path.is_none() {
             eprintln!("Merkora must have either repo_path or url");
