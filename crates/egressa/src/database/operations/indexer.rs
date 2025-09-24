@@ -36,13 +36,13 @@ impl<'a> IndexerOperations<'a> {
                 st.chain_id as l1_chain_id,
                 st.nonce,
                 st.transaction_type::text,
+                tf.handle_block_number AS l2_block_height,
                 st.l1_token,
                 st.l2_token,
                 st.l1_address,
                 st.transaction_hash as source_transaction_hash,
                 tf.handle_tx_hash as l2_transaction_hash,
-                tf.handle_status,
-                tf.handle_block_number AS l2_block_height
+                tf.handle_status
             FROM source_transactions st
             JOIN transaction_flows tf ON st.chain_id = tf.chain_id AND st.nonce = tf.nonce
             WHERE st.transaction_type = 'Deposit'::transaction_type_enum
@@ -55,7 +55,6 @@ impl<'a> IndexerOperations<'a> {
 
             -- Withdraw events: only those without corresponding transaction_flow records
             SELECT
-
                 st.destination_chain_id as l1_chain_id,
                 st.nonce,
                 st.transaction_type::text,
@@ -65,7 +64,7 @@ impl<'a> IndexerOperations<'a> {
                 st.l1_address,
                 st.transaction_hash as source_transaction_hash,
                 st.transaction_hash as l2_transaction_hash,
-                tf.handle_status,
+                tf.handle_status
             FROM source_transactions st
             LEFT JOIN transaction_flows tf ON st.chain_id = tf.chain_id AND st.nonce = tf.nonce
             WHERE st.transaction_type = 'Withdraw'::transaction_type_enum
@@ -78,14 +77,13 @@ impl<'a> IndexerOperations<'a> {
                 st.chain_id as l1_chain_id,
                 st.nonce,
                 st.transaction_type::text,
+                tf.handle_block_number as l2_block_height,
                 st.l1_token,
                 st.l2_token,
                 st.l1_address,
                 st.transaction_hash as source_transaction_hash,
                 tf.handle_tx_hash as l2_transaction_hash,
-                tf.handle_status,
-                tf.handle_block_number as l2_block_height,
-
+                tf.handle_status
             FROM source_transactions st
             JOIN transaction_flows tf ON st.chain_id = tf.chain_id AND st.nonce = tf.nonce
             WHERE st.transaction_type = 'ForcedWithdraw'::transaction_type_enum

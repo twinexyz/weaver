@@ -15,7 +15,7 @@ pub struct EgressaOperations<'a> {
 #[derive(Debug, Clone, FromRow)]
 pub struct WithdrawalEventWithProofAndStatus {
     /// ID
-    pub id: i64,
+    pub id: i32,
     /// Withdrawal event type
     pub event_type: String,
     /// Chain ID of the L1 chain
@@ -54,8 +54,8 @@ impl<'a> EgressaOperations<'a> {
             event_type, l1_chain_id, l2_transaction_hash, l1_token,
             l1_address, public_values, l1_txn_hash, proof, is_processed, is_failed, failure_reason, process_txn_hash
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-        RETURNING *
+        VALUES ($1::withdrawal_event_type, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        RETURNING id, event_type::text, l1_chain_id, l2_transaction_hash, l1_token, l1_address, public_values, proof, is_processed, is_failed, failure_reason, process_txn_hash
         "#,
         )
         .bind(&event.withdrawal_event.event_type.to_string())
@@ -84,7 +84,7 @@ impl<'a> EgressaOperations<'a> {
     ) -> Result<Option<WithdrawalEventStatus>> {
         let row = sqlx::query_as::<_, WithdrawalEventStatus>(
             r#"
-        SELECT is_processed, is_failed, failure_reason
+        SELECT is_processed, is_failed, failure_reason, process_txn_hash
         FROM withdrawal_events
         WHERE l2_transaction_hash = $1
         "#,
