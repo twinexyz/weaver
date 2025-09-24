@@ -133,12 +133,7 @@ pub fn generate_merkora_config(
                 rpc_url: consts::SOLANA_RPC_URL.to_string(),
             }),
         },
-        kafka: Kafka {
-            bootstrap_servers: "localhost:9092".to_string(),
-            client_id: "merkora".to_string(),
-            group_id: "merkora-group".to_string(),
-            topic: "twine.solana.proofs".to_string(),
-        },
+        kafka: None,
     };
     let file = std::fs::File::create(consts::MERKORA_CONFIG_PATH)?;
     let writer = BufWriter::new(file);

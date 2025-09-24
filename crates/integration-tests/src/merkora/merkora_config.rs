@@ -7,7 +7,7 @@ pub(super) struct RootConfig {
     #[serde(default)]
     pub telemetry: Telemetry,
     pub l1s: L1s,
-    pub kafka: Kafka,
+    pub kafka: Option<Kafka>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
