@@ -31,15 +31,15 @@ merkora:
 # Smart contract repositories
 smart_contracts:
   solidity:
-    # url: "git@github.com:twinexyz/twine-solidity-contracts.git"
-    # name: "twine-solidity-contracts"
-    # branch: "main"
-    repo_path: "/home/nobel/dev/twine-solidity-contracts"
+    url: "git@github.com:twinexyz/twine-solidity-contracts.git"
+    name: "twine-solidity-contracts"
+    branch: "main"
+    # repo_path: "/home/nobel/dev/twine-solidity-contracts"
   solana:
-    # url: "git@github.com:twinexyz/twine-native-solana-programs.git"
-    # name: "twine-native-solana-programs"
-    # branch: "main"
-    repo_path: "/home/nobel/dev/twine-native-solana-programs"
+    url: "git@github.com:twinexyz/twine-native-solana-programs.git"
+    name: "twine-native-solana-programs"
+    branch: "main"
+    # repo_path: "/home/nobel/dev/twine-native-solana-programs"
 
 test_scripts:
   path: "/home/nobel/dev/weaver_copy/scripts/"

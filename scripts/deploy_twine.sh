@@ -3,7 +3,7 @@ set -euo pipefail
 
 echo "Starting Twine node..."
 
-# Genesis file: from $TWINE_GENESIS_FILE or fallback to parent/bin/node/res/dev-genesis.json
+# Genesis file: from $TWINE_GENESIS_FILE or fallback to parent/bin/node/res/local-genesis.json
 if [[ -n "${TWINE_GENESIS_FILE:-}" ]]; then
     GENESIS="$TWINE_GENESIS_FILE"
 else
