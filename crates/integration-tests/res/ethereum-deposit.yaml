@@ -22,7 +22,7 @@ nodes:
 merkora:
   name: "merkora"
   repo_path: "/home/nobel/dev/merkora"
-  build: false 
+  build: false
   # # url: "git@github.com:twinexyz/merkora.git"
   # # branch: "main"
   # migrations_path: "crates/database"
@@ -43,4 +43,3 @@ smart_contracts:
 
 test_scripts:
   path: "/home/nobel/dev/weaver_copy/scripts/"
-
