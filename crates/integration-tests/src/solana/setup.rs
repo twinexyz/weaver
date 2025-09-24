@@ -378,20 +378,19 @@ pub fn deposit_sol_step(program_path: PathBuf) -> eyre::Result<TestStep> {
         description: "Deposit SOL from solana to twine".to_string(),
         futurefn: Box::new(move |ctx| {
             Box::new(async move {
+                let mut bindings = ctx.borrow_mut();
                 let ethereum_address = generate_random_eth_address();
-                {
-                    ctx.borrow_mut().insert(
-                        common_ctx_keys::RANDOM_ADDRESS.to_string(),
-                        ethereum_address.clone(),
-                    );
-                }
-                let binding = ctx.borrow();
-                let l2_token = binding
+                bindings.insert(
+                    common_ctx_keys::RANDOM_ADDRESS.to_string(),
+                    ethereum_address.clone(),
+                );
+                let l2_token = bindings
                     .get(twine_ctx_keys::TWINE_SOL_TOKEN)
                     .context("L2 sol token not in context")?;
-                let compressed_calldata = binding.get(twine_ctx_keys::TWINE_CALL_PARAM_COMPRESSED);
 
-                let data_arg = if let Some(calldata) = compressed_calldata {
+                let garbage_calldata = Some("deadbeef");
+
+                let data_arg = if let Some(calldata) = garbage_calldata {
                     format!("data={}", calldata)
                 } else {
                     "data=\"\"".to_string()
@@ -407,12 +406,22 @@ pub fn deposit_sol_step(program_path: PathBuf) -> eyre::Result<TestStep> {
                     ])
                     .current_dir(program_path)
                     .stderr(Stdio::inherit())
-                    .status()?;
+                    .output()
+                    .context("failed to run `make deposit-native-token`")?;
 
-                if !status.success() {
-                    return Err(eyre!("Solana SOL deposit failed"));
+                if !status.status.success() {
+                    let stderr = String::from_utf8_lossy(&status.stderr);
+                    return Err(eyre!("Solana SOL deposit failed: {stderr}"));
                 }
-
+                let stdout = String::from_utf8_lossy(&status.stdout);
+                let re =
+                    Regex::new(r"(?m)^Transaction:\s*([A-Za-z0-9]+)$").expect("regex compiles");
+                let tx_hash = re
+                    .captures(&stdout)
+                    .and_then(|c| c.get(1).map(|m| m.as_str().to_string()))
+                    .ok_or_else(|| eyre!("Could not find `Transaction:` line in deposit output"))?;
+                info!("Solana deposit tx hash: {}", tx_hash);
+                bindings.insert(solana_ctx_keys::SOLANA_TX_SIGNATURE.into(), tx_hash);
                 Ok(())
             })
         }),

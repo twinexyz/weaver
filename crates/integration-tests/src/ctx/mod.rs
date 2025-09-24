@@ -20,6 +20,7 @@ pub mod solana_ctx_keys {
     pub const SOLANA_TOKEN_GATEWAY: &str = "solana_tokens_gateway";
     pub const SOLANA_TWINE_CHAIN: &str = "solana_twine_chain";
     pub const SOLANA_ADDRESS: &str = "solana_address";
+    pub const SOLANA_TX_SIGNATURE: &str = "solana_tx_signature";
 }
 
 pub mod twine_ctx_keys {
