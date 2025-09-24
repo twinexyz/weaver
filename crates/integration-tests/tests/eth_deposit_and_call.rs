@@ -60,10 +60,10 @@ mod eth_deposit_and_call_test {
     }
 
     fn validate_config(cfg: &TestConfig) -> bool {
-        // if cfg.nodes.l2.genesis_path.is_none() {
-        //     eprintln!("Missing L2 genesis_path in config");
-        //     return false;
-        // }
+        if cfg.nodes.l2.genesis_path.is_none() {
+            eprintln!("Missing L2 genesis_path in config");
+            return false;
+        }
 
         if cfg.merkora.url.is_none() && cfg.merkora.repo_path.is_none() {
             eprintln!("Merkora must have either repo_path or url");
@@ -106,7 +106,10 @@ mod eth_deposit_and_call_test {
         harness.add_service(Box::new(services.merkora));
 
         // Start nodes
-        harness.add_step(deploy_l1_nodes(test_config.test_scripts.path.into())?);
+        harness.add_step(deploy_l1_nodes(
+            test_config.test_scripts.path.into(),
+            test_config.nodes.clone(),
+        )?);
 
         harness.add_step(wait_step(
             Duration::from_secs(10),
@@ -354,7 +357,6 @@ mod eth_deposit_and_call_test {
                     remove_dir_if_exists("/tmp/twine")?;
                     remove_dir_if_exists("/tmp/int_test")?;
                     remove_dir_if_exists("/tmp/int_test/twine_solidity_contracts")?;
-                    remove_dir_if_exists(consts::TEST_DATA_ROOT_DIR)?;
                     Ok(())
                 })
             }),
@@ -367,7 +369,6 @@ mod eth_deposit_and_call_test {
         remove_dir_if_exists("/tmp/solana")?;
         remove_dir_if_exists("/tmp/merkora-config.yaml")?;
         remove_dir_if_exists("/tmp/int_test/twine_solidity_contracts")?;
-        remove_dir_if_exists(consts::TEST_DATA_ROOT_DIR)?;
         Ok(())
     }
 

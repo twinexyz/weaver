@@ -53,6 +53,11 @@ mod solana_deposit {
     }
 
     fn validate_config(cfg: &TestConfig) -> bool {
+        if cfg.nodes.l2.genesis_path.is_none() {
+            eprintln!("Missing L2 genesis_path in config");
+            return false;
+        }
+
         if cfg.merkora.url.is_none() && cfg.merkora.repo_path.is_none() {
             eprintln!("Merkora must have either repo_path or url");
             return false;
@@ -92,7 +97,10 @@ mod solana_deposit {
         let services = TestServices::new(&test_config);
 
         // Start nodes
-        harness.add_step(deploy_l1_nodes(test_config.test_scripts.path.into())?);
+        harness.add_step(deploy_l1_nodes(
+            test_config.test_scripts.path.into(),
+            test_config.nodes.clone(),
+        )?);
         harness.add_step(wait_step(
             Duration::from_secs(10),
             "Waiting for nodes to start",
@@ -221,12 +229,7 @@ mod solana_deposit {
         Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
             name: "Cleanup".to_string(),
             description: "Remove test artifacts".to_string(),
-            futurefn: Box::new(|_ctx| {
-                Box::new(async move {
-                    remove_dir_if_exists(consts::TEST_DATA_ROOT_DIR)?;
-                    Ok(())
-                })
-            }),
+            futurefn: Box::new(|_ctx| Box::new(async move { Ok(()) })),
         })))
     }
 
@@ -235,7 +238,6 @@ mod solana_deposit {
         remove_dir_if_exists("/tmp/twine")?;
         remove_dir_if_exists("/tmp/solana")?;
         remove_dir_if_exists("/tmp/int_test/twine_solidity_contracts")?;
-        remove_dir_if_exists(consts::TEST_DATA_ROOT_DIR)?;
         Ok(())
     }
 }

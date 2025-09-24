@@ -389,17 +389,8 @@ impl Service for SubProcessService {
         let mut cmd = Command::new(&command[0]);
         cmd.args(&command[1..]);
 
-        // FIXME:
-        // 1. remove the inherit of stdout and stderr.
-        // 2. better way to pass the config env var
-        if self.name == "Merkora" {
-            cmd.stdout(Stdio::inherit());
-            cmd.stderr(Stdio::inherit());
-            cmd.env("TWINE_CONFIG", "/tmp/merkora_config.yaml");
-        } else {
-            cmd.stdout(Stdio::piped());
-            cmd.stderr(Stdio::piped());
-        }
+        cmd.stdout(Stdio::piped());
+        cmd.stderr(Stdio::piped());
         let mut child = cmd.spawn().map_err(|e| {
             eyre::eyre!(format!("Failed to start subprocess '{}': {}", self.name, e))
         })?;

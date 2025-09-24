@@ -5,7 +5,7 @@ use eyre::eyre;
 use log::info;
 use test_harness::{AsyncFnStep, TestStep};
 
-use crate::cfg::NodeConfig;
+use crate::cfg::{NodeConfig, NodesConfig};
 use crate::consts;
 
 /// Build the command vector for Twine node.
@@ -81,7 +81,7 @@ pub fn prepare_solana_node(cfg: &NodeConfig) -> Vec<String> {
 }
 
 /// Build solidity contracts
-pub fn deploy_l1_nodes(script_path: PathBuf) -> eyre::Result<TestStep> {
+pub fn deploy_l1_nodes(script_path: PathBuf, cfg: NodesConfig) -> eyre::Result<TestStep> {
     let path = script_path.clone();
     Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
         name: "Deploy L1 Nodes".to_string(),
@@ -89,8 +89,10 @@ pub fn deploy_l1_nodes(script_path: PathBuf) -> eyre::Result<TestStep> {
         futurefn: Box::new(move |_ctx| {
             Box::new(async move {
                 info!("Deploying L1 nodes using scripts in {:?}", path);
+
                 let reth_status = Command::new("bash")
                     .arg("./deploy_reth.sh")
+                    .env("RETH_DATA_DIR", consts::RETH_DATA_DIR)
                     .current_dir(&path)
                     .stdout(Stdio::null())
                     .stderr(Stdio::inherit())
@@ -100,8 +102,16 @@ pub fn deploy_l1_nodes(script_path: PathBuf) -> eyre::Result<TestStep> {
                     return Err(eyre!("Could not start reth node"));
                 }
 
+                let genesis_path = cfg
+                    .l2
+                    .genesis_path
+                    .clone()
+                    .unwrap_or_else(|| panic!("Missing genesis_path for Twine node"));
+                info!("Using genesis file at {:?}", genesis_path);
                 let twine_status = Command::new("bash")
                     .arg("./deploy_twine.sh")
+                    .env("TWINE_DATA_DIR", consts::TWINE_DATA_DIR)
+                    .env("TWINE_GENESIS_FILE", genesis_path)
                     .current_dir(&path)
                     .stdout(Stdio::null())
                     .stderr(Stdio::inherit())
@@ -113,6 +123,7 @@ pub fn deploy_l1_nodes(script_path: PathBuf) -> eyre::Result<TestStep> {
 
                 let solana_status = Command::new("bash")
                     .arg("./deploy_solana.sh")
+                    .env("SOLANA_DATA_DIR", consts::SOLANA_DATA_DIR)
                     .current_dir(&path)
                     .stdout(Stdio::null())
                     .stderr(Stdio::inherit())
