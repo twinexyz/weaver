@@ -14947,11 +14947,18 @@ dependencies = [
 name = "twine-devtest"
 version = "0.1.0"
 dependencies = [
+ "alloy-contract",
+ "alloy-primitives",
+ "alloy-provider",
+ "alloy-signer-local",
+ "alloy-sol-types",
  "env_logger 0.11.8",
  "eyre",
- "git2",
  "log",
  "regex",
+ "tokio",
+ "twine-evm-contracts",
+ "twine-l1-eth-writer",
 ]
 
 [[package]]
