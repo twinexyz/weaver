@@ -82,8 +82,8 @@ mod solana_deposit_and_call_test {
 
         cleanup_test_data()?;
 
-        let test_config =
-            load_config("./res/ethereum-deposit.yaml").context("Failed to load test config")?;
+        let test_config = load_config("./res/integration_test_config.yaml")
+            .context("Failed to load test config")?;
         assert!(validate_config(&test_config));
 
         let repo = Repository::discover(".")?;

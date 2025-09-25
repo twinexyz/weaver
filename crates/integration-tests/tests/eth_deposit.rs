@@ -88,7 +88,7 @@ mod eth_deposit_test {
         // Initial cleanup if anything left from previous runs
         cleanup_test_data()?;
 
-        let test_config = load_config("./res/ethereum-deposit.yaml")
+        let test_config = load_config("./res/integration_test_config.yaml")
             .context("Failed to load application config")?;
         assert!(validate_config(&test_config));
         let solidity_contracts = prepare_contract_repo(&test_config.smart_contracts.solidity)

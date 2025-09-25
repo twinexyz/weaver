@@ -21,7 +21,7 @@ nodes:
 # repo path has the highest priority
 merkora:
   name: "merkora"
-  repo_path: "/path/to/merkora/repo"
+  repo_path: "/path/to/merkora_repo"
   build: false
   # url: "git@github.com:twinexyz/merkora.git"
   # branch: "main"

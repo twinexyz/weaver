@@ -27,6 +27,17 @@ cargo run --release \
 RUST_LOG=info cargo run --bin twine-devtest
 ```
 
+## Running integration test cases
+Integration cases are at the `crates/integration-tests/tests` directory. Before running these make sure you have the correct config set at
+`crates/integration-tests/res/integration_test_config.yaml` file. Then any specific test case be run as
+```sh
+RUST_LOG=info cargo test -p twine-integration-tests --test file_name  test_name-- --show-output
+```
+For example:
+```sh
+RUST_LOG=info cargo test -p twine-integration-tests --test eth_deposit test_deposit -- --show-output
+```
+
 ## Contributions
 
 ### Rust Formatting
@@ -46,15 +57,4 @@ This repository makes use of `pre-commit` hooks. There are two methods of settin
 Before every git commit, it should be ensured that following is run locally for everyone's sanity.
 ```
 ./artifacts/pre-commit.pyz run --all-files
-```
-
-## Running Integration test cases
-Integration cases at the `crates/integration-tests/tests` directory. Before running these make sure you have the correct config set at 
-`crates/integration-tests/res/ethereum-config.yaml` file. Then any specific test case be run as
-```sh
-RUST_LOG=info cargo test -p twine-integration-tests --test file_name  test_name-- --show-output 
-```
-For example:
-```sh
-RUST_LOG=info cargo test -p twine-integration-tests --test eth_deposit test_deposit -- --show-output 
 ```

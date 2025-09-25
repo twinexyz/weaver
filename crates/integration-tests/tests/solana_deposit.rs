@@ -82,8 +82,8 @@ mod solana_deposit {
 
         cleanup_test_data()?;
 
-        let test_config =
-            load_config("./res/ethereum-deposit.yaml").context("Failed to load test config")?;
+        let test_config = load_config("./res/integration_test_config.yaml")
+            .context("Failed to load test config")?;
         assert!(validate_config(&test_config));
 
         let solidity_contracts = prepare_contract_repo(&test_config.smart_contracts.solidity)

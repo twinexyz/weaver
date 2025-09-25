@@ -1,7 +1,7 @@
 # Integration tests for twine
 
 ## Prerequisities:
-1. Update the [config](./res/config.yaml)
+1. Update the [config](./res/integration_test_config.yaml)
 
 
 ## Run tests:
