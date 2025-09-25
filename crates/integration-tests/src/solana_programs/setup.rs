@@ -20,7 +20,7 @@ pub fn set_solana_config_step() -> eyre::Result<TestStep> {
             Box::new(async move {
                 // Set solana config to localnet
                 let status = Command::new("solana")
-                    .args(&["config", "set", "--url", "localhost"])
+                    .args(["config", "set", "--url", "localhost"])
                     .status()?;
 
                 if !status.success() {
@@ -79,7 +79,7 @@ pub fn deploy_solana_program_step(program_path: PathBuf) -> eyre::Result<TestSte
                     .insert(solana_ctx_keys::SOLANA_ADDRESS.into(), address.clone());
 
                 let out = Command::new("make")
-                    .args(&["update-admin", &format!("ADMIN={}", address)])
+                    .args(["update-admin", &format!("ADMIN={}", address)])
                     .current_dir(&program_path)
                     .stderr(Stdio::inherit())
                     .stdout(Stdio::inherit())
@@ -193,7 +193,7 @@ pub fn update_sol_token_mapping(program_path: PathBuf) -> eyre::Result<TestStep>
                     .context("No l2 sol token in context")?;
 
                 let status = Command::new("make")
-                    .args(&[
+                    .args([
                         "update-token-mapping",
                         &format!("l1_token={}", consts::SOLANA_NATIVECOIN),
                         &format!("l2_token={}", sol_token),
@@ -247,7 +247,7 @@ pub fn deposit_sol_step(
                 };
 
                 let status = Command::new("make")
-                    .args(&[
+                    .args([
                         "deposit-native-token",
                         &format!("amount={}", consts::SOLANA_DEPOSIT_AMOUNT),
                         &format!("receiver_address={}", ethereum_address),

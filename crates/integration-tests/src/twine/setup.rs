@@ -37,7 +37,7 @@ pub fn deploy_l2_contracts_step(contracts_dir: PathBuf) -> eyre::Result<TestStep
         futurefn: Box::new(move |_ctx| {
             Box::new(async move {
                 let status = Command::new("forge")
-                    .args(&["clean"])
+                    .args(["clean"])
                     .current_dir(&contracts_dir)
                     .status()?;
 
@@ -46,7 +46,7 @@ pub fn deploy_l2_contracts_step(contracts_dir: PathBuf) -> eyre::Result<TestStep
                 }
 
                 let status = Command::new("forge")
-                    .args(&[
+                    .args([
                         "script",
                         "script/deploy/L2DeploymentScripts/DeployL2Contracts.s.sol",
                         "--rpc-url",
@@ -77,7 +77,7 @@ pub fn setup_l2_contracts_step(contracts_dir: PathBuf) -> eyre::Result<TestStep>
         futurefn: Box::new(move |_ctx| {
             Box::new(async move {
                 let status = Command::new("forge")
-                    .args(&[
+                    .args([
                         "script",
                         "script/setup/L2SetupScripts/L2SetupScript.s.sol",
                         "--rpc-url",

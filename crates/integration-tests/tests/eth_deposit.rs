@@ -184,8 +184,13 @@ mod eth_deposit_test {
                     let gateway = binding
                         .get(ethereum_ctx_keys::ETHEREUM_ETH_GATEWAY)
                         .unwrap();
-                    let mut foo = Command::new("cast");
-                    let cmd = foo
+                    info!(
+                        "Depositing {} wei to L1 gateway {} for address {}",
+                        eth_deposit_constants::DEPOSIT_AMOUNT,
+                        gateway,
+                        addr_str
+                    );
+                    let result = Command::new("cast")
                         .args([
                             "send",
                             gateway,
@@ -201,18 +206,15 @@ mod eth_deposit_test {
                             consts::RETH_RPC_URL,
                         ])
                         .stdout(Stdio::piped())
-                        .stderr(Stdio::piped());
-                    info!(
-                        "Depositing {} wei to L1 gateway {} for address {}",
-                        eth_deposit_constants::DEPOSIT_AMOUNT,
-                        gateway,
-                        addr_str
-                    );
-                    let result = cmd.output()?;
-                    info!("Deposit command output: {result:?}");
+                        .stderr(Stdio::piped())
+                        .output()
+                        .expect("Failed to execute deposit command");
+
                     if !result.status.success() {
                         return Err(eyre!("ETH deposit command failed"));
                     }
+
+                    info!("ETH deposit command successful");
                     Ok(())
                 })
             }),
