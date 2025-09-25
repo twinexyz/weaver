@@ -15,7 +15,7 @@ log.workspace = true
 regex.workspace = true
 tokio.workspace = true
 twine-evm-contracts.workspace = true
-twine-l1-eth-writer.workspace = true
+twine-l1-eth.workspace = true
 
 [[bin]]
 name = "twine-devtest"

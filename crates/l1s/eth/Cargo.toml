@@ -12,11 +12,11 @@ twine-common.workspace = true
 twine-l1-eth-reader.workspace = true
 twine-l1-eth-writer.workspace = true
 
+alloy-primitives.workspace = true
 alloy-provider.workspace = true
-alloy-pubsub.workspace = true
 alloy-rpc-types.workspace = true
-alloy-signer-local.workspace = true
 eyre.workspace = true
+tokio.workspace = true
 
 [lints]
 workspace = true
