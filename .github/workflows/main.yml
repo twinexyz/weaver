@@ -85,7 +85,7 @@ jobs:
       sha: ${{ github.sha  }}
       branch_slug: ${{ github.ref_name }}
       repo_name: ${{ github.event.repository.name }}
-      app_name: "aggregator,scheduler,solana-scheduler"
+      app_name: "aggregator,scheduler,solana-scheduler,egressa"
   post-notify:
     if: always()
     needs: ["pre-notify", "build", "deploy"]
