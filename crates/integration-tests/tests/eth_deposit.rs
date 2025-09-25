@@ -186,7 +186,7 @@ mod eth_deposit_test {
                         .unwrap();
                     let mut foo = Command::new("cast");
                     let cmd = foo
-                        .args(&[
+                        .args([
                             "send",
                             gateway,
                             "depositETH(address,uint256,uint256)",
@@ -236,7 +236,7 @@ mod eth_deposit_test {
                         .ok_or_else(|| eyre!("L2 ETH token address not found in context"))?;
 
                     let output = Command::new("cast")
-                        .args(&[
+                        .args([
                             "call",
                             l2_eth_token,
                             "balanceOf(address)(uint256)",

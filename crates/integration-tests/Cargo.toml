@@ -20,17 +20,16 @@ serde.workspace = true
 serde_json.workspace = true
 serde_yaml.workspace = true
 test-harness.workspace = true
-testcontainers = { version = "0.24.0" }
-testcontainers-modules = { version = "0.12.1", features = ["postgres", "blocking"] }
+testcontainers.workspace = true
+testcontainers-modules.workspace = true
 tokio.workspace = true
-twine-evm-contracts.workspace = true
 
 [dev-dependencies]
 env_logger = { workspace = true }
 git2.workspace = true
-tokio.workspace = true
-
 test-harness.workspace = true
+tokio.workspace = true
+twine-evm-contracts.workspace = true
 
 [lints]
 workspace = true

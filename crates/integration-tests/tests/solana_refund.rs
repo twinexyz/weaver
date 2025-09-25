@@ -217,7 +217,7 @@ mod solana_refund_test {
             futurefn: Box::new(|ctx| {
                 Box::new(async move {
                     let mut bindings = ctx.borrow_mut();
-                    // Get the transcation using curl and getTransaction json rpc method
+                    // Get the transaction using curl and getTransaction json rpc method
                     let tx_signature = bindings
                         .get(solana_ctx_keys::SOLANA_TX_SIGNATURE)
                         .ok_or_else(|| eyre!("Transaction signature not found in context"))?;

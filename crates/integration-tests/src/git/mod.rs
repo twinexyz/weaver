@@ -69,7 +69,7 @@ pub fn clone_repository(url: &str, path: &str) -> eyre::Result<Repository> {
 #[test]
 #[ignore = "Need to add eval agent before you can run this test"]
 /// eval "$(ssh-agent -s)"
-/// ssh-add ~/.ssh/private_key  # [which can access private repo `merkora`]
+/// ssh-add ~/.`ssh/private_key` # [which can access private repo `merkora`]
 fn test_clone() {
     let ssh = "git@github.com:twinexyz/merkora.git";
     let path = "/tmp/merkora";

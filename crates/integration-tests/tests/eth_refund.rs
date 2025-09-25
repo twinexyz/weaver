@@ -433,7 +433,7 @@ mod eth_refund_test {
                         return Ok(());
                     }
                     info!("Refund txn status query failed: {stdout}");
-                    Ok(())
+                    return Err(eyre!("Refund txn status query failed: {stdout}"));
                 })
             }),
         })))
