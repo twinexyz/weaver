@@ -387,10 +387,7 @@ mod eth_refund_test {
                         return Ok(());
                     }
 
-                    info!(
-                        "L2 balance check failed. expected {}, got {}",
-                        expected_amount, stdout
-                    );
+                    info!("L2 balance check failed. expected {expected_amount}, got {stdout}");
                     Err(eyre!("Failed to verify balance"))
                 })
             }),
@@ -428,12 +425,12 @@ mod eth_refund_test {
                     }
 
                     let stdout = String::from_utf8_lossy(&output.stdout);
-                    if stdout.contains("2") {
+                    if stdout.contains('2') {
                         info!("Txn status is 'Failed'. Status: {stdout}");
                         return Ok(());
                     }
                     info!("Refund txn status query failed: {stdout}");
-                    return Err(eyre!("Refund txn status query failed: {stdout}"));
+                    Err(eyre!("Refund txn status query failed: {stdout}"))
                 })
             }),
         })))

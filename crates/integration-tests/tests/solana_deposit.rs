@@ -131,7 +131,7 @@ mod solana_deposit {
         harness.add_step(solana_programs::setup::initialize_solana_program_step(
             solana_programs.clone(),
         )?);
-        harness.add_step(load_solana_programs_step(&solana_programs.clone())?);
+        harness.add_step(load_solana_programs_step(&solana_programs)?);
 
         // Wait for slot to get rooted before stopping
         harness.add_step(wait_step(

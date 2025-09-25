@@ -159,7 +159,7 @@ mod solana_refund_test {
         harness.add_step(solana_programs::setup::initialize_solana_program_step(
             solana_programs.clone(),
         )?);
-        harness.add_step(load_solana_programs_step(&solana_programs.clone())?);
+        harness.add_step(load_solana_programs_step(&solana_programs)?);
 
         // Wait for slot to get rooted before stopping
         harness.add_step(wait_step(
@@ -247,7 +247,7 @@ mod solana_refund_test {
                         .as_array()
                         .expect("Could not find logs array in transaction response");
 
-                    for log in logs.iter() {
+                    for log in *logs {
                         if let serde_json::Value::String(msg) = log {
                             if msg.contains("Program log: ") {
                                 let message = parse_handle_message_event(msg)?;
@@ -329,8 +329,8 @@ mod solana_refund_test {
                     }
 
                     let stdout = String::from_utf8_lossy(&output.stdout);
-                    if !(stdout.contains("0")) {
-                        error!("Balance not minted to address");
+                    if !(stdout.contains('0')) {
+                        error!("Balance minted to address");
                         return Err(eyre!("Balance check failed"));
                     }
                     info!("L2 balance check successful: {stdout}");
@@ -371,7 +371,7 @@ mod solana_refund_test {
                     }
 
                     let stdout = String::from_utf8_lossy(&output.stdout);
-                    if stdout.contains("2") {
+                    if stdout.contains('2') {
                         info!("Txn status is 'Failed'. Status: {stdout}");
                         return Ok(());
                     }

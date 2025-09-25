@@ -209,7 +209,7 @@ mod eth_deposit_test {
                         addr_str
                     );
                     let result = cmd.output()?;
-                    info!("Deposit command output: {:?}", result);
+                    info!("Deposit command output: {result:?}");
                     if !result.status.success() {
                         return Err(eyre!("ETH deposit command failed"));
                     }
@@ -254,7 +254,7 @@ mod eth_deposit_test {
 
                     let stdout = String::from_utf8_lossy(&output.stdout);
                     if stdout.contains(eth_deposit_constants::DEPOSIT_AMOUNT) {
-                        info!("L2 balance check successful: {}", stdout);
+                        info!("L2 balance check successful: {stdout}");
                         return Ok(());
                     }
 
@@ -263,7 +263,7 @@ mod eth_deposit_test {
                         eth_deposit_constants::DEPOSIT_AMOUNT,
                         stdout
                     );
-                    return Err(eyre!("Failed to verify balance"));
+                    Err(eyre!("Failed to verify balance"))
                 })
             }),
         })))
@@ -273,7 +273,7 @@ mod eth_deposit_test {
     fn start_service_step(name: &str, idx: usize, wait: Duration) -> TestStep {
         TestStep::Service(Box::new(SubProcessServiceStarter {
             name: name.to_string(),
-            description: format!("Starts {}", name),
+            description: format!("Starts {name}"),
             service_idx: idx,
             wait_after: Some(wait),
         }))
@@ -283,7 +283,7 @@ mod eth_deposit_test {
     fn stop_service_step(name: &str, idx: usize) -> TestStep {
         TestStep::Service(Box::new(SubProcessServiceStopper {
             name: name.to_string(),
-            description: format!("Stops {}", name),
+            description: format!("Stops {name}"),
             service_idx: idx,
             wait_after: None,
         }))

@@ -109,7 +109,7 @@ mod eth_deposit_and_call_test {
         // Start nodes
         harness.add_step(deploy_l1_nodes(
             test_config.test_scripts.path.into(),
-            test_config.nodes.clone(),
+            test_config.nodes,
         )?);
 
         harness.add_step(wait_step(
