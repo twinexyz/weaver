@@ -47,3 +47,14 @@ Before every git commit, it should be ensured that following is run locally for 
 ```
 ./artifacts/pre-commit.pyz run --all-files
 ```
+
+## Running Integration test cases
+Integration cases at the `crates/integration-tests/tests` directory. Before running these make sure you have the correct config set at 
+`crates/integration-tests/res/ethereum-config.yaml` file. Then any specific test case be run as
+```sh
+RUST_LOG=info cargo test -p twine-integration-tests --test file_name  test_name-- --show-output 
+```
+For example:
+```sh
+RUST_LOG=info cargo test -p twine-integration-tests --test eth_deposit test_deposit -- --show-output 
+```
