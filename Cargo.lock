@@ -15223,7 +15223,7 @@ dependencies = [
  "regex",
  "tokio",
  "twine-evm-contracts",
- "twine-l1-eth-writer",
+ "twine-l1-eth",
 ]
 
 [[package]]

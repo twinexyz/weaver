@@ -29,10 +29,11 @@ pub struct EthClient {
 
 impl EthClient {
     /// Initialize eth client
-    pub async fn new(rpc_url: &str, private_key: &str, chain_id: u64) -> eyre::Result<EthClient> {
-        let reader_builder = EthReaderBuilder::new().with_execution_rpc(rpc_url);
-        let reader = reader_builder.build_with_chain_id(chain_id).await?;
-
+    pub async fn new(
+        rpc_url: &str,
+        private_key: &str,
+        chain_id: Option<u64>,
+    ) -> eyre::Result<EthClient> {
         let provider = ProviderBuilder::new().on_http(rpc_url.parse().context("Invalid RPC URL")?);
         let dyn_provider = DynProvider::new(provider);
 
@@ -40,11 +41,22 @@ impl EthClient {
             .get_chain_id()
             .await
             .context("Failed to fetch chain id from provider")?;
-        if resolved_chain_id != chain_id && resolved_chain_id != 1337 {
-            return Err(eyre!(
-                "Invalid chain_id. received {resolved_chain_id} from rpc"
-            ));
-        }
+
+        let actual_chain_id = if let Some(chain_id) = chain_id {
+            if resolved_chain_id != chain_id && resolved_chain_id != 1337 {
+                return Err(eyre!(
+                    "Invalid chain_id. Received {} from RPC, expected {}",
+                    resolved_chain_id,
+                    chain_id
+                ));
+            }
+            chain_id
+        } else {
+            resolved_chain_id
+        };
+
+        let reader_builder = EthReaderBuilder::new().with_execution_rpc(rpc_url);
+        let reader = reader_builder.build_with_chain_id(actual_chain_id).await?;
 
         let storage = TransactionStorage::in_memory();
         let (service, transaction_service) = TransactionService::new(
@@ -64,7 +76,7 @@ impl EthClient {
             provider: dyn_provider,
             transaction_service,
             storage,
-            chain_id: resolved_chain_id,
+            chain_id: actual_chain_id,
         })
     }
 

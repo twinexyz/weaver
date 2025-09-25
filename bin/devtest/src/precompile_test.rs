@@ -5,7 +5,7 @@ use alloy_primitives::{address, Address, Bytes, B256, U256};
 use alloy_sol_types::{sol, SolType};
 use log::info;
 use twine_evm_contracts::l2_twine_messenger::L1Txns;
-use twine_l1_eth_writer::EthWriter;
+use twine_l1_eth::EthClient;
 
 use crate::precompile_test::PrecompileCaller::L1TransactionsHandled;
 use crate::precompile_test::TwineTypes::{MessageData, TransactionType};
@@ -103,7 +103,7 @@ async fn precompile_correct_execution() -> eyre::Result<()> {
     let private_key = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
     let rpc_url = "http://127.0.0.1:8545";
 
-    let eth_writer = EthWriter::new(private_key, rpc_url, None).await?;
+    let eth_writer = EthClient::new(private_key, rpc_url, None).await?;
     let provider = eth_writer.provider.clone();
     info!("Provider setup");
 
@@ -120,7 +120,7 @@ async fn precompile_correct_execution() -> eyre::Result<()> {
 }
 
 pub async fn handle_ethereum_precompile(
-    eth_writer: &EthWriter,
+    eth_writer: &EthClient,
     addr: &Address,
 ) -> eyre::Result<()> {
     let precompile_caller = PrecompileCaller::new(*addr, &eth_writer.provider);
@@ -158,7 +158,7 @@ pub async fn handle_ethereum_precompile(
         )
         .into_transaction_request();
     info!("Ethereum txn request constructed");
-    let receipt = eth_writer.send_transaction_and_wait(txn).await?;
+    let receipt = eth_writer.submit_transaction_request_and_wait(txn).await?;
     let tx_hash = receipt.transaction_hash;
     info!("Ethereum transaction successful: {}", tx_hash);
     for log in receipt.logs() {
@@ -197,7 +197,7 @@ pub async fn handle_ethereum_precompile(
     Ok(())
 }
 
-pub async fn handle_solana_precompile(eth_writer: &EthWriter, addr: &Address) -> eyre::Result<()> {
+pub async fn handle_solana_precompile(eth_writer: &EthClient, addr: &Address) -> eyre::Result<()> {
     let precompile_caller = PrecompileCaller::new(*addr, &eth_writer.provider);
     let prev_rolling_hash =
         B256::from_hex("0xf48b41bd0b004ce348855d2a43b773f5a4dd8de2c5cce948248e8cf46e3d3d2d")
@@ -233,7 +233,7 @@ pub async fn handle_solana_precompile(eth_writer: &EthWriter, addr: &Address) ->
         .into_transaction_request();
     info!("Solana txn request constructed");
 
-    let receipt = eth_writer.send_transaction_and_wait(txn).await?;
+    let receipt = eth_writer.submit_transaction_request_and_wait(txn).await?;
     let tx_hash = receipt.transaction_hash;
     info!("Solana transaction successful: {}", tx_hash);
 
