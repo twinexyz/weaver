@@ -35,6 +35,8 @@ pub struct WSSClient {
     pub worker_to_manager_message_receiver: Receiver<ConnectionMessage>,
     /// message sender
     pub job_from_wss_sender: Sender<TwineBatchTransformAttempt>,
+    /// keep alive request interval
+    pub keep_alive_signal_interval: u64,
 }
 
 impl WSSClient {
@@ -43,11 +45,13 @@ impl WSSClient {
         worker_manager_url: String,
         worker_to_manager_message_receiver: Receiver<ConnectionMessage>,
         job_from_wss_sender: Sender<TwineBatchTransformAttempt>,
+        keep_alive_signal_interval: u64,
     ) -> Self {
         Self {
             worker_manager_url,
             worker_to_manager_message_receiver,
             job_from_wss_sender,
+            keep_alive_signal_interval,
         }
     }
 
@@ -67,7 +71,8 @@ impl WSSClient {
         log::info!("WebSocket handshake has been successfully completed");
         let write = Arc::new(Mutex::new(write));
 
-        let mut keep_alive_interval = interval(Duration::from_secs(5));
+        let mut keep_alive_interval =
+            interval(Duration::from_secs(self.keep_alive_signal_interval));
 
         loop {
             tokio::select! {
@@ -79,7 +84,13 @@ impl WSSClient {
                     self.ws_message_writer(&connection_message, write.clone()).await
                 }
                 Some(message) = read.next() => {
-                    let message = message.unwrap();
+                    let message = match message {
+                        Ok(message) => message,
+                        Err(e) => {
+                            log::error!("error message received, {e}");
+                            continue;
+                        }
+                    };
                     match self.send_ws_message_to_processor(message).await {
                         Ok(_) => {},
                         Err(e) => {
@@ -87,7 +98,7 @@ impl WSSClient {
                             match e {
                                 ProverError::MessageNotReady => {
                                     let error_message = ConnectionMessage::default_message_with_type(ConnectionMessageTypes::NewJob);
-                                    sleep(Duration::from_secs(2)).await;
+                                    sleep(Duration::from_secs(self.keep_alive_signal_interval)).await;
                                     self.ws_message_writer(&error_message, write.clone()).await;
                                     log::info!("message not ready, resending new job request");
                                }
@@ -103,7 +114,7 @@ impl WSSClient {
                                                         data: format!("{e}"),
                                                     },
                                         };
-                                    sleep(Duration::from_secs(2)).await;
+                                    sleep(Duration::from_secs(self.keep_alive_signal_interval)).await;
                                     self.ws_message_writer(&error_message, write.clone()).await;
                                     log::error!("error from prover, sending error message to worker manager: {e}")
                                }

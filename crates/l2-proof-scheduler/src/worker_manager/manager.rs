@@ -11,12 +11,14 @@ use tokio::net::TcpListener;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
-use tokio::time::sleep;
+use tokio::time::{sleep, Instant};
 use twine_proof_scheduler_common::config::ProofSchedulerConfig;
 use twine_proof_scheduler_common::error::ProofSchedulerError;
 
 use crate::batch_transform::transform_attempt::TwineBatchTransformAttempt;
-use crate::worker_manager::connections::{ConnectionID, Connections};
+use crate::worker_manager::connections::{
+    ConnectionID, Connections, WorkerAssignmentConnectionDetails,
+};
 
 /// Twine Worker Manager
 #[derive(Debug)]
@@ -58,7 +60,7 @@ impl WorkerManager for TwineWorkerManager {
         let job_completion_timeout = init_config
             .lock()
             .await
-            .get("worker_manager.binding_port".to_string())
+            .get("worker_manager.job_completion_timeout".to_string())
             .await?;
 
         let job_completion_timeout: toml::Value =
@@ -77,7 +79,7 @@ impl WorkerManager for TwineWorkerManager {
     async fn wm_loop(&mut self) -> Result<(), Self::WorkerManagerError> {
         log::info!("starting wm loop");
         let job_mutex = Arc::new(Mutex::new(None));
-        let (wss_server_job, job_handle_job) = start_worker_register_server(
+        let wss_server_job = start_worker_register_server(
             self.binding_port,
             self.worker_result_sender.clone(),
             job_mutex.clone(),
@@ -86,7 +88,6 @@ impl WorkerManager for TwineWorkerManager {
         .await?;
 
         tokio::pin!(wss_server_job);
-        tokio::pin!(job_handle_job);
 
         'outer: loop {
             tokio::select! {
@@ -105,7 +106,6 @@ impl WorkerManager for TwineWorkerManager {
                 }
 
                  _ = &mut wss_server_job => {}
-                 _ = &mut job_handle_job => {}
             }
         }
     }
@@ -123,7 +123,7 @@ pub async fn start_worker_register_server(
     sender: Sender<WorkerManagerResult<TwineBatchTransformAttempt>>,
     job_mutex: Arc<Mutex<Option<TwineBatchTransformAttempt>>>,
     job_completion_timeout: u64,
-) -> Result<(JoinHandle<()>, JoinHandle<()>), ProofSchedulerError> {
+) -> Result<JoinHandle<()>, ProofSchedulerError> {
     let address = format!("0.0.0.0:{bind_port}");
     let listener = TcpListener::bind(&address)
         .await
@@ -132,9 +132,12 @@ pub async fn start_worker_register_server(
     log::info!("starting wss server on: {address}");
 
     let connections = Arc::new(Connections {
-        assigned_jobs: Mutex::new(HashMap::new()),
-        connection_status: Mutex::new(HashMap::new()),
+        worker_connection_details: Mutex::new(WorkerAssignmentConnectionDetails {
+            assigned_jobs: HashMap::new(),
+            connection_status: HashMap::new(),
+        }),
         job_completion_timeout,
+        last_timed_out_check: Mutex::new(Instant::now()),
     });
 
     let cloned_connection = connections.clone();
@@ -156,8 +159,5 @@ pub async fn start_worker_register_server(
         }
     });
 
-    let job_handle_job = tokio::spawn(async move {
-        connections.handle_assigned_jobs(sender).await;
-    });
-    Ok((wss_handle, job_handle_job))
+    Ok(wss_handle)
 }

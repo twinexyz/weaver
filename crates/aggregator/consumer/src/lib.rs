@@ -45,9 +45,9 @@ pub async fn process_proof(
 ) -> Result<()> {
     let batch_number = match proof.proof_kind {
         ProofKind::ExecutionProof(bn) => bn,
-        ProofKind::SolanaConsensusProof => {
-            error!("We do not support solana consensus proofs");
-            return Err(eyre::eyre!("We do not support solana consensus proofs"));
+        _ => {
+            error!("We do not support other proof kinds");
+            return Err(eyre::eyre!("We do not support other proof kinds"));
         }
     };
 

@@ -174,6 +174,7 @@ impl Emitter for SolanaMessageSubscriber {
                             self.backoff.reset_wait_and_backoff();
                             self.next_identifer();
                             self.next_message_nonce();
+                            sleep(Duration::from_millis(100)).await;
                         }
                         Err(e) => {
                             let wait_duration = self.backoff.wait_duration();

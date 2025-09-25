@@ -180,11 +180,18 @@ impl Consumer for TwineBatchTransformResultConsumer {
                     };
                     self.consume_attempt_result_sender
                         .send(ConsumeAttemptResult::Success(
-                            consume_attempt.identifier,
+                            consume_attempt.identifier.clone(),
                             return_ctx,
                         ))
                         .await
                         .map_err(|e| ProofSchedulerError::Other(format!("{e}")))?;
+                    log::info!(
+                        "pushed proof to kafka: identifier: {:?}",
+                        consume_attempt
+                            .identifier
+                            .transform_attempt_identifier
+                            .transform_request_id
+                    );
                 }
                 Err(e) => {
                     log::error!("failed to push to kafka. error: {e}");
