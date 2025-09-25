@@ -8,9 +8,10 @@ use eyre::{eyre, Context, ContextCompat};
 use log::info;
 use test_harness::{AsyncFnStep, TestStep};
 
+use crate::ctx::twine_ctx_keys;
 use crate::twine::scripts::load_twine_addresses;
-use crate::twine::{action, constants, ctx_keys};
-use crate::{solana, zstd_compress};
+use crate::twine::{self, action};
+use crate::{consts, zstd_compress};
 
 /// Create a .env file in contracts folder
 pub fn create_env_file_step(target_dir: PathBuf) -> eyre::Result<TestStep> {
@@ -36,7 +37,7 @@ pub fn deploy_l2_contracts_step(contracts_dir: PathBuf) -> eyre::Result<TestStep
         futurefn: Box::new(move |_ctx| {
             Box::new(async move {
                 let status = Command::new("forge")
-                    .args(&["clean"])
+                    .args(["clean"])
                     .current_dir(&contracts_dir)
                     .status()?;
 
@@ -45,16 +46,16 @@ pub fn deploy_l2_contracts_step(contracts_dir: PathBuf) -> eyre::Result<TestStep
                 }
 
                 let status = Command::new("forge")
-                    .args(&[
+                    .args([
                         "script",
                         "script/deploy/L2DeploymentScripts/DeployL2Contracts.s.sol",
                         "--rpc-url",
-                        constants::TWINE_RPC_URL,
+                        consts::TWINE_RPC_URL,
                         "--broadcast",
                         "-vv",
                     ])
                     .current_dir(&contracts_dir)
-                    .stdout(Stdio::null())
+                    .stdout(Stdio::inherit())
                     .stderr(Stdio::inherit())
                     .status()?;
 
@@ -76,16 +77,16 @@ pub fn setup_l2_contracts_step(contracts_dir: PathBuf) -> eyre::Result<TestStep>
         futurefn: Box::new(move |_ctx| {
             Box::new(async move {
                 let status = Command::new("forge")
-                    .args(&[
+                    .args([
                         "script",
-                        "script/setup/L2SetupScripts/L2andSolSetupScript.s.sol",
+                        "script/setup/L2SetupScripts/L2SetupScript.s.sol",
                         "--rpc-url",
-                        constants::TWINE_RPC_URL,
+                        consts::TWINE_RPC_URL,
                         "--broadcast",
                         "-vv",
                     ])
                     .current_dir(&contracts_dir)
-                    .stdout(Stdio::null())
+                    .stdout(Stdio::inherit())
                     .stderr(Stdio::inherit())
                     .status()?;
 
@@ -110,11 +111,14 @@ pub fn load_contract_addresses_step(contract_path: &PathBuf) -> eyre::Result<Tes
             Box::new(async move {
                 let addresses = load_twine_addresses(&path)?;
                 let mut c = ctx.borrow_mut();
-                c.insert(ctx_keys::L2_MESSENGER.into(), addresses.l2_twine_messenger);
-                c.insert(ctx_keys::L2_ETH_TOKEN.into(), addresses.eth_token);
-                c.insert(ctx_keys::L2_SOL_TOKEN.into(), addresses.sol_token);
                 c.insert(
-                    ctx_keys::L2_ERC20_GATEWAY.into(),
+                    twine_ctx_keys::TWINE_MESSENGER.into(),
+                    addresses.l2_twine_messenger,
+                );
+                c.insert(twine_ctx_keys::TWINE_ETH_TOKEN.into(), addresses.eth_token);
+                c.insert(twine_ctx_keys::TWINE_SOL_TOKEN.into(), addresses.sol_token);
+                c.insert(
+                    twine_ctx_keys::TWINE_ERC20_GATEWAY.into(),
                     addresses.l2_custom_erc20_gateway,
                 );
                 Ok(())
@@ -133,22 +137,22 @@ pub fn update_sol_token_mapping() -> eyre::Result<TestStep> {
                 let binding = ctx.borrow();
 
                 let sol_token = binding
-                    .get(ctx_keys::L2_SOL_TOKEN)
+                    .get(twine_ctx_keys::TWINE_SOL_TOKEN)
                     .context("No l2 sol token in context")?;
                 let l2_erc20_gateway = binding
-                    .get(ctx_keys::L2_ERC20_GATEWAY)
+                    .get(twine_ctx_keys::TWINE_ERC20_GATEWAY)
                     .context("No l2 erc20 gateway in context")?;
 
                 let status = Command::new("cast")
-                    .args(&[
+                    .args([
                         "send",
                         l2_erc20_gateway,
                         "updateTokenMapping(uint256,address,string)",
-                        solana::constants::SOLANA_CHAIN_ID,
+                        consts::SOLANA_CHAIN_ID,
                         sol_token,
-                        solana::constants::SOLANA_NATIVECOIN,
+                        consts::SOLANA_NATIVECOIN,
                         "--rpc-url",
-                        constants::TWINE_RPC_URL,
+                        consts::TWINE_RPC_URL,
                         "--private-key",
                         "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
                     ])
@@ -177,7 +181,7 @@ pub fn deploy_cat_contract(contracts_dir: PathBuf) -> eyre::Result<TestStep> {
                 const SETTER_VALUE: &str = "0x7b565656565656565656565656565656567d";
 
                 let cat_address = action::deploy_contract(&contracts_dir).await?;
-                info!("Cat deployed at address: {}", cat_address);
+                info!("Cat deployed at address: {cat_address}");
                 let call_params = action::get_call_params(&cat_address, SETTER_VALUE).await?;
                 action::prepare_and_store_call_data(&cat_address, &call_params, SETTER_VALUE, ctx)?;
 

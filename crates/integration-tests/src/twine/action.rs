@@ -8,19 +8,20 @@ use eyre::{eyre, Context, ContextCompat};
 use log::info;
 use test_harness::{AsyncFnStep, TestStep};
 
+use crate::ctx::twine_ctx_keys;
 use crate::twine::scripts::load_twine_addresses;
-use crate::twine::{constants, ctx_keys};
-use crate::{solana, zstd_compress};
+use crate::{consts, zstd_compress};
 
 pub(crate) async fn deploy_contract(contracts_dir: &PathBuf) -> eyre::Result<String> {
     let output = Command::new("forge")
-        .args(&[
+        .args([
             "create",
             "testing/precompile-caller/src/Cat.sol:Cat",
             "--rpc-url",
-            constants::TWINE_RPC_URL,
+            consts::TWINE_RPC_URL,
             "--private-key",
             "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+            "--broadcast",
         ])
         .current_dir(contracts_dir)
         .output()?;
@@ -45,13 +46,13 @@ pub(crate) fn parse_contract_address(output: &str) -> eyre::Result<String> {
 
 pub(crate) async fn get_call_params(cat_address: &str, setter_value: &str) -> eyre::Result<String> {
     let output = Command::new("cast")
-        .args(&[
+        .args([
             "call",
             cat_address,
             "returnSelector(bytes)(bytes)",
             setter_value,
             "--rpc-url",
-            constants::TWINE_RPC_URL,
+            consts::TWINE_RPC_URL,
         ])
         .output()?;
 
@@ -93,13 +94,16 @@ pub(crate) fn prepare_and_store_call_data(
     let compressed_call_params = zstd_compress(&l2_contract_call_params.to_string());
 
     let mut ctx = ctx.borrow_mut();
-    ctx.insert(ctx_keys::SETTER_VALUE.to_string(), setter_value.to_string());
     ctx.insert(
-        ctx_keys::L2_CALL_PARAM_COMPRESSED.to_string(),
+        twine_ctx_keys::SETTER_VALUE.to_string(),
+        setter_value.to_string(),
+    );
+    ctx.insert(
+        twine_ctx_keys::TWINE_CALL_PARAM_COMPRESSED.to_string(),
         compressed_call_params.to_string(),
     );
     ctx.insert(
-        ctx_keys::L2_CAT_CONTRACT.to_string(),
+        twine_ctx_keys::TWINE_CAT_CONTRACT.to_string(),
         cat_address.to_string(),
     );
 

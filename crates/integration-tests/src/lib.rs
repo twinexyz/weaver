@@ -9,29 +9,26 @@ use alloy_primitives::Bytes;
 use log::info;
 use ruzstd::encoding::{compress_to_vec, CompressionLevel};
 
+pub mod cleanup;
 pub mod common;
-pub mod config;
-pub mod evm;
-pub mod solana;
 pub mod twine;
 
-/// Utility function to remove a folder or file
-pub fn remove_dir_if_exists(path: &str) -> eyre::Result<()> {
-    if std::path::Path::new(path).exists() {
-        std::fs::remove_dir_all(path)?;
-        info!("Successfully removed directory: {}", path);
-    } else {
-        info!("Directory does not exist, skipping: {}", path);
-    }
-    Ok(())
-}
+pub mod cfg;
+pub mod consts;
+pub mod ctx;
+pub mod git;
+pub mod merkora;
+pub mod nodes;
+pub mod postgresql;
+pub mod solana_programs;
+pub mod solidity_contracts;
 
 /// Generate random ethereum address
 pub fn generate_random_eth_address() -> String {
     fn pseudo_random_bytes(mut seed: u64) -> [u8; 20] {
         let mut bytes = [0u8; 20];
 
-        for byte in bytes.iter_mut() {
+        for byte in &mut bytes {
             seed ^= seed << 13;
             seed ^= seed >> 7;
             seed ^= seed << 17;
@@ -52,7 +49,7 @@ pub fn generate_random_eth_address() -> String {
         "0x{}",
         addr_bytes
             .iter()
-            .map(|b| format!("{:02x}", b))
+            .map(|b| format!("{b:02x}"))
             .collect::<String>()
     )
 }

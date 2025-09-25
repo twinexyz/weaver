@@ -391,7 +391,6 @@ impl Service for SubProcessService {
 
         cmd.stdout(Stdio::piped());
         cmd.stderr(Stdio::piped());
-
         let mut child = cmd.spawn().map_err(|e| {
             eyre::eyre!(format!("Failed to start subprocess '{}': {}", self.name, e))
         })?;

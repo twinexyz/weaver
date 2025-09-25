@@ -1,0 +1,43 @@
+# Blockchain nodes
+nodes:
+  reth:
+    type_: "evm"
+    name: "reth-node"
+    binary_name: "reth"
+
+  solana:
+    type_: "solana"
+    name: "solana-test-validator"
+    binary_name: "solana-test-validator"
+
+  l2:
+    type_: "evm"
+    name: "twine-node"
+    binary_name: "/path/to/twine-node/binary/"
+    genesis_path: "/path/to/genesis-file.json"
+
+# Merkora configuration - building from repository
+# If you provide repo path: you can skip url, branch, build and build command
+# repo path has the highest priority
+merkora:
+  name: "merkora"
+  repo_path: "/path/to/merkora_repo"
+  build: false
+  # url: "git@github.com:twinexyz/merkora.git"
+  # branch: "main"
+
+# Smart contract repositories
+smart_contracts:
+  solidity:
+    url: "git@github.com:twinexyz/twine-solidity-contracts.git"
+    name: "twine-solidity-contracts"
+    branch: "main"
+    # repo_path: "/path/to/twine-solidity-contracts"
+  solana:
+    url: "git@github.com:twinexyz/twine-native-solana-programs.git"
+    name: "twine-native-solana-programs"
+    branch: "main"
+    # repo_path: "/path/to/twine-native-solana-programs"
+
+test_scripts:
+  path: "/path/to/test/scripts/" # Path to the directory containing test scripts
