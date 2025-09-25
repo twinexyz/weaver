@@ -64,12 +64,10 @@ impl ZStdPrecompile {
             &ZstdLib::compressCall::SELECTOR => {
                 tracing::info!("ZSTD Compression");
                 let compressed = compress_to_vec(original, CompressionLevel::Fastest);
-
                 tracing::info!(
-                    "Original size: {} Compressed size: {} bytes ({}% reduction)",
+                    "Original size: {} Compressed size: {} bytes ",
                     original.len(),
                     compressed.len(),
-                    100 - (compressed.len() * 100 / original.len())
                 );
 
                 return Ok(InterpreterResult {

@@ -40,7 +40,7 @@ contract Compressor is ZstdCompressor {
     constructor() ZstdCompressor(address(0x18)) {}
 
     function compress(bytes memory data) external {
-        emit Compressed(_compress(data););
+        emit Compressed(_compress(data));
     }
 
     function decompress(bytes memory data) external {

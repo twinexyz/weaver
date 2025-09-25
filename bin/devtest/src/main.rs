@@ -15,12 +15,11 @@ fn main() -> eyre::Result<()> {
         let first_arg = &args[1];
         regex_to_match = first_arg.to_string();
         info!("Running tests that match regex: {}", regex_to_match);
-        return Ok(());
     } else {
         info!("No regex provided, running all tests");
     }
 
     let tests = tests::Tests::new();
-    tests.run(&regex_to_match);
+    tests.run(&regex_to_match)?;
     Ok(())
 }

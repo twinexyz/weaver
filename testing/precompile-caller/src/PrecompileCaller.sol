@@ -1,28 +1,71 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-contract PrecompileCaller {
-    // Address of the precompile
-    address public constant PRECOMPILE_ADDRESS = 0x0000000000_0000000000_0000000000_0000000015; // Replace with the actual precompile address
-
-    /**
-     * @dev Calls the precompile with the given input data.
-     * @param input The input data to send to the precompile.
-     * @return success Whether the call was successful.
-     * @return output The output data returned by the precompile.
-     */
-    function callPrecompile(bytes memory input) public returns (bool success, bytes memory output) {
-        (success, output) = PRECOMPILE_ADDRESS.call(input);
-        return (success, output);
+interface TwineTypes {
+    enum TransactionType {
+        Deposit,
+        Withdraw,
+        Message
     }
 
-    /**
-     * @dev Performs a static call to the precompile with the given input data.
-     * @param input The input data to send to the precompile.
-     * @return success Whether the static call was successful.
-     * @return output The output data returned by the precompile.
-     */
-    function staticCallPrecompile(bytes memory input) public view returns (bool success, bytes memory output) {
-        (success, output) = PRECOMPILE_ADDRESS.staticcall(input);
+    struct MessageData {
+        TransactionType txnType;
+        uint64 nonce;
+        uint64 chainId;
+        uint64 blockNumber;
+        string fromAddress;
+        string toAddress;
+        string l1Token;
+        string l2Token;
+        string amount;
+        bytes message;
+    }
+}
+
+contract PrecompileCaller {
+    address public constant PRECOMPILE_ADDRESS = address(0x16);
+
+    event L1TransactionsHandled(
+        uint256 chainId,
+        uint8 status,
+        uint256 nonce,
+        bytes transactionOutput
+    );
+
+    function handleSolanaTransactions(
+        bytes32 prevRollingHash,
+        TwineTypes.MessageData memory messageData,
+        bytes memory publicValues,
+        bytes memory proof
+    ) external {
+        uint64 chainId = messageData.chainId;
+        uint64 nonce = messageData.nonce;
+        bytes memory precompileInput = abi.encode(
+            chainId,
+            abi.encode(prevRollingHash, messageData, publicValues)
+        );
+
+        (bool txnSuccess, bytes memory precompileOutput) = PRECOMPILE_ADDRESS
+            .call(precompileInput);
+        require(txnSuccess, "Failed executing transactions");
+        emit L1TransactionsHandled(chainId, 0, nonce, precompileOutput);
+    }
+
+    function handleEthereumProofAndTransactions(
+        uint256 proofHeight,
+        bytes32 stateRoot,
+        TwineTypes.MessageData memory messageData,
+        bytes memory serializedProof
+    ) external {
+        uint64 chainId = messageData.chainId;
+        uint64 nonce = messageData.nonce;
+        bytes memory precompile_input = abi.encode(
+            chainId,
+            abi.encode(proofHeight, stateRoot, messageData, serializedProof)
+        );
+        (bool txnSuccess, bytes memory precompileOutput) = PRECOMPILE_ADDRESS
+            .call(precompile_input);
+        require(txnSuccess, "Ethereum Transactions failed!");
+        emit L1TransactionsHandled(chainId, 0, nonce, precompileOutput);
     }
 }

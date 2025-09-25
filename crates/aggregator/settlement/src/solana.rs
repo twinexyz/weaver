@@ -25,7 +25,6 @@ pub enum TwineChainInstruction {
     _Unused6,
     _Unused7,
     _Unused8,
-    _Unused9,
     CommitAndFinalizeBatch {
         /// The batch number to commit and finalize
         batch_number: u64,
@@ -34,7 +33,7 @@ pub enum TwineChainInstruction {
         /// The execution proof for the batch
         execution_proof: Vec<u8>,
     },
-    _Unused11,
+    _Unused10,
 }
 
 /// Solana L1 settlement implementation

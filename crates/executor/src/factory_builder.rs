@@ -12,12 +12,18 @@ use reth_evm::EvmFactory;
 
 use crate::precompiles::TwinePrecompiles;
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Clone)]
 #[non_exhaustive]
-pub struct TwineEvmFactory;
+pub struct TwineEvmFactory {
+    precompiles: PrecompilesMap,
+}
 
 impl TwineEvmFactory {
-    pub fn new() -> Self { Self }
+    pub fn new() -> Self {
+        Self {
+            precompiles: TwinePrecompiles::create_precompiles_map(),
+        }
+    }
 }
 
 impl EvmFactory for TwineEvmFactory {
@@ -31,16 +37,16 @@ impl EvmFactory for TwineEvmFactory {
     type Tx = TxEnv;
 
     fn create_evm<DB: Database>(&self, db: DB, input: EvmEnv) -> Self::Evm<DB, NoOpInspector> {
-        let precompiles = TwinePrecompiles::create_precompiles_map();
+        reth_tracing::tracing::info!("TwineEvmFactory: Creating EVM with custom precompiles");
 
-        let evm = Context::mainnet()
+        let inner = Context::mainnet()
             .with_db(db)
             .with_cfg(input.cfg_env)
             .with_block(input.block_env)
             .build_mainnet_with_inspector(NoOpInspector {})
-            .with_precompiles(precompiles);
+            .with_precompiles(self.precompiles.clone());
 
-        EthEvm::new(evm, false)
+        EthEvm::new(inner, false)
     }
 
     fn create_evm_with_inspector<DB: Database, I: Inspector<Self::Context<DB>, EthInterpreter>>(
@@ -49,15 +55,17 @@ impl EvmFactory for TwineEvmFactory {
         input: EvmEnv,
         inspector: I,
     ) -> Self::Evm<DB, I> {
-        let precompiles = TwinePrecompiles::create_precompiles_map();
+        reth_tracing::tracing::info!(
+            "TwineEvmFactory: Creating EVM with inspector and custom precompiles"
+        );
 
-        let evm = Context::mainnet()
+        let inner = Context::mainnet()
             .with_db(db)
             .with_cfg(input.cfg_env)
             .with_block(input.block_env)
             .build_mainnet_with_inspector(inspector)
-            .with_precompiles(precompiles);
+            .with_precompiles(self.precompiles.clone());
 
-        EthEvm::new(evm, true)
+        EthEvm::new(inner, true)
     }
 }

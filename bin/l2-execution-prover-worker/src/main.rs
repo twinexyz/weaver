@@ -37,6 +37,9 @@ pub struct Args {
     /// genesis file for twine node
     #[arg(short, long)]
     pub genesis_path: String,
+    /// skip prover logs
+    #[arg(short, long)]
+    pub skip_prover_logs: bool,
 }
 
 #[tokio::main]
@@ -64,6 +67,7 @@ async fn main() {
         args.runtime_env,
         args.network,
         args.genesis_path,
+        args.skip_prover_logs,
     );
 
     tokio::select! {

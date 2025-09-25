@@ -5,9 +5,9 @@ edition = "2021"
 
 [dependencies]
 alloy-consensus.workspace = true
-alloy-evm = { version = "0.20.1", default-features = false }
+alloy-evm.workspace = true
 alloy-genesis.workspace = true
-alloy-rpc-types-engine = { version = "1.0", default-features = false }
+alloy-rpc-types-engine.workspace = true
 alloy-primitives.workspace = true
 eyre.workspace = true
 parking_lot.workspace = true
@@ -26,8 +26,8 @@ reth-tracing.workspace = true
 tokio.workspace = true
 twine-constants = { workspace = true }
 twine-l1-consensus-verifier-precompile = { workspace = true, optional = true }
-twine-l1-transactions-precompile = { workspace = true }
-twine-zstd-precompile = { workspace = true }
+twine-l1-transactions-precompile = { workspace = true, optional = true }
+twine-zstd-precompile = { workspace = true, optional = true }
 
 [features]
 default = [
@@ -38,5 +38,9 @@ default = [
 twine-l1-consensus-verifier-precompile = [
   "dep:twine-l1-consensus-verifier-precompile",
 ]
-twine-l1-transactions-precompile = []
-twine-zstd-precompile = []
+twine-l1-transactions-precompile = [
+  "dep:twine-l1-transactions-precompile",
+]
+twine-zstd-precompile = [
+  "dep:twine-zstd-precompile",
+]

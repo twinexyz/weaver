@@ -18,7 +18,7 @@ serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
-tokio-tungstenite.workspace = true
+tokio-tungstenite = { workspace = true, features = ["native-tls-vendored"] }
 twine-l2-proof-scheduler.workspace = true
 twine-proof-scheduler-common.workspace = true
 twine-types.workspace = true

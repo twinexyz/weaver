@@ -5,6 +5,7 @@ use reth::revm::handler::{EthPrecompiles, PrecompileProvider};
 use reth::revm::interpreter::{InputsImpl, InterpreterResult};
 use reth::revm::precompile::{PrecompileId, PrecompileOutput, PrecompileResult, Precompiles};
 use reth::revm::primitives::hardfork::SpecId;
+use reth_tracing::tracing::{debug, info, warn};
 use twine_constants::precompiles::{
     TWINE_CONSENSUS_VERIFIER_PRECOMPILE_ADDRESS, TWINE_TRANSACTION_PRECOMPILE_ADDRESS,
     TWINE_ZSTD_PRECOMPILE_ADDRESS,
@@ -48,27 +49,47 @@ impl TwinePrecompiles {
         // Start with standard Ethereum precompiles
         let mut precompiles = PrecompilesMap::from_static(&Precompiles::prague());
 
+        info!("Creating Twine precompiles map");
+
         // Add Twine custom precompiles
         #[cfg(feature = "twine-l1-transactions-precompile")]
         {
             let tx: DynPrecompile = (
                 PrecompileId::custom("twine_transaction"),
                 move |input: PrecompileInput<'_>| -> PrecompileResult {
+                    debug!("=== TWINE TRANSACTION PRECOMPILE INVOKED ===");
+                    debug!("Input data length: {} bytes", input.data.len());
+                    debug!("Gas limit: {}", input.gas);
+                    debug!("Target address: {:?}", input.target_address);
+
                     match l1tx::execute(input.data, input.gas) {
-                        Ok((bytes, gas_used, reverted)) => Ok(PrecompileOutput {
-                            gas_used,
-                            bytes,
-                            reverted,
-                        }),
-                        Err(err) => Ok(PrecompileOutput {
-                            gas_used: 0,
-                            bytes: Bytes::copy_from_slice(err.as_bytes()),
-                            reverted: true,
-                        }),
+                        Ok((bytes, gas_used, reverted)) => {
+                            debug!("Precompile execution succeeded:");
+                            debug!("  - Output: {} bytes", bytes.len());
+                            debug!("  - Gas used: {}", gas_used);
+                            debug!("  - Reverted: {}", reverted);
+                            Ok(PrecompileOutput {
+                                gas_used,
+                                bytes,
+                                reverted,
+                            })
+                        }
+                        Err(err) => {
+                            warn!("Precompile execution failed: {}", err);
+                            Ok(PrecompileOutput {
+                                gas_used: 0,
+                                bytes: Bytes::copy_from_slice(err.as_bytes()),
+                                reverted: true,
+                            })
+                        }
                     }
                 },
             )
                 .into();
+            info!(
+                "Registering Twine transaction precompile at address: {:?}",
+                TWINE_TRANSACTION_PRECOMPILE_ADDRESS
+            );
             precompiles.apply_precompile(&TWINE_TRANSACTION_PRECOMPILE_ADDRESS, |_| Some(tx));
         }
 
@@ -92,6 +113,10 @@ impl TwinePrecompiles {
                 },
             )
                 .into();
+            info!(
+                "Registering Twine consensus verifier precompile at address: {:?}",
+                TWINE_CONSENSUS_VERIFIER_PRECOMPILE_ADDRESS
+            );
             precompiles
                 .apply_precompile(&TWINE_CONSENSUS_VERIFIER_PRECOMPILE_ADDRESS, |_| Some(cons));
         }
@@ -116,6 +141,10 @@ impl TwinePrecompiles {
                 },
             )
                 .into();
+            info!(
+                "Registering Twine zstd precompile at address: {:?}",
+                TWINE_ZSTD_PRECOMPILE_ADDRESS
+            );
             precompiles.apply_precompile(&TWINE_ZSTD_PRECOMPILE_ADDRESS, |_| Some(z));
         }
 

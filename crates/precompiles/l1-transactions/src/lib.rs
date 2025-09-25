@@ -89,9 +89,20 @@ impl TransactionPrecompile {
 
 /// Stateless entry point compatible with EVM PrecompilesMap integration
 pub fn execute(input: &[u8], gas_limit: u64) -> Result<(Bytes, u64, bool), String> {
+    tracing::info!(
+        "L1 transaction precompile execute called with {} bytes input, gas_limit={}",
+        input.len(),
+        gas_limit
+    );
+
     // ABI: (chain_id, chain_input)
     let (chain_id, chain_precompile_input) = TransactionPrecompileInput::abi_decode_sequence(input)
-        .map_err(|_| TransactionPrecompileError::DecodeTransactionPrecompileInput.to_string())?;
+        .map_err(|e| {
+            tracing::error!("Failed to decode transaction precompile input: {:?}", e);
+            TransactionPrecompileError::DecodeTransactionPrecompileInput.to_string()
+        })?;
+
+    tracing::info!("Decoded chain_id: {}", chain_id);
 
     let chain_type = get_chain_type(chain_id)
         .ok_or_else(|| TransactionPrecompileError::InvalidChainId(chain_id).to_string())?;
@@ -135,16 +146,81 @@ fn handle_ethereum_transaction(
     let chain_id = message_data.chainId;
     let message_hash = message_data.hash_message_data();
 
-    let account_proofs: AccountProof = serde_json::from_slice(&state_proof)
-        .map_err(|_| TransactionPrecompileError::DecodedAccountProof)?;
+    tracing::info!(
+        "Attempting to decode account proof from {} bytes",
+        state_proof.len()
+    );
+    let account_proofs: AccountProof = serde_json::from_slice(&state_proof).map_err(|e| {
+        tracing::error!("Failed to decode account proof: {:?}", e);
+        tracing::error!(
+            "State proof bytes (first 100): {:?}",
+            &state_proof[..state_proof.len().min(100)]
+        );
+        TransactionPrecompileError::DecodedAccountProof
+    })?;
+
+    // Debug: Try to understand what state root this proof is for
+    tracing::info!("Decoded account proof successfully");
+    tracing::info!("Account address from proof: {:?}", account_proofs.address);
+
+    // Calculate the keccak hash of the address to see if it matches the path
+    use alloy_primitives::keccak256;
+    let addr_hash = keccak256(account_proofs.address);
+    tracing::info!("Keccak256 of proof address: {:?}", addr_hash);
+
+    // The proof contains the account data that should hash to form part of the state trie
+    // Let's see what we're actually verifying against
+    tracing::info!("About to verify proof against state root: {:?}", state_root);
+    tracing::info!("Proof height parameter: {}", proof_height);
+    tracing::info!("Message data block number: {}", message_data.blockNumber);
 
     account_proofs.verify(*state_root).map_err(|e| {
+        tracing::error!("Failed to verify account proof against state root");
+        tracing::error!("Verification error: {:?}", e);
+
+        // Decode the error to understand what path failed
+        let err_str = format!("{:?}", e);
+        if err_str.contains("ValueMismatch") {
+            tracing::error!("This is a ValueMismatch error - the proof doesn't contain the expected value at the given path");
+            tracing::error!("This usually means:");
+            tracing::error!("  1. The proof was generated from a different state than the state_root we're verifying against");
+            tracing::error!("  2. The account/storage doesn't exist in the state the proof was generated from");
+            tracing::error!("  3. The proof is incomplete or corrupted");
+        }
+
+        tracing::error!("Expected state root: {:?}", state_root);
+        tracing::error!("Account proof details:");
+        tracing::error!("  - Address: {:?}", account_proofs.address);
+        tracing::error!("  - Account keccak256: {:?}", keccak256(account_proofs.address));
+        tracing::error!("  - Info: {:?}", account_proofs.info);
+        tracing::error!("  - Storage root: {:?}", account_proofs.storage_root);
+        tracing::error!("  - Proof len: {}", account_proofs.proof.len());
+        tracing::error!("  - Storage proofs len: {}", account_proofs.storage_proofs.len());
+
+        // Log each proof node to understand the trie structure
+        for (i, proof_node) in account_proofs.proof.iter().enumerate() {
+            tracing::error!("  - Proof node[{}]: {} bytes, starts with: {:?}",
+                i,
+                proof_node.len(),
+                &proof_node[..proof_node.len().min(32)]
+            );
+        }
+
+        if !account_proofs.storage_proofs.is_empty() {
+            tracing::error!("  - First storage proof key: {:?}", account_proofs.storage_proofs[0].key);
+            tracing::error!("  - First storage proof value: {:?}", account_proofs.storage_proofs[0].value);
+            tracing::error!("  - Storage proof nibbles path: {:?}", account_proofs.storage_proofs[0].nibbles);
+        }
         debug!(err=?e, "failed to verify account proof against state root");
         TransactionPrecompileError::InvalidStateProof
     })?;
 
     let value_stored: FixedBytes<32> = account_proofs.storage_proofs[0].value.into();
     if !value_stored.eq(&message_hash) {
+        tracing::error!("Message hash mismatch!");
+        tracing::error!("  - Expected message hash: {:?}", message_hash);
+        tracing::error!("  - Stored value: {:?}", value_stored);
+        tracing::error!("  - Message data: {:?}", message_data);
         return Err(TransactionPrecompileError::InvalidValueStored.into());
     }
 
@@ -166,6 +242,12 @@ fn execute_ethereum(
     message_data: MessageData,
     state_proof: &Bytes,
 ) -> Result<Bytes, TransactionPrecompileError> {
+    tracing::info!(
+        "execute_ethereum called with proof_height={}, state_root={:?}",
+        proof_height,
+        state_root
+    );
+    tracing::info!("state_proof length: {} bytes", state_proof.len());
     // share logic with stateful path
     handle_ethereum_transaction(proof_height, state_root, message_data.clone(), state_proof)?;
     // build return ABI like stateful path

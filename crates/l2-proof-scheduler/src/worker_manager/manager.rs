@@ -140,19 +140,18 @@ pub async fn start_worker_register_server(
     let cloned_connection = connections.clone();
     let cloned_sender = sender.clone();
     let wss_handle = tokio::spawn(async move {
-        let mut total_connections = ConnectionID(0u64);
+        let total_connections = Arc::new(Mutex::new(ConnectionID(0u64)));
         loop {
             if let Ok((stream, _)) = listener.accept().await {
                 let cloned_connection = cloned_connection.clone();
                 let cloned_sender = cloned_sender.clone();
                 let job_mtx = job_mutex.clone();
-                let connection_id = ConnectionID(total_connections.0 + 1);
+                let cloned_connection_id = total_connections.clone();
                 tokio::spawn(async move {
                     cloned_connection
-                        .accept_connection(connection_id, stream, cloned_sender, job_mtx)
+                        .accept_connection(cloned_connection_id, stream, cloned_sender, job_mtx)
                         .await
                 });
-                total_connections.0 += 1;
             }
         }
     });

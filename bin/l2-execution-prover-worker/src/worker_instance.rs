@@ -1,7 +1,9 @@
 //! receives the proving job from the worker manager and starts the job
+use std::process::Stdio;
 use std::{env, fs, time};
 
 use orchestrator_rs::worker::worker_manager::WorkerManagerResult;
+use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 use tokio::sync::mpsc::{Receiver, Sender};
 use twine_l2_proof_scheduler::batch_transform::transform_attempt::{
@@ -37,6 +39,8 @@ pub struct WorkerInstance {
     network: Option<String>,
     /// genesis path
     genesis_path: String,
+    /// skip prover logs
+    skip_prover_logs: bool,
 }
 
 impl WorkerInstance {
@@ -51,6 +55,7 @@ impl WorkerInstance {
         runtime_env: Option<String>,
         network: Option<String>,
         genesis_path: String,
+        skip_prover_logs: bool,
     ) -> Self {
         Self {
             prover_bin_path,
@@ -62,6 +67,7 @@ impl WorkerInstance {
             runtime_env,
             network,
             genesis_path,
+            skip_prover_logs,
         }
     }
 
@@ -182,24 +188,54 @@ impl WorkerInstance {
 
         match Command::new(self.prover_bin_path.clone())
             .args(args)
-            .output()
-            .await
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
         {
-            Ok(output) => {
+            Ok(mut child) => {
+                if !self.skip_prover_logs {
+                    let stdout = child.stdout.take().unwrap();
+                    let stderr = child.stderr.take().unwrap();
+                    let mut out_lines = BufReader::new(stdout).lines();
+                    let mut err_lines = BufReader::new(stderr).lines();
+
+                    loop {
+                        tokio::select! {
+                            line = out_lines.next_line() => match line {
+                                Ok(Some(l)) => log::info!("[child stdout] {}", l),
+                                Ok(None) => break,
+                                Err(e) => { log::warn!("reading child stdout failed: {}", e); }
+                            },
+                            line = err_lines.next_line() => match line {
+                                Ok(Some(l)) => log::error!("[child stderr] {}", l),
+                                Ok(None) => break,
+                                Err(e) => { log::warn!("reading child stderr failed: {}", e); }
+                            },
+                        }
+                    }
+                }
+
+                let output = child
+                    .wait()
+                    .await
+                    .map_err(|e| ProverError::Other(e.to_string()))?;
+                if !output.success() {
+                    let elapsed_time = start_time.elapsed();
+                    log::info!(
+                        "proof generation completed in {} secs",
+                        elapsed_time.as_secs()
+                    );
+                    log::error!("proof generation failed: for block range {start_block}-{end_block} status not success");
+                    return Err(ProverError::ProofGenerationFailed(format!(
+                        "failed generating proof for block range: {start_block}-{end_block}",
+                    )));
+                }
+
                 let elapsed_time = start_time.elapsed();
                 log::info!(
                     "proof generation completed in {} secs",
                     elapsed_time.as_secs()
                 );
-                if !output.status.success() {
-                    let std_err = String::from_utf8(output.stderr)
-                        .map_err(|e| ProverError::Other(e.to_string()))?;
-
-                    log::error!("proof generation failed: for block range {start_block}-{end_block} status not success, error: {std_err}");
-                    return Err(ProverError::ProofGenerationFailed(format!(
-                        "failed generating proof for block range: {start_block}-{end_block}",
-                    )));
-                }
                 log::info!("proof generation successful for block range {start_block}-{end_block}");
                 let proof = self.process_proof_result(format!(
                     "{}/execution_proof_{start_block}_{end_block}.proof",
