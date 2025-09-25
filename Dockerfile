@@ -57,8 +57,9 @@ RUN cargo build --release --bin twine-proof-scheduler-bin --features solana-proo
 RUN mv target/release/twine-proof-scheduler-bin target/release/twine-solana-proof-scheduler-bin
 RUN cargo build --release --bin twine-l2-execution-prover-worker
 RUN cargo build --release --bin twine-aggregator
+RUN cargo build --release --bin egressa
 
-RUN cargo install tomq
+RUN cargo install tomq sqlx-cli
 
 RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
     --mount=type=secret,id=github_username,env=GITHUB_USERNAME \
@@ -102,6 +103,7 @@ RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 COPY --from=builder /root/.sp1/bin/sp1up /usr/local/bin/sp1up
 COPY --from=builder /usr/bin/yq /usr/local/bin/yq
 COPY --from=builder /root/.cargo/bin/tomq /usr/local/bin/tomq
+COPY --from=builder /usr/local/cargo/bin/sqlx /usr/local/bin/sqlx
 
 COPY --from=builder /app/twine-rsp/$RSP_FILENAME /usr/local/bin/rsp
 COPY --from=builder /app/solana-stub-prover/$SOLANA_STUB_PROVER_FILENAME /usr/local/bin/solana-stub-prover
@@ -111,5 +113,6 @@ COPY --from=builder /app/target/release/twine-aggregator /usr/local/bin/aggregat
 COPY --from=builder /app/target/release/twine-l2-proof-scheduler-bin /usr/local/bin/scheduler
 COPY --from=builder /app/target/release/twine-solana-proof-scheduler-bin /usr/local/bin/solana-scheduler
 COPY --from=builder /app/target/release/twine-l2-execution-prover-worker /usr/local/bin/prover
+COPY --from=builder /app/target/release/egressa /usr/local/bin/egressa
 COPY ./nginx.conf /etc/nginx/nginx.conf
 COPY ./entrypoint.sh /entrypoint.sh
