@@ -7,13 +7,13 @@ use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::instruction::Instruction;
 use solana_sdk::pubkey::Pubkey;
 use spl_associated_token_account;
+use twine_l1_solana::address_derivation::SolanaAddressDerivation;
 use twine_l1_solana::query::TwineChainStorage;
 
 use crate::chains::solana::twine_chain::{
     create_execute_l2_native_withdrawal_instruction, create_execute_l2_spl_withdrawal_instruction,
     create_process_native_forced_withdrawal_instruction, create_process_native_refund_instruction,
     create_process_spl_forced_withdrawal_instruction, create_process_spl_refund_instruction,
-    derive_spl_vault_authority, derive_twine_chain_storage,
 };
 use crate::chains::solana::TwineProgramAddresses;
 use crate::config::SvmContracts;
@@ -55,7 +55,7 @@ impl TransactionBuilder {
     }
 
     /// Check if an account exists
-    async fn _does_account_exist(&self, address: Pubkey) -> eyre::Result<bool> {
+    pub async fn does_account_exist(&self, address: Pubkey) -> eyre::Result<bool> {
         let account = self.rpc.get_account(&address).await;
         match account {
             Ok(acc) => Ok(acc.lamports > 0),
@@ -67,7 +67,12 @@ impl TransactionBuilder {
     pub async fn get_twine_chain_storage(&self) -> Result<TwineChainStorage> {
         let twine_chain_storage = self
             .rpc
-            .get_account(&derive_twine_chain_storage(&self.program_addresses.twine_chain_id).0)
+            .get_account(
+                &SolanaAddressDerivation::derive_twine_chain_storage(
+                    &self.program_addresses.twine_chain_id,
+                )
+                .0,
+            )
             .await?;
         Ok(TwineChainStorage::deserialize(
             &mut &twine_chain_storage.data[..],
@@ -113,7 +118,10 @@ impl TransactionBuilder {
     ) -> Result<Instruction> {
         // Get SPL token vault for the program
         let spl_tokens_vault = spl_associated_token_account::get_associated_token_address(
-            &derive_spl_vault_authority(&self.program_addresses.tokens_gateway_id).0,
+            &SolanaAddressDerivation::derive_spl_vault_authority(
+                &self.program_addresses.tokens_gateway_id,
+            )
+            .0,
             &token_mint,
         );
 
@@ -179,7 +187,10 @@ impl TransactionBuilder {
         withdrawal_proof: Vec<u8>,
     ) -> Result<Instruction> {
         let spl_tokens_vault = spl_associated_token_account::get_associated_token_address(
-            &derive_spl_vault_authority(&self.program_addresses.tokens_gateway_id).0,
+            &SolanaAddressDerivation::derive_spl_vault_authority(
+                &self.program_addresses.tokens_gateway_id,
+            )
+            .0,
             &token_mint,
         );
         let twine_chain_storage = self.get_twine_chain_storage().await?;
@@ -256,7 +267,10 @@ impl TransactionBuilder {
         execution_proof: Vec<u8>,
     ) -> Result<Instruction> {
         let spl_tokens_vault = spl_associated_token_account::get_associated_token_address(
-            &derive_spl_vault_authority(&self.program_addresses.tokens_gateway_id).0,
+            &SolanaAddressDerivation::derive_spl_vault_authority(
+                &self.program_addresses.tokens_gateway_id,
+            )
+            .0,
             &token_mint,
         );
         let twine_chain_storage = self.get_twine_chain_storage().await?;

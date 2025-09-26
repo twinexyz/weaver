@@ -9,6 +9,7 @@ use solana_sdk::commitment_config::{CommitmentConfig, CommitmentLevel};
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::signature::Keypair;
 use solana_sdk::signer::Signer as _;
+use twine_l1_solana::address_derivation::SolanaAddressDerivation;
 
 use crate::chains::solana::transaction_builder::TransactionBuilder;
 use crate::chains::solana::transaction_processor::TransactionProcessor;
@@ -79,6 +80,57 @@ impl SolanaSender {
             relayer_address: relayer_pubkey,
             rpc: rpc.clone(),
         })
+    }
+
+    async fn is_forced_withdrawal_executed(&self, public_values: Bytes) -> eyre::Result<bool> {
+        let message_nonce = u64::from_be_bytes(public_values[8..16].try_into().unwrap_or_default());
+
+        let executed_withdrawal_pda = SolanaAddressDerivation::derive_executed_payouts_pda(
+            &self.transaction_builder.program_addresses.tokens_gateway_id,
+            message_nonce,
+        )
+        .0;
+
+        let is_account_exist = self
+            .transaction_builder
+            .does_account_exist(executed_withdrawal_pda)
+            .await?;
+
+        Ok(is_account_exist)
+    }
+
+    async fn is_refund_deposit_executed(&self, public_values: Bytes) -> eyre::Result<bool> {
+        let message_nonce = u64::from_be_bytes(public_values[8..16].try_into().unwrap_or_default());
+
+        let executed_withdrawal_pda = SolanaAddressDerivation::derive_executed_payouts_pda(
+            &self.transaction_builder.program_addresses.tokens_gateway_id,
+            message_nonce,
+        )
+        .0;
+
+        let is_account_exist = self
+            .transaction_builder
+            .does_account_exist(executed_withdrawal_pda)
+            .await?;
+
+        Ok(is_account_exist)
+    }
+
+    async fn is_l2_withdraw_executed(&self, public_values: Bytes) -> eyre::Result<bool> {
+        let message_nonce = u64::from_be_bytes(public_values[8..16].try_into().unwrap_or_default());
+
+        let executed_withdrawal_pda = SolanaAddressDerivation::derive_executed_withdrawals_pda(
+            &self.transaction_builder.program_addresses.tokens_gateway_id,
+            message_nonce,
+        )
+        .0;
+
+        let is_account_exist = self
+            .transaction_builder
+            .does_account_exist(executed_withdrawal_pda)
+            .await?;
+
+        Ok(is_account_exist)
     }
 
     async fn execute_native_forced_withdrawal(
@@ -250,6 +302,16 @@ impl L1TransactionSender for SolanaSender {
         public_values: Bytes,
         withdrawal_proof: Bytes,
     ) -> eyre::Result<String> {
+        let is_executed = self
+            .is_forced_withdrawal_executed(public_values.clone())
+            .await?;
+        if is_executed {
+            return Err(eyre::eyre!(
+                "Forced withdrawal already executed on chain {}",
+                withdrawal_event.nonce
+            ));
+        }
+
         if withdrawal_event.l1_token == SOLANA_NATIVE_TOKEN_ADDRESS {
             self.execute_native_forced_withdrawal(withdrawal_event, public_values, withdrawal_proof)
                 .await
@@ -265,6 +327,14 @@ impl L1TransactionSender for SolanaSender {
         public_values: Bytes,
         withdraw_proof: Bytes,
     ) -> eyre::Result<String> {
+        let is_executed = self.is_l2_withdraw_executed(public_values.clone()).await?;
+        if is_executed {
+            return Err(eyre::eyre!(
+                "L2 withdraw already executed on chain {}",
+                withdrawal_event.nonce
+            ));
+        }
+
         if withdrawal_event.l1_token == SOLANA_NATIVE_TOKEN_ADDRESS {
             self.execute_native_l2_withdraw(withdrawal_event, public_values, withdraw_proof)
                 .await
@@ -280,6 +350,16 @@ impl L1TransactionSender for SolanaSender {
         public_values: Bytes,
         refund_proof: Bytes,
     ) -> eyre::Result<String> {
+        let is_executed = self
+            .is_refund_deposit_executed(public_values.clone())
+            .await?;
+        if is_executed {
+            return Err(eyre::eyre!(
+                "Refund already executed on chain {}",
+                withdrawal_event.nonce
+            ));
+        }
+
         if withdrawal_event.l1_token == SOLANA_NATIVE_TOKEN_ADDRESS {
             self.refund_native_deposit(withdrawal_event, public_values, refund_proof)
                 .await
