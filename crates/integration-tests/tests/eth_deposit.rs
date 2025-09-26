@@ -9,8 +9,9 @@ mod eth_deposit_test {
     use twine_integration_tests::cfg::{load_config, TestConfig};
     use twine_integration_tests::cleanup::{cleanup_step, cleanup_test_data};
     use twine_integration_tests::common::{start_service_step, stop_service_step, wait_step};
+    use twine_integration_tests::consts;
     use twine_integration_tests::ctx::twine_ctx_keys;
-    use twine_integration_tests::merkora::setup_merkora_config;
+    use twine_integration_tests::merkora::{make_merkora_subprocess_service, setup_merkora_config};
     use twine_integration_tests::nodes::{deploy_l1_nodes, kill_l1_nodes};
     use twine_integration_tests::postgresql::setup_postgres_step;
     use twine_integration_tests::solidity_contracts::actions::deposit_eth_step;
@@ -19,7 +20,6 @@ mod eth_deposit_test {
         prepare_contract_repo,
     };
     use twine_integration_tests::twine::action::verify_deposited_l2_balance;
-    use twine_integration_tests::{consts, merkora};
 
     struct TestServices {
         merkora: SubProcessService,
@@ -28,25 +28,7 @@ mod eth_deposit_test {
     impl TestServices {
         fn new(config: &TestConfig) -> Self {
             Self {
-                merkora: SubProcessService {
-                    name: "Merkora".into(),
-                    description: "Start merkora relayer".into(),
-                    cmd_gen: Box::new({
-                        let binary_path = merkora::prepare_merkora(&config.merkora);
-                        move |_ctx| {
-                            vec![
-                                binary_path.clone(),
-                                "run".into(),
-                                "-c".into(),
-                                consts::MERKORA_CONFIG_PATH.into(),
-                            ]
-                        }
-                    }),
-                    child: None,
-                    context_arena: None,
-                    stdout_stream: None,
-                    stderr_stream: None,
-                },
+                merkora: make_merkora_subprocess_service(&config.merkora),
             }
         }
     }
