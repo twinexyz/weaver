@@ -15155,6 +15155,7 @@ name = "twine-aggregator-settlement"
 version = "0.1.0"
 dependencies = [
  "alloy-primitives",
+ "alloy-sol-types",
  "async-trait",
  "borsh 1.5.7",
  "eyre",

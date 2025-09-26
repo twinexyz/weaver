@@ -7,6 +7,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::SettlementChains;
 
+fn default_gas_limit() -> u64 { 500_000 }
+
 /// The main application configuration structure.
 #[allow(missing_docs)]
 #[derive(Debug, Deserialize, Clone, Serialize)]
@@ -48,6 +50,10 @@ pub struct EthCfg {
 
     /// Ethereum Private Key
     pub eth_private_key: String,
+
+    /// Gas Limit
+    #[serde(default = "default_gas_limit")]
+    pub gas_limit: u64,
 }
 
 /// Solana blockchain configuration.
