@@ -20,6 +20,7 @@ pub const TEST_DEPOSIT_AMOUNT: &str = "1000000000";
 
 pub const MERKORA_PATH: &str = "/tmp/merkora";
 pub const MERKORA_CONFIG_PATH: &str = "/tmp/merkora_config.yaml";
+pub const WAIT_TIME_FOR_MESSAGE_RELAY: u64 = 60; // in seconds
 pub const TWINE_SOLIDITY_CONTRACTS_DIR: &str = "/tmp/twine_solidity_contracts";
 pub const TWINE_SOLANA_CONTRACTS_DIR: &str = "/tmp/twine_native_solana_programs";
 

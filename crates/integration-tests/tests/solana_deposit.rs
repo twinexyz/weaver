@@ -3,7 +3,6 @@
 #[cfg(test)]
 mod solana_deposit {
     use std::time::Duration;
-    use std::vec;
 
     use eyre::Context;
     use log::info;
@@ -11,6 +10,7 @@ mod solana_deposit {
     use twine_integration_tests::cfg::{load_config, TestConfig};
     use twine_integration_tests::cleanup::{cleanup_step, cleanup_test_data};
     use twine_integration_tests::common::{start_service_step, stop_service_step, wait_step};
+    use twine_integration_tests::consts::WAIT_TIME_FOR_MESSAGE_RELAY;
     use twine_integration_tests::ctx::twine_ctx_keys;
     use twine_integration_tests::merkora::{make_merkora_subprocess_service, setup_merkora_config};
     use twine_integration_tests::nodes::{deploy_l1_nodes, kill_l1_nodes};
@@ -141,7 +141,7 @@ mod solana_deposit {
 
         // Wait for message processing
         harness.add_step(wait_step(
-            Duration::from_secs(60),
+            Duration::from_secs(WAIT_TIME_FOR_MESSAGE_RELAY),
             "Waiting for message delivery",
         ));
 

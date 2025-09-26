@@ -11,10 +11,9 @@ mod solana_refund_test {
     use twine_integration_tests::cfg::{load_config, TestConfig};
     use twine_integration_tests::cleanup::{cleanup_step, cleanup_test_data};
     use twine_integration_tests::common::{start_service_step, stop_service_step, wait_step};
+    use twine_integration_tests::consts::WAIT_TIME_FOR_MESSAGE_RELAY;
     use twine_integration_tests::ctx::twine_ctx_keys;
-    use twine_integration_tests::merkora::{
-        make_merkora_subprocess_service, prepare_merkora, setup_merkora_config,
-    };
+    use twine_integration_tests::merkora::{make_merkora_subprocess_service, setup_merkora_config};
     use twine_integration_tests::nodes::{deploy_l1_nodes, kill_l1_nodes};
     use twine_integration_tests::postgresql::setup_postgres_step;
     use twine_integration_tests::solana_programs::setup::get_message_hash;
@@ -28,7 +27,7 @@ mod solana_refund_test {
     use twine_integration_tests::twine::action::{
         query_refund_txn_status, verify_deposited_l2_balance,
     };
-    use twine_integration_tests::{consts, solana_programs, twine};
+    use twine_integration_tests::{solana_programs, twine};
 
     struct TestServices {
         merkora: SubProcessService,
@@ -157,7 +156,7 @@ mod solana_refund_test {
 
         // Wait for message processing
         harness.add_step(wait_step(
-            Duration::from_secs(60),
+            Duration::from_secs(WAIT_TIME_FOR_MESSAGE_RELAY),
             "Waiting for message delivery",
         ));
 
