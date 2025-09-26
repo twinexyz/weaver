@@ -2,17 +2,16 @@
 
 #[cfg(test)]
 mod solana_deposit {
-    use std::process::Command;
     use std::time::Duration;
     use std::vec;
 
-    use eyre::{eyre, Context};
-    use log::{error, info};
-    use test_harness::{AsyncFnStep, SubProcessService, TestHarness, TestStep};
+    use eyre::Context;
+    use log::info;
+    use test_harness::{SubProcessService, TestHarness};
     use twine_integration_tests::cfg::{load_config, TestConfig};
     use twine_integration_tests::cleanup::{cleanup_step, cleanup_test_data};
-    use twine_integration_tests::common::{start_service_step, stop_service_step};
-    use twine_integration_tests::ctx::*;
+    use twine_integration_tests::common::{start_service_step, stop_service_step, wait_step};
+    use twine_integration_tests::ctx::twine_ctx_keys;
     use twine_integration_tests::merkora::{prepare_merkora, setup_merkora_config};
     use twine_integration_tests::nodes::{deploy_l1_nodes, kill_l1_nodes};
     use twine_integration_tests::postgresql::setup_postgres_step;
@@ -23,6 +22,7 @@ mod solana_deposit {
         build_contracts_step, deploy_contracts_step, load_contract_addresses_step,
         prepare_contract_repo,
     };
+    use twine_integration_tests::twine::action::verify_deposited_l2_balance;
     use twine_integration_tests::{consts, solana_programs, twine};
 
     struct TestServices {
@@ -164,7 +164,10 @@ mod solana_deposit {
         ));
 
         // Verify L2 balance
-        harness.add_step(verify_l2_sol_balance_step()?);
+        harness.add_step(verify_deposited_l2_balance(
+            twine_ctx_keys::TWINE_SOL_TOKEN,
+            consts::TEST_DEPOSIT_AMOUNT.to_string(),
+        )?);
 
         // Cleanup
         harness.add_step(stop_service_step("Merkora", 0, None));
@@ -173,61 +176,5 @@ mod solana_deposit {
 
         harness.execute()?;
         Ok(())
-    }
-
-    fn verify_l2_sol_balance_step() -> eyre::Result<TestStep> {
-        Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
-            name: "Verify L2 balance".into(),
-            description: "Check SOL balance on L2".into(),
-            futurefn: Box::new(|ctx| {
-                Box::new(async move {
-                    let ctx = ctx.borrow();
-                    let random_address = ctx
-                        .get(common_ctx_keys::RANDOM_ADDRESS)
-                        .ok_or_else(|| eyre!("Random address not found in context"))?;
-                    let l2_sol_token = ctx
-                        .get(twine_ctx_keys::TWINE_SOL_TOKEN)
-                        .ok_or_else(|| eyre!("L2 SOL token address not found in context"))?;
-
-                    let output = Command::new("cast")
-                        .args([
-                            "call",
-                            l2_sol_token,
-                            "balanceOf(address)(uint256)",
-                            random_address,
-                            "--rpc-url",
-                            consts::TWINE_RPC_URL,
-                        ])
-                        .output()
-                        .context("Failed to check L2 balance")?;
-
-                    if !output.status.success() {
-                        let stderr = String::from_utf8_lossy(&output.stderr);
-                        return Err(eyre!("Balance check failed: {}", stderr));
-                    }
-
-                    let stdout = String::from_utf8_lossy(&output.stdout);
-                    info!("L2 balance check successful: {stdout}");
-                    if !(stdout.contains(consts::TEST_DEPOSIT_AMOUNT)) {
-                        error!("Balance not minted to address");
-                        return Err(eyre!("Balance check failed"));
-                    }
-                    Ok(())
-                })
-            }),
-        })))
-    }
-
-    fn wait_step(duration: Duration, desc: &str) -> TestStep {
-        TestStep::AsyncFn(Box::new(AsyncFnStep {
-            name: "Wait".into(),
-            description: desc.into(),
-            futurefn: Box::new(move |_ctx| {
-                Box::new(async move {
-                    tokio::time::sleep(duration).await;
-                    Ok(())
-                })
-            }),
-        }))
     }
 }
