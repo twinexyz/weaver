@@ -25,7 +25,8 @@ mod relay_to_twine {
         deposit_eth_step,
     };
     use twine_integration_tests::solidity_contracts::{
-        deploy_contracts_step, load_contract_addresses_step, prepare_contract_repo,
+        build_contracts_step, deploy_contracts_step, load_contract_addresses_step,
+        prepare_contract_repo,
     };
     use twine_integration_tests::twine::action::{
         query_refund_txn_status, verify_call_executed, verify_deposited_l2_balance,
@@ -107,7 +108,7 @@ mod relay_to_twine {
         harness.add_step(twine::setup::create_env_file_step(
             solidity_contracts.clone(),
         )?);
-        // harness.add_step(build_contracts_step(&solidity_contracts)?);
+        harness.add_step(build_contracts_step(&solidity_contracts)?);
         harness.add_step(deploy_contracts_step(&solidity_contracts)?);
         harness.add_step(load_contract_addresses_step(&solidity_contracts)?);
 

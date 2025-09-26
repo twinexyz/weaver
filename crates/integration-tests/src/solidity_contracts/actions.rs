@@ -185,7 +185,7 @@ pub fn deposit_and_call_eth_step() -> eyre::Result<TestStep> {
 pub fn deposit_eth_step() -> eyre::Result<TestStep> {
     Ok(async_step!(
         "Deposit ETH",
-        "Send ETH to L0 Gateway",
+        "Send ETH to L1 Gateway",
         |ctx| {
             let addr_str = generate_random_eth_address();
             ctx.borrow_mut()

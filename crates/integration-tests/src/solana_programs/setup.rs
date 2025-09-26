@@ -281,6 +281,7 @@ pub fn deposit_sol_step(
                     .stderr(Stdio::inherit())
                     .output()
                     .context("failed to run `make deposit-native-token`")?;
+
                 if !status.status.success() {
                     let stderr = String::from_utf8_lossy(&status.stderr);
                     return Err(eyre!("Solana SOL deposit failed: {stderr}"));
