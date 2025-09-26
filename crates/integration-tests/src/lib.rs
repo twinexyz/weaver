@@ -2,12 +2,16 @@
 #![allow(missing_docs)]
 #![allow(dead_code)]
 #![allow(unused_imports)]
+use std::path::PathBuf;
+use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use alloy_primitives::hex::FromHex;
 use alloy_primitives::Bytes;
+use eyre::{eyre, Context};
 use log::info;
 use ruzstd::encoding::{compress_to_vec, CompressionLevel};
+use test_harness::{AsyncFnStep, TestStep};
 
 pub mod cleanup;
 pub mod common;
@@ -59,4 +63,16 @@ fn zstd_compress(original: &str) -> Bytes {
     let k = source.0.iter().as_slice();
     let compressed = compress_to_vec(k, CompressionLevel::Fastest);
     compressed.into()
+}
+
+pub fn run_cmd(cmd: &str, args: Vec<String>) -> eyre::Result<String> {
+    let out = Command::new(cmd)
+        .args(args)
+        .output()
+        .context("Failed to execute command")?;
+    if !out.status.success() {
+        let stderr = String::from_utf8_lossy(&out.stderr);
+        return Err(eyre!("{cmd} failed: {stderr}"));
+    }
+    Ok(String::from_utf8_lossy(&out.stdout).into_owned())
 }

@@ -3,7 +3,7 @@ use std::process::Command;
 
 use alloy_primitives::Address;
 use log::{debug, info};
-use test_harness::{AsyncFnStep, TestStep};
+use test_harness::{AsyncFnStep, SubProcessService, TestStep};
 
 use crate::cfg::MerkoraConfig;
 use crate::git::{checkout_branch, clone_private_repo};
@@ -13,6 +13,28 @@ use crate::merkora::merkora_config::{
 use crate::{consts, ctx};
 
 mod merkora_config;
+
+pub fn make_merkora_subprocess_service(config: &MerkoraConfig) -> SubProcessService {
+    let binary_path = prepare_merkora(config);
+    debug!("Using merkora binary at: {}", binary_path);
+
+    SubProcessService {
+        name: "Merkora".into(),
+        description: "Merkora service".into(),
+        cmd_gen: Box::new(move |_ctx| {
+            vec![
+                binary_path.clone(),
+                "run".into(),
+                "-c".into(),
+                consts::MERKORA_CONFIG_PATH.into(),
+            ]
+        }),
+        child: None,
+        context_arena: None,
+        stdout_stream: None,
+        stderr_stream: None,
+    }
+}
 
 fn get_merkora_path(config: &MerkoraConfig) -> String {
     let merkora_path = if let Some(repo_path) = &config.repo_path {

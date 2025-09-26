@@ -2,33 +2,29 @@
 
 #[cfg(test)]
 mod eth_deposit_and_call_test {
-    use std::process::Command;
-    use std::time::{Duration, SystemTime, UNIX_EPOCH};
+    use std::time::Duration;
 
-    use eyre::{eyre, Context, Result};
+    use eyre::{Context, Result};
     use git2::Repository;
-    use log::{error, info};
-    use test_harness::{
-        AsyncFnStep, SubProcessService, SubProcessServiceStarter, SubProcessServiceStopper,
-        TestHarness, TestStep,
-    };
+    use test_harness::{SubProcessService, TestHarness};
     use twine_integration_tests::cfg::{load_config, TestConfig};
     use twine_integration_tests::cleanup::{cleanup_step, cleanup_test_data};
-    use twine_integration_tests::ctx::*;
-    use twine_integration_tests::merkora::setup_merkora_config;
+    use twine_integration_tests::common::{start_service_step, stop_service_step, wait_step};
+    use twine_integration_tests::consts;
+    use twine_integration_tests::consts::WAIT_TIME_FOR_MESSAGE_RELAY;
+    use twine_integration_tests::ctx::twine_ctx_keys;
+    use twine_integration_tests::merkora::{make_merkora_subprocess_service, setup_merkora_config};
     use twine_integration_tests::nodes::{deploy_l1_nodes, kill_l1_nodes};
     use twine_integration_tests::postgresql::setup_postgres_step;
+    use twine_integration_tests::solidity_contracts::actions::deposit_and_call_eth_step;
     use twine_integration_tests::solidity_contracts::{
         build_contracts_step, deploy_contracts_step, load_contract_addresses_step,
         prepare_contract_repo,
     };
+    use twine_integration_tests::twine::action::{
+        verify_call_executed, verify_deposited_l2_balance,
+    };
     use twine_integration_tests::twine::setup::deploy_cat_contract;
-    use twine_integration_tests::{consts, merkora};
-
-    // test specific constants
-    mod eth_deposit_constants {
-        pub(crate) const DEPOSIT_AMOUNT: &str = "1000000000000000000";
-    }
 
     struct TestServices {
         merkora: SubProcessService,
@@ -37,25 +33,7 @@ mod eth_deposit_and_call_test {
     impl TestServices {
         fn new(config: &TestConfig) -> Self {
             Self {
-                merkora: SubProcessService {
-                    name: "Merkora".into(),
-                    description: "Start merkora relayer".into(),
-                    cmd_gen: Box::new({
-                        let binary_path = merkora::prepare_merkora(&config.merkora);
-                        move |_ctx| {
-                            vec![
-                                binary_path.clone(),
-                                "run".into(),
-                                "-c".into(),
-                                consts::MERKORA_CONFIG_PATH.into(),
-                            ]
-                        }
-                    }),
-                    child: None,
-                    context_arena: None,
-                    stdout_stream: None,
-                    stderr_stream: None,
-                },
+                merkora: make_merkora_subprocess_service(&config.merkora),
             }
         }
     }
@@ -130,233 +108,28 @@ mod eth_deposit_and_call_test {
         harness.add_step(start_service_step("Merkora", 0, Duration::from_secs(10)));
 
         // Deposit eth
-        harness.add_step(deposit_eth_step()?);
+        harness.add_step(deposit_and_call_eth_step()?);
 
         // Wait till message processed
         harness.add_step(wait_step(
-            Duration::from_secs(60),
+            Duration::from_secs(WAIT_TIME_FOR_MESSAGE_RELAY),
             "wait for message processed",
         ));
 
         // Verify balance and call on L2
-        harness.add_step(verify_l2_balance_step()?);
+        harness.add_step(verify_deposited_l2_balance(
+            twine_ctx_keys::TWINE_ETH_TOKEN,
+            consts::TEST_DEPOSIT_AMOUNT.to_string(),
+        )?);
         harness.add_step(verify_call_executed()?);
 
         // Clean up
-        harness.add_step(stop_service_step("Merkora", 0));
+        harness.add_step(stop_service_step("Merkora", 0, None));
         harness.add_step(kill_l1_nodes()?);
         harness.add_step(cleanup_step()?);
 
         harness.execute()?;
 
         Ok(())
-    }
-
-    fn deposit_eth_step() -> eyre::Result<TestStep> {
-        Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
-            name: "Deposit ETH".to_string(),
-            description: "Send ETH to L1 Gateway".to_string(),
-            futurefn: Box::new(move |ctx| {
-                Box::new(async move {
-                    fn pseudo_random_bytes(mut seed: u64) -> [u8; 20] {
-                        let mut bytes = [0u8; 20];
-
-                        for byte in &mut bytes {
-                            seed ^= seed << 13;
-                            seed ^= seed >> 7;
-                            seed ^= seed << 17;
-                            *byte = (seed & 0xff) as u8;
-                        }
-
-                        bytes
-                    }
-
-                    let start = SystemTime::now();
-                    let since_epoch = start
-                        .duration_since(UNIX_EPOCH)
-                        .expect("Time went backwards");
-                    let seed = since_epoch.as_nanos() as u64;
-
-                    let addr_bytes = pseudo_random_bytes(seed);
-                    let addr_str = format!(
-                        "0x{}",
-                        addr_bytes
-                            .iter()
-                            .map(|b| format!("{b:02x}"))
-                            .collect::<String>()
-                    );
-
-                    {
-                        ctx.borrow_mut()
-                            .insert(common_ctx_keys::RANDOM_ADDRESS.into(), addr_str.clone());
-                    }
-
-                    let binding = ctx.borrow();
-                    let gateway = binding
-                        .get(ethereum_ctx_keys::ETHEREUM_ETH_GATEWAY)
-                        .unwrap();
-                    let compressed_calldata = binding
-                        .get(twine_ctx_keys::TWINE_CALL_PARAM_COMPRESSED)
-                        .unwrap();
-                    info!(
-                        "Depositing {} wei to L1 gateway for address {}",
-                        eth_deposit_constants::DEPOSIT_AMOUNT,
-                        addr_str
-                    );
-                    let mut cmd = Command::new("cast");
-                    let output = cmd
-                        .args([
-                            "send",
-                            gateway,
-                            "depositETHAndCall(address,uint256,uint256,bytes)",
-                            &addr_str,
-                            eth_deposit_constants::DEPOSIT_AMOUNT,
-                            "0",
-                            compressed_calldata,
-                            "--value",
-                            eth_deposit_constants::DEPOSIT_AMOUNT,
-                            "--private-key",
-                            "0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a",
-                            "--rpc-url",
-                            consts::RETH_RPC_URL,
-                        ])
-                        .output()
-                        .context("Failed to execute ETH deposit command")?;
-
-                    if !output.status.success() {
-                        let stderr = String::from_utf8_lossy(&output.stderr);
-                        error!("ETH deposit command failed: {stderr}");
-                        return Err(eyre!("ETH deposit command failed"));
-                    }
-
-                    Ok(())
-                })
-            }),
-        })))
-    }
-
-    fn verify_l2_balance_step() -> eyre::Result<TestStep> {
-        Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
-            name: "Verify L2 balance".into(),
-            description: "Check ETH balance on L2".into(),
-            futurefn: Box::new(|ctx| {
-                Box::new(async move {
-                    let ctx = ctx.borrow();
-
-                    let random_address = ctx
-                        .get(common_ctx_keys::RANDOM_ADDRESS)
-                        .ok_or_else(|| eyre!("Random address not found in context"))?;
-
-                    let l2_eth_token = ctx
-                        .get(twine_ctx_keys::TWINE_ETH_TOKEN)
-                        .ok_or_else(|| eyre!("L2 ETH token address not found in context"))?;
-
-                    let output = Command::new("cast")
-                        .args([
-                            "call",
-                            l2_eth_token,
-                            "balanceOf(address)(uint256)",
-                            random_address,
-                            "--rpc-url",
-                            consts::TWINE_RPC_URL,
-                        ])
-                        .output()
-                        .context("Failed to check L2 balance")?;
-
-                    if !output.status.success() {
-                        let stderr = String::from_utf8_lossy(&output.stderr);
-                        return Err(eyre!("Balance check failed: {}", stderr));
-                    }
-
-                    let stdout = String::from_utf8_lossy(&output.stdout);
-                    if stdout.contains(eth_deposit_constants::DEPOSIT_AMOUNT) {
-                        info!("L2 balance check successful: {stdout}");
-                        return Ok(());
-                    }
-
-                    info!(
-                        "L2 balance check failed. expected {}, got {}",
-                        eth_deposit_constants::DEPOSIT_AMOUNT,
-                        stdout
-                    );
-                    Err(eyre!("Failed to verify balance"))
-                })
-            }),
-        })))
-    }
-
-    fn verify_call_executed() -> eyre::Result<TestStep> {
-        Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
-            name: "Verify L2 balance".into(),
-            description: "Check SOL balance on L2".into(),
-            futurefn: Box::new(|ctx| {
-                Box::new(async move {
-                    let ctx = ctx.borrow();
-                    let cat_address = ctx
-                        .get(twine_ctx_keys::TWINE_CAT_CONTRACT)
-                        .ok_or_else(|| eyre!("Cat address not found in context"))?;
-                    let expected_value = ctx
-                        .get(twine_ctx_keys::SETTER_VALUE)
-                        .ok_or_else(|| eyre!("L2 call param not found in context"))?;
-
-                    let output = Command::new("cast")
-                        .args([
-                            "call",
-                            cat_address,
-                            "getRecording()(bytes)",
-                            "--rpc-url",
-                            consts::TWINE_RPC_URL,
-                        ])
-                        .output()
-                        .context("Failed to check L2 balance")?;
-
-                    if !output.status.success() {
-                        let stderr = String::from_utf8_lossy(&output.stderr);
-                        return Err(eyre!("Balance check failed: {stderr}"));
-                    }
-
-                    let stdout = String::from_utf8_lossy(&output.stdout);
-                    info!("Value written to contract: {stdout}");
-                    if !(stdout.contains(expected_value)) {
-                        error!("Contract Call Failed!");
-                        return Err(eyre!("Contract call failed"));
-                    }
-                    Ok(())
-                })
-            }),
-        })))
-    }
-
-    // Helper functions for creating test steps
-    fn start_service_step(name: &str, idx: usize, wait: Duration) -> TestStep {
-        TestStep::Service(Box::new(SubProcessServiceStarter {
-            name: name.to_string(),
-            description: format!("Starts {name}"),
-            service_idx: idx,
-            wait_after: Some(wait),
-        }))
-    }
-
-    // Helper functions to stop test service
-    fn stop_service_step(name: &str, idx: usize) -> TestStep {
-        TestStep::Service(Box::new(SubProcessServiceStopper {
-            name: name.to_string(),
-            description: format!("Stops {name}"),
-            service_idx: idx,
-            wait_after: None,
-        }))
-    }
-
-    fn wait_step(duration: Duration, desc: &str) -> TestStep {
-        TestStep::AsyncFn(Box::new(AsyncFnStep {
-            name: "Wait".into(),
-            description: desc.into(),
-            futurefn: Box::new(move |_ctx| {
-                Box::new(async move {
-                    tokio::time::sleep(duration).await;
-                    Ok(())
-                })
-            }),
-        }))
     }
 }
