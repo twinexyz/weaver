@@ -14,13 +14,13 @@ use tracing::info;
 use tracing_subscriber::EnvFilter;
 use twine_l1_eth_writer::fees::FeeConfig;
 use twine_l1_eth_writer::service::{TransactionService, TransactionServiceConfig};
-use twine_l1_eth_writer::transaction::EthereumTransaction;
+use twine_l1_eth_writer::transaction::{EthereumTransaction, TransactionStatus};
 
 #[path = "helpers.rs"]
 mod helpers;
 use helpers::{make_storage, wait_for_receipt, ANVIL_CHAIN_ID, TEST_PRIVATE_KEY};
 
-#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[tokio::test]
 async fn increments_sequential_counter() -> eyre::Result<()> {
     let _ = tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env())
@@ -33,8 +33,10 @@ async fn increments_sequential_counter() -> eyre::Result<()> {
         .try_spawn()?;
     let provider = ProviderBuilder::new().on_http(anvil.endpoint_url());
 
-    // let rpc_url = "http://127.0.0.1:8570".parse().unwrap();
+    // let rpc_url = "http://127.0.0.1:8545".parse().unwrap();
     // let provider = ProviderBuilder::new().on_http(rpc_url);
+
+    let chain_id = provider.get_chain_id().await?;
 
     let dyn_provider = DynProvider::new(provider);
     let (_storage_backend, storage) = make_storage();
@@ -63,7 +65,7 @@ async fn increments_sequential_counter() -> eyre::Result<()> {
         .submit_transaction(EthereumTransaction::new(
             TxKind::Create,
             Bytes::from(bytecode),
-            ChainId::from(ANVIL_CHAIN_ID),
+            ChainId::from(chain_id),
             3_000_000,
             U256::ZERO,
         ))
@@ -94,7 +96,7 @@ async fn increments_sequential_counter() -> eyre::Result<()> {
         let tx = EthereumTransaction::new_txn_with_sim_skip(
             TxKind::Call(contract_address),
             input,
-            ChainId::from(ANVIL_CHAIN_ID),
+            ChainId::from(chain_id),
             100_000,
             U256::ZERO,
         );
@@ -111,14 +113,12 @@ async fn increments_sequential_counter() -> eyre::Result<()> {
 
     timeout(Duration::from_secs(120), async {
         for tx_id in pending {
-            if let Some(mut response) = handle.subscribe(tx_id).await? {
-                while let Ok(status) = response.recv().await {
-                    if status.is_failed() {
-                        return Err(eyre!("transaction {tx_id:?} failed: {status:?}"));
-                    }
-                    if status.is_confirmed() {
-                        break;
-                    }
+            match handle.subscribe(tx_id).await? {
+                TransactionStatus::Confirmed(_) => {}
+                status => {
+                    return Err(eyre!(
+                        "transaction {tx_id:?} finished with unexpected status: {status:?}"
+                    ));
                 }
             }
         }

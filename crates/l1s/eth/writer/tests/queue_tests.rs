@@ -15,7 +15,7 @@ use twine_l1_eth_writer::service::{TransactionService, TransactionServiceConfig}
 mod helpers;
 use helpers::{make_storage, make_transfer, ANVIL_CHAIN_ID, RECIPIENT_ADDRESS, TEST_PRIVATE_KEY};
 
-#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[tokio::test]
 async fn rejects_when_queue_is_full() -> eyre::Result<()> {
     let _ = tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env())

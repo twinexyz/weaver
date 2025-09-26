@@ -21,11 +21,11 @@ use twine_l1_eth_writer::service::{TransactionService, TransactionServiceConfig}
 #[path = "helpers.rs"]
 mod helpers;
 use helpers::{
-    make_storage, make_transfer, random_transfer_value, spawn_status_logger, ANVIL_CHAIN_ID,
-    RECIPIENT_ADDRESS, TEST_PRIVATE_KEY,
+    make_storage, make_transfer, random_transfer_value, ANVIL_CHAIN_ID, RECIPIENT_ADDRESS,
+    TEST_PRIVATE_KEY,
 };
 
-#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[tokio::test]
 async fn processes_queued_transactions_against_anvil() -> eyre::Result<()> {
     let _ = tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env())
@@ -41,6 +41,8 @@ async fn processes_queued_transactions_against_anvil() -> eyre::Result<()> {
 
     let provider = ProviderBuilder::new().on_http(anvil.endpoint_url());
     let dyn_provider = DynProvider::new(provider);
+
+    let chain_id = dyn_provider.get_chain_id().await?;
 
     let signer = PrivateKeySigner::from_bytes(&B256::from_hex(TEST_PRIVATE_KEY)?)
         .wrap_err("invalid test private key")?;
@@ -76,7 +78,7 @@ async fn processes_queued_transactions_against_anvil() -> eyre::Result<()> {
         let tx = make_transfer(recipient, value);
         total_value += value;
         tracked_txs.push(tx.id);
-        storage_backend.enqueue(ANVIL_CHAIN_ID, tx);
+        storage_backend.enqueue(chain_id, tx);
     }
     info!(
         count = tracked_txs.len(),
@@ -101,24 +103,13 @@ async fn processes_queued_transactions_against_anvil() -> eyre::Result<()> {
         service.await;
     });
     info!("transaction service task spawned");
-    let mut status_tasks = Vec::new();
-    for &tx_id in &tracked_txs {
-        match handle.subscribe(tx_id).await? {
-            Some(rx) => {
-                status_tasks.push(spawn_status_logger(tx_id, rx));
-            }
-            None => info!(?tx_id, "no status channel available for transaction"),
-        }
-    }
-
     for _ in 0..SUBMITTED_TX_COUNT {
         let value = random_transfer_value(&mut rng);
         let tx = make_transfer(recipient, value);
         let tx_id = tx.id;
-        let rx = handle.submit_transaction(tx).await?;
+        _ = handle.submit_transaction(tx).await?;
         total_value += value;
         tracked_txs.push(tx_id);
-        status_tasks.push(spawn_status_logger(tx_id, rx));
     }
 
     info!(
@@ -181,10 +172,6 @@ async fn processes_queued_transactions_against_anvil() -> eyre::Result<()> {
         nonce >= (SUBMITTED_TX_COUNT + QUEUED_TX_COUNT).try_into().unwrap(),
         "Nonce count error"
     );
-
-    for task in status_tasks {
-        task.abort();
-    }
 
     Ok(())
 }
