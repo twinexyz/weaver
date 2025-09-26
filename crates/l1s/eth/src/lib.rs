@@ -6,6 +6,7 @@ use alloy_rpc_types::{TransactionReceipt, TransactionRequest};
 use eyre::{eyre, Context};
 use tokio::sync::broadcast;
 use twine_l1_eth_reader::EthReaderBuilder;
+use twine_l1_eth_writer::transaction::wait_for_receipt;
 use twine_l1_eth_writer::{
     EthereumTransaction, FeeConfig, TransactionService, TransactionServiceConfig,
     TransactionServiceHandle, TransactionStatus, TransactionStorage,
@@ -13,13 +14,14 @@ use twine_l1_eth_writer::{
 pub use {twine_l1_eth_reader, twine_l1_eth_writer};
 
 /// Ethereum Client
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, derive_more::Deref)]
 pub struct EthClient {
     /// Query ethereum chain
     pub reader: twine_l1_eth_reader::EthReader,
     /// Shared provider for the transaction service and contract interactions
     pub provider: DynProvider,
     /// Handle to the transaction service
+    #[deref]
     pub transaction_service: TransactionServiceHandle,
     /// Backing storage used by the transaction service
     pub storage: TransactionStorage,
@@ -42,7 +44,7 @@ impl EthClient {
             .await
             .context("Failed to fetch chain id from provider")?;
 
-        let actual_chain_id = if let Some(chain_id) = chain_id {
+        let chain_id_to_use = if let Some(chain_id) = chain_id {
             if resolved_chain_id != chain_id && resolved_chain_id != 1337 {
                 return Err(eyre!(
                     "Invalid chain_id. Received {} from RPC, expected {}",
@@ -56,7 +58,7 @@ impl EthClient {
         };
 
         let reader_builder = EthReaderBuilder::new().with_execution_rpc(rpc_url);
-        let reader = reader_builder.build_with_chain_id(actual_chain_id).await?;
+        let reader = reader_builder.build_with_chain_id(chain_id_to_use).await?;
 
         let storage = TransactionStorage::in_memory();
         let (service, transaction_service) = TransactionService::new(
@@ -76,7 +78,7 @@ impl EthClient {
             provider: dyn_provider,
             transaction_service,
             storage,
-            chain_id: actual_chain_id,
+            chain_id: chain_id_to_use,
         })
     }
 
@@ -130,23 +132,5 @@ impl EthClient {
         }
 
         Ok(tx)
-    }
-}
-
-async fn wait_for_receipt(
-    mut receiver: broadcast::Receiver<TransactionStatus>,
-) -> eyre::Result<TransactionReceipt> {
-    loop {
-        match receiver.recv().await {
-            Ok(TransactionStatus::Confirmed(receipt)) => return Ok(*receipt),
-            Ok(TransactionStatus::Failed(err)) => {
-                return Err(eyre!("transaction failed: {err}"));
-            }
-            Ok(TransactionStatus::Pending(_)) | Ok(TransactionStatus::InFlight) => continue,
-            Err(broadcast::error::RecvError::Closed) => {
-                return Err(eyre!("transaction status channel closed"));
-            }
-            Err(broadcast::error::RecvError::Lagged(_)) => continue,
-        }
     }
 }

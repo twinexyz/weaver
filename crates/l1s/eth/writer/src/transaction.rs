@@ -10,6 +10,7 @@ use alloy_provider::{DynProvider, Provider};
 use alloy_rpc_types::{TransactionReceipt, TransactionRequest};
 use alloy_transport::{RpcError, TransportErrorKind};
 use chrono::{DateTime, Utc};
+use tokio::sync::broadcast;
 
 wrap_fixed_bytes! {
     /// An id of the transaction being handled
@@ -62,6 +63,23 @@ impl TransactionStatus {
             Self::Pending(hash) => Some(*hash),
             Self::Confirmed(receipt) => Some(receipt.transaction_hash),
             _ => None,
+        }
+    }
+}
+
+/// Wait for receipt
+pub async fn wait_for_receipt(
+    mut rx: broadcast::Receiver<TransactionStatus>,
+) -> eyre::Result<TransactionReceipt> {
+    loop {
+        match rx.recv().await {
+            Ok(TransactionStatus::Confirmed(receipt)) => return Ok(*receipt),
+            Ok(TransactionStatus::Failed(err)) =>
+                return Err(eyre::eyre!("transaction failed: {err}")),
+            Ok(_) => continue,
+            Err(broadcast::error::RecvError::Closed) =>
+                return Err(eyre::eyre!("status channel closed")),
+            Err(broadcast::error::RecvError::Lagged(_)) => continue,
         }
     }
 }

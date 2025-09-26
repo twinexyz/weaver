@@ -3,6 +3,7 @@ use std::str::FromStr;
 use alloy_primitives::hex::FromHex;
 use alloy_primitives::{address, Address, Bytes, B256, U256};
 use alloy_sol_types::{sol, SolType};
+use eyre::eyre;
 use log::info;
 use twine_evm_contracts::l2_twine_messenger::L1Txns;
 use twine_l1_eth::EthClient;
@@ -103,18 +104,24 @@ async fn precompile_correct_execution() -> eyre::Result<()> {
     let private_key = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
     let rpc_url = "http://127.0.0.1:8545";
 
-    let eth_writer = EthClient::new(private_key, rpc_url, None).await?;
+    let eth_writer = EthClient::new(rpc_url, private_key, None).await?;
     let provider = eth_writer.provider.clone();
     info!("Provider setup");
 
-    let precompile_caller = PrecompileCaller::deploy(&provider).await?;
-    let addr = precompile_caller.address();
+    let deploy_builder = PrecompileCaller::deploy_builder(provider.clone());
+    let deploy_tx = deploy_builder.into_transaction_request();
+    let deploy_receipt = eth_writer
+        .submit_transaction_request_and_wait(deploy_tx)
+        .await?;
+    let addr = deploy_receipt
+        .contract_address
+        .ok_or_else(|| eyre!("contract deployment missing address"))?;
     info!("Precompile calling contract deployed at {}", addr);
 
     info!("Testing ethereum transaction precompile");
-    handle_ethereum_precompile(&eth_writer, addr).await?;
+    handle_ethereum_precompile(&eth_writer, &addr).await?;
     info!("Testing solana transaction precompile");
-    handle_solana_precompile(&eth_writer, addr).await?;
+    handle_solana_precompile(&eth_writer, &addr).await?;
 
     Ok(())
 }

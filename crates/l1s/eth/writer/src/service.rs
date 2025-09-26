@@ -10,7 +10,6 @@ use std::time::Duration;
 use alloy_provider::{DynProvider, Provider};
 use eyre::{eyre, WrapErr};
 use serde::{Deserialize, Serialize};
-use tokio::runtime::Handle;
 use tokio::sync::{broadcast, mpsc, oneshot};
 use tokio::task::JoinSet;
 use tracing::{debug, error, info, warn};
@@ -40,6 +39,18 @@ pub enum TransactionServiceMessage {
         TxId,
         oneshot::Sender<Option<broadcast::Receiver<TransactionStatus>>>,
     ),
+}
+
+/// Errors that may occur when interacting with the [`TransactionService`].
+#[derive(Debug, thiserror::Error)]
+pub enum TransactionServiceError {
+    /// Error occurred while interacting with storage.
+    #[error(transparent)]
+    Storage(#[from] StorageError),
+
+    /// Failed to wait for transaction.
+    #[error("failed to wait for transaction")]
+    FailedToWaitForTransaction,
 }
 
 /// Handle to communicate with the [`TransactionService`].
@@ -84,16 +95,30 @@ impl TransactionServiceHandle {
     pub async fn subscribe(
         &self,
         tx_id: TxId,
-    ) -> eyre::Result<Option<broadcast::Receiver<TransactionStatus>>> {
+    ) -> Result<TransactionStatus, TransactionServiceError> {
         let (resp_tx, resp_rx) = oneshot::channel();
-        self.command_tx
+        let _ = self
+            .command_tx
             .send(TransactionServiceMessage::Subscribe(tx_id, resp_tx))
-            .await
-            .map_err(|err| eyre!("transaction service command channel closed: {err}"))?;
+            .await;
+        let status_rx = resp_rx.await.ok().flatten();
 
-        resp_rx
-            .await
-            .map_err(|err| eyre!("transaction service dropped subscription response: {err}"))
+        // Now check the status in storage
+        if let Some((_, status)) = self.storage.read_transaction_status(*tx_id).await? {
+            if status.is_final() {
+                return Ok(status);
+            }
+        }
+
+        if let Some(mut events) = status_rx {
+            while let Ok(status) = events.recv().await {
+                if status.is_final() {
+                    return Ok(status);
+                }
+            }
+        }
+
+        Err(TransactionServiceError::FailedToWaitForTransaction)
     }
 }
 
@@ -117,8 +142,6 @@ pub struct TransactionService {
     metrics: Arc<TransactionServiceMetrics>,
     /// Queue of transactions waiting for signers capacity.
     queue: TxQueue,
-    /// Storage of the relay.
-    storage: TransactionStorage,
     /// Set of spawned tasks that are terminated when the service is dropped.
     tasks: JoinSet<Result<(), StorageError>>,
 }
@@ -163,7 +186,6 @@ impl TransactionService {
             subscriptions: Default::default(),
             metrics: cloned_metrics2,
             queue: TxQueue::with_capacity(config.max_queued_transactions),
-            storage: storage.clone(),
             tasks: JoinSet::new(),
         };
 
@@ -246,21 +268,6 @@ impl TransactionService {
 
     /// Pushes a transaction to the queue.
     fn push_to_queue(&mut self, tx: EthereumTransaction) -> eyre::Result<()> {
-        let tx_id = tx.id;
-        let tx_hash = tx_id.into();
-        let storage = self.storage.clone();
-        let existing = tokio::task::block_in_place(move || {
-            Handle::current()
-                .block_on(storage.read_transaction_status(tx_hash))
-                .ok()
-                .flatten()
-        });
-
-        if let Some((_, status)) = existing {
-            tracing::info!(?status, "transaction already in storage. skipping..");
-            return Ok(());
-        }
-
         match self.queue.push_transaction(tx) {
             Ok(queued) => {
                 if queued {
