@@ -2,7 +2,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use alloy_primitives::TxHash;
-use alloy_provider::Provider;
+use alloy_provider::{DynProvider, Provider};
 use alloy_rpc_types::TransactionRequest;
 use eyre::Result;
 use reth_tracing::tracing::{debug, error, info, warn};
@@ -33,7 +33,7 @@ pub struct TransactionProcessor {
     pub query_client: EthQueryExecutionClient,
     pub max_retries: i32,
     pub retry_delay: Duration,
-    pub provider: Arc<dyn Provider + Send + Sync>,
+    pub provider: Arc<DynProvider>,
     pub chain_id: u64,
 }
 
@@ -43,7 +43,7 @@ impl TransactionProcessor {
         query_client: EthQueryExecutionClient,
         max_retries: i32,
         retry_delay: Duration,
-        provider: Arc<dyn Provider + Send + Sync>,
+        provider: Arc<DynProvider>,
         chain_id: u64,
     ) -> Self {
         Self {

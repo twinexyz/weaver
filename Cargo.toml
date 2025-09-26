@@ -134,7 +134,6 @@ borsh0_10 = { package = "borsh", version = "0.10.3" }
 borsh0_9 = { package = "borsh", version = "0.9.3" }
 bs58 = "0.4.0"
 bytemuck = { version = "1.14.0", features = ["derive"] }
-chrono = { version = "0.4", features = ["serde"] }
 num-derive = "0.4"
 num-traits = { version = "0.2", features = ["i128"] }
 sha2_solana = { package = "sha2", git = "https://github.com/sp1-patches/RustCrypto-hashes", tag = "patch-0.10.8-sp1-4.0.0-rc.3" }

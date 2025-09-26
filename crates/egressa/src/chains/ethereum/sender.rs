@@ -1,9 +1,12 @@
 use std::str::FromStr as _;
+use std::sync::Arc;
 use std::time::Duration;
 
 use alloy_primitives::{Address, Bytes};
+use alloy_provider::{DynProvider, ProviderBuilder};
+use alloy_signer_local::PrivateKeySigner;
 use async_trait::async_trait;
-use eyre::ContextCompat as _;
+use eyre::{Context as _, ContextCompat as _};
 use reth_tracing::tracing::info;
 use twine_evm_contracts::twine_chain::TwineChain;
 use twine_l1_eth::EthClient;
@@ -31,6 +34,9 @@ pub struct EthereumSender {
 
     /// Relayer address
     pub relayer_address: Address,
+
+    /// Provider
+    pub provider: Arc<DynProvider>,
 }
 
 impl EthereumSender {
@@ -41,9 +47,23 @@ impl EthereumSender {
         private_key: &str,
         contracts_config: EvmContracts,
     ) -> eyre::Result<Self> {
-        let client = EthClient::new(http_rpc_url, private_key, chain_id).await?;
+        let client = EthClient::new(http_rpc_url, private_key, Some(chain_id)).await?;
 
-        let writer = client.clone().writer;
+        let relayer_signer: PrivateKeySigner = private_key
+            .trim_start_matches("0x")
+            .parse()
+            .map_err(|e| eyre::eyre!(format!("Couldn't parse private key: {e}")))?;
+
+        let relayer_address = relayer_signer.address();
+
+        info!("relayer_address: {}", relayer_address);
+
+        let provider = DynProvider::new(
+            ProviderBuilder::new()
+                .wallet(relayer_signer)
+                .on_http(http_rpc_url.parse().context("Invalid RPC URL")?),
+        );
+
         let query_client = client
             .clone()
             .reader
@@ -54,11 +74,12 @@ impl EthereumSender {
 
         let transaction_builder =
             TransactionBuilder::new(query_client.clone(), contracts_config.clone(), chain_id);
+
         let transaction_processor = TransactionProcessor::new(
             query_client.clone(),
             10,
             Duration::from_secs(1),
-            writer.provider.clone(),
+            Arc::new(provider.clone()),
             chain_id,
         );
 
@@ -68,7 +89,8 @@ impl EthereumSender {
             chain_id,
             inner: client,
             contracts_config,
-            relayer_address: writer.signer,
+            relayer_address,
+            provider: Arc::new(provider),
         })
     }
 
@@ -78,8 +100,7 @@ impl EthereumSender {
     }
 
     async fn is_forced_withdraw_executed(&self, public_values: Bytes) -> eyre::Result<bool> {
-        let twine_chain =
-            TwineChain::new(self.get_twine_chain_address(), &self.inner.writer.provider);
+        let twine_chain = TwineChain::new(self.get_twine_chain_address(), &self.provider);
 
         // Hash the public values to get a 32-byte hash
         let hash = alloy_primitives::keccak256(public_values.as_ref());
@@ -92,8 +113,7 @@ impl EthereumSender {
     }
 
     async fn is_refund_deposit_executed(&self, public_values: Bytes) -> eyre::Result<bool> {
-        let twine_chain =
-            TwineChain::new(self.get_twine_chain_address(), &self.inner.writer.provider);
+        let twine_chain = TwineChain::new(self.get_twine_chain_address(), &self.provider);
 
         // Hash the public values to get a 32-byte hash
         let hash = alloy_primitives::keccak256(public_values.as_ref());
@@ -106,8 +126,7 @@ impl EthereumSender {
     }
 
     async fn is_l2_withdraw_executed(&self, public_values: Bytes) -> eyre::Result<bool> {
-        let twine_chain =
-            TwineChain::new(self.get_twine_chain_address(), &self.inner.writer.provider);
+        let twine_chain = TwineChain::new(self.get_twine_chain_address(), &self.provider);
 
         // Hash the public values to get a 32-byte hash
         let hash = alloy_primitives::keccak256(public_values.as_ref());
