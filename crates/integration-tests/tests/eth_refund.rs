@@ -6,6 +6,7 @@ mod eth_refund_test {
 
     use eyre::{Context, Result};
     use git2::Repository;
+    use serde::Deserialize;
     use test_harness::{SubProcessService, TestHarness};
     use twine_integration_tests::cfg::{load_config, TestConfig};
     use twine_integration_tests::cleanup::{cleanup_step, cleanup_test_data};

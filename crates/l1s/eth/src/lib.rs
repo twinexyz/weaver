@@ -36,7 +36,8 @@ impl EthClient {
         private_key: &str,
         chain_id: Option<u64>,
     ) -> eyre::Result<EthClient> {
-        let provider = ProviderBuilder::new().on_http(rpc_url.parse().context("Invalid RPC URL")?);
+        let provider =
+            ProviderBuilder::new().connect_http(rpc_url.parse().context("Invalid RPC URL")?);
         let dyn_provider = DynProvider::new(provider);
 
         let resolved_chain_id = dyn_provider
