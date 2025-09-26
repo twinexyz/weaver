@@ -4,7 +4,7 @@
 mod eth_refund_test {
     use std::process::Command;
     use std::str::FromStr;
-    use std::time::{Duration, SystemTime, UNIX_EPOCH};
+    use std::time::Duration;
 
     use alloy_primitives::{hex, B256};
     use alloy_sol_types::SolEvent;
@@ -29,7 +29,7 @@ mod eth_refund_test {
         prepare_contract_repo,
     };
     use twine_integration_tests::twine::setup::deploy_cat_contract;
-    use twine_integration_tests::{consts, merkora};
+    use twine_integration_tests::{consts, generate_random_eth_address, merkora};
 
     // test specific constants
     mod eth_deposit_constants {
@@ -272,38 +272,9 @@ mod eth_refund_test {
             description: "Send ETH to L1 Gateway".to_string(),
             futurefn: Box::new(move |ctx| {
                 Box::new(async move {
-                    fn pseudo_random_bytes(mut seed: u64) -> [u8; 20] {
-                        let mut bytes = [0u8; 20];
-
-                        for byte in &mut bytes {
-                            seed ^= seed << 13;
-                            seed ^= seed >> 7;
-                            seed ^= seed << 17;
-                            *byte = (seed & 0xff) as u8;
-                        }
-
-                        bytes
-                    }
-
-                    let start = SystemTime::now();
-                    let since_epoch = start
-                        .duration_since(UNIX_EPOCH)
-                        .expect("Time went backwards");
-                    let seed = since_epoch.as_nanos() as u64;
-
-                    let addr_bytes = pseudo_random_bytes(seed);
-                    let addr_str = format!(
-                        "0x{}",
-                        addr_bytes
-                            .iter()
-                            .map(|b| format!("{b:02x}"))
-                            .collect::<String>()
-                    );
-
-                    {
-                        ctx.borrow_mut()
-                            .insert(common_ctx_keys::RANDOM_ADDRESS.into(), addr_str.clone());
-                    }
+                    let addr_str = generate_random_eth_address();
+                    ctx.borrow_mut()
+                        .insert(common_ctx_keys::RANDOM_ADDRESS.into(), addr_str.clone());
 
                     let binding = ctx.borrow();
                     let gateway = binding
@@ -313,7 +284,7 @@ mod eth_refund_test {
 
                     info!(
                         "Depositing {} wei to L1 gateway for address {}",
-                        eth_deposit_constants::DEPOSIT_AMOUNT,
+                        consts::TEST_DEPOSIT_AMOUNT,
                         addr_str
                     );
                     let mut cmd = Command::new("cast");
@@ -323,11 +294,11 @@ mod eth_refund_test {
                             gateway,
                             "depositETHAndCall(address,uint256,uint256,bytes)",
                             &addr_str,
-                            eth_deposit_constants::DEPOSIT_AMOUNT,
+                            consts::TEST_DEPOSIT_AMOUNT,
                             "0",
                             &garbage_calldata,
                             "--value",
-                            eth_deposit_constants::DEPOSIT_AMOUNT,
+                            consts::TEST_DEPOSIT_AMOUNT,
                             "--private-key",
                             "0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a",
                             "--rpc-url",

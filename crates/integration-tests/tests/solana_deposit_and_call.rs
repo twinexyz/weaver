@@ -217,7 +217,7 @@ mod solana_deposit_and_call_test {
 
                     let stdout = String::from_utf8_lossy(&output.stdout);
                     info!("L2 balance check successful: {stdout}");
-                    if !(stdout.contains(consts::SOLANA_DEPOSIT_AMOUNT)) {
+                    if !(stdout.contains(consts::TEST_DEPOSIT_AMOUNT)) {
                         error!("Balance not minted to address");
                         return Err(eyre!("Balance check failed"));
                     }

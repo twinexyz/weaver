@@ -2,14 +2,37 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
 use eyre::{eyre, Context, ContextCompat, Ok};
-use log::info;
+use log::{error, info};
 use regex::Regex;
+use serde::Deserialize;
+use serde_json::Value as JsonValue;
 use test_harness::{AsyncFnStep, TestStep};
+use twine_evm_contracts::l2_twine_messenger::TwineTypes::MessageData;
 
 use super::SolanaTestType;
-use crate::ctx::{common_ctx_keys, solana_ctx_keys, twine_ctx_keys};
-// use crate::solana_programs::scripts::load_solana_program_pubkeys;
-use crate::{consts, generate_random_eth_address, twine};
+use crate::ctx::{common_ctx_keys, ctx_get, solana_ctx_keys, twine_ctx_keys};
+use crate::{async_step, consts, generate_random_eth_address, run_cmd, twine};
+
+const PROGRAM_LOG_PREFIX: &str = "Program log: ";
+/// Name of the message event for solana
+const MESSAGE_TRANSACTION: &str = "MessageTransaction";
+
+#[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
+struct SolanaEvent {
+    pub event: String,
+    pub nonce: u64,
+    pub l1_pubkey: String,
+    pub twine_address: String,
+    pub l1_token: String,
+    pub l2_token: String,
+    pub chain_id: u64,
+    pub amount: String,
+    pub data: Vec<u8>, // hex decoded bytes
+    pub message_type: String,
+    pub slot_number: u64,
+    pub previous_rolling_hash: [u8; 32],
+}
 
 /// Set solana config
 pub fn set_solana_config_step() -> eyre::Result<TestStep> {
@@ -249,7 +272,7 @@ pub fn deposit_sol_step(
                 let status = Command::new("make")
                     .args([
                         "deposit-native-token",
-                        &format!("amount={}", consts::SOLANA_DEPOSIT_AMOUNT),
+                        &format!("amount={}", consts::TEST_DEPOSIT_AMOUNT),
                         &format!("receiver_address={}", ethereum_address),
                         &format!("l2_token={}", l2_token),
                         &calldata,
@@ -258,7 +281,6 @@ pub fn deposit_sol_step(
                     .stderr(Stdio::inherit())
                     .output()
                     .context("failed to run `make deposit-native-token`")?;
-
                 if !status.status.success() {
                     let stderr = String::from_utf8_lossy(&status.stderr);
                     return Err(eyre!("Solana SOL deposit failed: {stderr}"));
@@ -276,4 +298,83 @@ pub fn deposit_sol_step(
             })
         }),
     })))
+}
+
+pub fn get_message_hash() -> eyre::Result<TestStep> {
+    Ok(async_step!(
+        "Get message hash",
+        "Retrieve message hash from transaction",
+        |ctx| {
+            let mut bindings = ctx.borrow_mut();
+            // Get the transaction using curl and getTransaction json rpc method
+            let tx_signature = ctx_get(&bindings, solana_ctx_keys::SOLANA_TX_SIGNATURE)?;
+            let payload = format!(
+                r#"{{"jsonrpc":"2.0","id":1,"method":"getTransaction","params":["{tx_signature}"]}}"#
+            );
+            let args = [
+                "-X",
+                "POST",
+                "-H",
+                "Content-Type: application/json",
+                "-d",
+                &payload,
+                consts::SOLANA_RPC_URL,
+            ]
+            .map(String::from)
+            .to_vec();
+            let stdout = run_cmd("curl", args)?;
+
+            let response: JsonValue =
+                serde_json::from_str(&stdout).context("Failed to parse JSON response")?;
+            let logs = response["result"]["meta"]["logMessages"]
+                .as_array()
+                .ok_or_else(|| eyre!("Could not find logs array in transaction response"))?;
+
+            for log in logs {
+                if let Some(msg) = log.as_str() {
+                    if msg.contains(PROGRAM_LOG_PREFIX) {
+                        let message = parse_handle_message_event(msg)?;
+                        let message_hash = message.hash_message_data();
+                        info!("Message hash: {message_hash:?}");
+                        bindings.insert(
+                            common_ctx_keys::MESSAGE_HASH.into(),
+                            format!("{message_hash:?}"),
+                        );
+                        break;
+                    }
+                }
+            }
+            Ok(())
+        }
+    ))
+}
+
+fn parse_handle_message_event(line: &str) -> eyre::Result<MessageData> {
+    let s = line.strip_prefix(PROGRAM_LOG_PREFIX).unwrap_or(line);
+    let solana_event =
+        serde_json::from_str::<SolanaEvent>(s).context("Failed to deserialize SolanaEvent")?;
+
+    if !solana_event.event.eq(MESSAGE_TRANSACTION) {
+        error!("invalid message type");
+    }
+
+    let txn_type = match solana_event.message_type.as_ref() {
+        "Deposit" => 0,
+        "Withdraw" => 1,
+        "Message" => 2,
+        _ => return Err(eyre!("Invalid message type")),
+    };
+    let message_data = MessageData {
+        nonce: solana_event.nonce,
+        fromAddress: solana_event.l1_pubkey,
+        toAddress: solana_event.twine_address,
+        l1Token: solana_event.l1_token,
+        l2Token: solana_event.l2_token,
+        amount: solana_event.amount,
+        message: solana_event.data.into(),
+        txnType: txn_type,
+        chainId: solana_event.chain_id,
+        blockNumber: solana_event.slot_number,
+    };
+    Ok(message_data)
 }

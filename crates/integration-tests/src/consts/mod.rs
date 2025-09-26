@@ -15,7 +15,8 @@ pub const SOLANA_DATA_DIR: &str = "/tmp/solana";
 pub const SOLANA_CHAIN_ID: &str = "900";
 pub const SOLANA_WS_URL: &str = "ws://127.0.0.1:8900";
 pub const SOLANA_NATIVECOIN: &str = "11111111111111111111111111111111";
-pub const SOLANA_DEPOSIT_AMOUNT: &str = "1000000000";
+
+pub const TEST_DEPOSIT_AMOUNT: &str = "1000000000";
 
 pub const MERKORA_PATH: &str = "/tmp/merkora";
 pub const MERKORA_CONFIG_PATH: &str = "/tmp/merkora_config.yaml";

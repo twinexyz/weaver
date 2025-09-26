@@ -1,3 +1,4 @@
+use eyre::eyre;
 pub mod ethereum_ctx_keys {
     pub const ETHEREUM_FAUX_COIN: &str = "ethereum_faux_coin";
     pub const ETHEREUM_ERC20_GATEWAY: &str = "ethereum_erc20_gateway";
@@ -43,4 +44,13 @@ pub mod common_ctx_keys {
     pub const MERKORA_DB_CONNECTION_STRING: &str = "merkora_db_connection_string";
     pub const RANDOM_ADDRESS: &str = "random_address";
     pub const MESSAGE_HASH: &str = "message_hash";
+}
+
+pub fn ctx_get<'a>(
+    ctx: &'a std::collections::HashMap<String, String>,
+    key: &str,
+) -> eyre::Result<String> {
+    ctx.get(key)
+        .ok_or_else(|| eyre!("Missing context key: {key}"))
+        .map(|s| s.clone())
 }

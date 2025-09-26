@@ -11,6 +11,8 @@ use crate::cfg::ContractRepoConfig;
 use crate::git::{checkout_branch, clone_private_repo};
 use crate::{consts, ctx};
 
+pub mod actions;
+
 /// Build solidity contracts
 pub fn prepare_contract_repo(
     cfg: &ContractRepoConfig,

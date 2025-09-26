@@ -3,7 +3,7 @@
 #[cfg(test)]
 mod eth_deposit_and_call_test {
     use std::process::Command;
-    use std::time::{Duration, SystemTime, UNIX_EPOCH};
+    use std::time::Duration;
 
     use eyre::{eyre, Context, Result};
     use git2::Repository;
@@ -23,7 +23,7 @@ mod eth_deposit_and_call_test {
         prepare_contract_repo,
     };
     use twine_integration_tests::twine::setup::deploy_cat_contract;
-    use twine_integration_tests::{consts, merkora};
+    use twine_integration_tests::{consts, generate_random_eth_address, merkora};
 
     // test specific constants
     mod eth_deposit_constants {
@@ -158,38 +158,9 @@ mod eth_deposit_and_call_test {
             description: "Send ETH to L1 Gateway".to_string(),
             futurefn: Box::new(move |ctx| {
                 Box::new(async move {
-                    fn pseudo_random_bytes(mut seed: u64) -> [u8; 20] {
-                        let mut bytes = [0u8; 20];
-
-                        for byte in &mut bytes {
-                            seed ^= seed << 13;
-                            seed ^= seed >> 7;
-                            seed ^= seed << 17;
-                            *byte = (seed & 0xff) as u8;
-                        }
-
-                        bytes
-                    }
-
-                    let start = SystemTime::now();
-                    let since_epoch = start
-                        .duration_since(UNIX_EPOCH)
-                        .expect("Time went backwards");
-                    let seed = since_epoch.as_nanos() as u64;
-
-                    let addr_bytes = pseudo_random_bytes(seed);
-                    let addr_str = format!(
-                        "0x{}",
-                        addr_bytes
-                            .iter()
-                            .map(|b| format!("{b:02x}"))
-                            .collect::<String>()
-                    );
-
-                    {
-                        ctx.borrow_mut()
-                            .insert(common_ctx_keys::RANDOM_ADDRESS.into(), addr_str.clone());
-                    }
+                    let addr_str = generate_random_eth_address();
+                    ctx.borrow_mut()
+                        .insert(common_ctx_keys::RANDOM_ADDRESS.into(), addr_str.clone());
 
                     let binding = ctx.borrow();
                     let gateway = binding
