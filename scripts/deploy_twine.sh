@@ -3,7 +3,7 @@ set -euo pipefail
 
 echo "Starting Twine node..."
 
-# Genesis file: from $TWINE_GENESIS_FILE or fallback to parent/bin/node/res/dev-genesis.json
+# Genesis file: from $TWINE_GENESIS_FILE or fallback to parent/bin/node/res/local-genesis.json
 if [[ -n "${TWINE_GENESIS_FILE:-}" ]]; then
     GENESIS="$TWINE_GENESIS_FILE"
 else
@@ -19,10 +19,16 @@ else
     DATA_DIR="/tmp/twine"
 fi
 
+if [[ -n "${TWINE_BIN:-}" ]]; then
+    BIN="$TWINE_BIN"
+else
+    BIN="twine-node"
+fi
+
 echo "Using genesis file: $GENESIS"
 echo "Using data directory: $DATA_DIR"
 
-twine-node node \
+"$BIN" node \
   --chain "$GENESIS" \
   --dev \
   --http --http.port 8545 \

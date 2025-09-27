@@ -29,7 +29,7 @@ impl ZStdPrecompile {
         _is_static: bool,
         gas_limit: u64,
     ) -> Result<Option<InterpreterResult>, String> {
-        match ZStdPrecompile::run_precompile(inputs, gas_limit) {
+        match ZStdPrecompile::run_precompile(inputs, _context, gas_limit) {
             Ok(result) => return Ok(Some(result)),
             Err(err) => {
                 tracing::error!("zstd_precompile_error: {err:?}");
@@ -43,18 +43,23 @@ impl ZStdPrecompile {
         }
     }
 
-    fn run_precompile(inputs: &InputsImpl, gas_limit: u64) -> Result<InterpreterResult, String> {
+    fn run_precompile<CTX: ContextTr>(
+        inputs: &InputsImpl,
+        context: &mut CTX,
+        gas_limit: u64,
+    ) -> Result<InterpreterResult, String> {
         tracing::info!("Zstd precompile invoked");
 
-        if inputs.input.len() < 4 {
+        let input_bytes = inputs.input.bytes(context);
+        if input_bytes.len() < 4 {
             return Err("Invalid Input Length".to_string());
         }
 
-        let selector: &[u8; 4] = inputs.input[..4]
+        let selector: &[u8; 4] = input_bytes[..4]
             .try_into()
             .map_err(|_| "Failed to extract 4-byte selector".to_string())?;
 
-        let original = &inputs.input[4..];
+        let original = &input_bytes[4..];
         match selector {
             &ZstdLib::compressCall::SELECTOR => {
                 tracing::info!("ZSTD Compression");
@@ -90,6 +95,47 @@ impl ZStdPrecompile {
         }
 
         Err("Invalid Selector".to_string())
+    }
+}
+
+/// Stateless entry point compatible with EVM PrecompilesMap integration.
+///
+/// Returns tuple of (output_bytes, gas_used, reverted_flag).
+pub fn execute(input: &[u8], gas_limit: u64) -> Result<(Bytes, u64, bool), String> {
+    if input.len() < 4 {
+        return Err("Invalid Input Length".to_string());
+    }
+
+    let selector: &[u8; 4] = input[..4]
+        .try_into()
+        .map_err(|_| "Failed to extract 4-byte selector".to_string())?;
+
+    let original = &input[4..];
+    match selector {
+        &ZstdLib::compressCall::SELECTOR => {
+            let compressed = compress_to_vec(original, CompressionLevel::Fastest);
+            // Simple gas model: base + 3 gas per byte processed, capped by gas_limit
+            let mut gas_used = 20_000u64.saturating_add(3u64.saturating_mul(original.len() as u64));
+            if gas_used > gas_limit {
+                gas_used = gas_limit;
+            }
+            Ok((compressed.into(), gas_used, false))
+        }
+        &ZstdLib::decompressCall::SELECTOR => {
+            let mut source: &[u8] = &original;
+            let mut decoder = StreamingDecoder::new(&mut source).map_err(|e| e.to_string())?;
+            let mut result = Vec::new();
+            decoder
+                .read_to_end(&mut result)
+                .map_err(|e| e.to_string())?;
+            // Simple gas model for decompression
+            let mut gas_used = 40_000u64.saturating_add(5u64.saturating_mul(original.len() as u64));
+            if gas_used > gas_limit {
+                gas_used = gas_limit;
+            }
+            Ok((result.into(), gas_used, false))
+        }
+        _ => Err("Invalid Selector".to_string()),
     }
 }
 

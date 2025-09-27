@@ -5,7 +5,6 @@ use reth::rpc::types::engine::PayloadAttributes;
 use reth::transaction_pool::{PoolTransaction, TransactionPool};
 use reth_chainspec::ChainSpec;
 use reth_node_api::{FullNodeTypes, NodeTypes, PayloadTypes};
-use reth_node_ethereum::node::EthereumPayloadBuilder;
 use reth_primitives::{EthPrimitives, TransactionSigned};
 
 use crate::evm_config::TwineEvmConfig;
@@ -13,11 +12,9 @@ use crate::evm_config::TwineEvmConfig;
 /// Builds a regular ethereum block executor that uses the custom EVM.
 #[derive(Debug, Default, Clone)]
 #[non_exhaustive]
-pub struct TwinePayloadBuilder {
-    inner: EthereumPayloadBuilder,
-}
+pub struct TwinePayloadBuilder;
 
-impl<Types, Node, Pool> PayloadBuilderBuilder<Node, Pool> for TwinePayloadBuilder
+impl<Types, Node, Pool> PayloadBuilderBuilder<Node, Pool, TwineEvmConfig> for TwinePayloadBuilder
 where
     Types: NodeTypes<ChainSpec = ChainSpec, Primitives = EthPrimitives>,
     Node: FullNodeTypes<Types = Types>,
@@ -37,8 +34,14 @@ where
         self,
         ctx: &BuilderContext<Node>,
         pool: Pool,
+        evm_config: TwineEvmConfig,
     ) -> eyre::Result<Self::PayloadBuilder> {
-        self.inner
-            .build(TwineEvmConfig::new(ctx.chain_spec()), ctx, pool)
+        // Create the payload builder using the provided EVM config
+        Ok(reth_ethereum_payload_builder::EthereumPayloadBuilder::new(
+            ctx.provider().clone(),
+            pool,
+            evm_config,
+            Default::default(), // Use default EthereumBuilderConfig
+        ))
     }
 }

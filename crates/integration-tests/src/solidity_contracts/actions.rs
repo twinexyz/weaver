@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+use std::process::{Command, Stdio};
 use std::str::FromStr;
 
 use alloy_primitives::{hex, B256};
@@ -39,7 +41,7 @@ pub fn compute_message_hash() -> eyre::Result<TestStep> {
             let message_queue_address =
                 ctx_get(&bindings, ethereum_ctx_keys::ETHEREUM_MESSAGE_QUEUE)?;
 
-            let topic0 = consts::MESSAGE_TRANSACTION_TOPIC;
+            let topic0 = &MessageTransaction::SIGNATURE_HASH.to_string();
             info!(
                 "Listening for MessageTransaction events from queue. From block 0 - block {to_block}"
             );
@@ -217,6 +219,46 @@ pub fn deposit_eth_step() -> eyre::Result<TestStep> {
             .to_vec();
 
             cast(args)?;
+            info!("ETH deposit command successful");
+            Ok(())
+        }
+    ))
+}
+
+pub fn batch_deposit_eth_step(script_path: PathBuf, count: u64) -> eyre::Result<TestStep> {
+    Ok(async_step!(
+        "Deposit ETH in batch",
+        "Send ETH in batch",
+        |ctx| {
+            let addr_str = generate_random_eth_address();
+            ctx.borrow_mut()
+                .insert(common_ctx_keys::RANDOM_ADDRESS.into(), addr_str.clone());
+
+            let binding = ctx.borrow();
+            let gateway = ctx_get(&binding, ethereum_ctx_keys::ETHEREUM_ETH_GATEWAY)?;
+            info!(
+                "Depositing {} wei to L1 gateway {} for address {}",
+                consts::TEST_DEPOSIT_AMOUNT,
+                gateway,
+                addr_str
+            );
+
+            let script_execute = Command::new("bash")
+                .current_dir(&script_path)
+                .arg("./batch_deposit.sh")
+                .env("DEPOSIT_TO", addr_str)
+                .env("GATEWAY", gateway)
+                .env("COUNT", count.to_string())
+                .env("RPC_URL", consts::RETH_RPC_URL)
+                .env("AMOUNT", consts::TEST_DEPOSIT_AMOUNT)
+                .stdout(Stdio::inherit())
+                .stderr(Stdio::inherit())
+                .output()?;
+
+            if !script_execute.status.success() {
+                return Err(eyre!("Could not make batch deposit node"));
+            }
+
             info!("ETH deposit command successful");
             Ok(())
         }

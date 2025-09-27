@@ -5,8 +5,10 @@ edition = "2021"
 
 [dependencies]
 alloy-consensus.workspace = true
+alloy-evm.workspace = true
 alloy-genesis.workspace = true
 alloy-primitives.workspace = true
+alloy-rpc-types-engine.workspace = true
 eyre.workspace = true
 parking_lot.workspace = true
 reth.workspace = true
@@ -15,6 +17,7 @@ reth-ethereum = { workspace = true, features = ["test-utils", "node", "evm", "po
 reth-ethereum-payload-builder.workspace = true
 reth-evm.workspace = true
 reth-evm-ethereum.workspace = true
+reth-execution-types.workspace = true
 reth-node-api.workspace = true
 reth-node-core.workspace = true
 reth-node-ethereum = { workspace = true, features = ["test-utils"] }

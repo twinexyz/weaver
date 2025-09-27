@@ -1,46 +1,31 @@
-//! Test refunding on ethereum
+//! Deposit eth from  Ethereum to Twine
 
 #[cfg(test)]
-mod eth_refund_test {
-    use std::time::Duration;
+mod eth_deposit_stress_test {
+    use std::ops::Mul;
+    use std::process::{Command, Stdio};
+    use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
     use eyre::{Context, Result};
-    use git2::Repository;
-    use serde::Deserialize;
     use test_harness::{SubProcessService, TestHarness};
     use twine_integration_tests::cfg::{load_config, TestConfig};
     use twine_integration_tests::cleanup::{cleanup_step, cleanup_test_data};
     use twine_integration_tests::common::{start_service_step, stop_service_step, wait_step};
+    use twine_integration_tests::consts;
     use twine_integration_tests::consts::WAIT_TIME_FOR_MESSAGE_RELAY;
     use twine_integration_tests::ctx::twine_ctx_keys;
     use twine_integration_tests::merkora::{make_merkora_subprocess_service, setup_merkora_config};
     use twine_integration_tests::nodes::{deploy_l1_nodes, kill_l1_nodes};
     use twine_integration_tests::postgresql::setup_postgres_step;
-    use twine_integration_tests::solidity_contracts::actions::{
-        compute_message_hash, deposit_and_call_garbage_eth_step,
-    };
+    use twine_integration_tests::solidity_contracts::actions::batch_deposit_eth_step;
     use twine_integration_tests::solidity_contracts::{
         build_contracts_step, deploy_contracts_step, load_contract_addresses_step,
         prepare_contract_repo,
     };
-    use twine_integration_tests::twine::action::{
-        query_refund_txn_status, verify_deposited_l2_balance,
-    };
-    use twine_integration_tests::twine::setup::deploy_cat_contract;
+    use twine_integration_tests::twine::action::verify_deposited_l2_balance;
 
     struct TestServices {
         merkora: SubProcessService,
-    }
-
-    #[derive(Debug, Deserialize)]
-    #[allow(dead_code, non_snake_case)]
-    struct CastLog {
-        address: String,
-        topics: Vec<String>,
-        data: String,
-        blockNumber: String,
-        transactionHash: String,
-        logIndex: String,
     }
 
     impl TestServices {
@@ -73,10 +58,10 @@ mod eth_refund_test {
     }
 
     #[test]
-    fn test_refund() -> Result<()> {
+    fn test_deposit() -> Result<()> {
         let _ = env_logger::try_init();
 
-        let mut harness = TestHarness::new("Ethereum refund flow", ".");
+        let mut harness = TestHarness::new("Ethereum deposit flow", ".");
 
         // Initial cleanup if anything left from previous runs
         cleanup_test_data()?;
@@ -88,18 +73,12 @@ mod eth_refund_test {
             .expect("Failed to prepare contract repo");
         let services = TestServices::new(&test_config);
 
-        let repo = Repository::discover(".")?;
-        let repo_root = repo
-            .workdir()
-            .ok_or_else(|| eyre::eyre!("No working directory found"))?
-            .to_path_buf();
-
         // Register services
         harness.add_service(Box::new(services.merkora));
 
         // Start nodes
         harness.add_step(deploy_l1_nodes(
-            test_config.test_scripts.path.into(),
+            test_config.test_scripts.path.clone().into(),
             test_config.nodes,
         )?);
 
@@ -113,31 +92,33 @@ mod eth_refund_test {
         harness.add_step(deploy_contracts_step(&solidity_contracts)?);
         harness.add_step(load_contract_addresses_step(&solidity_contracts)?);
 
-        harness.add_step(deploy_cat_contract(repo_root)?);
-
         // Configure and start merkora
         harness.add_step(setup_postgres_step()?);
         harness.add_step(setup_merkora_config()?);
         harness.add_step(start_service_step("Merkora", 0, Duration::from_secs(10)));
 
         // Deposit eth
-        harness.add_step(deposit_and_call_garbage_eth_step()?);
+        let count = 250;
+        harness.add_step(batch_deposit_eth_step(
+            test_config.test_scripts.path.clone().into(),
+            count,
+        )?);
 
-        // compute the hash of the message
-        harness.add_step(compute_message_hash()?);
-
-        // Wait till message is processed
+        // Wait till message processed
+        let sleep_time = count / 60 + 1;
         harness.add_step(wait_step(
-            Duration::from_secs(WAIT_TIME_FOR_MESSAGE_RELAY),
+            Duration::from_secs(sleep_time * WAIT_TIME_FOR_MESSAGE_RELAY),
             "wait for message processed",
         ));
 
-        // Verify balance and txn status on L2
+        // Verify balance updated on L2
         harness.add_step(verify_deposited_l2_balance(
             twine_ctx_keys::TWINE_ETH_TOKEN,
-            "0".to_string(),
+            consts::TEST_DEPOSIT_AMOUNT
+                .parse::<u64>()?
+                .mul(count)
+                .to_string(),
         )?);
-        harness.add_step(query_refund_txn_status()?);
 
         // Clean up
         harness.add_step(stop_service_step("Merkora", 0, None));

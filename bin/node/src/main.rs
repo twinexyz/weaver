@@ -92,11 +92,24 @@ fn main() -> eyre::Result<()> {
             Ok(())
         });
 
-        twine_node
-            .launch()
-            .await
-            .unwrap()
-            .wait_for_node_exit()
-            .await
+        // Check if dev mode is enabled using the node config
+        let is_dev = twine_node.config().dev.dev;
+
+        // Launch with debug capabilities only in dev mode
+        if is_dev {
+            twine_node
+                .launch_with_debug_capabilities()
+                .await
+                .unwrap()
+                .wait_for_node_exit()
+                .await
+        } else {
+            twine_node
+                .launch()
+                .await
+                .unwrap()
+                .wait_for_node_exit()
+                .await
+        }
     })
 }

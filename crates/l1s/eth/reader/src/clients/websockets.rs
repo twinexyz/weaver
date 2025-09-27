@@ -24,7 +24,7 @@ impl EthQueryWsClient {
     pub async fn new(wss_url: &str) -> eyre::Result<Self> {
         let ws = WsConnect::new(wss_url);
 
-        let provider = ProviderBuilder::new().on_ws(ws).await?;
+        let provider = ProviderBuilder::new().connect_ws(ws).await?;
         Ok(Self {
             provider: DynProvider::new(provider),
         })

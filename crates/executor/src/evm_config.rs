@@ -1,14 +1,15 @@
 use std::convert::Infallible;
 use std::sync::Arc;
 
+use alloy_rpc_types_engine::ExecutionData;
 use reth_ethereum::chainspec::ChainSpec;
 use reth_ethereum::evm::primitives::NextBlockEnvAttributes;
 use reth_ethereum::evm::{EthBlockAssembler, EthEvmConfig, RethReceiptBuilder};
-use reth_ethereum::node::api::ConfigureEvm;
+use reth_ethereum::node::api::{ConfigureEngineEvm, ConfigureEvm};
 use reth_ethereum::primitives::SealedHeader;
 use reth_ethereum::EthPrimitives;
 use reth_evm::eth::EthBlockExecutorFactory;
-use reth_evm::{EvmEnvFor, ExecutionCtxFor};
+use reth_evm::{EvmEnvFor, ExecutableTxIterator, ExecutionCtxFor};
 use reth_primitives::{BlockTy, HeaderTy, SealedBlock};
 
 use crate::factory_builder::TwineEvmFactory;
@@ -17,13 +18,13 @@ use crate::factory_builder::TwineEvmFactory;
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub struct TwineEvmConfig {
-    pub(crate) inner: EthEvmConfig<TwineEvmFactory>,
+    pub(crate) inner: EthEvmConfig<ChainSpec, TwineEvmFactory>,
 }
 
 impl TwineEvmConfig {
     pub fn new(chain_spec: Arc<ChainSpec>) -> Self {
         Self {
-            inner: EthEvmConfig::new_with_evm_factory(chain_spec, TwineEvmFactory {}),
+            inner: EthEvmConfig::new_with_evm_factory(chain_spec, TwineEvmFactory::new()),
         }
     }
 }
@@ -67,5 +68,19 @@ impl ConfigureEvm for TwineEvmConfig {
         attributes: Self::NextBlockEnvCtx,
     ) -> ExecutionCtxFor<'_, Self> {
         self.inner.context_for_next_block(parent, attributes)
+    }
+}
+
+impl ConfigureEngineEvm<ExecutionData> for TwineEvmConfig {
+    fn evm_env_for_payload(&self, payload: &ExecutionData) -> EvmEnvFor<Self> {
+        self.inner.evm_env_for_payload(payload)
+    }
+
+    fn context_for_payload<'a>(&self, payload: &'a ExecutionData) -> ExecutionCtxFor<'a, Self> {
+        self.inner.context_for_payload(payload)
+    }
+
+    fn tx_iterator_for_payload(&self, payload: &ExecutionData) -> impl ExecutableTxIterator<Self> {
+        self.inner.tx_iterator_for_payload(payload)
     }
 }
