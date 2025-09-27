@@ -9,6 +9,12 @@ else
     DATA_DIR="/tmp/solana"
 fi
 
-solana-test-validator \
+if [[ -n "${SOLANA_BIN:-}" ]]; then
+    BIN="$SOLANA_BIN"
+else
+    BIN="solana-test-validator"
+fi
+
+"$BIN" \
   --reset \
   --ledger "$DATA_DIR" &

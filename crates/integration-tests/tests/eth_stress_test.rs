@@ -1,7 +1,8 @@
 //! Deposit eth from  Ethereum to Twine
 
 #[cfg(test)]
-mod eth_deposit_test {
+mod eth_deposit_stress_test {
+    use std::ops::Mul;
     use std::process::{Command, Stdio};
     use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -16,7 +17,7 @@ mod eth_deposit_test {
     use twine_integration_tests::merkora::{make_merkora_subprocess_service, setup_merkora_config};
     use twine_integration_tests::nodes::{deploy_l1_nodes, kill_l1_nodes};
     use twine_integration_tests::postgresql::setup_postgres_step;
-    use twine_integration_tests::solidity_contracts::actions::deposit_eth_step;
+    use twine_integration_tests::solidity_contracts::actions::batch_deposit_eth_step;
     use twine_integration_tests::solidity_contracts::{
         build_contracts_step, deploy_contracts_step, load_contract_addresses_step,
         prepare_contract_repo,
@@ -77,7 +78,7 @@ mod eth_deposit_test {
 
         // Start nodes
         harness.add_step(deploy_l1_nodes(
-            test_config.test_scripts.path.into(),
+            test_config.test_scripts.path.clone().into(),
             test_config.nodes,
         )?);
 
@@ -97,18 +98,26 @@ mod eth_deposit_test {
         harness.add_step(start_service_step("Merkora", 0, Duration::from_secs(10)));
 
         // Deposit eth
-        harness.add_step(deposit_eth_step()?);
+        let count = 250;
+        harness.add_step(batch_deposit_eth_step(
+            test_config.test_scripts.path.clone().into(),
+            count,
+        )?);
 
         // Wait till message processed
+        let sleep_time = count / 60 + 1;
         harness.add_step(wait_step(
-            Duration::from_secs(WAIT_TIME_FOR_MESSAGE_RELAY),
+            Duration::from_secs(sleep_time * WAIT_TIME_FOR_MESSAGE_RELAY),
             "wait for message processed",
         ));
 
         // Verify balance updated on L2
         harness.add_step(verify_deposited_l2_balance(
             twine_ctx_keys::TWINE_ETH_TOKEN,
-            consts::TEST_DEPOSIT_AMOUNT.to_string(),
+            consts::TEST_DEPOSIT_AMOUNT
+                .parse::<u64>()?
+                .mul(count)
+                .to_string(),
         )?);
 
         // Clean up

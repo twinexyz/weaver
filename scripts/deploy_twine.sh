@@ -19,10 +19,16 @@ else
     DATA_DIR="/tmp/twine"
 fi
 
+if [[ -n "${TWINE_BIN:-}" ]]; then
+    BIN="$TWINE_BIN"
+else
+    BIN="twine-node"
+fi
+
 echo "Using genesis file: $GENESIS"
 echo "Using data directory: $DATA_DIR"
 
-twine-node node \
+"$BIN" node \
   --chain "$GENESIS" \
   --dev \
   --http --http.port 8545 \

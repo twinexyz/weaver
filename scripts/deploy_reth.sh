@@ -3,13 +3,19 @@ set -euo pipefail
 
 echo "Starting Reth node..."
 
+if [[ -n "${RETH_BIN:-}" ]]; then
+    BIN="$RETH_BIN"
+else
+    BIN="reth"
+fi
+
 if [[ -n "${RETH_DATA_DIR:-}" ]]; then
     DATA_DIR="$RETH_DATA_DIR"
 else
     DATA_DIR="/tmp/reth"
 fi
 
-reth node \
+"$BIN" node \
   --dev \
   --http --http.port 8570 \
   --ws --ws.port 8571 \
