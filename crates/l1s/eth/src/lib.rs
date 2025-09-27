@@ -1,8 +1,10 @@
 //! Wrapper for ethereum reader and writer
 
-use alloy_primitives::{ChainId, U256};
+use alloy_primitives::hex::FromHex;
+use alloy_primitives::{ChainId, B256, U256};
 use alloy_provider::{DynProvider, Provider, ProviderBuilder};
 use alloy_rpc_types::{TransactionReceipt, TransactionRequest};
+use alloy_signer_local::PrivateKeySigner;
 use eyre::{eyre, Context};
 use tokio::sync::broadcast;
 use twine_l1_eth_reader::EthReaderBuilder;
@@ -36,7 +38,13 @@ impl EthClient {
         private_key: &str,
         chain_id: Option<u64>,
     ) -> eyre::Result<EthClient> {
-        let provider = ProviderBuilder::new().on_http(rpc_url.parse().context("Invalid RPC URL")?);
+        let signer = PrivateKeySigner::from_bytes(
+            &B256::from_hex(private_key).context("Invalid private key hex")?,
+        )
+        .context("Failed building signer")?;
+        let provider = ProviderBuilder::new()
+            .wallet(signer)
+            .connect_http(rpc_url.parse().context("Invalid RPC URL")?);
         let dyn_provider = DynProvider::new(provider);
 
         let resolved_chain_id = dyn_provider

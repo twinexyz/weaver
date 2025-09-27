@@ -65,6 +65,14 @@ impl TransactionStatus {
             _ => None,
         }
     }
+
+    /// Whether the confirmed transaction execution was successful or not
+    pub fn tx_status(&self) -> Option<bool> {
+        match self {
+            Self::Confirmed(receipt) => Some(receipt.status()),
+            _ => None,
+        }
+    }
 }
 
 /// Wait for receipt

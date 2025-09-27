@@ -15507,6 +15507,7 @@ dependencies = [
  "alloy-primitives",
  "alloy-provider",
  "alloy-rpc-types",
+ "alloy-signer-local",
  "derive_more",
  "eyre",
  "tokio",
