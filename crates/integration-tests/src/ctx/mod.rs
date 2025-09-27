@@ -54,4 +54,3 @@ pub fn ctx_get<'a>(
         .ok_or_else(|| eyre!("Missing context key: {key}"))
         .map(|s| s.clone())
 }
-
