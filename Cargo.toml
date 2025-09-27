@@ -133,9 +133,9 @@ testcontainers-modules = { version = "0.12.1", features = ["postgres", "blocking
 thiserror = "2.0.12"
 tiny_http = "0.12"
 tokio = { version = "1.44.2", features = ["full"] }
-tracing = { version = "0.1.0", default-features = false }
 tokio-tungstenite = "0.27.0"
 toml = "0.8.23"
+tracing = { version = "0.1.0", default-features = false }
 tracing-appender = "0.2.3"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter", "json"] }
 tree_hash = "0.10.0"

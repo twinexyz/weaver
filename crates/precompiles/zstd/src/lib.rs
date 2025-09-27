@@ -4,7 +4,7 @@ use alloy_primitives::{Address, Bytes};
 use alloy_sol_types::{sol, SolCall};
 use reth_revm::context::ContextTr;
 use reth_revm::interpreter::{Gas, InputsImpl, InstructionResult, InterpreterResult};
-use reth_tracing::tracing;
+use reth_tracing::tracing::{self, info};
 use ruzstd::decoding::StreamingDecoder;
 use ruzstd::encoding::{compress_to_vec, CompressionLevel};
 use ruzstd::io::Read;
@@ -102,6 +102,7 @@ impl ZStdPrecompile {
 ///
 /// Returns tuple of (output_bytes, gas_used, reverted_flag).
 pub fn execute(input: &[u8], gas_limit: u64) -> Result<(Bytes, u64, bool), String> {
+    info!("ZSTD precompile execute");
     if input.len() < 4 {
         return Err("Invalid Input Length".to_string());
     }

@@ -168,8 +168,8 @@ fn handle_ethereum_transaction(
     let addr_hash = keccak256(account_proofs.address);
     tracing::info!("Keccak256 of proof address: {:?}", addr_hash);
 
-    // The proof contains the account data that should hash to form part of the state trie
-    // Let's see what we're actually verifying against
+    // The proof contains the account data that should hash to form part of the
+    // state trie Let's see what we're actually verifying against
     tracing::info!("About to verify proof against state root: {:?}", state_root);
     tracing::info!("Proof height parameter: {}", proof_height);
     tracing::info!("Message data block number: {}", message_data.blockNumber);

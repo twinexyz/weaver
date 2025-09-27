@@ -15277,7 +15277,6 @@ dependencies = [
  "eyre",
  "log",
  "regex",
- "reth-trie-common",
  "serde",
  "serde_json",
  "tokio",
