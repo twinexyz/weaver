@@ -31,6 +31,7 @@ pub(crate) async fn start_dispatcher(
             &eth_config.rpc,
             &eth_config.eth_private_key,
             eth_config.chain_id,
+            eth_config.gas_limit,
             &eth_config.twine_chain_contract,
         )
         .await?;
