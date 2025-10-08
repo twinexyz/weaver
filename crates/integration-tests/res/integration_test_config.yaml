@@ -13,29 +13,29 @@ nodes:
   l2:
     type_: "evm"
     name: "twine-node"
-    binary_name: "/home/nobel/dev/weaver/target/release/twine-node"
-    genesis_path: "/home/nobel/dev/weaver/bin/node/res/local-genesis.json"
+    binary_name: "/path/to/twine-node/binary"
+    genesis_path: "/path/to/genesis-file.json"
 
 # Merkora configuration - building from repository
 # If you provide repo path: you can skip url, branch, build and build command
 # repo path has the highest priority
 merkora:
   name: "merkora"
-  repo_path: "/home/nobel/dev/merkora"
+  repo_path: "/path/to/merkora_repo"
   build: false
   # url: "git@github.com:twinexyz/merkora.git"
   # branch: "main"
 
 aggregator:
-  binary_path: "/home/nobel/dev/weaver/target/release/twine-aggregator"
-  solana_wallet_path: "/home/nobel/.config/solana/id.json"
+  binary_path: "/path/to/twine-aggregator/binary"
+  solana_wallet_path: "/path/to/solana/wallet/id.json"
 
 proof_scheduler:
-  binary_path: "/home/nobel/dev/weaver/target/release/twine-proof-scheduler-bin"
+  binary_path: "/path/to/twine-proof-scheduler-bin/binary"
 
 execution_prover:
-  binary_path: "/home/nobel/dev/weaver/target/release/twine-l2-execution-prover-worker"
-  prover_binary_path: "/home/nobel/dev/twine-rsp/rsp-amd64"
+  binary_path: "/path/to/twine-l2-execution-prover-worker/binary"
+  prover_binary_path: "/path/to/rsp-amd64"
 
 # Smart contract repositories
 smart_contracts:
@@ -43,12 +43,12 @@ smart_contracts:
     # url: "git@github.com:twinexyz/twine-solidity-contracts.git"
     # name: "twine-solidity-contracts"
     # branch: "main"
-    repo_path: "/home/nobel/dev/twine-solidity-contracts"
+    repo_path: "/path/to/twine-solidity-contracts"
   solana:
     # url: "git@github.com:twinexyz/twine-native-solana-programs.git"
     # name: "twine-native-solana-programs"
     # branch: "main"
-    repo_path: "/home/nobel/dev/twine-native-solana-programs"
+    repo_path: "/path/to/twine-native-solana-programs"
 
 test_scripts:
-  path: "/home/nobel/dev/weaver/scripts/" # Path to the directory containing test scripts
+  path: "/path/to/test/scripts"
