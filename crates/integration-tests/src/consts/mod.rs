@@ -24,6 +24,12 @@ pub const WAIT_TIME_FOR_MESSAGE_RELAY: u64 = 60; // in seconds
 pub const TWINE_SOLIDITY_CONTRACTS_DIR: &str = "/tmp/twine_solidity_contracts";
 pub const TWINE_SOLANA_CONTRACTS_DIR: &str = "/tmp/twine_native_solana_programs";
 
+pub const AGGREGATOR_CONFIG_PATH: &str = "/tmp/aggregator_config";
+
+pub const SCHEDULER_CONFIG_PATH: &str = "/tmp/scheduler_config";
+
+pub const WORKER_MANAGER_PORT: u16 = 8000;
+
 pub const L1_ADMIN: &str = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 pub const L2_ADMIN: &str = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 

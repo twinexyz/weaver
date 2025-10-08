@@ -17,13 +17,16 @@ pub mod cleanup;
 pub mod common;
 pub mod twine;
 
+pub mod aggregator;
 pub mod cfg;
 pub mod consts;
 pub mod ctx;
 pub mod git;
+pub mod kafka;
 pub mod merkora;
 pub mod nodes;
 pub mod postgresql;
+pub mod proof_scheduler;
 pub mod solana_programs;
 pub mod solidity_contracts;
 
