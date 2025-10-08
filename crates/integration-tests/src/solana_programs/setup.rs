@@ -6,8 +6,10 @@ use log::{error, info};
 use regex::Regex;
 use serde::Deserialize;
 use serde_json::Value as JsonValue;
+use solana_sdk::pubkey::Pubkey;
 use test_harness::{AsyncFnStep, TestStep};
 use twine_evm_contracts::l2_twine_messenger::TwineTypes::MessageData;
+use twine_l1_solana::SolanaProvider;
 
 use super::SolanaTestType;
 use crate::ctx::{common_ctx_keys, ctx_get, solana_ctx_keys, twine_ctx_keys};
@@ -378,4 +380,42 @@ fn parse_handle_message_event(line: &str) -> eyre::Result<MessageData> {
         blockNumber: solana_event.slot_number,
     };
     Ok(message_data)
+}
+
+pub fn sol_check_last_finalized_batch_step() -> eyre::Result<TestStep> {
+    Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
+        name: "Last Finalized batch on solana".to_string(),
+        description: "Last finalized batch on solana".to_string(),
+        futurefn: Box::new(move |ctx| {
+            Box::new(async move {
+                let c = ctx.borrow();
+                let twine_chain_program = c
+                    .get(solana_ctx_keys::SOLANA_TWINE_CHAIN)
+                    .expect("Could not get solana twine chain program in context");
+                let chain_id = consts::SOLANA_CHAIN_ID.parse::<u64>()?;
+
+                let twine_chain_pubkey = Pubkey::from_str_const(twine_chain_program.trim());
+                let admin_pubkey = Pubkey::from_str_const(twine_chain_program.trim()); // the twine chain program is used just
+                                                                                       // as a placeholder as this is only needed
+                                                                                       // for constructing the struct in this case
+                let solana_provider = SolanaProvider {
+                    rpc: consts::SOLANA_RPC_URL.into(),
+                    chain_id,
+                    twine_chain_program: twine_chain_pubkey,
+                    admin_pubkey,
+                    admin_wallet_path: "".into(),
+                };
+                let twine_chain_storage = solana_provider.get_twine_chain_storage().await?;
+                let last_finalized_batch = twine_chain_storage.last_finalized_batch_number;
+                if last_finalized_batch <= 1 {
+                    error!(
+                        "Batch settlement failed on Solana. Found last finalalized batch number: {last_finalized_batch} "
+                    );
+                    eyre::bail!("Batch settlement failed on Solana");
+                }
+                info!("Batch settlement passed on Solana. Last finalized batch number: {last_finalized_batch}");
+                Ok(())
+            })
+        }),
+    })))
 }

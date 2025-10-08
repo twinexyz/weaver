@@ -2,10 +2,10 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::str::FromStr;
 
-use alloy_primitives::{hex, B256};
+use alloy_primitives::{hex, B256, KECCAK256_EMPTY};
 use alloy_sol_types::SolEvent;
 use eyre::{eyre, Context};
-use log::info;
+use log::{error, info};
 use serde::Deserialize;
 use test_harness::TestStep;
 use twine_evm_contracts::l1_message_handler::L1MessageHandler::MessageTransaction;
@@ -260,6 +260,141 @@ pub fn batch_deposit_eth_step(script_path: PathBuf, count: u64) -> eyre::Result<
             }
 
             info!("ETH deposit command successful");
+            Ok(())
+        }
+    ))
+}
+
+pub fn commit_genesis_block_step() -> eyre::Result<TestStep> {
+    Ok(async_step!(
+        "Commit Genesis block",
+        "Commit Genesis block to Ethereum",
+        |ctx| {
+            let binding = ctx.borrow();
+            let twine_chain = ctx_get(&binding, ethereum_ctx_keys::ETHEREUM_TWINE_CHAIN)?;
+            let rpc_url = consts::RETH_RPC_URL;
+
+            info!("Commiting genesis block to: {twine_chain}");
+
+            let empty_hash = KECCAK256_EMPTY.to_string();
+            let output = Command::new("cast")
+                .args([
+                    "send",
+                    &twine_chain,
+                    "commitGenesisBlock(bytes32)",
+                    empty_hash.as_str(),
+                    "--private-key",
+                    "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+                    "--gas-limit",
+                    "500000",
+                    "--rpc-url",
+                    rpc_url,
+                ])
+                .output()
+                .wrap_err("failed to execute cast command")?;
+
+            if !output.status.success() {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                eyre::bail!("cast call failed: {stderr}");
+            }
+            Ok(())
+        }
+    ))
+}
+
+pub fn check_commited_batch() -> eyre::Result<TestStep> {
+    Ok(async_step!(
+        "Check commited batch",
+        "Check commited batch on ethereum",
+        |ctx| {
+            let binding = ctx.borrow();
+            let twine_chain = ctx_get(&binding, ethereum_ctx_keys::ETHEREUM_TWINE_CHAIN)?;
+            let rpc_url = consts::RETH_RPC_URL;
+            info!("Checking commited batch");
+            let output = Command::new("cast")
+                .args([
+                    "call",
+                    &twine_chain,
+                    "committedBatch(uint64)(bytes32)",
+                    "0",
+                    "--rpc-url",
+                    rpc_url,
+                ])
+                .output()
+                .wrap_err("failed to execute cast command")?;
+
+            if !output.status.success() {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                eyre::bail!("cast call failed: {stderr}");
+            }
+            let stdout_data = String::from_utf8_lossy(&output.stdout);
+
+            let found = stdout_data.trim().to_lowercase();
+            let mut expected = KECCAK256_EMPTY.to_string().trim().to_lowercase();
+
+            // ensure both start with "0x"
+            if !expected.starts_with("0x") {
+                expected = format!("0x{expected}");
+            }
+            let found_prefixed = if found.starts_with("0x") {
+                found
+            } else {
+                format!("0x{found}")
+            };
+
+            if found_prefixed != expected {
+                error!(
+                    "Genesis Batch hash mismatch.\nExpected: {expected}\nFound: {found_prefixed}"
+                );
+                eyre::bail!("Genesis Batch hash mismatch");
+            }
+
+            info!("Genesis Batch Hash set properly: {expected}");
+            Ok(())
+        }
+    ))
+}
+
+pub fn eth_check_last_finalized_batch_step() -> eyre::Result<TestStep> {
+    Ok(async_step!(
+        "Query Last Finalized Batch Number",
+        "Query Last Finalized Batch Number from Twine Chain Contract on Ethereum",
+        |ctx| {
+            let binding = ctx.borrow();
+            let twine_chain = ctx_get(&binding, ethereum_ctx_keys::ETHEREUM_TWINE_CHAIN)?;
+            let rpc_url = consts::RETH_RPC_URL;
+
+            info!("Querying lastFinalizedBatchNumber from TwineChain at {twine_chain}");
+
+            let output = Command::new("cast")
+                .args([
+                    "call",
+                    &twine_chain,
+                    "lastFinalizedBatchNumber()(uint256)",
+                    "--rpc-url",
+                    rpc_url,
+                ])
+                .output()
+                .wrap_err("failed to execute cast command")?;
+
+            if !output.status.success() {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                eyre::bail!("cast call failed: {stderr}");
+            }
+
+            let raw_result = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            info!("Raw on-chain value (hex): {raw_result}");
+
+            let batch_number = u64::from_str_radix(&raw_result, 16).unwrap_or_default();
+            if batch_number <= 1 {
+                error!(
+                    "Batch settlement failed on ethereum. lastFinalizedBatchNumber: {batch_number}"
+                );
+                eyre::bail!("Batch settlement failed on ethereum.");
+            }
+
+            info!("Batch Settlement passed. Last finalized batch number: {batch_number}");
+
             Ok(())
         }
     ))
