@@ -1,7 +1,5 @@
 FROM ubuntu:24.04 AS builder
 
-ARG GITHUB_TOKEN
-ARG GITHUB_USERNAME
 ARG GITHUB_ORGANIZATION
 ARG SOLANA_STUB_PROVER_FILENAME
 ARG RSP_FILENAME
@@ -43,13 +41,11 @@ WORKDIR /app
 
 COPY . .
 
-RUN cargo build --release --bin twine-node
+RUN cargo build --release --bin twine-node twine-l2-execution-prover-worker twine-aggregator
 RUN cargo build --release --bin twine-proof-scheduler-bin --features l2-proof-scheduler
 RUN mv target/release/twine-proof-scheduler-bin target/release/twine-l2-proof-scheduler-bin
 RUN cargo build --release --bin twine-proof-scheduler-bin --features solana-proof-scheduler
 RUN mv target/release/twine-proof-scheduler-bin target/release/twine-solana-proof-scheduler-bin
-RUN cargo build --release --bin twine-l2-execution-prover-worker
-RUN cargo build --release --bin twine-aggregator
 
 RUN cargo install tomq
 
