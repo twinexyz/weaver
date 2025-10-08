@@ -15683,6 +15683,8 @@ dependencies = [
  "chrono",
  "eyre",
  "hex",
+ "once_cell",
+ "prometheus",
  "reth-tracing",
  "serde",
  "serde_json",

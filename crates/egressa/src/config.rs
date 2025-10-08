@@ -14,6 +14,16 @@ pub struct AppCfg {
     pub prover: ProverConfig,
     /// Twine configuration
     pub twine: TwineConfig,
+    /// Telemetry configuration (optional)
+    #[serde(default)]
+    pub telemetry: Option<TelemetryConfig>,
+}
+
+/// Telemetry configuration for metrics and monitoring
+#[derive(Debug, Deserialize, Clone, Serialize)]
+pub struct TelemetryConfig {
+    /// Metrics server address (e.g., "127.0.0.1:9091")
+    pub metrics_server: String,
 }
 
 /// Database configuration

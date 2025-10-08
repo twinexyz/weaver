@@ -151,6 +151,7 @@ impl WithdrawalProcessor {
             }
         };
 
+        let tx_start = std::time::Instant::now();
         let result = l1_sender
             .handle_event(
                 withdrawal_event.clone(),
@@ -158,6 +159,7 @@ impl WithdrawalProcessor {
                 Bytes::from(proof.clone()),
             )
             .await;
+        let tx_duration = tx_start.elapsed();
 
         let mut status = WithdrawalEventStatus {
             is_processed: true,
@@ -173,6 +175,14 @@ impl WithdrawalProcessor {
                     chain_id, tx_hash
                 );
 
+                // Record successful transaction submission
+                crate::metrics::record_transaction_submitted(
+                    withdrawal_event.l1_chain_id,
+                    withdrawal_event.nonce,
+                    &withdrawal_event.event_type.to_string(),
+                    tx_duration.as_secs_f64(),
+                );
+
                 status.process_txn_hash = Some(tx_hash);
                 status.is_failed = false;
                 status.is_processed = true;
@@ -182,6 +192,14 @@ impl WithdrawalProcessor {
                 error!(
                     "Failed to process withdrawal event for chain {}: {}",
                     chain_id, e
+                );
+
+                // Record failed transaction submission
+                crate::metrics::record_transaction_failed(
+                    withdrawal_event.l1_chain_id,
+                    withdrawal_event.nonce,
+                    &withdrawal_event.event_type.to_string(),
+                    &e.to_string(),
                 );
 
                 status.is_failed = true;

@@ -1,7 +1,5 @@
 //! Egressa binary
 
-use std::path::Path;
-
 use clap::Parser;
 
 mod cli;
@@ -20,7 +18,9 @@ async fn main() -> eyre::Result<()> {
     let config = parse_config(&cli.config)?;
     config.validate()?;
 
-    logging::init_with_config(None, "twine_egressa.log")?;
+    // Extract metrics server address from config
+    let metrics_server = config.telemetry.as_ref().map(|t| t.metrics_server.clone());
+    logging::init_with_config(metrics_server, "twine_egressa.log")?;
 
     match cli.command {
         cli::Commands::Run => {

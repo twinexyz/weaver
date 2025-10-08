@@ -3,6 +3,7 @@ use sqlx::PgPool;
 
 use crate::types::FetchedIndexerEvent;
 
+/// Database operations handler for indexer database
 #[derive(Debug, Clone)]
 pub struct IndexerOperations<'a> {
     /// Database pool

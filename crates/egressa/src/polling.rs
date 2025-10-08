@@ -28,15 +28,21 @@ impl WithdrawalEventPoller {
         let withdrawal_events: Vec<WithdrawalEvent> = events
             .into_iter()
             .map(|event| {
-                let event_type = WithdrawalEventType::from_db_string(event.transaction_type);
+                let event_type =
+                    WithdrawalEventType::from_db_string(event.transaction_type.clone());
+                let chain_id = event.l1_chain_id as u64;
+                let nonce = event.nonce as u64;
+
+                // Record polled event metric
+                crate::metrics::record_event_polled(chain_id, nonce, &event_type.to_string());
 
                 WithdrawalEvent {
                     event_type,
-                    l1_chain_id: event.l1_chain_id as u64,
+                    l1_chain_id: chain_id,
                     l2_transaction_hash: event.l2_transaction_hash.unwrap_or_default(),
                     l1_token: event.l1_token,
                     l1_address: event.l1_address,
-                    nonce: event.nonce as u64,
+                    nonce,
                     height: event.l2_block_height as u64,
                     status: event.handle_status.unwrap_or(0) as u16,
                 }

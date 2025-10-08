@@ -46,26 +46,40 @@ impl ProofGenerator {
         let start_time = time::Instant::now();
 
         // Determine which binary to use and what arguments to pass
-        let (binary_path, args) = self.get_binary_and_args(event)?;
+        let (binary_path, args) = match self.get_binary_and_args(event) {
+            Ok(result) => result,
+            Err(e) => {
+                // Record failed proof generation
+                crate::metrics::record_proof_generation_failed(
+                    event.l1_chain_id,
+                    event.nonce,
+                    &event.event_type.to_string(),
+                    "binary_args_error",
+                );
+                return Err(e);
+            }
+        };
 
         // Set up environment variables
         env::set_var("RUST_LOG", "info");
         env::set_var("RUST_BACKTRACE", "1");
 
         info!(
-            "Generating proof for withdrawal event: type={:?}, chain_id={}, txn_hash={} binary: {}",
-            event.event_type, event.l1_chain_id, event.l2_transaction_hash, binary_path
+            "Generating proof for withdrawal event: type={:?}, chain_id={}, nonce={}, txn_hash={} binary: {}",
+            event.event_type, event.l1_chain_id, event.nonce, event.l2_transaction_hash, binary_path
         );
 
         // Execute the prover binary
-        self.execute_prover_binary(binary_path, args).await?;
-
-        let elapsed_time = start_time.elapsed();
-        info!(
-            "Proof generation completed in {} secs for withdrawal event: {}",
-            elapsed_time.as_secs(),
-            event.l2_transaction_hash
-        );
+        if let Err(e) = self.execute_prover_binary(binary_path, args).await {
+            // Record failed proof generation
+            crate::metrics::record_proof_generation_failed(
+                event.l1_chain_id,
+                event.nonce,
+                &event.event_type.to_string(),
+                "binary_execution_failed",
+            );
+            return Err(e);
+        }
 
         // Process the generated proof file
         let proof_file_path = format!(
@@ -73,7 +87,39 @@ impl ProofGenerator {
             self.config.proof_output_dir, event.l2_transaction_hash
         );
 
-        self.process_proof_file(proof_file_path)
+        let proof = match self.process_proof_file(proof_file_path) {
+            Ok(p) => p,
+            Err(e) => {
+                // Record failed proof generation
+                crate::metrics::record_proof_generation_failed(
+                    event.l1_chain_id,
+                    event.nonce,
+                    &event.event_type.to_string(),
+                    "proof_file_processing_failed",
+                );
+                return Err(e);
+            }
+        };
+
+        let elapsed_time = start_time.elapsed();
+
+        // Record successful proof generation
+        crate::metrics::record_proof_generated(
+            event.l1_chain_id,
+            event.nonce,
+            &event.event_type.to_string(),
+            elapsed_time.as_secs_f64(),
+        );
+
+        info!(
+            "Proof generation completed in {:.2} secs for withdrawal event: chain={}, nonce={}, tx={}",
+            elapsed_time.as_secs_f64(),
+            event.l1_chain_id,
+            event.nonce,
+            event.l2_transaction_hash
+        );
+
+        Ok(proof)
     }
 
     /// Get the appropriate binary path and arguments based on withdrawal event

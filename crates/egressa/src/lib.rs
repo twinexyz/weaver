@@ -22,3 +22,6 @@ pub mod types;
 
 // Re-export commonly used types
 pub use types::{WithdrawalEvent, WithdrawalEventType};
+
+pub mod error;
+pub mod metrics;
