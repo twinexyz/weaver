@@ -43,12 +43,18 @@ pub fn setup_aggregator_config(config_path: &str) -> eyre::Result<TestStep> {
                     .expect("Failed to get Twine chain program id")
                     .clone();
 
+                let solana_wallet_path = c
+                    .get(ctx::solana_ctx_keys::SOLANA_WALLET_PATH)
+                    .expect("Failed to get Solana wallet path")
+                    .clone();
+
                 generate_aggregator_config(
                     &config_path,
                     kafka_bootstrap,
                     db_url,
                     twine_chain_address,
                     twine_chain_program_id,
+                    solana_wallet_path,
                 )?;
                 c.insert("aggregator_config_path".to_string(), config_path.clone());
                 Ok(())
@@ -64,6 +70,7 @@ pub fn generate_aggregator_config(
     db_url: String,
     twine_chain_address: String,
     twine_chain_program_id: String,
+    solana_wallet_path: String,
 ) -> eyre::Result<()> {
     let mut config = AggregatorConfig::default();
 
@@ -72,6 +79,7 @@ pub fn generate_aggregator_config(
     config.db_url = db_url;
     config.eth.twine_chain_contract = twine_chain_address;
     config.sol.twine_chain_program_id = twine_chain_program_id;
+    config.sol.solana_wallet_path = solana_wallet_path;
 
     let file = std::fs::File::create(config_path)?;
     let writer = BufWriter::new(file);

@@ -15,7 +15,7 @@ mod eth_refund_test {
     use twine_integration_tests::ctx::twine_ctx_keys;
     use twine_integration_tests::merkora::{make_merkora_subprocess_service, setup_merkora_config};
     use twine_integration_tests::nodes::{deploy_l1_nodes, kill_l1_nodes};
-    use twine_integration_tests::postgresql::setup_postgres_step;
+    use twine_integration_tests::postgresql::setup_merkora_postgres_step;
     use twine_integration_tests::solidity_contracts::actions::{
         compute_message_hash, deposit_and_call_garbage_eth_step,
     };
@@ -116,7 +116,7 @@ mod eth_refund_test {
         harness.add_step(deploy_cat_contract(repo_root)?);
 
         // Configure and start merkora
-        harness.add_step(setup_postgres_step()?);
+        harness.add_step(setup_merkora_postgres_step()?);
         harness.add_step(setup_merkora_config()?);
         harness.add_step(start_service_step("Merkora", 0, Duration::from_secs(10)));
 

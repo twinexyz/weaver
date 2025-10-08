@@ -68,6 +68,7 @@ pub struct TestScripts {
 #[derive(Debug, Deserialize, Clone)]
 pub struct Aggregator {
     pub binary_path: String,
+    pub solana_wallet_path: String,
 }
 
 #[derive(Debug, Deserialize, Clone)]

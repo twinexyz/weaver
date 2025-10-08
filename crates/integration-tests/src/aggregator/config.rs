@@ -106,7 +106,7 @@ impl Default for AggregatorConfig {
                 rpc: consts::SOLANA_RPC_URL.to_string(),
                 chain_id: 900,
                 twine_chain_program_id: "6nCRZfRqhyEkBLzK7tbk5uwuPnRxLnBd2EZxDqK3YV9X".to_string(), /* random id */
-                solana_wallet_path: "/home/nobel/.config/solana/id.json".to_string(),
+                solana_wallet_path: "/path/to/solana/wallet".to_string(),
             },
             twine: TwineChain {
                 rpc: consts::TWINE_RPC_URL.to_string(),

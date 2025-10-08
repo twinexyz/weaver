@@ -11,10 +11,10 @@ static MERKORA_POSTGRES_CONTAINER: OnceCell<ContainerAsync<Postgres>> = OnceCell
 static AGGREGATOR_POSTGRES_CONTAINER: OnceCell<ContainerAsync<Postgres>> = OnceCell::const_new();
 static SCHEDULER_POSTGRES_CONTAINER: OnceCell<ContainerAsync<Postgres>> = OnceCell::const_new();
 
-pub fn setup_postgres_step() -> eyre::Result<TestStep> {
+pub fn setup_merkora_postgres_step() -> eyre::Result<TestStep> {
     Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
-        name: "Postgres".to_string(),
-        description: "Setup postgres container".to_string(),
+        name: "Merkora Postgres".to_string(),
+        description: "Setup postgres container for Merkora".to_string(),
         futurefn: Box::new(move |ctx| {
             Box::new(async move {
                 let connection_url = setup_postgres(&MERKORA_POSTGRES_CONTAINER)

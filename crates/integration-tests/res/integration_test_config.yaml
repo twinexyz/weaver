@@ -28,6 +28,7 @@ merkora:
 
 aggregator:
   binary_path: "/home/nobel/dev/weaver/target/release/twine-aggregator"
+  solana_wallet_path: "/home/nobel/.config/solana/id.json"
 
 proof_scheduler:
   binary_path: "/home/nobel/dev/weaver/target/release/twine-proof-scheduler-bin"

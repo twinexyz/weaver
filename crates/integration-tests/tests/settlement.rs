@@ -6,12 +6,12 @@ mod relay_to_twine {
 
     use eyre::{Context, Ok};
     use log::info;
-    use test_harness::{SubProcessService, TestHarness};
+    use test_harness::{SubProcessService, TestHarness, TestStep};
     use twine_integration_tests::aggregator::setup_aggregator_config;
     use twine_integration_tests::cfg::{load_config, TestConfig};
     use twine_integration_tests::cleanup::{cleanup_step, cleanup_test_data};
     use twine_integration_tests::common::{start_service_step, stop_service_step, wait_step};
-    use twine_integration_tests::consts;
+    use twine_integration_tests::ctx::solana_ctx_keys;
     use twine_integration_tests::kafka::setup_kafka_step;
     use twine_integration_tests::nodes::{deploy_l1_nodes, kill_l1_nodes};
     use twine_integration_tests::postgresql::{
@@ -32,6 +32,7 @@ mod relay_to_twine {
         build_contracts_step, deploy_contracts_step, load_contract_addresses_step,
         prepare_contract_repo,
     };
+    use twine_integration_tests::{async_step, consts};
 
     struct TestServices {
         aggregator: SubProcessService,
@@ -48,7 +49,7 @@ mod relay_to_twine {
                 aggregator: SubProcessService {
                     name: "Aggregator".into(),
                     description: "Twine Aggregator Service".into(),
-                    cmd_gen: Box::new(move |_ctx| {
+                    cmd_gen: Box::new(move |ctx| {
                         let binary_path = aggregator_cfg.aggregator.binary_path.clone();
                         vec![
                             binary_path.clone(),
@@ -166,7 +167,7 @@ mod relay_to_twine {
         ));
 
         // Build and deploy solidity contracts
-        // harness.add_step(build_contracts_step(&solidity_contracts)?);
+        harness.add_step(build_contracts_step(&solidity_contracts)?);
         harness.add_step(deploy_contracts_step(&solidity_contracts)?);
         harness.add_step(load_contract_addresses_step(&solidity_contracts)?);
 
@@ -188,6 +189,7 @@ mod relay_to_twine {
         harness.add_step(check_commited_batch()?);
 
         harness.add_step(setup_aggregator_postgres_step()?);
+        harness.add_step(add_solana_wallet_to_context(config.as_ref().clone())?);
         harness.add_step(setup_scheduler_postgres_step()?);
         harness.add_step(setup_kafka_step()?);
         harness.add_step(wait_step(
@@ -227,5 +229,19 @@ mod relay_to_twine {
 
         harness.execute()?;
         Ok(())
+    }
+
+    fn add_solana_wallet_to_context(config: TestConfig) -> eyre::Result<TestStep> {
+        Ok(async_step!(
+            "Add Solana wallet to context",
+            "Adding Solana wallet to context",
+            |ctx| {
+                let mut c = ctx.borrow_mut();
+                let path = config.aggregator.solana_wallet_path.clone();
+                info!("Using Solana wallet at {path}");
+                c.insert(solana_ctx_keys::SOLANA_WALLET_PATH.to_string(), path);
+                Ok(())
+            }
+        ))
     }
 }
