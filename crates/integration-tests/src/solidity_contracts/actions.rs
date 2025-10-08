@@ -274,7 +274,7 @@ pub fn commit_genesis_block_step() -> eyre::Result<TestStep> {
             let twine_chain = ctx_get(&binding, ethereum_ctx_keys::ETHEREUM_TWINE_CHAIN)?;
             let rpc_url = consts::RETH_RPC_URL;
 
-            info!("Commiting genesis block to: {twine_chain}");
+            info!("Committing genesis block to: {twine_chain}");
 
             let empty_hash = KECCAK256_EMPTY.to_string();
             let output = Command::new("cast")
@@ -304,8 +304,8 @@ pub fn commit_genesis_block_step() -> eyre::Result<TestStep> {
 
 pub fn check_commited_batch() -> eyre::Result<TestStep> {
     Ok(async_step!(
-        "Check commited batch",
-        "Check commited batch on ethereum",
+        "Check committed batch",
+        "Check committed batch on ethereum",
         |ctx| {
             let binding = ctx.borrow();
             let twine_chain = ctx_get(&binding, ethereum_ctx_keys::ETHEREUM_TWINE_CHAIN)?;

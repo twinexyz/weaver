@@ -1,6 +1,6 @@
 //! Test settlement flow from L2 to L1
 #[cfg(test)]
-mod relay_to_twine {
+mod batch_settlement {
     use std::rc::Rc;
     use std::time::Duration;
 
@@ -49,7 +49,7 @@ mod relay_to_twine {
                 aggregator: SubProcessService {
                     name: "Aggregator".into(),
                     description: "Twine Aggregator Service".into(),
-                    cmd_gen: Box::new(move |ctx| {
+                    cmd_gen: Box::new(move |_ctx| {
                         let binary_path = aggregator_cfg.aggregator.binary_path.clone();
                         vec![
                             binary_path.clone(),
@@ -91,6 +91,7 @@ mod relay_to_twine {
                             .genesis_path
                             .clone()
                             .unwrap_or_else(|| panic!("Missing genesis_path for Twine node"));
+
                         vec![
                             binary_path.clone(),
                             "--worker-manager-url".into(),

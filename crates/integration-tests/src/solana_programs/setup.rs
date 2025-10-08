@@ -395,9 +395,7 @@ pub fn sol_check_last_finalized_batch_step() -> eyre::Result<TestStep> {
                 let chain_id = consts::SOLANA_CHAIN_ID.parse::<u64>()?;
 
                 let twine_chain_pubkey = Pubkey::from_str_const(twine_chain_program.trim());
-                let admin_pubkey = Pubkey::from_str_const(twine_chain_program.trim()); // the twine chain program is used just
-                                                                                       // as a placeholder as this is only needed
-                                                                                       // for constructing the struct in this case
+                let admin_pubkey = Pubkey::from_str_const("11111111111111111111111111111111"); // placeholder
                 let solana_provider = SolanaProvider {
                     rpc: consts::SOLANA_RPC_URL.into(),
                     chain_id,
@@ -409,7 +407,7 @@ pub fn sol_check_last_finalized_batch_step() -> eyre::Result<TestStep> {
                 let last_finalized_batch = twine_chain_storage.last_finalized_batch_number;
                 if last_finalized_batch <= 1 {
                     error!(
-                        "Batch settlement failed on Solana. Found last finalalized batch number: {last_finalized_batch} "
+                        "Batch settlement failed on Solana. Found last finalized batch number: {last_finalized_batch} "
                     );
                     eyre::bail!("Batch settlement failed on Solana");
                 }
