@@ -174,7 +174,7 @@ twine-constants = { path = "crates/constants" }
 twine-db-batch = { path = "crates/db/batch" }
 twine-ethereum-consensus-prover-lib = { path = "crates/ethereum-consensus-prover" }
 twine-evm-contracts = { path = "crates/evm-contracts" }
-twine-executor = { path = "crates/executor" }
+twine-executor = { path = "crates/executor", default-features = false }
 twine-exex = { path = "crates/exex" }
 twine-integration-tests = { path = "crates/integration-tests" }
 twine-kafka = { path = "crates/kafka" }
@@ -187,8 +187,8 @@ twine-l1-eth = { path = "crates/l1s/eth" }
 twine-l1-eth-reader = { path = "crates/l1s/eth/reader" }
 twine-l1-eth-writer = { path = "crates/l1s/eth/writer" }
 twine-l1-solana = { path = "crates/l1s/solana" }
-twine-l1-transactions-precompile = { path = "crates/precompiles/l1-transactions" }
-twine-l1-utils = { path = "crates/l1-utils" }
+twine-l1-transactions-precompile = { path = "crates/precompiles/l1-transactions", default-features = false }
+twine-l1-utils = { path = "crates/l1-utils", default-features = false }
 twine-l2-batch-poller = { path = "crates/l2-batch-poller" }
 twine-l2-proof-scheduler = { path = "crates/l2-proof-scheduler" }
 twine-proof-scheduler-common = { path = "crates/proof-scheduler-common" }

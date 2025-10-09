@@ -14,3 +14,8 @@ twine-constants.workspace = true
 
 [lints]
 workspace = true
+
+[features]
+devnet = []
+testnet = []
+mainnet = []

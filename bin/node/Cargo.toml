@@ -17,7 +17,7 @@ reth-tracing = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 twine-db-batch = { workspace = true }
-twine-executor = { workspace = true }
+twine-executor = { workspace = true, optional = true, default-features = false }
 twine-exex = { workspace = true }
 twine-rpc = { workspace = true }
 
@@ -26,5 +26,10 @@ name = "twine-node"
 path = "src/main.rs"
 
 [features]
-default = ["twine-batch"]
+default = ["twine-batch", "mainnet"]
+# environment config for twine node
+devnet = ["twine-executor/devnet"]
+testnet = ["twine-executor/testnet"]
+mainnet = ["twine-executor/mainnet"]
+# enable batcher
 twine-batch = []
