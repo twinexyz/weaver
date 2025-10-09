@@ -78,7 +78,7 @@ jobs:
       repo_name: ${{ github.event.repository.name }}
   deploy:
     needs: ["build"]
-    #needs: ["pre-notify", "build-amd64", "build-arm64"]
+    if: github.event_name != 'pull_request'
     uses: twinexyz/workflows/.github/workflows/deploy.yml@main
     secrets: inherit
     with:
@@ -88,7 +88,6 @@ jobs:
       app_name: "aggregator,scheduler,solana-scheduler"
   post-notify:
     if: always()
-    #needs: ["pre-notify", "precommit", "build"]
     needs: ["pre-notify", "build", "deploy"]
     uses: twinexyz/workflows/.github/workflows/notify.yml@main
     secrets: inherit
