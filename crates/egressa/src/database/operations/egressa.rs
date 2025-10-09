@@ -52,9 +52,9 @@ impl<'a> EgressaOperations<'a> {
             r#"
         INSERT INTO withdrawal_events (
             event_type, l1_chain_id, l2_transaction_hash, l1_token,
-            l1_address, public_values, l1_txn_hash, proof, is_processed, is_failed, failure_reason, process_txn_hash
+            l1_address, public_values, proof, is_processed, is_failed, failure_reason, process_txn_hash
         )
-        VALUES ($1::withdrawal_event_type, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        VALUES ($1::withdrawal_event_type, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         RETURNING id, event_type::text, l1_chain_id, l2_transaction_hash, l1_token, l1_address, public_values, proof, is_processed, is_failed, failure_reason, process_txn_hash
         "#,
         )
@@ -64,7 +64,6 @@ impl<'a> EgressaOperations<'a> {
         .bind(&event.withdrawal_event.l1_token)
         .bind(&event.withdrawal_event.l1_address)
         .bind(&event.public_values.to_vec())
-        .bind(&status.process_txn_hash)
         .bind(&event.proof.to_vec())
         .bind(status.is_processed)
         .bind(status.is_failed)

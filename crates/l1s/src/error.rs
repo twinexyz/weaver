@@ -23,6 +23,6 @@ pub enum TransactionError {
     #[error("transaction failed on-chain signature: {0} error: {1}")]
     OnChainFailure(String, String),
 
-    #[error("transaction failed after {0} retries")]
-    MaxRetriesExceeded(i32),
+    #[error("transaction failed after {0} retries, error: {1}")]
+    MaxRetriesExceeded(i32, String),
 }

@@ -8,19 +8,18 @@ pub enum WithdrawalEventType {
     ForcedWithdraw,
     /// L2 withdrawal
     L2Withdraw,
-
     /// Refund deposit
     RefundDeposit,
 }
 
 impl WithdrawalEventType {
     /// Create a new withdrawal event type from a database string
-    pub fn from_db_string(event_type: String) -> Self {
+    pub fn from_db_string(event_type: String) -> Result<Self, String> {
         match event_type.as_str() {
-            "ForcedWithdraw" => Self::ForcedWithdraw,
-            "Withdraw" => Self::L2Withdraw,
-            "Deposit" => Self::RefundDeposit,
-            _ => panic!("Invalid withdrawal event type: {}", event_type),
+            "ForcedWithdraw" => Ok(Self::ForcedWithdraw),
+            "Withdraw" => Ok(Self::L2Withdraw),
+            "Deposit" => Ok(Self::RefundDeposit),
+            _ => Err(format!("Invalid withdrawal event type: {}", event_type)),
         }
     }
 

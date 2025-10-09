@@ -14,7 +14,7 @@ use twine_l1_eth::EthClient;
 use crate::chains::ethereum::transaction_builder::TransactionBuilder;
 use crate::chains::ethereum::transaction_processor::TransactionProcessor;
 use crate::chains::L1TransactionSender;
-use crate::config::EvmContracts;
+use crate::config::{ChainConfig, EvmContracts};
 use crate::WithdrawalEvent;
 
 #[derive(Clone)]
@@ -41,18 +41,27 @@ pub struct EthereumSender {
 
 impl EthereumSender {
     /// Create a new Ethereum sender
-    pub async fn new(
-        http_rpc_url: &str,
-        chain_id: u64,
-        private_key: &str,
-        contracts_config: EvmContracts,
-    ) -> eyre::Result<Self> {
-        let client = EthClient::new(http_rpc_url, private_key, Some(chain_id)).await?;
+    pub async fn new(chain: ChainConfig) -> eyre::Result<Self> {
+        let evm_contracts = match &chain.contracts {
+            crate::config::Contracts::Evm(evm) => evm.clone(),
+            _ =>
+                return Err(eyre::eyre!(
+                    "Ethereum sender requires EVM contracts, not SVM contracts"
+                )),
+        };
+        let client = EthClient::new(
+            &chain.http_rpc_url,
+            &chain.private_key,
+            Some(chain.chain_id),
+        )
+        .await?;
 
-        let relayer_signer: PrivateKeySigner = private_key
-            .trim_start_matches("0x")
-            .parse()
-            .map_err(|e| eyre::eyre!(format!("Couldn't parse private key: {e}")))?;
+        let relayer_signer: PrivateKeySigner =
+            chain
+                .private_key
+                .trim_start_matches("0x")
+                .parse()
+                .map_err(|e| eyre::eyre!(format!("Couldn't parse private key: {e}")))?;
 
         let relayer_address = relayer_signer.address();
 
@@ -61,7 +70,7 @@ impl EthereumSender {
         let provider = DynProvider::new(
             ProviderBuilder::new()
                 .wallet(relayer_signer)
-                .on_http(http_rpc_url.parse().context("Invalid RPC URL")?),
+                .connect_http(chain.http_rpc_url.parse().context("Invalid RPC URL")?),
         );
 
         let query_client = client
@@ -69,26 +78,25 @@ impl EthereumSender {
             .reader
             .execution
             .clone()
-            .map(|e| e.clone())
             .context("Failed to get query client")?;
 
         let transaction_builder =
-            TransactionBuilder::new(query_client.clone(), contracts_config.clone(), chain_id);
+            TransactionBuilder::new(query_client.clone(), evm_contracts.clone(), chain.chain_id);
 
         let transaction_processor = TransactionProcessor::new(
             query_client.clone(),
-            10,
-            Duration::from_secs(1),
+            chain.max_retries,
+            Duration::from_secs(chain.retry_delay),
             Arc::new(provider.clone()),
-            chain_id,
+            chain.chain_id,
         );
 
         Ok(Self {
             transaction_builder,
             transaction_processor,
-            chain_id,
+            chain_id: chain.chain_id,
             inner: client,
-            contracts_config,
+            contracts_config: evm_contracts,
             relayer_address,
             provider: Arc::new(provider),
         })

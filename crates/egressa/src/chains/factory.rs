@@ -33,29 +33,12 @@ impl L1SenderFactory {
 
         let chain = maybe_chain.unwrap();
 
-        match chain.chain.as_str() {
+        match chain.chain.to_lowercase().as_str() {
             "ethereum" => {
-                let evm_contracts = match &chain.contracts {
-                    crate::config::Contracts::Evm(evm) => evm.clone(),
-                    _ => return None,
-                };
-
-                let sender = EthereumSender::new(
-                    &chain.http_rpc_url,
-                    chain.chain_id,
-                    &chain.private_key,
-                    evm_contracts,
-                )
-                .await
-                .ok()?;
+                let sender = EthereumSender::new(chain.clone()).await.ok()?;
                 Some(Box::new(sender))
             }
             "solana" => {
-                // let solana_contracts = match &chain.contracts {
-                //     crate::config::Contracts::Svm(svm) => svm.clone(),
-                //     _ => return None,
-                // };
-
                 let sender = SolanaSender::new(chain.clone()).await.ok()?;
                 Some(Box::new(sender))
             }

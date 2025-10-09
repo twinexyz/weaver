@@ -20,7 +20,7 @@ use twine_l1::error::TransactionError;
 #[allow(missing_debug_implementations)]
 pub struct TransactionProcessor {
     /// Max retries
-    pub max_retries: i32,
+    pub max_retries: u32,
     /// Retry delay
     pub retry_delay: Duration,
     /// Client
@@ -34,7 +34,7 @@ pub struct TransactionProcessor {
 impl TransactionProcessor {
     /// Create a new TransactionProcessor instance
     pub fn new(
-        max_retries: i32,
+        max_retries: u32,
         retry_delay: Duration,
         client: Arc<RpcClient>,
         relay_signer: Keypair,
@@ -64,7 +64,6 @@ impl TransactionProcessor {
             })
             .await
             .map_err(|e| {
-                error!("Failed to broadcast transaction: {}", e);
                 TransactionError::SendError(format!("Failed to broadcast transaction: {}", e))
             })?;
 
@@ -115,14 +114,17 @@ impl TransactionProcessor {
                             self.max_retries + 1,
                             e
                         );
-                        return Err(TransactionError::MaxRetriesExceeded(self.max_retries));
+                        return Err(TransactionError::MaxRetriesExceeded(
+                            self.max_retries as i32,
+                            e.to_string(),
+                        ));
                     }
 
-                    // Update blockhash for retry
+                    // Update blockhash and re-sign for retry
                     match self.client.get_latest_blockhash().await {
                         Ok(blockhash) => {
                             unsigned_tx.message.recent_blockhash = blockhash;
-                            unsigned_tx.signatures.clear(); // Clear old signatures
+                            unsigned_tx.sign(&[&self.relay_signer], blockhash);
                         }
                         Err(blockhash_err) => {
                             warn!("Failed to update blockhash for retry: {}", blockhash_err);
@@ -143,7 +145,19 @@ impl TransactionProcessor {
             }
         }
 
-        Err(last_error.unwrap_or_else(|| TransactionError::MaxRetriesExceeded(self.max_retries)))
+        Err(last_error.clone().unwrap_or_else(|| {
+            TransactionError::MaxRetriesExceeded(
+                self.max_retries as i32,
+                last_error
+                    .unwrap_or_else(|| {
+                        TransactionError::MaxRetriesExceeded(
+                            self.max_retries as i32,
+                            "Unknown error".to_string(),
+                        )
+                    })
+                    .to_string(),
+            )
+        }))
     }
 
     /// Process a single transaction attempt (sign + send)
@@ -155,13 +169,7 @@ impl TransactionProcessor {
         debug!("Processing single transaction attempt");
 
         // Send the signed transaction
-        let signature = self
-            .send_signed_transaction(unsigned_tx)
-            .await
-            .map_err(|e| {
-                error!("Transaction broadcasting failed: {}", e);
-                e
-            })?;
+        let signature = self.send_signed_transaction(unsigned_tx).await?;
 
         debug!(
             "Single transaction processing completed successfully: {}",
@@ -287,13 +295,16 @@ impl TransactionProcessor {
     }
 
     /// Calculate retry delay with exponential backoff
-    fn calculate_retry_delay(&self, retry_count: i32) -> Duration {
+    fn calculate_retry_delay(&self, retry_count: u32) -> Duration {
+        if retry_count == 0 {
+            return Duration::from_millis(0);
+        }
+
         let base_delay_ms = self.retry_delay.as_millis() as u64;
-        let exponential_factor = 2_u64.pow((retry_count - 1).max(0) as u32);
+        let exponential_factor = 2_u64.saturating_pow(retry_count - 1);
         let calculated_delay_ms = base_delay_ms * exponential_factor;
 
-        // Cap the maximum delay at 30 seconds
-        let max_delay_ms = 30_000;
+        let max_delay_ms = 60_000;
         let final_delay_ms = calculated_delay_ms.min(max_delay_ms);
 
         Duration::from_millis(final_delay_ms)
@@ -313,7 +324,7 @@ impl TransactionProcessor {
 /// Configuration information for transaction processing
 #[derive(Debug, Clone)]
 pub struct ProcessingConfig {
-    pub max_retries: i32,
+    pub max_retries: u32,
     pub base_retry_delay: Duration,
     pub confirmation_timeout_seconds: u64,
     pub poll_interval_seconds: u64,

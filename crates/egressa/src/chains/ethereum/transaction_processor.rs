@@ -15,15 +15,14 @@ use twine_l1_eth::twine_l1_eth_reader::clients::execution::EthQueryExecutionClie
 pub enum TransactionError {
     #[error("Process deposit error: {0}")]
     ProcessDepositError(String),
-    #[error("Max retries exceeded: {0}")]
-    MaxRetriesExceeded(i32),
+    #[error("Max retries exceeded: {0} Error: {1}")]
+    MaxRetriesExceeded(u32, String),
     #[error("Receipt timeout")]
     ReceiptTimeout,
 }
 
 /// TransactionProcessor handles the complete lifecycle of transaction
 /// processing:
-/// - Signing transactions via external signing service
 /// - Sending signed transactions to the blockchain
 /// - Retry logic for failed transactions
 /// - Waiting for transaction confirmation
@@ -31,7 +30,7 @@ pub enum TransactionError {
 #[derive(Clone)]
 pub struct TransactionProcessor {
     pub query_client: EthQueryExecutionClient,
-    pub max_retries: i32,
+    pub max_retries: u32,
     pub retry_delay: Duration,
     pub provider: Arc<DynProvider>,
     pub chain_id: u64,
@@ -41,14 +40,13 @@ impl TransactionProcessor {
     /// Create a new TransactionProcessor instance
     pub fn new(
         query_client: EthQueryExecutionClient,
-        max_retries: i32,
+        max_retries: u32,
         retry_delay: Duration,
         provider: Arc<DynProvider>,
         chain_id: u64,
     ) -> Self {
         Self {
             query_client,
-
             max_retries,
             retry_delay,
             provider,
@@ -96,7 +94,10 @@ impl TransactionProcessor {
                             self.max_retries + 1,
                             e
                         );
-                        return Err(TransactionError::MaxRetriesExceeded(self.max_retries));
+                        return Err(TransactionError::MaxRetriesExceeded(
+                            self.max_retries,
+                            e.to_string(),
+                        ));
                     }
 
                     // Calculate delay with exponential backoff
@@ -116,7 +117,19 @@ impl TransactionProcessor {
         }
 
         // This should never be reached due to the logic above, but just in case
-        Err(last_error.unwrap_or_else(|| TransactionError::MaxRetriesExceeded(self.max_retries)))
+        Err(last_error.clone().unwrap_or_else(|| {
+            TransactionError::MaxRetriesExceeded(
+                self.max_retries,
+                last_error
+                    .unwrap_or_else(|| {
+                        TransactionError::MaxRetriesExceeded(
+                            self.max_retries,
+                            "Unknown error".to_string(),
+                        )
+                    })
+                    .to_string(),
+            )
+        }))
     }
 
     /// Process a single transaction attempt (sign + send)
@@ -260,13 +273,16 @@ impl TransactionProcessor {
     /// - Base delay from configuration
     /// - Exponential backoff for subsequent retries
     /// - Maximum cap to prevent excessive delays
-    fn calculate_retry_delay(&self, retry_count: i32) -> Duration {
+    fn calculate_retry_delay(&self, retry_count: u32) -> Duration {
+        if retry_count == 0 {
+            return Duration::from_millis(0);
+        }
+
         let base_delay_ms = self.retry_delay.as_millis() as u64;
-        let exponential_factor = 2_u64.pow((retry_count - 1).max(0) as u32);
+        let exponential_factor = 2_u64.saturating_pow(retry_count - 1);
         let calculated_delay_ms = base_delay_ms * exponential_factor;
 
-        // Cap the maximum delay at 30 seconds
-        let max_delay_ms = 30_000;
+        let max_delay_ms = 60_000;
         let final_delay_ms = calculated_delay_ms.min(max_delay_ms);
 
         Duration::from_millis(final_delay_ms)
@@ -287,7 +303,7 @@ impl TransactionProcessor {
 #[derive(Debug, Clone)]
 #[allow(missing_docs)]
 pub struct ProcessingConfig {
-    pub max_retries: i32,
+    pub max_retries: u32,
     pub base_retry_delay: Duration,
     pub confirmation_timeout_seconds: u64,
     pub poll_interval_seconds: u64,

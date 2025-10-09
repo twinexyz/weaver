@@ -67,8 +67,8 @@ impl SolanaSender {
             config.chain.clone(),
         );
         let transaction_processor = TransactionProcessor::new(
-            1,
-            Duration::from_secs(1),
+            config.max_retries,
+            Duration::from_secs(config.retry_delay),
             rpc.clone(),
             relayer_keypair,
             config.chain_id,
@@ -82,9 +82,27 @@ impl SolanaSender {
         })
     }
 
-    async fn is_forced_withdrawal_executed(&self, public_values: Bytes) -> eyre::Result<bool> {
-        let message_nonce = u64::from_be_bytes(public_values[8..16].try_into().unwrap_or_default());
+    async fn is_forced_withdrawal_executed(&self, message_nonce: u64) -> eyre::Result<bool> {
+        let executed_withdrawal_pda = SolanaAddressDerivation::derive_executed_payouts_pda(
+            &self.transaction_builder.program_addresses.tokens_gateway_id,
+            message_nonce,
+        )
+        .0;
 
+        info!(
+            "Executed withdrawal PDA: {}",
+            executed_withdrawal_pda.to_string()
+        );
+
+        let is_account_exist = self
+            .transaction_builder
+            .does_account_exist(executed_withdrawal_pda)
+            .await?;
+
+        Ok(is_account_exist)
+    }
+
+    async fn is_refund_deposit_executed(&self, message_nonce: u64) -> eyre::Result<bool> {
         let executed_withdrawal_pda = SolanaAddressDerivation::derive_executed_payouts_pda(
             &self.transaction_builder.program_addresses.tokens_gateway_id,
             message_nonce,
@@ -99,26 +117,7 @@ impl SolanaSender {
         Ok(is_account_exist)
     }
 
-    async fn is_refund_deposit_executed(&self, public_values: Bytes) -> eyre::Result<bool> {
-        let message_nonce = u64::from_be_bytes(public_values[8..16].try_into().unwrap_or_default());
-
-        let executed_withdrawal_pda = SolanaAddressDerivation::derive_executed_payouts_pda(
-            &self.transaction_builder.program_addresses.tokens_gateway_id,
-            message_nonce,
-        )
-        .0;
-
-        let is_account_exist = self
-            .transaction_builder
-            .does_account_exist(executed_withdrawal_pda)
-            .await?;
-
-        Ok(is_account_exist)
-    }
-
-    async fn is_l2_withdraw_executed(&self, public_values: Bytes) -> eyre::Result<bool> {
-        let message_nonce = u64::from_be_bytes(public_values[8..16].try_into().unwrap_or_default());
-
+    async fn is_l2_withdraw_executed(&self, message_nonce: u64) -> eyre::Result<bool> {
         let executed_withdrawal_pda = SolanaAddressDerivation::derive_executed_withdrawals_pda(
             &self.transaction_builder.program_addresses.tokens_gateway_id,
             message_nonce,
@@ -303,11 +302,12 @@ impl L1TransactionSender for SolanaSender {
         withdrawal_proof: Bytes,
     ) -> eyre::Result<String> {
         let is_executed = self
-            .is_forced_withdrawal_executed(public_values.clone())
+            .is_forced_withdrawal_executed(withdrawal_event.nonce)
             .await?;
         if is_executed {
             return Err(eyre::eyre!(
-                "Forced withdrawal already executed on chain {}",
+                "Forced withdrawal already executed on chain: {} and nonce {}",
+                withdrawal_event.l1_chain_id,
                 withdrawal_event.nonce
             ));
         }
@@ -327,10 +327,11 @@ impl L1TransactionSender for SolanaSender {
         public_values: Bytes,
         withdraw_proof: Bytes,
     ) -> eyre::Result<String> {
-        let is_executed = self.is_l2_withdraw_executed(public_values.clone()).await?;
+        let is_executed = self.is_l2_withdraw_executed(withdrawal_event.nonce).await?;
         if is_executed {
             return Err(eyre::eyre!(
-                "L2 withdraw already executed on chain {}",
+                "L2 withdraw already executed on chain: {} and nonce {}",
+                withdrawal_event.l1_chain_id,
                 withdrawal_event.nonce
             ));
         }
@@ -351,11 +352,12 @@ impl L1TransactionSender for SolanaSender {
         refund_proof: Bytes,
     ) -> eyre::Result<String> {
         let is_executed = self
-            .is_refund_deposit_executed(public_values.clone())
+            .is_refund_deposit_executed(withdrawal_event.nonce)
             .await?;
         if is_executed {
             return Err(eyre::eyre!(
-                "Refund already executed on chain {}",
+                "Refund already executed on chain: {} and nonce {}",
+                withdrawal_event.l1_chain_id,
                 withdrawal_event.nonce
             ));
         }

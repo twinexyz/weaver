@@ -15,14 +15,13 @@ pub(crate) async fn start_egressa(config: &AppCfg) -> eyre::Result<()> {
     )
     .await?;
 
-    // Start your service components here
     let mut handles: Vec<tokio::task::JoinHandle<()>> = Vec::new();
 
-    // Example: Start a background task
     let config_clone = config.clone();
     let handle = tokio::spawn(async move {
         let _ = twine_egressa::service::run_service(config_clone, db_client.clone()).await;
     });
+
     handles.push(handle);
 
     info!("Egressa service is now running...");

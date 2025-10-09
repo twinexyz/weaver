@@ -49,10 +49,6 @@ pub async fn process_proof(
             error!("We do not support other proof kinds");
             return Err(eyre::eyre!("We do not support other proof kinds"));
         }
-        _ => {
-            error!("We do not support this proof kind");
-            return Err(eyre::eyre!("We do not support this proof kind"));
-        }
     };
 
     info!(

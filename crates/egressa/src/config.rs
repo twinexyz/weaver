@@ -1,7 +1,10 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::str::FromStr as _;
 
+use alloy_primitives::Address;
 use serde::{Deserialize, Serialize};
+use solana_sdk::pubkey::Pubkey;
 
 /// The main application configuration structure.
 #[derive(Debug, Deserialize, Clone, Serialize)]
@@ -33,7 +36,6 @@ pub struct DatabaseConfig {
     pub url: String,
     /// Maximum number of connections to the database
     pub max_connections: u32,
-
     /// Indexer database connection url
     pub indexer_database_url: String,
 }
@@ -64,6 +66,10 @@ pub struct ChainConfig {
     pub private_key: String,
     /// Contract addresses for this chain
     pub contracts: Contracts,
+    /// Max retries for transaction processing
+    pub max_retries: u32,
+    /// Retry delay for transaction processing
+    pub retry_delay: u64,
 }
 
 /// EVM-based chain contracts
@@ -264,7 +270,7 @@ impl ChainConfig {
         }
 
         // Validate chain type matches expected values
-        let valid_chain_types = ["ethereum", "polygon", "solana", "arbitrum", "optimism"];
+        let valid_chain_types = ["ethereum", "solana"];
         if !valid_chain_types.contains(&self.chain.as_str()) {
             return Err(eyre::eyre!(
                 "Chain '{}': Invalid chain type '{}'. Must be one of: {}",
@@ -283,6 +289,14 @@ impl ChainConfig {
 
         // Validate contracts based on chain type
         self.contracts.validate(chain_name, &self.chain)?;
+
+        if self.max_retries == 0 {
+            return Err(eyre::eyre!("Max retries must be greater than 0"));
+        }
+
+        if self.retry_delay == 0 {
+            return Err(eyre::eyre!("Retry delay must be greater than 0"));
+        }
 
         Ok(())
     }
@@ -325,20 +339,11 @@ impl EvmContracts {
             ));
         }
 
-        // Basic Ethereum address validation (42 characters, starts with 0x)
-        if !self.twine_chain_contract.starts_with("0x") || self.twine_chain_contract.len() != 42 {
+        if Address::from_str(&self.twine_chain_contract).is_err() {
             return Err(eyre::eyre!(
-                "Chain '{}': Invalid Twine chain contract address format. Must be a valid Ethereum address (0x followed by 40 hex characters)",
-                chain_name
-            ));
-        }
-
-        // Validate hex characters
-        let hex_part = &self.twine_chain_contract[2..];
-        if !hex_part.chars().all(|c| c.is_ascii_hexdigit()) {
-            return Err(eyre::eyre!(
-                "Chain '{}': Twine chain contract address contains invalid hex characters",
-                chain_name
+                "Chain '{}': Invalid Twine chain contract address format. Must be a valid Ethereum address (0x followed by 40 hex characters): {}",
+                chain_name,
+                self.twine_chain_contract
             ));
         }
 
@@ -363,18 +368,19 @@ impl SvmContracts {
             ));
         }
 
-        // Basic Solana address validation (32-44 base58 characters)
-        if self.tokens_gateway.len() < 32 || self.tokens_gateway.len() > 44 {
+        if Pubkey::from_str(&self.tokens_gateway).is_err() {
             return Err(eyre::eyre!(
-                "Chain '{}': Invalid tokens gateway address length. Solana addresses are typically 32-44 characters",
-                chain_name
+                "Chain '{}': Invalid tokens gateway address format. Must be a valid Solana address (base58 characters): {}",
+                chain_name,
+                self.tokens_gateway
             ));
         }
 
-        if self.twine_chain_program.len() < 32 || self.twine_chain_program.len() > 44 {
+        if Pubkey::from_str(&self.twine_chain_program).is_err() {
             return Err(eyre::eyre!(
-                "Chain '{}': Invalid twine chain program address length. Solana addresses are typically 32-44 characters",
-                chain_name
+                "Chain '{}': Invalid twine chain program address format. Must be a valid Solana address (base58 characters): {}",
+                chain_name,
+                self.twine_chain_program
             ));
         }
 
