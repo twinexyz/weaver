@@ -4,11 +4,10 @@ use std::io::BufWriter;
 use log::info;
 use serde::{Deserialize, Serialize};
 use test_harness::{AsyncFnStep, TestStep};
+use twine_aggregator_common::config::*;
+use twine_aggregator_common::SettlementChains;
 
-use crate::ctx;
-
-mod config;
-use config::*;
+use crate::{consts, ctx};
 
 /// Test step to setup aggregator config
 pub fn setup_aggregator_config(config_path: &str) -> eyre::Result<TestStep> {
@@ -24,7 +23,7 @@ pub fn setup_aggregator_config(config_path: &str) -> eyre::Result<TestStep> {
                 info!("Setting up aggregator config");
 
                 let kafka_bootstrap = c
-                    .get("kafka_bootstrap_servers")
+                    .get(ctx::common_ctx_keys::KAFKA_BOOTSTRAP_SERVERS)
                     .expect("Failed getting kafka bootstrap servers")
                     .clone();
 
@@ -72,18 +71,60 @@ pub fn generate_aggregator_config(
     twine_chain_program_id: String,
     solana_wallet_path: String,
 ) -> eyre::Result<()> {
-    let mut config = AggregatorConfig::default();
+    let config = AppCfg {
+        db_url,
+        dispatcher: DispatcherConfig {
+            use_da: false,
+            settle_targets: vec![SettlementChains::Ethereum, SettlementChains::Solana],
+            poll_interval_ms: 10_000,
+        },
+        eth: Some(EthCfg {
+            rpc: consts::RETH_RPC_URL.to_string(),
+            chain_id: 1337,
+            twine_chain_contract: twine_chain_address,
+            finality_blocks: 12,
+            eth_private_key: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+                .to_string(),
+            gas_limit: 500_000,
+        }),
+        sol: Some(SolCfg {
+            rpc: consts::SOLANA_RPC_URL.to_string(),
+            chain_id: 900,
+            twine_chain_program_id,
+            solana_wallet_path,
+        }),
+        twine: TwineCfg {
+            rpc: consts::TWINE_RPC_URL.to_string(),
+            chain_id: 14523,
+            start_batch: 1,
+            poll_interval: 10,
+        },
+        kafka: KafkaConfig {
+            config: HashMap::new(),
+            topics: vec!["l2-proofs".to_string()],
+            consumer: KafkaConsumerConfig {
+                bootstrap_servers: kafka_bootstrap,
+                client_id: "twine-aggregator".to_string(),
+                group_id: "test-group".to_string(),
+                session_timeout_ms: 45000,
+                auto_offset_reset: "earliest".to_string(),
+                enable_auto_commit: false,
+            },
+        },
+        rpc: RpcConfig {
+            host: "127.0.0.1".to_string(),
+            port: 5566,
+        },
+        celestia: None,
+        verification_keys: None,
+        telemetry: None,
+    };
 
-    // Update with dynamic values
-    config.kafka.consumer.bootstrap_servers = kafka_bootstrap;
-    config.db_url = db_url;
-    config.eth.twine_chain_contract = twine_chain_address;
-    config.sol.twine_chain_program_id = twine_chain_program_id;
-    config.sol.solana_wallet_path = solana_wallet_path;
-
-    let file = std::fs::File::create(config_path)?;
+    let file = std::fs::File::create(config_path)
+        .map_err(|e| eyre::eyre!("Failed to create config file {}: {}", config_path, e))?;
     let writer = BufWriter::new(file);
-    serde_yaml::to_writer(writer, &config)?;
+    serde_yaml::to_writer(writer, &config)
+        .map_err(|e| eyre::eyre!("Failed to serialize config to YAML: {}", e))?;
 
     info!("Generated aggregator config at {}", config_path);
     Ok(())

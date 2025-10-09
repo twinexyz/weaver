@@ -1,14 +1,16 @@
-mod config;
+use std::collections::HashMap;
 use std::fs;
+use std::hash::Hash;
 use std::io::{BufWriter, Write};
 use std::path::Path;
 
-use config::*;
 use eyre::{Context as _, Result};
 use log::info;
+use serde_json::to_vec;
 use test_harness::{AsyncFnStep, TestStep};
+use toml::{self, Value};
 
-use crate::ctx;
+use crate::{consts, ctx};
 
 /// Test step to setup proof scheduler config (TOML)
 pub fn setup_proof_scheduler_config(config_path: &str) -> eyre::Result<TestStep> {
@@ -24,7 +26,7 @@ pub fn setup_proof_scheduler_config(config_path: &str) -> eyre::Result<TestStep>
                 info!("Setting up proof scheduler config");
 
                 let kafka_bootstrap: String = c
-                    .get("kafka_bootstrap_servers")
+                    .get(ctx::common_ctx_keys::KAFKA_BOOTSTRAP_SERVERS)
                     .expect("Failed getting kafka bootstrap servers")
                     .clone();
 
@@ -33,11 +35,10 @@ pub fn setup_proof_scheduler_config(config_path: &str) -> eyre::Result<TestStep>
                     .expect("Failed getting db connection string")
                     .clone();
 
-                generate_proof_scheduler_config(&config_path, kafka_bootstrap, db_url)?;
+                generate_proof_scheduler_config(config_path.clone(), kafka_bootstrap, db_url)?;
 
-                // Share the path for downstream steps
                 c.insert(
-                    "proof_scheduler_config_path".to_string(),
+                    consts::SCHEDULER_CONFIG_PATH.to_string(),
                     config_path.clone(),
                 );
                 Ok(())
@@ -46,33 +47,84 @@ pub fn setup_proof_scheduler_config(config_path: &str) -> eyre::Result<TestStep>
     })))
 }
 
-/// Generate proof scheduler TOML config and write to file
-pub fn generate_proof_scheduler_config(
-    config_path: &str,
+fn generate_proof_scheduler_config(
+    config_path: String,
     kafka_bootstrap: String,
     db_url: String,
 ) -> Result<()> {
-    let mut cfg = Config::default();
+    let mut batch_subscriber = toml::map::Map::new();
+    batch_subscriber.insert(
+        "twine_rpc_url".into(),
+        Value::String(consts::TWINE_RPC_URL.into()),
+    );
+    batch_subscriber.insert("start_block".into(), Value::Integer(1));
+    batch_subscriber.insert("next_transform_request_id".into(), Value::Integer(0));
 
-    // Apply dynamic values
-    cfg.consumer.kafka_broker_url = kafka_bootstrap;
-    cfg.db.conn_str = db_url;
+    let mut consumer = toml::map::Map::new();
+    consumer.insert(
+        "kafka_broker_url".into(),
+        Value::String(kafka_bootstrap.to_string()),
+    );
+    consumer.insert("kafka_topics".into(), Value::String("l2-proofs".into()));
+    consumer.insert("kafka_groups".into(), Value::String("test-group".into()));
+    consumer.insert("auto_offset_reset".into(), Value::String("earliest".into()));
 
-    if let Some(parent) = Path::new(config_path).parent() {
+    let mut worker_manager = toml::map::Map::new();
+    worker_manager.insert(
+        "binding_port".into(),
+        Value::Integer(consts::WORKER_MANAGER_PORT as i64),
+    );
+    worker_manager.insert("job_completion_timeout".into(), Value::Integer(30));
+
+    let mut attempt = toml::map::Map::new();
+    attempt.insert("max_attempts_per_request".into(), Value::Integer(20));
+    attempt.insert(
+        "max_consume_attempts_per_attempts".into(),
+        Value::Integer(20),
+    );
+
+    let mut db = toml::map::Map::new();
+    db.insert("conn_str".into(), Value::String(db_url.to_string()));
+
+    let mut processor = toml::map::Map::new();
+    processor.insert("transform_request_channel_size".into(), Value::Integer(100));
+    processor.insert("transform_attempt_channel_size".into(), Value::Integer(100));
+    processor.insert("consume_attempt_channel_size".into(), Value::Integer(100));
+    processor.insert(
+        "max_in_process_transform_attempts".into(),
+        Value::Integer(100),
+    );
+
+    let mut instrumentation = toml::map::Map::new();
+    instrumentation.insert("metrics_server_port".into(), Value::Integer(3000));
+
+    // combine all sections into a single TOML
+    let mut root = toml::map::Map::new();
+    root.insert("batch_subscriber".into(), Value::Table(batch_subscriber));
+    root.insert("consumer".into(), Value::Table(consumer));
+    root.insert("worker_manager".into(), Value::Table(worker_manager));
+    root.insert("attempt".into(), Value::Table(attempt));
+    root.insert("db".into(), Value::Table(db));
+    root.insert("processor".into(), Value::Table(processor));
+    root.insert("instrumentation".into(), Value::Table(instrumentation));
+
+    let toml_value = Value::Table(root);
+    let toml_str = toml::to_string_pretty(&toml_value).wrap_err("serializing config to TOML")?;
+
+    if let Some(parent) = Path::new(config_path.as_str()).parent() {
         if !parent.as_os_str().is_empty() {
-            fs::create_dir_all(parent).wrap_err("creating proof scheduler config directory")?;
+            fs::create_dir_all(parent).wrap_err("creating config directory")?;
         }
     }
 
-    let toml_str = toml::to_string_pretty(&cfg).wrap_err("serializing Config to TOML")?;
-    let file = fs::File::create(config_path).wrap_err("creating proof scheduler config file")?;
+    let file = fs::File::create(config_path.as_str()).wrap_err("creating config file")?;
     let mut writer = BufWriter::new(file);
     writer
         .write_all(toml_str.as_bytes())
-        .wrap_err("writing proof scheduler config")?;
+        .wrap_err("writing config file")?;
     writer.flush().ok();
 
-    info!("Config is: {toml_str:?}");
     info!("Generated proof scheduler config at {}", config_path);
+
     Ok(())
 }

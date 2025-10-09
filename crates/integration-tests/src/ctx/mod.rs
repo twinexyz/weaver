@@ -45,6 +45,7 @@ pub mod common_ctx_keys {
     pub const MERKORA_DB_CONNECTION: &str = "merkora_db_connection";
     pub const AGGREGATOR_DB_CONNECTION: &str = "aggregator_db_connection";
     pub const SCHEDULER_DB_CONNECTION: &str = "scheduler_db_connection";
+    pub const KAFKA_BOOTSTRAP_SERVERS: &str = "kafka_bootstrap_servers";
     pub const RANDOM_ADDRESS: &str = "random_address";
     pub const MESSAGE_HASH: &str = "message_hash";
 }

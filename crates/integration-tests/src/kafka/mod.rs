@@ -23,7 +23,10 @@ pub fn setup_kafka_step() -> eyre::Result<TestStep> {
 
                 // insert bootstrap string into shared context
                 let mut c = ctx.borrow_mut();
-                c.insert("kafka_bootstrap_servers".to_string(), bootstrap);
+                c.insert(
+                    ctx::common_ctx_keys::KAFKA_BOOTSTRAP_SERVERS.to_string(),
+                    bootstrap,
+                );
                 Ok(())
             })
         }),

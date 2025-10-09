@@ -15822,6 +15822,7 @@ dependencies = [
  "testcontainers-modules",
  "tokio",
  "toml 0.8.23",
+ "twine-aggregator-common",
  "twine-evm-contracts",
  "twine-l1-solana",
 ]
