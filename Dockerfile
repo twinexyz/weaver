@@ -1,9 +1,9 @@
 FROM ubuntu:24.04 AS builder
 
+ARG FEATURES
 ARG GITHUB_ORGANIZATION
 ARG SOLANA_STUB_PROVER_FILENAME
 ARG RSP_FILENAME
-ARG FEATURES
 
 RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
     --mount=type=secret,id=github_username,env=GITHUB_USERNAME \
