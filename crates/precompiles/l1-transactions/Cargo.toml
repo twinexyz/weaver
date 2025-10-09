@@ -25,7 +25,13 @@ thiserror.workspace = true
 
 twine-constants.workspace = true
 twine-evm-contracts.workspace = true
-twine-l1-utils.workspace = true
+twine-l1-utils = { workspace = true, optional = true, default-features = false }
 
 [lints]
 workspace = true
+
+[features]
+default = ["mainnet"]
+devnet = ["twine-l1-utils/devnet"]
+testnet = ["twine-l1-utils/testnet"]
+mainnet = ["twine-l1-utils/mainnet"]

@@ -1,5 +1,6 @@
 FROM ubuntu:24.04 AS builder
 
+ARG FEATURES
 ARG GITHUB_ORGANIZATION
 ARG SOLANA_STUB_PROVER_FILENAME
 ARG RSP_FILENAME
@@ -41,7 +42,11 @@ WORKDIR /app
 
 COPY . .
 
-RUN cargo build --release --bin twine-node
+RUN echo "-----------"
+RUN echo $FEATURES
+RUN echo "-----------"
+
+RUN cargo build --release --bin twine-node --features $FEATURES
 RUN cargo build --release --bin twine-proof-scheduler-bin --features l2-proof-scheduler
 RUN mv target/release/twine-proof-scheduler-bin target/release/twine-l2-proof-scheduler-bin
 RUN cargo build --release --bin twine-proof-scheduler-bin --features solana-proof-scheduler
