@@ -3,6 +3,7 @@ FROM ubuntu:24.04 AS builder
 ARG GITHUB_ORGANIZATION
 ARG SOLANA_STUB_PROVER_FILENAME
 ARG RSP_FILENAME
+ARG FEATURES
 
 RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
     --mount=type=secret,id=github_username,env=GITHUB_USERNAME \
@@ -41,7 +42,7 @@ WORKDIR /app
 
 COPY . .
 
-RUN cargo build --release --bin twine-node
+RUN cargo build --release --bin twine-node --features ${FEATURES}
 RUN cargo build --release --bin twine-proof-scheduler-bin --features l2-proof-scheduler
 RUN mv target/release/twine-proof-scheduler-bin target/release/twine-l2-proof-scheduler-bin
 RUN cargo build --release --bin twine-proof-scheduler-bin --features solana-proof-scheduler
