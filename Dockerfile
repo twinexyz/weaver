@@ -57,7 +57,7 @@ RUN cargo build --release --bin twine-proof-scheduler-bin --features solana-proo
 RUN mv target/release/twine-proof-scheduler-bin target/release/twine-solana-proof-scheduler-bin
 RUN cargo build --release --bin twine-l2-execution-prover-worker
 RUN cargo build --release --bin twine-aggregator
-RUN cargo build --release --bin egressa
+RUN cargo build --release --bin twine-egressa-bin
 
 RUN cargo install tomq sqlx-cli
 
@@ -113,6 +113,6 @@ COPY --from=builder /app/target/release/twine-aggregator /usr/local/bin/aggregat
 COPY --from=builder /app/target/release/twine-l2-proof-scheduler-bin /usr/local/bin/scheduler
 COPY --from=builder /app/target/release/twine-solana-proof-scheduler-bin /usr/local/bin/solana-scheduler
 COPY --from=builder /app/target/release/twine-l2-execution-prover-worker /usr/local/bin/prover
-COPY --from=builder /app/target/release/egressa /usr/local/bin/egressa
+COPY --from=builder /app/target/release/twine-egressa-bin /usr/local/bin/egressa
 COPY ./nginx.conf /etc/nginx/nginx.conf
 COPY ./entrypoint.sh /entrypoint.sh
