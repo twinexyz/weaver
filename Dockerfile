@@ -103,7 +103,7 @@ RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 COPY --from=builder /root/.sp1/bin/sp1up /usr/local/bin/sp1up
 COPY --from=builder /usr/bin/yq /usr/local/bin/yq
 COPY --from=builder /root/.cargo/bin/tomq /usr/local/bin/tomq
-COPY --from=builder /usr/local/cargo/bin/sqlx /usr/local/bin/sqlx
+COPY --from=builder /root/.cargo/bin/sqlx /usr/local/bin/sqlx
 
 COPY --from=builder /app/twine-rsp/$RSP_FILENAME /usr/local/bin/rsp
 COPY --from=builder /app/solana-stub-prover/$SOLANA_STUB_PROVER_FILENAME /usr/local/bin/solana-stub-prover
