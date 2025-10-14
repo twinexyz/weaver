@@ -31,7 +31,7 @@ async fn increments_sequential_counter() -> eyre::Result<()> {
         .block_time(1)
         .chain_id(ANVIL_CHAIN_ID)
         .try_spawn()?;
-    let provider = ProviderBuilder::new().on_http(anvil.endpoint_url());
+    let provider = ProviderBuilder::new().connect_http(anvil.endpoint_url());
 
     // let rpc_url = "http://127.0.0.1:8545".parse().unwrap();
     // let provider = ProviderBuilder::new().on_http(rpc_url);

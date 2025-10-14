@@ -27,7 +27,7 @@ async fn rejects_when_queue_is_full() -> eyre::Result<()> {
         .chain_id(ANVIL_CHAIN_ID)
         .try_spawn()?;
 
-    let provider = ProviderBuilder::new().on_http(anvil.endpoint_url());
+    let provider = ProviderBuilder::new().connect_http(anvil.endpoint_url());
     let dyn_provider = DynProvider::new(provider);
 
     let recipient = Address::from_str(RECIPIENT_ADDRESS).wrap_err("invalid recipient address")?;

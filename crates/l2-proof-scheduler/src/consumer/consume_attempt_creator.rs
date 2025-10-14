@@ -130,7 +130,7 @@ impl ConsumeAttemptCreator for TwineBatchTransformResultConsumeAttemptCreator {
                 )));
             }
             new_identifier.identifier += 1;
-            let transform_attempt = TwineBatchTransformResultConsumeAttempt::new(
+            let consume_attempt = TwineBatchTransformResultConsumeAttempt::new(
                 new_identifier,
                 error.consume_context,
                 error.consume_value,
@@ -146,11 +146,12 @@ impl ConsumeAttemptCreator for TwineBatchTransformResultConsumeAttemptCreator {
             );
 
             let attempt_details = AttemptDetails {
-                attempt: transform_attempt,
+                attempt: consume_attempt.clone(),
                 time: time::Instant::now(),
             };
 
-            *attempt = attempt_details
+            *attempt = attempt_details;
+            return Ok(consume_attempt);
         }
 
         return Err(ProofSchedulerError::KeyNotFound(format!(

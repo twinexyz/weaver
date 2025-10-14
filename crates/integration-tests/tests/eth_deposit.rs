@@ -2,8 +2,7 @@
 
 #[cfg(test)]
 mod eth_deposit_test {
-    use std::process::{Command, Stdio};
-    use std::time::{Duration, SystemTime, UNIX_EPOCH};
+    use std::time::Duration;
 
     use eyre::{Context, Result};
     use test_harness::{SubProcessService, TestHarness};
