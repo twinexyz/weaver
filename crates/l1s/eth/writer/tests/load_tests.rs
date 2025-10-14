@@ -39,7 +39,7 @@ async fn processes_queued_transactions_against_anvil() -> eyre::Result<()> {
         .try_spawn()?;
     info!(endpoint = %anvil.endpoint(), "spawned local anvil instance");
 
-    let provider = ProviderBuilder::new().on_http(anvil.endpoint_url());
+    let provider = ProviderBuilder::new().connect_http(anvil.endpoint_url());
     let dyn_provider = DynProvider::new(provider);
 
     let chain_id = dyn_provider.get_chain_id().await?;

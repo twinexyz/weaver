@@ -3,8 +3,7 @@
 #[cfg(test)]
 mod eth_deposit_stress_test {
     use std::ops::Mul;
-    use std::process::{Command, Stdio};
-    use std::time::{Duration, SystemTime, UNIX_EPOCH};
+    use std::time::Duration;
 
     use eyre::{Context, Result};
     use test_harness::{SubProcessService, TestHarness};
