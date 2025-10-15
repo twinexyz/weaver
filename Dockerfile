@@ -4,6 +4,7 @@ ARG FEATURES
 ARG GITHUB_ORGANIZATION
 ARG SOLANA_STUB_PROVER_FILENAME
 ARG RSP_FILENAME
+ARG ARCH
 
 ARG RSP_BRANCH
 ARG SOLANA_STUB_PROVER_BRANCH
@@ -32,12 +33,12 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 
 RUN rustup toolchain install nightly --allow-downgrade --profile minimal --component clippy
 
-RUN wget -c https://github.com/mikefarah/yq/releases/download/v4.45.1/yq_linux_amd64 -O /usr/bin/yq && \
+RUN wget -c https://github.com/mikefarah/yq/releases/download/v4.45.1/yq_linux_${ARCH} -O /usr/bin/yq && \
     chmod +x /usr/bin/yq
 
-RUN curl -OL https://go.dev/dl/go1.24.0.linux-amd64.tar.gz && \
-    tar -C /usr/local -xzf go1.24.0.linux-amd64.tar.gz && \
-    rm go1.24.0.linux-amd64.tar.gz
+RUN curl -OL https://go.dev/dl/go1.24.0.linux-${ARCH}.tar.gz && \
+    tar -C /usr/local -xzf go1.24.0.linux-${ARCH}.tar.gz && \
+    rm go1.24.0.linux-${ARCH}.tar.gz
 
 RUN curl -L https://sp1.succinct.xyz | bash && ~/.sp1/bin/sp1up
 
