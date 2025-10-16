@@ -57,13 +57,17 @@ RUN cargo build --release --bin twine-proof-scheduler-bin --features solana-proo
 RUN mv target/release/twine-proof-scheduler-bin target/release/twine-solana-proof-scheduler-bin
 RUN cargo build --release --bin twine-l2-execution-prover-worker
 RUN cargo build --release --bin twine-aggregator
+RUN cargo build --release --bin twine-egressa-bin
 
-RUN cargo install tomq
+RUN cargo install tomq sqlx-cli
 
 RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
     --mount=type=secret,id=github_username,env=GITHUB_USERNAME \
-    git clone --branch staging https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${GITHUB_ORGANIZATION}/twine-rsp.git && \
-    git clone --branch v0.1.0-devnet https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${GITHUB_ORGANIZATION}/solana-stub-prover.git
+    git clone --branch v0.1.0-devnet https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${GITHUB_ORGANIZATION}/twine-rsp.git && \
+    git clone --branch v0.1.0-devnet https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${GITHUB_ORGANIZATION}/solana-stub-prover.git && \
+    git clone --branch v0.1.0-testnet https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${GITHUB_ORGANIZATION}/merlin.git && \
+    cd merlin && \
+    cargo build --release
 
 FROM nvidia/cuda:12.9.1-cudnn-runtime-ubuntu24.04 AS final
 
@@ -102,14 +106,20 @@ RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 COPY --from=builder /root/.sp1/bin/sp1up /usr/local/bin/sp1up
 COPY --from=builder /usr/bin/yq /usr/local/bin/yq
 COPY --from=builder /root/.cargo/bin/tomq /usr/local/bin/tomq
+COPY --from=builder /root/.cargo/bin/sqlx /usr/local/bin/sqlx
 
 COPY --from=builder /app/twine-rsp/$RSP_FILENAME /usr/local/bin/rsp
+COPY --from=builder /app/merlin/target/release/withdraw-prover /usr/local/bin/withdraw-prover
+COPY --from=builder /app/merlin/target/release/l1-txns-prover /usr/local/bin/l1-txns-prover
+COPY --from=builder /app/merlin/target/release/refund-prover /usr/local/bin/refund-prover
 COPY --from=builder /app/solana-stub-prover/$SOLANA_STUB_PROVER_FILENAME /usr/local/bin/solana-stub-prover
+
 
 COPY --from=builder /app/target/release/twine-node /usr/local/bin/twine-node
 COPY --from=builder /app/target/release/twine-aggregator /usr/local/bin/aggregator
 COPY --from=builder /app/target/release/twine-l2-proof-scheduler-bin /usr/local/bin/scheduler
 COPY --from=builder /app/target/release/twine-solana-proof-scheduler-bin /usr/local/bin/solana-scheduler
 COPY --from=builder /app/target/release/twine-l2-execution-prover-worker /usr/local/bin/prover
+COPY --from=builder /app/target/release/twine-egressa-bin /usr/local/bin/egressa
 COPY ./nginx.conf /etc/nginx/nginx.conf
 COPY ./entrypoint.sh /entrypoint.sh

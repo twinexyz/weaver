@@ -3,7 +3,7 @@
 use alloy_eips::BlockId;
 use alloy_primitives::Address;
 use alloy_provider::{DynProvider, Provider, ProviderBuilder};
-use alloy_rpc_types::{Block, Filter, Log, TransactionReceipt};
+use alloy_rpc_types::{Block, Filter, Log, TransactionReceipt, TransactionRequest};
 use eyre::{eyre, Context, Result};
 use reth_tracing::tracing;
 use twine_common::retry::{retry_with_metrics, RetryConfig};
@@ -105,6 +105,44 @@ impl EthQueryExecutionClient {
             .await
             .context("Failed to get block receipts after retries")?;
         Ok(receipts)
+    }
+
+    /// Gets nonce with retry logic
+    pub async fn get_nonce(&self, address: Address) -> Result<u64> {
+        let config = RetryConfig::debug_default();
+        let nonce = retry_with_metrics(
+            self.chain_id,
+            "eth_getTransactionCount",
+            &config,
+            || async { self.provider.get_transaction_count(address).await },
+        )
+        .await?;
+        Ok(nonce)
+    }
+
+    /// Gets fee estimation with retry logic
+    pub async fn get_fee_estimation(&self) -> Result<(u128, u128)> {
+        let config = RetryConfig::debug_default();
+        let fee_estimation =
+            retry_with_metrics(self.chain_id, "eth_feeHistory", &config, || async {
+                self.provider.estimate_eip1559_fees().await
+            })
+            .await?;
+        Ok((
+            fee_estimation.max_fee_per_gas,
+            fee_estimation.max_priority_fee_per_gas,
+        ))
+    }
+
+    /// Gets gas estimation with retry logic
+    pub async fn get_gas_estimation(&self, tx: &TransactionRequest) -> Result<u64> {
+        let config = RetryConfig::debug_default();
+        let gas_estimation =
+            retry_with_metrics(self.chain_id, "eth_estimateGas", &config, || async {
+                self.provider.estimate_gas(tx.clone()).await
+            })
+            .await?;
+        Ok(gas_estimation)
     }
 }
 

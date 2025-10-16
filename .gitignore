@@ -6,6 +6,7 @@ target/
 test-ledger
 geyser.*
 .DS_Store
+.vscode/
 
 rocksdb/
 *.bk
@@ -22,3 +23,4 @@ logs/
 artifacts/build-info/
 artifacts/*.sol/
 compat/
+proofs/

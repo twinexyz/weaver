@@ -10,6 +10,7 @@ rust-version = "1.88"
 members = [
   "bin/aggregator",
   "bin/devtest",
+  "bin/egressa",
   "bin/l2-execution-prover-worker",
   "bin/node",
   "bin/proof-scheduler-bin",
@@ -22,6 +23,7 @@ members = [
   "crates/common",
   "crates/constants",
   "crates/db/batch",
+  "crates/egressa",
   "crates/ethereum-consensus-prover",
   "crates/evm-contracts",
   "crates/executor",
@@ -139,6 +141,8 @@ smallvec = "1.13.2"
 solana-client = "2.2.0"
 solana-sdk = "2.2.1"
 solana-short-vec = "2.2.1"
+spl-associated-token-account = { version = "4.0.0", features = ["no-entrypoint"] }
+spl-token = { version = "8.0.0", features = ["no-entrypoint"] }
 tempfile = "3.10"
 
 # RETH
@@ -172,6 +176,7 @@ twine-aggregator-settlement = { path = "crates/aggregator/settlement" }
 twine-common = { path = "crates/common" }
 twine-constants = { path = "crates/constants" }
 twine-db-batch = { path = "crates/db/batch" }
+twine-egressa = { path = "crates/egressa" }
 twine-ethereum-consensus-prover-lib = { path = "crates/ethereum-consensus-prover" }
 twine-evm-contracts = { path = "crates/evm-contracts" }
 twine-executor = { path = "crates/executor", default-features = false }

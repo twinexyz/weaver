@@ -15,6 +15,7 @@ use solana_sdk::signer::Signer;
 use solana_sdk::transaction::Transaction;
 use twine_l1::error::TransactionError;
 
+pub mod address_derivation;
 pub mod query;
 
 /// Solana Provider
