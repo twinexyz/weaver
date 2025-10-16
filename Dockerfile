@@ -63,7 +63,7 @@ RUN cargo install tomq sqlx-cli
 
 RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
     --mount=type=secret,id=github_username,env=GITHUB_USERNAME \
-    git clone --branch v0.1.0-devnet https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${GITHUB_ORGANIZATION}/twine-rsp.git && \
+    git clone --branch staging https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${GITHUB_ORGANIZATION}/twine-rsp.git && \
     git clone --branch v0.1.0-devnet https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${GITHUB_ORGANIZATION}/solana-stub-prover.git && \
     git clone --branch v0.1.0-testnet https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${GITHUB_ORGANIZATION}/merlin.git && \
     cd merlin && \
