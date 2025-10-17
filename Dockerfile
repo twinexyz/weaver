@@ -114,7 +114,6 @@ COPY --from=builder /app/merlin/target/release/l1-txns-prover /usr/local/bin/l1-
 COPY --from=builder /app/merlin/target/release/refund-prover /usr/local/bin/refund-prover
 COPY --from=builder /app/solana-stub-prover/$SOLANA_STUB_PROVER_FILENAME /usr/local/bin/solana-stub-prover
 
-
 COPY --from=builder /app/target/release/twine-node /usr/local/bin/twine-node
 COPY --from=builder /app/target/release/twine-aggregator /usr/local/bin/aggregator
 COPY --from=builder /app/target/release/twine-l2-proof-scheduler-bin /usr/local/bin/scheduler
@@ -124,3 +123,207 @@ COPY --from=builder /app/target/release/twine-egressa-bin /usr/local/bin/egressa
 COPY ./nginx.conf /etc/nginx/nginx.conf
 COPY ./entrypoint.sh /entrypoint.sh
 COPY ./crates/egressa/src/database/migrations /migrations
+
+##############################
+# prover
+##############################
+FROM nvidia/cuda:12.9.1-cudnn-runtime-ubuntu24.04 AS prover 
+
+ARG RSP_FILENAME
+ARG SOLANA_STUB_PROVER_FILENAME
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    RUSTUP_HOME=/root/.rustup \
+    CARGO_HOME=/root/.cargo \
+    PATH="/root/.cargo/bin:${PATH}"
+
+RUN  apt update && \
+     apt install ca-certificates curl -y && \
+     install -m 0755 -d /etc/apt/keyrings && \
+     curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc && \
+     chmod a+r /etc/apt/keyrings/docker.asc && \
+     echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+      $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
+       tee /etc/apt/sources.list.d/docker.list > /dev/null && \
+     apt update && \
+     apt install -y \
+     docker-ce \
+     docker-ce-cli \
+     containerd.io \
+     docker-buildx-plugin \
+     cmake \
+     nginx \
+     wget \
+     ca-certificates && \
+     rm -rf /var/lib/apt/lists/*
+
+# Install Rust (stable)
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+
+COPY --from=builder /root/.sp1/bin/sp1up /usr/local/bin/sp1up
+COPY --from=builder /app/twine-rsp/$RSP_FILENAME /usr/local/bin/rsp
+COPY --from=builder /app/solana-stub-prover/$SOLANA_STUB_PROVER_FILENAME /usr/local/bin/solana-stub-prover
+
+COPY --from=builder /app/target/release/twine-l2-execution-prover-worker /usr/local/bin/prover
+
+##############################
+# egressa
+##############################
+FROM ubuntu24.04 AS egressa
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    RUSTUP_HOME=/root/.rustup \
+    CARGO_HOME=/root/.cargo \
+    PATH="/root/.cargo/bin:${PATH}"
+
+RUN  apt update && \
+     apt update && \
+     apt install -y \
+     cmake \
+     nginx \
+     wget \
+     curl \
+     ca-certificates && \
+     rm -rf /var/lib/apt/lists/*
+
+# Install Rust (stable)
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+
+COPY --from=builder /root/.sp1/bin/sp1up /usr/local/bin/sp1up
+COPY --from=builder /usr/bin/yq /usr/local/bin/yq
+COPY --from=builder /root/.cargo/bin/tomq /usr/local/bin/tomq
+COPY --from=builder /root/.cargo/bin/sqlx /usr/local/bin/sqlx
+
+COPY --from=builder /app/merlin/target/release/withdraw-prover /usr/local/bin/withdraw-prover
+COPY --from=builder /app/merlin/target/release/l1-txns-prover /usr/local/bin/l1-txns-prover
+COPY --from=builder /app/merlin/target/release/refund-prover /usr/local/bin/refund-prover
+
+COPY --from=builder /app/target/release/twine-egressa-bin /usr/local/bin/egressa
+COPY ./nginx.conf /etc/nginx/nginx.conf
+COPY ./entrypoint.sh /entrypoint.sh
+COPY ./crates/egressa/src/database/migrations /migrations
+
+##############################
+# scheduler
+##############################
+FROM ubuntu24.04 AS scheduler
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    RUSTUP_HOME=/root/.rustup \
+    CARGO_HOME=/root/.cargo \
+    PATH="/root/.cargo/bin:${PATH}"
+
+RUN  apt update && \
+     apt update && \
+     apt install -y \
+     cmake \
+     nginx \
+     wget \
+     curl \
+     ca-certificates && \
+     rm -rf /var/lib/apt/lists/*
+
+# Install Rust (stable)
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+
+COPY --from=builder /usr/bin/yq /usr/local/bin/yq
+COPY --from=builder /root/.cargo/bin/tomq /usr/local/bin/tomq
+COPY --from=builder /root/.cargo/bin/sqlx /usr/local/bin/sqlx
+
+COPY --from=builder /app/target/release/twine-l2-proof-scheduler-bin /usr/local/bin/scheduler
+COPY ./nginx.conf /etc/nginx/nginx.conf
+COPY ./entrypoint.sh /entrypoint.sh
+
+##############################
+# aggregator
+##############################
+FROM ubuntu24.04 AS aggregator
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    RUSTUP_HOME=/root/.rustup \
+    CARGO_HOME=/root/.cargo \
+    PATH="/root/.cargo/bin:${PATH}"
+
+RUN  apt update && \
+     apt update && \
+     apt install -y \
+     cmake \
+     nginx \
+     wget \
+     curl \
+     ca-certificates && \
+     rm -rf /var/lib/apt/lists/*
+
+# Install Rust (stable)
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+
+COPY --from=builder /usr/bin/yq /usr/local/bin/yq
+COPY --from=builder /root/.cargo/bin/tomq /usr/local/bin/tomq
+COPY --from=builder /root/.cargo/bin/sqlx /usr/local/bin/sqlx
+
+COPY --from=builder /app/target/release/twine-aggregator /usr/local/bin/aggregator
+COPY ./nginx.conf /etc/nginx/nginx.conf
+COPY ./entrypoint.sh /entrypoint.sh
+
+##############################
+# solana-scheduler
+##############################
+
+FROM ubuntu24.04 AS solana-scheduler
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    RUSTUP_HOME=/root/.rustup \
+    CARGO_HOME=/root/.cargo \
+    PATH="/root/.cargo/bin:${PATH}"
+
+RUN  apt update && \
+     apt update && \
+     apt install -y \
+     cmake \
+     nginx \
+     wget \
+     curl \
+     ca-certificates && \
+     rm -rf /var/lib/apt/lists/*
+
+# Install Rust (stable)
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+
+COPY --from=builder /usr/bin/yq /usr/local/bin/yq
+COPY --from=builder /root/.cargo/bin/tomq /usr/local/bin/tomq
+COPY --from=builder /root/.cargo/bin/sqlx /usr/local/bin/sqlx
+
+COPY --from=builder /app/target/release/twine-solana-proof-scheduler-bin /usr/local/bin/solana-scheduler
+COPY ./nginx.conf /etc/nginx/nginx.conf
+COPY ./entrypoint.sh /entrypoint.sh
+
+##############################
+# twine-node
+##############################
+
+FROM ubuntu24.04 AS twine-node
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    RUSTUP_HOME=/root/.rustup \
+    CARGO_HOME=/root/.cargo \
+    PATH="/root/.cargo/bin:${PATH}"
+
+RUN  apt update && \
+     apt update && \
+     apt install -y \
+     cmake \
+     nginx \
+     wget \
+     curl \
+     ca-certificates && \
+     rm -rf /var/lib/apt/lists/*
+
+# Install Rust (stable)
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+
+COPY --from=builder /usr/bin/yq /usr/local/bin/yq
+COPY --from=builder /root/.cargo/bin/tomq /usr/local/bin/tomq
+COPY --from=builder /root/.cargo/bin/sqlx /usr/local/bin/sqlx
+
+COPY --from=builder /app/target/release/twine-node /usr/local/bin/twine-node
