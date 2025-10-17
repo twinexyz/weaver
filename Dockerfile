@@ -123,3 +123,4 @@ COPY --from=builder /app/target/release/twine-l2-execution-prover-worker /usr/lo
 COPY --from=builder /app/target/release/twine-egressa-bin /usr/local/bin/egressa
 COPY ./nginx.conf /etc/nginx/nginx.conf
 COPY ./entrypoint.sh /entrypoint.sh
+COPY ./crates/egressa/src/database/migrations /migrations
