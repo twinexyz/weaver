@@ -69,7 +69,7 @@ RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
     cd merlin && \
     cargo build --release
 
-FROM nvidia/cuda:12.9.1-cudnn-runtime-ubuntu24.04 AS final
+FROM nvidia/cuda:12.9.1-cudnn-runtime-ubuntu:24.04 AS final
 
 ARG RSP_FILENAME
 ARG SOLANA_STUB_PROVER_FILENAME
@@ -127,7 +127,7 @@ COPY ./crates/egressa/src/database/migrations /migrations
 ##############################
 # prover
 ##############################
-FROM nvidia/cuda:12.9.1-cudnn-runtime-ubuntu24.04 AS prover 
+FROM nvidia/cuda:12.9.1-cudnn-runtime-ubuntu:24.04 AS prover 
 
 ARG RSP_FILENAME
 ARG SOLANA_STUB_PROVER_FILENAME
@@ -170,7 +170,7 @@ COPY --from=builder /app/target/release/twine-l2-execution-prover-worker /usr/lo
 ##############################
 # egressa
 ##############################
-FROM ubuntu24.04 AS egressa
+FROM ubuntu:24.04 AS egressa
 
 ENV DEBIAN_FRONTEND=noninteractive \
     RUSTUP_HOME=/root/.rustup \
@@ -207,7 +207,7 @@ COPY ./crates/egressa/src/database/migrations /migrations
 ##############################
 # scheduler
 ##############################
-FROM ubuntu24.04 AS scheduler
+FROM ubuntu:24.04 AS scheduler
 
 ENV DEBIAN_FRONTEND=noninteractive \
     RUSTUP_HOME=/root/.rustup \
@@ -238,7 +238,7 @@ COPY ./entrypoint.sh /entrypoint.sh
 ##############################
 # aggregator
 ##############################
-FROM ubuntu24.04 AS aggregator
+FROM ubuntu:24.04 AS aggregator
 
 ENV DEBIAN_FRONTEND=noninteractive \
     RUSTUP_HOME=/root/.rustup \
@@ -270,7 +270,7 @@ COPY ./entrypoint.sh /entrypoint.sh
 # solana-scheduler
 ##############################
 
-FROM ubuntu24.04 AS solana-scheduler
+FROM ubuntu:24.04 AS solana-scheduler
 
 ENV DEBIAN_FRONTEND=noninteractive \
     RUSTUP_HOME=/root/.rustup \
@@ -302,7 +302,7 @@ COPY ./entrypoint.sh /entrypoint.sh
 # twine-node
 ##############################
 
-FROM ubuntu24.04 AS twine-node
+FROM ubuntu:24.04 AS twine-node
 
 ENV DEBIAN_FRONTEND=noninteractive \
     RUSTUP_HOME=/root/.rustup \
