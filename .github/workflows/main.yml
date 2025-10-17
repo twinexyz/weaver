@@ -66,7 +66,8 @@ jobs:
       sha: ${{ github.sha  }}
       branch_slug: ${{ github.ref_name }}
       repo_name: ${{ github.event.repository.name }}
-      docker_targets: '["final"]'
+      docker_targets: '["prover", "egressa", "scheduler", "twine-node", "aggregator", "solana-scheduler
+"]'
       dependency_clone: false
   container-scan:
     needs: ["build"]
