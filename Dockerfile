@@ -69,7 +69,7 @@ RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
     cd merlin && \
     cargo build --release
 
-FROM nvidia/cuda:12.9.1-cudnn-runtime-ubuntu:24.04 AS final
+FROM nvidia/cuda:12.9.1-cudnn-runtime-ubuntu24.04 AS final
 
 ARG RSP_FILENAME
 ARG SOLANA_STUB_PROVER_FILENAME
@@ -127,7 +127,7 @@ COPY ./crates/egressa/src/database/migrations /migrations
 ##############################
 # prover
 ##############################
-FROM nvidia/cuda:12.9.1-cudnn-runtime-ubuntu:24.04 AS prover 
+FROM nvidia/cuda:12.9.1-cudnn-runtime-ubuntu24.04 AS prover 
 
 ARG RSP_FILENAME
 ARG SOLANA_STUB_PROVER_FILENAME
