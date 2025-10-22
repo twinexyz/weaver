@@ -7,7 +7,6 @@ mod eth_forced_withdraw_test {
     use std::time::Duration;
 
     use eyre::{Context, Result};
-    use regex;
     use test_harness::{SubProcessService, TestHarness, TestStep};
     use twine_integration_tests::aggregator::{
         make_aggregator_subprocess_service, setup_aggregator_config,
@@ -20,6 +19,7 @@ mod eth_forced_withdraw_test {
     use twine_integration_tests::execution_prover::make_execution_prover_subprocess_service;
     use twine_integration_tests::kafka::setup_kafka_step;
     use twine_integration_tests::merkora::{make_merkora_subprocess_service, setup_merkora_config};
+    use twine_integration_tests::merlin::call_merlin_forced_withdraw_prover;
     use twine_integration_tests::nodes::{deploy_l1_nodes, kill_l1_nodes};
     use twine_integration_tests::postgresql::{
         fetch_txn_hash_from_db, setup_aggregator_postgres_step, setup_merkora_postgres_step,
@@ -251,80 +251,6 @@ mod eth_forced_withdraw_test {
                 let mut c = ctx.borrow_mut();
                 let path = config.aggregator.solana_wallet_path.clone();
                 c.insert(ctx::solana_ctx_keys::SOLANA_WALLET_PATH.to_string(), path);
-                Ok(())
-            }
-        ))
-    }
-
-    fn call_merlin_forced_withdraw_prover(config: TestConfig) -> eyre::Result<TestStep> {
-        Ok(async_step!(
-            "Call forced withdraw prover",
-            "call forced withdraw prover using Merlin",
-            |ctx| {
-                let mut bindings = ctx.borrow_mut();
-                let path = config.merlin.binary_path.clone();
-                let txn_hash = bindings
-                    .get("txn_hash")
-                    .expect("Forced withdraw transaction hash not set in context")
-                    .clone();
-                let twine_messenger = bindings
-                    .get(ctx::twine_ctx_keys::TWINE_MESSENGER)
-                    .expect("Twine Messenger Contract Address not set in context")
-                    .clone();
-                let output = Command::new("make")
-                    .args([
-                        format!("rpc_url={}", consts::TWINE_RPC_URL),
-                        format!("txn_hash={}", txn_hash),
-                        format!("twine_messenger={}", twine_messenger),
-                        "run-forced-withdraw".into(),
-                    ])
-                    .current_dir(path)
-                    .output()?;
-
-                if !output.status.success() {
-                    log::info!("Could not run run-forced-withdraw on txn hash. Output: {output:?}");
-                    eyre::bail!("Could not run run-forced-withdraw on txn hash");
-                }
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                log::info!("Forced withdraw prover stdout:\n{stdout}");
-
-                // Capture the SP1 public values
-                let re = regex::Regex::new(r#"SP1 public values:\s*"([0-9a-fA-Fx]+)""#)
-                    .map_err(|e| eyre::eyre!("invalid regex for SP1 public values: {}", e))?;
-
-                let sp1_value = re
-                    .captures(&stdout)
-                    .and_then(|cap| cap.get(1))
-                    .map(|m| m.as_str().to_string())
-                    .ok_or_else(|| eyre::eyre!("SP1 public values not found in output"))?;
-
-                let sp1_trimmed = sp1_value
-                    .trim() // remove leading/trailing whitespace or newlines
-                    .trim_matches('"') // remove stray quotes
-                    .trim_matches('\'') // remove stray single quotes
-                    .to_string();
-
-                // Ensure it starts with 0x and has only hex characters
-                let sp1_values = if !sp1_trimmed.starts_with("0x") {
-                    format!("0x{sp1_trimmed}")
-                } else {
-                    sp1_trimmed
-                };
-
-                // Validate hex (simple sanity check)
-                if !sp1_values
-                    .trim_start_matches("0x")
-                    .chars()
-                    .all(|c| c.is_ascii_hexdigit())
-                {
-                    eyre::bail!("SP1 public values contain non-hex characters: {sp1_values}");
-                }
-
-                log::info!("Extracted and sanitized SP1 public values: {sp1_values}");
-                log::info!("Extracted SP1 public values: \"{sp1_values}\"");
-
-                // Re-borrow and store into context
-                bindings.insert("sp1_public_values".to_string(), sp1_values);
                 Ok(())
             }
         ))

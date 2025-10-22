@@ -1,5 +1,6 @@
 //! Merlin prover utilities for integration tests
 
+use std::fmt;
 use std::process::Command;
 use std::rc::Rc;
 
@@ -12,7 +13,7 @@ use crate::ctx::twine_ctx_keys;
 use crate::{async_step, consts, ctx};
 
 /// Common Merlin prover operations
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 
 pub enum MerlinProverKind {
     ForcedWithdraw,
@@ -37,9 +38,13 @@ impl MerlinProverKind {
         }
     }
 
-    pub fn description(&self) -> String { format!("call {} prover using Merlin", self.name()) }
+    pub fn description(&self) -> String { format!("call {} prover for the txn", self.name()) }
 
-    pub fn step_name(&self) -> String { format!("Call {} prover", self.name()) }
+    pub fn step_name(&self) -> String { format!("{} prover", self.name()) }
+}
+
+impl fmt::Display for MerlinProverKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{}", self.name()) }
 }
 
 /// Extract and validate SP1 public values from prover output
@@ -66,7 +71,8 @@ pub fn extract_sp1_public_values(stdout: &str) -> eyre::Result<String> {
 
 /// Create a generic Merlin prover test step
 fn call_merlin_prover(config: TestConfig, operation: MerlinProverKind) -> eyre::Result<TestStep> {
-    let op_clone = operation.clone();
+    let make_target = operation.make_target().to_string();
+    let operation_name = operation.name().to_string();
     Ok(async_step!(
         &operation.step_name(),
         &operation.description(),
@@ -74,9 +80,9 @@ fn call_merlin_prover(config: TestConfig, operation: MerlinProverKind) -> eyre::
             let mut bindings = ctx.borrow_mut();
             let path = config.merlin.binary_path.clone();
 
-            let txn_hash = bindings.get("txn_hash").expect(
-                format!("{} transaction hash not set in context", op_clone.name()).as_str(),
-            );
+            let txn_hash = bindings
+                .get("txn_hash")
+                .expect(format!("{} transaction hash not set in context", operation_name).as_str());
 
             let twine_messenger = bindings
                 .get(ctx::twine_ctx_keys::TWINE_MESSENGER)
@@ -88,7 +94,7 @@ fn call_merlin_prover(config: TestConfig, operation: MerlinProverKind) -> eyre::
                     format!("rpc_url={}", consts::TWINE_RPC_URL),
                     format!("txn_hash={}", txn_hash),
                     format!("twine_messenger={}", twine_messenger),
-                    op_clone.make_target().into(),
+                    make_target.clone(),
                 ])
                 .current_dir(path)
                 .output()?;
@@ -96,13 +102,13 @@ fn call_merlin_prover(config: TestConfig, operation: MerlinProverKind) -> eyre::
             if !output.status.success() {
                 log::info!(
                     "Could not run {} on txn hash. Output: {output:?}",
-                    op_clone.make_target()
+                    make_target
                 );
-                eyre::bail!("Could not run {} on txn hash", op_clone.make_target());
+                eyre::bail!("Could not run {} on txn hash", make_target);
             }
 
             let stdout = String::from_utf8_lossy(&output.stdout);
-            log::info!("{} prover stdout:\n{stdout}", op_clone.name());
+            log::info!("{} prover stdout:\n{stdout}", operation_name);
 
             let sp1_values = extract_sp1_public_values(&stdout)?;
 
