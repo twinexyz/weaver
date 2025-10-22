@@ -9,15 +9,30 @@ use test_harness::{AsyncFnStep, TestStep};
 
 pub mod setup;
 
-use crate::cfg::ContractRepoConfig;
+use crate::cfg::{ContractRepoConfig, TestConfig};
 use crate::git::{checkout_branch, clone_private_repo};
-use crate::{consts, ctx};
+use crate::{async_step, consts, ctx};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SolanaTestType {
     Deposit,
     DepositAndCall,
     Refund,
+}
+
+/// Add Solana wallet path to test context
+pub fn add_solana_wallet_to_context(config: TestConfig) -> eyre::Result<TestStep> {
+    Ok(async_step!(
+        "Add Solana wallet to context",
+        "Adding Solana wallet to context",
+        |ctx| {
+            let mut c = ctx.borrow_mut();
+            let path = config.aggregator.solana_wallet_path.clone();
+            info!("Using Solana wallet at {path}");
+            c.insert(ctx::solana_ctx_keys::SOLANA_WALLET_PATH.to_string(), path);
+            Ok(())
+        }
+    ))
 }
 
 /// Build solana contracts

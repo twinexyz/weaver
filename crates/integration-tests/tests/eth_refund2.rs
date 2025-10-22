@@ -30,7 +30,7 @@ mod eth_refund_test2 {
         make_proof_scheduler_subprocess_service, setup_proof_scheduler_config,
     };
     use twine_integration_tests::solana_programs::{
-        load_solana_programs_step, prepare_solana_programs_repo,
+        add_solana_wallet_to_context, load_solana_programs_step, prepare_solana_programs_repo,
     };
     use twine_integration_tests::solidity_contracts::actions::{
         check_committed_batch, commit_genesis_block_step, compute_message_hash,
@@ -245,19 +245,6 @@ mod eth_refund_test2 {
         }))
     }
 
-    fn add_solana_wallet_to_context(config: TestConfig) -> eyre::Result<TestStep> {
-        Ok(async_step!(
-            "Add Solana wallet to context",
-            "Adding Solana wallet to context",
-            |ctx| {
-                let mut c = ctx.borrow_mut();
-                let path = config.aggregator.solana_wallet_path.clone();
-                c.insert(ctx::solana_ctx_keys::SOLANA_WALLET_PATH.to_string(), path);
-                Ok(())
-            }
-        ))
-    }
-
     fn call_execute_refund() -> eyre::Result<TestStep> {
         Ok(async_step!(
             "Call execute refund",
@@ -285,8 +272,6 @@ mod eth_refund_test2 {
                         consts::RETH_RPC_URL.into(),
                         "--private-key".into(),
                         consts::L1_PRIVATE_KEY.into(),
-                        // "--gas-limit".into(),
-                        // "500000".into(),
                     ])
                     .output()
                     .wrap_err("failed to execute cast send refundDeposit")?;

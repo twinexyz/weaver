@@ -31,7 +31,7 @@ mod test_solana_refund2 {
         make_proof_scheduler_subprocess_service, setup_proof_scheduler_config,
     };
     use twine_integration_tests::solana_programs::{
-        load_solana_programs_step, prepare_solana_programs_repo,
+        add_solana_wallet_to_context, load_solana_programs_step, prepare_solana_programs_repo,
     };
     use twine_integration_tests::solidity_contracts::actions::{
         check_committed_batch, commit_genesis_block_step,
@@ -249,19 +249,6 @@ mod test_solana_refund2 {
             log::info!("The context is {:?}", ctx);
             Ok(())
         }))
-    }
-
-    fn add_solana_wallet_to_context(config: TestConfig) -> eyre::Result<TestStep> {
-        Ok(async_step!(
-            "Add Solana wallet to context",
-            "Adding Solana wallet to context",
-            |ctx| {
-                let mut c = ctx.borrow_mut();
-                let path = config.aggregator.solana_wallet_path.clone();
-                c.insert(ctx::solana_ctx_keys::SOLANA_WALLET_PATH.to_string(), path);
-                Ok(())
-            }
-        ))
     }
 
     fn call_execute_refund(program_path: PathBuf) -> eyre::Result<TestStep> {

@@ -29,7 +29,7 @@ mod eth_forced_withdraw_test {
         make_proof_scheduler_subprocess_service, setup_proof_scheduler_config,
     };
     use twine_integration_tests::solana_programs::{
-        load_solana_programs_step, prepare_solana_programs_repo,
+        add_solana_wallet_to_context, load_solana_programs_step, prepare_solana_programs_repo,
     };
     use twine_integration_tests::solidity_contracts::actions::{
         check_committed_batch, commit_genesis_block_step, deposit_eth_step,
@@ -235,19 +235,6 @@ mod eth_forced_withdraw_test {
         }))
     }
 
-    fn add_solana_wallet_to_context(config: TestConfig) -> eyre::Result<TestStep> {
-        Ok(async_step!(
-            "Add Solana wallet to context",
-            "Adding Solana wallet to context",
-            |ctx| {
-                let mut c = ctx.borrow_mut();
-                let path = config.aggregator.solana_wallet_path.clone();
-                c.insert(ctx::solana_ctx_keys::SOLANA_WALLET_PATH.to_string(), path);
-                Ok(())
-            }
-        ))
-    }
-
     fn call_forced_withdraw_eth_step() -> eyre::Result<TestStep> {
         Ok(async_step!(
             "Call forcedWithdrawEth on L1 ETH Gateway",
@@ -387,22 +374,6 @@ mod eth_forced_withdraw_test {
                 let balance = balance_str.trim();
                 log::info!("Current L1 balance after forced withdrawal: {balance}");
 
-                // The balance should be approximately the original amount (accounting for gas
-                // costs) We check if it's greater than 90% of the deposit amount
-                // let balance_wei: u64 = balance
-                //     .parse()
-                //     .map_err(|e| eyre::eyre!("Failed to parse balance: {}", e))?;
-                // let deposit_amount: u64 = consts::TEST_DEPOSIT_AMOUNT
-                //     .parse()
-                //     .map_err(|e| eyre::eyre!("Failed to parse deposit amount: {}", e))?;
-                // let min_expected = deposit_amount * 9 / 10; // 90% of deposit amount
-
-                // if balance_wei >= min_expected {
-                //     log::info!("Balance verification successful. Balance: {balance_wei},
-                // Expected minimum: {min_expected}");     Ok(())
-                // } else {
-                //     eyre::bail!("Balance verification failed. Balance: {balance_wei},
-                // Expected minimum: {min_expected}"); }
                 Ok(())
             }
         ))

@@ -28,7 +28,7 @@ mod erc20_withdraw_test {
         make_proof_scheduler_subprocess_service, setup_proof_scheduler_config,
     };
     use twine_integration_tests::solana_programs::{
-        self, load_solana_programs_step, prepare_solana_programs_repo,
+        self, add_solana_wallet_to_context, load_solana_programs_step, prepare_solana_programs_repo,
     };
     use twine_integration_tests::solidity_contracts::actions::{
         check_committed_batch, commit_genesis_block_step, deposit_eth_step,
@@ -226,21 +226,6 @@ mod erc20_withdraw_test {
         harness.execute()?;
 
         Ok(())
-    }
-
-    fn add_solana_wallet_to_context(config: TestConfig) -> eyre::Result<TestStep> {
-        Ok(async_step!(
-            "Add Solana wallet to context",
-            "Add Solana wallet path to context",
-            |ctx| {
-                let mut c = ctx.borrow_mut();
-                c.insert(
-                    ctx::solana_ctx_keys::SOLANA_WALLET_PATH.to_string(),
-                    config.aggregator.solana_wallet_path,
-                );
-                Ok(())
-            }
-        ))
     }
 
     // /// Deposit ERC20 (FauxCoin) to L1 gateway

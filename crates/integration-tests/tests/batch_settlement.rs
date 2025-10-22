@@ -6,14 +6,14 @@ mod batch_settlement {
 
     use eyre::{Context, Ok};
     use log::info;
-    use test_harness::{SubProcessService, TestHarness, TestStep};
+    use test_harness::{SubProcessService, TestHarness};
     use twine_integration_tests::aggregator::{
         make_aggregator_subprocess_service, setup_aggregator_config,
     };
     use twine_integration_tests::cfg::{load_config, TestConfig};
     use twine_integration_tests::cleanup::{cleanup_step, cleanup_test_data};
     use twine_integration_tests::common::{start_service_step, stop_service_step, wait_step};
-    use twine_integration_tests::ctx::solana_ctx_keys;
+    use twine_integration_tests::consts;
     use twine_integration_tests::execution_prover::make_execution_prover_subprocess_service;
     use twine_integration_tests::kafka::setup_kafka_step;
     use twine_integration_tests::nodes::{deploy_l1_nodes, kill_l1_nodes};
@@ -28,7 +28,7 @@ mod batch_settlement {
         sol_check_last_finalized_batch_step,
     };
     use twine_integration_tests::solana_programs::{
-        load_solana_programs_step, prepare_solana_programs_repo,
+        add_solana_wallet_to_context, load_solana_programs_step, prepare_solana_programs_repo,
     };
     use twine_integration_tests::solidity_contracts::actions::{
         check_committed_batch, commit_genesis_block_step, eth_check_last_finalized_batch_step,
@@ -37,7 +37,6 @@ mod batch_settlement {
         build_contracts_step, deploy_contracts_step, load_contract_addresses_step,
         prepare_contract_repo,
     };
-    use twine_integration_tests::{async_step, consts};
 
     struct TestServices {
         aggregator: SubProcessService,
@@ -176,19 +175,5 @@ mod batch_settlement {
 
         harness.execute()?;
         Ok(())
-    }
-
-    fn add_solana_wallet_to_context(config: TestConfig) -> eyre::Result<TestStep> {
-        Ok(async_step!(
-            "Add Solana wallet to context",
-            "Adding Solana wallet to context",
-            |ctx| {
-                let mut c = ctx.borrow_mut();
-                let path = config.aggregator.solana_wallet_path.clone();
-                info!("Using Solana wallet at {path}");
-                c.insert(solana_ctx_keys::SOLANA_WALLET_PATH.to_string(), path);
-                Ok(())
-            }
-        ))
     }
 }
