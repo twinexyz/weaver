@@ -127,7 +127,7 @@ pub fn deposit_and_call_garbage_eth_step() -> eyre::Result<TestStep> {
                 "--value",
                 consts::TEST_DEPOSIT_AMOUNT,
                 "--private-key",
-                "0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a",
+                consts::L1_PRIVATE_KEY,
                 "--rpc-url",
                 consts::RETH_RPC_URL,
             ]
@@ -171,7 +171,7 @@ pub fn deposit_and_call_eth_step() -> eyre::Result<TestStep> {
                 "--value",
                 consts::TEST_DEPOSIT_AMOUNT,
                 "--private-key",
-                "0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a",
+                consts::L1_PRIVATE_KEY,
                 "--rpc-url",
                 consts::RETH_RPC_URL,
             ]
@@ -190,6 +190,7 @@ pub fn deposit_eth_step() -> eyre::Result<TestStep> {
         "Send ETH to L1 Gateway",
         |ctx| {
             let addr_str = generate_random_eth_address();
+            let addr_str = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266".to_string();
             ctx.borrow_mut()
                 .insert(common_ctx_keys::RANDOM_ADDRESS.into(), addr_str.clone());
 
@@ -211,7 +212,7 @@ pub fn deposit_eth_step() -> eyre::Result<TestStep> {
                 "--value",
                 consts::TEST_DEPOSIT_AMOUNT,
                 "--private-key",
-                "0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a",
+                consts::L1_PRIVATE_KEY,
                 "--rpc-url",
                 consts::RETH_RPC_URL,
             ]
@@ -284,7 +285,7 @@ pub fn commit_genesis_block_step() -> eyre::Result<TestStep> {
                     "commitGenesisBlock(bytes32)",
                     empty_hash.as_str(),
                     "--private-key",
-                    "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+                    consts::L1_PRIVATE_KEY,
                     "--gas-limit",
                     "500000",
                     "--rpc-url",
@@ -302,7 +303,7 @@ pub fn commit_genesis_block_step() -> eyre::Result<TestStep> {
     ))
 }
 
-pub fn check_commited_batch() -> eyre::Result<TestStep> {
+pub fn check_committed_batch() -> eyre::Result<TestStep> {
     Ok(async_step!(
         "Check committed batch",
         "Check committed batch on ethereum",
@@ -395,6 +396,44 @@ pub fn eth_check_last_finalized_batch_step() -> eyre::Result<TestStep> {
 
             info!("Batch Settlement passed. Last finalized batch number: {batch_number}");
 
+            Ok(())
+        }
+    ))
+}
+
+pub fn withdraw_eth_step() -> eyre::Result<TestStep> {
+    Ok(async_step!(
+        "Withdraw ETH",
+        "Call withdraw on L2 ETH Gateway",
+        |ctx| {
+            let binding = ctx.borrow();
+            let l2_eth_gateway = ctx_get(&binding, twine_ctx_keys::TWINE_ETH_GATEWAY)?;
+            let random_address = ctx_get(&binding, common_ctx_keys::RANDOM_ADDRESS)?;
+
+            info!(
+                "Withdrawing {} wei from L2 gateway {} for address {}",
+                consts::TEST_DEPOSIT_AMOUNT,
+                l2_eth_gateway,
+                random_address
+            );
+
+            let args = [
+                "send",
+                &l2_eth_gateway,
+                "withdraw(address,uint256,uint256)",
+                &random_address,
+                consts::TEST_DEPOSIT_AMOUNT,
+                "0",
+                "--private-key",
+                "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+                "--rpc-url",
+                consts::TWINE_RPC_URL,
+            ]
+            .map(String::from)
+            .to_vec();
+
+            let _stdout = cast(args)?;
+            info!("ETH withdraw command successful");
             Ok(())
         }
     ))

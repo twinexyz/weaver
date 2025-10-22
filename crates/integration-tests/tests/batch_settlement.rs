@@ -7,17 +7,22 @@ mod batch_settlement {
     use eyre::{Context, Ok};
     use log::info;
     use test_harness::{SubProcessService, TestHarness, TestStep};
-    use twine_integration_tests::aggregator::setup_aggregator_config;
+    use twine_integration_tests::aggregator::{
+        make_aggregator_subprocess_service, setup_aggregator_config,
+    };
     use twine_integration_tests::cfg::{load_config, TestConfig};
     use twine_integration_tests::cleanup::{cleanup_step, cleanup_test_data};
     use twine_integration_tests::common::{start_service_step, stop_service_step, wait_step};
     use twine_integration_tests::ctx::solana_ctx_keys;
+    use twine_integration_tests::execution_prover::make_execution_prover_subprocess_service;
     use twine_integration_tests::kafka::setup_kafka_step;
     use twine_integration_tests::nodes::{deploy_l1_nodes, kill_l1_nodes};
     use twine_integration_tests::postgresql::{
         setup_aggregator_postgres_step, setup_scheduler_postgres_step,
     };
-    use twine_integration_tests::proof_scheduler::setup_proof_scheduler_config;
+    use twine_integration_tests::proof_scheduler::{
+        make_proof_scheduler_subprocess_service, setup_proof_scheduler_config,
+    };
     use twine_integration_tests::solana_programs::setup::{
         deploy_solana_program_step, initialize_solana_program_step, set_solana_config_step,
         sol_check_last_finalized_batch_step,
@@ -26,7 +31,7 @@ mod batch_settlement {
         load_solana_programs_step, prepare_solana_programs_repo,
     };
     use twine_integration_tests::solidity_contracts::actions::{
-        check_commited_batch, commit_genesis_block_step, eth_check_last_finalized_batch_step,
+        check_committed_batch, commit_genesis_block_step, eth_check_last_finalized_batch_step,
     };
     use twine_integration_tests::solidity_contracts::{
         build_contracts_step, deploy_contracts_step, load_contract_addresses_step,
@@ -42,71 +47,10 @@ mod batch_settlement {
 
     impl TestServices {
         fn new(config: Rc<TestConfig>) -> Self {
-            let aggregator_cfg = Rc::clone(&config);
-            let scheduler_cfg = Rc::clone(&config);
-            let prover_cfg = Rc::clone(&config);
             Self {
-                aggregator: SubProcessService {
-                    name: "Aggregator".into(),
-                    description: "Twine Aggregator Service".into(),
-                    cmd_gen: Box::new(move |_ctx| {
-                        let binary_path = aggregator_cfg.aggregator.binary_path.clone();
-                        vec![
-                            binary_path.clone(),
-                            "--config".into(),
-                            consts::AGGREGATOR_CONFIG_PATH.into(),
-                            "run".into(),
-                        ]
-                    }),
-                    child: None,
-                    context_arena: None,
-                    stdout_stream: None,
-                    stderr_stream: None,
-                },
-                proof_scheduler: SubProcessService {
-                    name: "Proof Scheduler".into(),
-                    description: "Twine Proof Scheduler Service".into(),
-                    cmd_gen: Box::new(move |_ctx| {
-                        let binary_path = scheduler_cfg.proof_scheduler.binary_path.clone();
-                        vec![
-                            binary_path.clone(),
-                            "--config".into(),
-                            consts::SCHEDULER_CONFIG_PATH.into(),
-                        ]
-                    }),
-                    child: None,
-                    context_arena: None,
-                    stdout_stream: None,
-                    stderr_stream: None,
-                },
-                execution_prover: SubProcessService {
-                    name: "Execution Prover".into(),
-                    description: "Twine Execution Prover Service".into(),
-                    cmd_gen: Box::new(move |_ctx| {
-                        let binary_path = prover_cfg.execution_prover.binary_path.clone();
-                        let prover_bin = prover_cfg.execution_prover.prover_binary_path.clone();
-                        let genesis_path = config
-                            .nodes
-                            .l2
-                            .genesis_path
-                            .clone()
-                            .unwrap_or_else(|| panic!("Missing genesis_path for Twine node"));
-
-                        vec![
-                            binary_path.clone(),
-                            "--worker-manager-url".into(),
-                            format!("ws://0.0.0.0:{}", consts::WORKER_MANAGER_PORT),
-                            "--genesis-path".into(),
-                            genesis_path,
-                            "--prover-bin".into(),
-                            prover_bin.into(),
-                        ]
-                    }),
-                    child: None,
-                    context_arena: None,
-                    stdout_stream: None,
-                    stderr_stream: None,
-                },
+                aggregator: make_aggregator_subprocess_service(&config.aggregator),
+                proof_scheduler: make_proof_scheduler_subprocess_service(&config.proof_scheduler),
+                execution_prover: make_execution_prover_subprocess_service(&config),
             }
         }
     }
@@ -187,7 +131,7 @@ mod batch_settlement {
         ));
 
         harness.add_step(commit_genesis_block_step()?);
-        harness.add_step(check_commited_batch()?);
+        harness.add_step(check_committed_batch()?);
 
         harness.add_step(setup_aggregator_postgres_step()?);
         harness.add_step(add_solana_wallet_to_context(config.as_ref().clone())?);
@@ -220,6 +164,8 @@ mod batch_settlement {
 
         harness.add_step(eth_check_last_finalized_batch_step()?);
         harness.add_step(sol_check_last_finalized_batch_step()?);
+
+        harness.add_step(wait_step(Duration::from_secs(600), "Buffer"));
 
         // Cleanup
         harness.add_step(stop_service_step("Aggregator", 0, None));

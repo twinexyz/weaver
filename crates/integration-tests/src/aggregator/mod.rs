@@ -3,11 +3,32 @@ use std::io::BufWriter;
 
 use log::info;
 use serde::{Deserialize, Serialize};
-use test_harness::{AsyncFnStep, TestStep};
+use test_harness::{AsyncFnStep, SubProcessService, TestStep};
 use twine_aggregator_common::config::*;
 use twine_aggregator_common::SettlementChains;
 
-use crate::{consts, ctx};
+use crate::{cfg, consts, ctx};
+
+/// Create an aggregator subprocess service
+pub fn make_aggregator_subprocess_service(config: &cfg::Aggregator) -> SubProcessService {
+    let binary_path = config.binary_path.clone();
+    SubProcessService {
+        name: "Aggregator".into(),
+        description: "Twine Aggregator Service".into(),
+        cmd_gen: Box::new(move |_ctx| {
+            vec![
+                binary_path.clone(),
+                "--config".into(),
+                consts::AGGREGATOR_CONFIG_PATH.into(),
+                "run".into(),
+            ]
+        }),
+        child: None,
+        context_arena: None,
+        stdout_stream: None,
+        stderr_stream: None,
+    }
+}
 
 /// Test step to setup aggregator config
 pub fn setup_aggregator_config(config_path: &str) -> eyre::Result<TestStep> {

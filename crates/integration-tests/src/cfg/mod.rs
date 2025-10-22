@@ -13,6 +13,7 @@ pub struct TestConfig {
     pub aggregator: Aggregator,
     pub proof_scheduler: ProofScheduler,
     pub execution_prover: ExecutionProver,
+    pub merlin: MerlinConfig,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -80,6 +81,11 @@ pub struct ProofScheduler {
 pub struct ExecutionProver {
     pub binary_path: String,
     pub prover_binary_path: String,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct MerlinConfig {
+    pub binary_path: String,
 }
 
 /// Load a configuration from a YAML file.

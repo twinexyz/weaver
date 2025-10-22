@@ -15817,6 +15817,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "solana-sdk",
+ "sqlx",
  "test-harness",
  "testcontainers",
  "testcontainers-modules",

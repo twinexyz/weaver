@@ -4,14 +4,33 @@ use std::hash::Hash;
 use std::io::{BufWriter, Write};
 use std::path::Path;
 
-use eyre::{Context as _, Result};
+use eyre::{Result, WrapErr};
 use log::info;
 use serde_json::to_vec;
-use test_harness::{AsyncFnStep, TestStep};
+use test_harness::{AsyncFnStep, SubProcessService, TestStep};
 use toml::{self, Value};
 
-use crate::{consts, ctx};
+use crate::{cfg, consts, ctx};
 
+/// Create a proof scheduler subprocess service
+pub fn make_proof_scheduler_subprocess_service(config: &cfg::ProofScheduler) -> SubProcessService {
+    let binary_path = config.binary_path.clone();
+    SubProcessService {
+        name: "Proof Scheduler".into(),
+        description: "Twine Proof Scheduler Service".into(),
+        cmd_gen: Box::new(move |_ctx| {
+            vec![
+                binary_path.clone(),
+                "--config".into(),
+                consts::SCHEDULER_CONFIG_PATH.into(),
+            ]
+        }),
+        child: None,
+        context_arena: None,
+        stdout_stream: None,
+        stderr_stream: None,
+    }
+}
 /// Test step to setup proof scheduler config (TOML)
 pub fn setup_proof_scheduler_config(config_path: &str) -> eyre::Result<TestStep> {
     let config_path = config_path.to_string();
@@ -87,7 +106,7 @@ fn generate_proof_scheduler_config(
     db.insert("conn_str".into(), Value::String(db_url.to_string()));
 
     let mut processor = toml::map::Map::new();
-    processor.insert("transform_request_channel_size".into(), Value::Integer(100));
+    processor.insert("transform_request_channel_size".into(), Value::Integer(3));
     processor.insert("transform_attempt_channel_size".into(), Value::Integer(100));
     processor.insert("consume_attempt_channel_size".into(), Value::Integer(100));
     processor.insert(

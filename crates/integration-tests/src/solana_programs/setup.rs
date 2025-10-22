@@ -69,11 +69,6 @@ pub fn deploy_solana_program_step(program_path: PathBuf) -> eyre::Result<TestSte
         futurefn: Box::new(|ctx| {
             Box::new(async move {
                 let program_path = program_path.clone();
-                let status = Command::new("solana").arg("airdrop").arg("10").status()?;
-
-                if !status.success() {
-                    return Err(eyre!("Airdrop failed"));
-                }
 
                 let out = Command::new("make")
                     .arg("clean")
@@ -118,8 +113,8 @@ pub fn deploy_solana_program_step(program_path: PathBuf) -> eyre::Result<TestSte
                 let out = Command::new("make")
                     .arg("build")
                     .current_dir(&program_path)
-                    .stderr(Stdio::inherit())
-                    .stdout(Stdio::inherit())
+                    .stderr(Stdio::null())
+                    .stdout(Stdio::null())
                     .output()
                     .context("failed to run `make build`")?;
                 if !out.status.success() {
@@ -130,8 +125,8 @@ pub fn deploy_solana_program_step(program_path: PathBuf) -> eyre::Result<TestSte
                 let out = Command::new("make")
                     .arg("build-sbf")
                     .current_dir(&program_path)
-                    .stderr(Stdio::inherit())
-                    .stdout(Stdio::inherit())
+                    .stderr(Stdio::null())
+                    .stdout(Stdio::null())
                     .output()
                     .context("failed to run `make build-sbf`")?;
                 if !out.status.success() {
@@ -154,8 +149,8 @@ pub fn deploy_solana_program_step(program_path: PathBuf) -> eyre::Result<TestSte
                 let out = Command::new("make")
                     .arg("build-sbf")
                     .current_dir(&program_path)
-                    .stderr(Stdio::inherit())
-                    .stdout(Stdio::inherit())
+                    .stderr(Stdio::null())
+                    .stdout(Stdio::null())
                     .output()
                     .context("failed to run `make build-sbf`")?;
 
@@ -251,6 +246,7 @@ pub fn deposit_sol_step(
             Box::new(async move {
                 let mut bindings = ctx.borrow_mut();
                 let ethereum_address = generate_random_eth_address();
+                let ethereum_address = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266".to_string();
                 bindings.insert(
                     common_ctx_keys::RANDOM_ADDRESS.to_string(),
                     ethereum_address.clone(),

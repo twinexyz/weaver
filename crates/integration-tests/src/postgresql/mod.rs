@@ -1,4 +1,5 @@
 use eyre::{Context, Ok};
+use sqlx::{PgPool, Row};
 use test_harness::{AsyncFnStep, TestStep};
 use testcontainers::runners::AsyncRunner;
 use testcontainers::{ContainerAsync, ImageExt};
@@ -25,6 +26,49 @@ pub fn setup_merkora_postgres_step() -> eyre::Result<TestStep> {
                     ctx::common_ctx_keys::MERKORA_DB_CONNECTION.into(),
                     connection_url,
                 );
+                Ok(())
+            })
+        }),
+    })))
+}
+
+pub fn fetch_txn_hash_from_db() -> eyre::Result<TestStep> {
+    Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
+        name: "Fetch Txn hash".to_string(),
+        description: "Fetch last txn hash from Merkora archived_events".to_string(),
+        futurefn: Box::new(move |ctx| {
+            Box::new(async move {
+                let mut bindings = ctx.borrow_mut();
+
+                let connection_url = bindings
+                    .get::<String>(&ctx::common_ctx_keys::MERKORA_DB_CONNECTION.into())
+                    .expect("Could not find Merkora DB connection string in context")
+                    .clone();
+
+                let pool = PgPool::connect(&connection_url)
+                    .await
+                    .wrap_err("failed to connect to Merkora Postgres instance")?;
+
+                let row = sqlx::query(
+                    r#"
+                    SELECT twine_tx_hash
+                    FROM archived_events
+                    ORDER BY archived_at DESC
+                    LIMIT 1
+                    "#,
+                )
+                .fetch_optional(&pool)
+                .await
+                .wrap_err("failed to fetch last archived_event")?;
+
+                if let Some(row) = row {
+                    let txn_hash: String = row.try_get("twine_tx_hash")?;
+                    bindings.insert("txn_hash".to_string(), txn_hash.clone());
+                    log::info!("The fetched L2 txn_hash is: {txn_hash}");
+                } else {
+                    eyre::bail!("No entries found in archived_events table");
+                }
+
                 Ok(())
             })
         }),

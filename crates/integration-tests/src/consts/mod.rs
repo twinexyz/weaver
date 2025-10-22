@@ -16,7 +16,8 @@ pub const SOLANA_CHAIN_ID: &str = "900";
 pub const SOLANA_WS_URL: &str = "ws://127.0.0.1:8900";
 pub const SOLANA_NATIVECOIN: &str = "11111111111111111111111111111111";
 
-pub const TEST_DEPOSIT_AMOUNT: &str = "1000000000";
+// pub const TEST_DEPOSIT_AMOUNT: &str = "1000000000";
+pub const TEST_DEPOSIT_AMOUNT: &str = "100000000000";
 
 pub const MERKORA_PATH: &str = "/tmp/merkora";
 pub const MERKORA_CONFIG_PATH: &str = "/tmp/merkora_config.yaml";
@@ -31,6 +32,9 @@ pub const SCHEDULER_CONFIG_PATH: &str = "/tmp/scheduler_config";
 pub const WORKER_MANAGER_PORT: u16 = 8000;
 
 pub const L1_ADMIN: &str = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+pub const L1_PRIVATE_KEY: &str =
+    "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+
 pub const L2_ADMIN: &str = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 
 pub const TWINE_SYSTEM_STORAGE_ADDRESS: &str = "0x0000000000000000000000000000000000000017";
