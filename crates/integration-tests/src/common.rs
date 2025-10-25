@@ -48,3 +48,10 @@ macro_rules! async_step {
         }))
     };
 }
+
+pub fn dump_context() -> eyre::Result<TestStep> {
+    Ok(async_step!("Dump Context", "Dump Context", |ctx| {
+        log::info!("The context is {:?}", ctx);
+        Ok(())
+    }))
+}

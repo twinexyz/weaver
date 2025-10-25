@@ -32,6 +32,8 @@ pub mod proof_scheduler;
 pub mod solana_programs;
 pub mod solidity_contracts;
 
+pub(crate) use common::dump_context;
+
 /// Generate random ethereum address
 pub fn generate_random_eth_address() -> String {
     fn pseudo_random_bytes(mut seed: u64) -> [u8; 20] {

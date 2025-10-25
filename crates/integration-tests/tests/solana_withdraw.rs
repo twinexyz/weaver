@@ -28,6 +28,7 @@ mod sol_withdraw_test {
     use twine_integration_tests::proof_scheduler::{
         make_proof_scheduler_subprocess_service, setup_proof_scheduler_config,
     };
+    use twine_integration_tests::solana_programs::setup::call_execute_withdrawal;
     use twine_integration_tests::solana_programs::{
         self, add_solana_wallet_to_context, load_solana_programs_step, prepare_solana_programs_repo,
     };
@@ -38,7 +39,9 @@ mod sol_withdraw_test {
         build_contracts_step, deploy_contracts_step, load_contract_addresses_step,
         prepare_contract_repo,
     };
-    use twine_integration_tests::twine::action::verify_deposited_l2_balance;
+    use twine_integration_tests::twine::action::{
+        approve_erc20_gateway_step_sol, verify_deposited_l2_balance, withdraw_erc20_step_sol,
+    };
     use twine_integration_tests::{async_step, consts, ctx};
 
     struct TestServices {
@@ -202,8 +205,8 @@ mod sol_withdraw_test {
             consts::TEST_DEPOSIT_AMOUNT.to_string(),
         )?);
 
-        harness.add_step(approve_erc20_gateway_step()?);
-        harness.add_step(withdraw_erc20_step()?);
+        harness.add_step(approve_erc20_gateway_step_sol()?);
+        harness.add_step(withdraw_erc20_step_sol()?);
 
         // Wait for this txn to be included in a batch
         harness.add_step(wait_step(
@@ -223,7 +226,7 @@ mod sol_withdraw_test {
         harness.add_step(call_execute_withdrawal(solana_programs)?);
         harness.add_step(verify_balance_on_l1()?);
 
-        harness.add_step(dump_context()?);
+        // harness.add_step(dump_context()?);
         harness.add_step(wait_step(
             Duration::from_secs(2000),
             "Wait for batch to settle",
@@ -240,169 +243,6 @@ mod sol_withdraw_test {
         harness.execute()?;
 
         Ok(())
-    }
-
-    /// Approve L2ERC20Gateway to spend ERC20 tokens on L2
-    fn approve_erc20_gateway_step() -> eyre::Result<TestStep> {
-        Ok(async_step!(
-            "Approve L2ERC20Gateway to spend ERC20 tokens",
-            "Call approve() on L2 FauxCoin to allow L2ERC20Gateway to spend tokens",
-            |ctx| {
-                let binding = ctx.borrow();
-                let l2_erc20_gateway = binding
-                    .get(twine_ctx_keys::TWINE_ERC20_GATEWAY)
-                    .expect("L2 ERC20 Gateway address not set in context")
-                    .clone();
-                let l2_sol_token = binding
-                    .get(twine_ctx_keys::TWINE_SOL_TOKEN)
-                    .expect("L2 FauxCoin address not set in context")
-                    .clone();
-
-                let args = [
-                    "send",
-                    &l2_sol_token,
-                    "approve(address,uint256)",
-                    &l2_erc20_gateway,
-                    consts::TEST_DEPOSIT_AMOUNT,
-                    "--private-key",
-                    consts::L1_PRIVATE_KEY,
-                    "--rpc-url",
-                    consts::TWINE_RPC_URL,
-                ]
-                .map(String::from)
-                .to_vec();
-
-                log::info!("Approval args are: {args:?}");
-
-                let output = Command::new("cast").args(&args).output()?;
-
-                if !output.status.success() {
-                    let stderr = String::from_utf8_lossy(&output.stderr);
-                    log::error!("ERC20 approval call failed: {stderr}");
-                    eyre::bail!("ERC20 approval call failed: {stderr}");
-                }
-
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                log::info!("ERC20 approval command successful: {stdout}");
-                Ok(())
-            }
-        ))
-    }
-
-    /// Withdraw ERC20 tokens using the L2ERC20Gateway
-    fn withdraw_erc20_step() -> eyre::Result<TestStep> {
-        Ok(async_step!(
-            "Withdraw ERC20 using new flow",
-            "Call withdrawERC20 on L2ERC20Gateway",
-            |ctx| {
-                let mut binding = ctx.borrow_mut();
-                let l2_erc20_gateway = binding
-                    .get(twine_ctx_keys::TWINE_ERC20_GATEWAY)
-                    .expect("L2 ERC20 Gateway address not set in context")
-                    .clone();
-                let l2_sol_token = binding
-                    .get(twine_ctx_keys::TWINE_SOL_TOKEN)
-                    .expect("L2 ETH Token address not set in context")
-                    .clone();
-                let random_address = binding
-                    .get(ctx::common_ctx_keys::RANDOM_ADDRESS)
-                    .expect("Random address not set in context")
-                    .clone();
-                let solana_address = binding
-                    .get(ctx::solana_ctx_keys::SOLANA_ADDRESS)
-                    .expect("Solana address not found in context")
-                    .clone();
-
-                let chain_id = "900"; // Sepolia chain ID
-                let gas_limit = "0";
-
-                let args = [
-                    "send",
-                    &l2_erc20_gateway,
-                    "withdrawERC20(address,string,uint256,uint256,uint256)",
-                    &l2_sol_token,
-                    &solana_address,
-                    consts::TEST_DEPOSIT_AMOUNT,
-                    chain_id,
-                    gas_limit,
-                    "--private-key",
-                    consts::L1_PRIVATE_KEY,
-                    "--rpc-url",
-                    consts::TWINE_RPC_URL,
-                ]
-                .map(String::from)
-                .to_vec();
-
-                log::info!("The withdraw ERC20 args are: {args:?}");
-
-                let output = Command::new("cast").args(&args).output()?;
-
-                if !output.status.success() {
-                    let stderr = String::from_utf8_lossy(&output.stderr);
-                    log::error!("withdrawERC20 call failed: {stderr}");
-                    eyre::bail!("withdrawERC20 call failed: {stderr}");
-                }
-
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                log::info!("withdrawERC20 command successful: {stdout}");
-                let re = regex::Regex::new(r"(?i)transactionHash\s+0x[a-f0-9]{64}").unwrap();
-
-                if let Some(m) = re.find(&stdout) {
-                    let hash = m.as_str().split_whitespace().last().unwrap().to_string();
-                    log::info!("✅ Transaction hash: {}", hash);
-                    binding.insert("txn_hash".to_string(), hash);
-                } else {
-                    eyre::bail!("Transaction hash not found in output: {stdout}");
-                }
-                Ok(())
-            }
-        ))
-    }
-
-    fn call_execute_withdrawal(program_path: PathBuf) -> eyre::Result<TestStep> {
-        Ok(async_step!(
-            "Call execute withdrawal",
-            "call executeWithdraw with empty proof on L1",
-            |ctx| {
-                let bindings = ctx.borrow_mut();
-                let public_values = bindings
-                    .get("sp1_public_values")
-                    .expect("Public Value not found in context")
-                    .clone();
-                let solana_l1_address = bindings
-                    .get(ctx::solana_ctx_keys::SOLANA_ADDRESS)
-                    .expect("random address not found in context")
-                    .clone();
-                let output = Command::new("make")
-                    .args([
-                        "execute-native-l2-withdrawal",
-                        // &format!("splToken={}", twine_token),
-                        &format!("receiver={}", solana_l1_address),
-                        &format!("publicValue={}", public_values),
-                        &format!("executionProof={}", "0x"),
-                    ])
-                    .current_dir(program_path)
-                    .output()
-                    .context("failed to run `make execute-spl-l2-withdrawal`")?;
-
-                if !output.status.success() {
-                    // eyre::bail!(
-                    //     "RefundDeposit tx failed: {}",
-                    //     String::from_utf8_lossy(&output.stderr)
-                    // );
-                    log::error!(
-                        "RefundDeposit tx failed: {}",
-                        String::from_utf8_lossy(&output.stderr)
-                    );
-                    return Ok(()); // TODO: remove this
-                }
-
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                log::info!("RefundDeposit output:\n{stdout}");
-
-                Ok(())
-            }
-        ))
     }
 
     fn verify_balance_on_l1() -> eyre::Result<TestStep> {
@@ -431,12 +271,5 @@ mod sol_withdraw_test {
                 Ok(())
             }
         ))
-    }
-
-    fn dump_context() -> eyre::Result<TestStep> {
-        Ok(async_step!("Dump Context", "Dump Context", |ctx| {
-            log::info!("The context is {:?}", ctx);
-            Ok(())
-        }))
     }
 }

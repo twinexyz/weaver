@@ -2,12 +2,11 @@
 
 #[cfg(test)]
 mod eth_forced_withdraw_test {
-    use std::process::Command;
     use std::rc::Rc;
     use std::time::Duration;
 
     use eyre::{Context, Result};
-    use test_harness::{SubProcessService, TestHarness, TestStep};
+    use test_harness::{SubProcessService, TestHarness};
     use twine_integration_tests::aggregator::{
         make_aggregator_subprocess_service, setup_aggregator_config,
     };
@@ -32,14 +31,15 @@ mod eth_forced_withdraw_test {
         add_solana_wallet_to_context, load_solana_programs_step, prepare_solana_programs_repo,
     };
     use twine_integration_tests::solidity_contracts::actions::{
-        check_committed_batch, commit_genesis_block_step, deposit_eth_step,
+        call_execute_forced_withdrawal, call_forced_withdraw_eth_step, check_committed_batch,
+        commit_genesis_block_step, deposit_eth_step, verify_balance_on_eth,
     };
     use twine_integration_tests::solidity_contracts::{
         build_contracts_step, deploy_contracts_step, load_contract_addresses_step,
         prepare_contract_repo,
     };
     use twine_integration_tests::twine::action::verify_deposited_l2_balance;
-    use twine_integration_tests::{async_step, consts, ctx, solana_programs};
+    use twine_integration_tests::{consts, solana_programs};
 
     struct TestServices {
         merkora: SubProcessService,
@@ -162,7 +162,6 @@ mod eth_forced_withdraw_test {
         harness.add_step(setup_proof_scheduler_config(consts::SCHEDULER_CONFIG_PATH)?);
         harness.add_step(setup_merkora_config()?);
 
-        harness.add_step(dump_context()?);
         // Start services
         harness.add_step(start_service_step("Merkora", 0, Duration::from_secs(10)));
         harness.add_step(start_service_step("Aggregator", 1, Duration::from_secs(5)));
@@ -226,156 +225,5 @@ mod eth_forced_withdraw_test {
         harness.execute()?;
 
         Ok(())
-    }
-
-    fn dump_context() -> eyre::Result<TestStep> {
-        Ok(async_step!("Dump Context", "Dump Context", |ctx| {
-            log::info!("The context is {:?}", ctx);
-            Ok(())
-        }))
-    }
-
-    fn call_forced_withdraw_eth_step() -> eyre::Result<TestStep> {
-        Ok(async_step!(
-            "Call forcedWithdrawEth on L1 ETH Gateway",
-            "initiate forced withdrawal on L1 ETH gateway",
-            |ctx| {
-                let binding = ctx.borrow();
-                let gateway = binding
-                    .get(ctx::ethereum_ctx_keys::ETHEREUM_ETH_GATEWAY)
-                    .expect("Ethereum ETH Gateway address not set in context")
-                    .clone();
-                let random_address = binding
-                    .get(ctx::common_ctx_keys::RANDOM_ADDRESS)
-                    .expect("Random address not set in context")
-                    .clone();
-                let random_address = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
-
-                log::info!(
-                    "Calling forcedWithdrawEth on L1 gateway {} for address {} with amount {}",
-                    gateway,
-                    random_address,
-                    consts::TEST_DEPOSIT_AMOUNT
-                );
-
-                let output = Command::new("cast")
-                    .args([
-                        "send",
-                        &gateway,
-                        "forcedWithdrawalETH(address,uint256,uint256,bytes)",
-                        &random_address,
-                        consts::TEST_DEPOSIT_AMOUNT,
-                        "0",
-                        "0x",
-                        "--rpc-url",
-                        consts::RETH_RPC_URL,
-                        "--private-key",
-                        consts::L1_PRIVATE_KEY,
-                    ])
-                    .output()?;
-
-                if !output.status.success() {
-                    log::error!(
-                        "ForcedWithdrawEth tx failed: {}",
-                        String::from_utf8_lossy(&output.stderr)
-                    );
-                    eyre::bail!(
-                        "ForcedWithdrawEth tx failed: {}",
-                        String::from_utf8_lossy(&output.stderr)
-                    );
-                }
-
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                log::info!("ForcedWithdrawEth output:\n{stdout}");
-                Ok(())
-            }
-        ))
-    }
-
-    fn call_execute_forced_withdrawal() -> eyre::Result<TestStep> {
-        Ok(async_step!(
-            "Call execute forced withdrawal",
-            "call executeForcedWithdraw with empty proof on L1",
-            |ctx| {
-                let bindings = ctx.borrow();
-                let eth_twine_chain = bindings
-                    .get(ctx::ethereum_ctx_keys::ETHEREUM_TWINE_CHAIN)
-                    .expect("Ethereum twine chain address not set in context")
-                    .clone();
-                let public_values = bindings
-                    .get("sp1_public_values")
-                    .expect("SP1 public values not found in context")
-                    .clone();
-
-                // Construct and run the cast command for executeForcedWithdrawal
-                let output = Command::new("cast")
-                    .args([
-                        "send",
-                        &eth_twine_chain,
-                        "executeForcedWithdrawal(bytes,bytes)",
-                        &public_values,
-                        "0x", // empty withdrawal proof for now
-                        "--rpc-url",
-                        consts::RETH_RPC_URL,
-                        "--private-key",
-                        consts::L1_PRIVATE_KEY,
-                        // "--gas-limit",
-                        // "5000000",
-                    ])
-                    .output()?;
-
-                if !output.status.success() {
-                    log::error!(
-                        "ExecuteForcedWithdrawal tx failed: {}",
-                        String::from_utf8_lossy(&output.stderr)
-                    );
-                    eyre::bail!(
-                        "ExecuteForcedWithdrawal tx failed: {}",
-                        String::from_utf8_lossy(&output.stderr)
-                    );
-                }
-
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                log::info!("ExecuteForcedWithdrawal output:\n{stdout}");
-
-                Ok(())
-            }
-        ))
-    }
-
-    fn verify_balance_on_eth() -> eyre::Result<TestStep> {
-        Ok(async_step!(
-            "Verify ETH balance restored",
-            "Verify ETH balance is restored on L1 after forced withdrawal",
-            |ctx| {
-                let bindings = ctx.borrow();
-                let random_address = bindings
-                    .get(ctx::common_ctx_keys::RANDOM_ADDRESS)
-                    .expect("Random address not set in context")
-                    .clone();
-
-                let random_address = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
-
-                let output = Command::new("cast")
-                    .args([
-                        "balance",
-                        &random_address,
-                        "--rpc-url",
-                        consts::RETH_RPC_URL,
-                    ])
-                    .output()?;
-
-                if !output.status.success() {
-                    let stderr = String::from_utf8_lossy(&output.stderr);
-                    eyre::bail!("Failed to check balance: {stderr}");
-                }
-
-                let balance_str = String::from_utf8_lossy(&output.stdout);
-                let balance = balance_str.trim();
-                log::info!("Current L1 balance after forced withdrawal: {balance}");
-
-                Ok(())
-            }
-        ))
     }
 }

@@ -2,7 +2,6 @@
 
 #[cfg(test)]
 mod eth_forced_withdraw_test {
-    use std::process::Command;
     use std::rc::Rc;
     use std::time::Duration;
 
@@ -28,6 +27,9 @@ mod eth_forced_withdraw_test {
     use twine_integration_tests::proof_scheduler::{
         make_proof_scheduler_subprocess_service, setup_proof_scheduler_config,
     };
+    use twine_integration_tests::solana_programs::setup::{
+        call_execute_forced_withdrawal, call_forced_withdraw_solana_step, verify_balance_on_sol,
+    };
     use twine_integration_tests::solana_programs::{
         add_solana_wallet_to_context, load_solana_programs_step, prepare_solana_programs_repo,
     };
@@ -39,7 +41,7 @@ mod eth_forced_withdraw_test {
         prepare_contract_repo,
     };
     use twine_integration_tests::twine::action::verify_deposited_l2_balance;
-    use twine_integration_tests::{async_step, consts, ctx, solana_programs};
+    use twine_integration_tests::{async_step, consts, solana_programs};
 
     struct TestServices {
         merkora: SubProcessService,
@@ -241,135 +243,5 @@ mod eth_forced_withdraw_test {
             log::info!("The context is {:?}", ctx);
             Ok(())
         }))
-    }
-
-    fn call_forced_withdraw_solana_step(
-        program_path: std::path::PathBuf,
-    ) -> eyre::Result<TestStep> {
-        Ok(async_step!(
-            "Call forcedWithdrawEth on L1 ETH Gateway",
-            "initiate forced withdrawal on L1 ETH gateway",
-            |ctx| {
-                let bindings = ctx.borrow_mut();
-                let solana_l1_address = bindings
-                    .get(ctx::solana_ctx_keys::SOLANA_ADDRESS)
-                    .expect("random address not found in context")
-                    .clone();
-                let l2_token = bindings
-                    .get(ctx::twine_ctx_keys::TWINE_SOL_TOKEN)
-                    .expect("Twine sol token not found in context")
-                    .clone();
-                let from_address = bindings
-                    .get(ctx::common_ctx_keys::RANDOM_ADDRESS)
-                    .expect("Random adrees not found in context")
-                    .clone();
-
-                let output = Command::new("make")
-                    .args([
-                        "forced-native-withdrawal",
-                        &format!("l2_token={}", l2_token),
-                        &format!("from_address={}", from_address),
-                        &format!("receiver_address={}", solana_l1_address),
-                        &format!("private_key={}", consts::L1_PRIVATE_KEY),
-                        &format!("amount={}", consts::TEST_DEPOSIT_AMOUNT),
-                    ])
-                    .current_dir(program_path)
-                    .output()
-                    .context("failed to run `make forced-native-withdrawal`")?;
-
-                if !output.status.success() {
-                    log::error!(
-                        "ForcedWithdrawEth tx failed: {}",
-                        String::from_utf8_lossy(&output.stderr)
-                    );
-                    eyre::bail!(
-                        "ForcedWithdrawEth tx failed: {}",
-                        String::from_utf8_lossy(&output.stderr)
-                    );
-                }
-
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                log::info!("ForcedWithdrawEth output:\n{stdout}");
-                Ok(())
-            }
-        ))
-    }
-
-    fn call_execute_forced_withdrawal(program_path: std::path::PathBuf) -> eyre::Result<TestStep> {
-        Ok(async_step!(
-            "Call execute forced withdrawal",
-            "call executeForcedWithdraw with empty proof on L1",
-            |ctx| {
-                let bindings = ctx.borrow_mut();
-                let public_values = bindings
-                    .get("sp1_public_values")
-                    .expect("Public Value not found in context")
-                    .clone();
-                let solana_l1_address = bindings
-                    .get(ctx::solana_ctx_keys::SOLANA_ADDRESS)
-                    .expect("random address not found in context")
-                    .clone();
-
-                let output = Command::new("make")
-                    .args([
-                        "process-native-forced-withdrawal",
-                        &format!("message_nonce={}", 1),
-                        &format!("receiver={}", solana_l1_address),
-                        &format!("public_values={}", public_values),
-                        &format!("proof={}", "0x"),
-                    ])
-                    .current_dir(program_path)
-                    .output()
-                    .context("failed to run `make process-native-refund`")?;
-
-                if !output.status.success() {
-                    // eyre::bail!(
-                    //     "RefundDeposit tx failed: {}",
-                    //     String::from_utf8_lossy(&output.stderr)
-                    // );
-                    log::error!(
-                        "RefundDeposit tx failed: {}",
-                        String::from_utf8_lossy(&output.stderr)
-                    );
-                    return Ok(()); // TODO: remove this
-                }
-
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                log::info!("RefundDeposit output:\n{stdout}");
-
-                Ok(())
-            }
-        ))
-    }
-
-    fn verify_balance_on_sol() -> eyre::Result<TestStep> {
-        Ok(async_step!(
-            "Verify ETH balance restored",
-            "Verify ETH balance is restored on L1 after forced withdrawal",
-            |ctx| {
-                let bindings = ctx.borrow();
-                let solana_l1_address = bindings
-                    .get(ctx::solana_ctx_keys::SOLANA_ADDRESS)
-                    .expect("random address not found in context")
-                    .clone();
-
-                let output = Command::new("solana")
-                    .args(["balance".into(), solana_l1_address.clone()])
-                    .output()
-                    .wrap_err("failed to execute cast balance command")?;
-                if !output.status.success() {
-                    eyre::bail!(
-                        "Failed to fetch balance: {}",
-                        String::from_utf8_lossy(&output.stderr)
-                    );
-                }
-
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                let balance_str = stdout.trim().to_string();
-                log::info!("Balance for {solana_l1_address} on L1: {balance_str} wei");
-
-                Ok(())
-            }
-        ))
     }
 }

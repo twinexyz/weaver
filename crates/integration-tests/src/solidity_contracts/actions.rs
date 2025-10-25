@@ -438,3 +438,251 @@ pub fn withdraw_eth_step() -> eyre::Result<TestStep> {
         }
     ))
 }
+
+pub fn call_forced_withdraw_eth_step() -> eyre::Result<TestStep> {
+    Ok(async_step!(
+        "Call forcedWithdrawEth on L1 ETH Gateway",
+        "initiate forced withdrawal on L1 ETH gateway",
+        |ctx| {
+            let binding = ctx.borrow();
+            let gateway = binding
+                .get(ethereum_ctx_keys::ETHEREUM_ETH_GATEWAY)
+                .expect("Ethereum ETH Gateway address not set in context")
+                .clone();
+            let random_address = binding
+                .get(common_ctx_keys::RANDOM_ADDRESS)
+                .expect("Random address not set in context")
+                .clone();
+            let random_address = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+
+            log::info!(
+                "Calling forcedWithdrawEth on L1 gateway {} for address {} with amount {}",
+                gateway,
+                random_address,
+                consts::TEST_DEPOSIT_AMOUNT
+            );
+
+            let output = Command::new("cast")
+                .args([
+                    "send",
+                    &gateway,
+                    "forcedWithdrawalETH(address,uint256,uint256,bytes)",
+                    &random_address,
+                    consts::TEST_DEPOSIT_AMOUNT,
+                    "0",
+                    "0x",
+                    "--rpc-url",
+                    consts::RETH_RPC_URL,
+                    "--private-key",
+                    consts::L1_PRIVATE_KEY,
+                ])
+                .output()?;
+
+            if !output.status.success() {
+                log::error!(
+                    "ForcedWithdrawEth tx failed: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
+                eyre::bail!(
+                    "ForcedWithdrawEth tx failed: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
+            }
+
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            log::info!("ForcedWithdrawEth output:\n{stdout}");
+            Ok(())
+        }
+    ))
+}
+
+pub fn call_execute_forced_withdrawal() -> eyre::Result<TestStep> {
+    Ok(async_step!(
+        "Call execute forced withdrawal",
+        "call executeForcedWithdraw with empty proof on L1",
+        |ctx| {
+            let bindings = ctx.borrow();
+            let eth_twine_chain = bindings
+                .get(ethereum_ctx_keys::ETHEREUM_TWINE_CHAIN)
+                .expect("Ethereum twine chain address not set in context")
+                .clone();
+            let public_values = bindings
+                .get("sp1_public_values")
+                .expect("SP1 public values not found in context")
+                .clone();
+
+            // Construct and run the cast command for executeForcedWithdrawal
+            let output = Command::new("cast")
+                .args([
+                    "send",
+                    &eth_twine_chain,
+                    "executeForcedWithdrawal(bytes,bytes)",
+                    &public_values,
+                    "0x", // empty withdrawal proof for now
+                    "--rpc-url",
+                    consts::RETH_RPC_URL,
+                    "--private-key",
+                    consts::L1_PRIVATE_KEY,
+                    // "--gas-limit",
+                    // "5000000",
+                ])
+                .output()?;
+
+            if !output.status.success() {
+                log::error!(
+                    "ExecuteForcedWithdrawal tx failed: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
+                eyre::bail!(
+                    "ExecuteForcedWithdrawal tx failed: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
+            }
+
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            log::info!("ExecuteForcedWithdrawal output:\n{stdout}");
+
+            Ok(())
+        }
+    ))
+}
+
+pub fn call_execute_refund() -> eyre::Result<TestStep> {
+    Ok(async_step!(
+        "Call execute refund",
+        "call execute refund",
+        |ctx| {
+            let bindings = ctx.borrow_mut();
+            let eth_twine_chain = bindings
+                .get(ethereum_ctx_keys::ETHEREUM_TWINE_CHAIN)
+                .expect("Ethreum twine chain address not set in context")
+                .clone();
+            let public_values = bindings
+                .get("sp1_public_values")
+                .expect("Public Value not found in context")
+                .clone();
+
+            let output = Command::new("cast")
+                .args([
+                    "send".into(),
+                    eth_twine_chain,
+                    "refundDeposit(bytes,bytes)".into(),
+                    public_values,
+                    "0x".into(), // empty proof
+                    "--rpc-url".into(),
+                    consts::RETH_RPC_URL.into(),
+                    "--private-key".into(),
+                    consts::L1_PRIVATE_KEY.into(),
+                ])
+                .output()
+                .wrap_err("failed to execute cast send refundDeposit")?;
+
+            if !output.status.success() {
+                log::error!(
+                    "RefundDeposit tx failed: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
+                eyre::bail!(
+                    "RefundDeposit tx failed: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
+            }
+
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            log::info!("RefundDeposit output:\n{stdout}");
+
+            Ok(())
+        }
+    ))
+}
+
+pub fn verify_balance_on_eth() -> eyre::Result<TestStep> {
+    Ok(async_step!(
+        "verify balance",
+        "verify balance on L1",
+        |ctx| {
+            let bindings = ctx.borrow();
+            let address = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+
+            let output = Command::new("cast")
+                .args([
+                    "balance".into(),
+                    address,
+                    "--rpc-url".into(),
+                    consts::RETH_RPC_URL.into(),
+                ])
+                .output()
+                .wrap_err("failed to execute cast balance command")?;
+            if !output.status.success() {
+                eyre::bail!(
+                    "Failed to fetch balance for {address}: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
+            }
+
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let balance_str = stdout.trim().to_string();
+            log::info!("Balance for {address} on L1: {balance_str} wei");
+            let sent_amount = consts::TEST_DEPOSIT_AMOUNT;
+
+            let original_balance =
+                alloy_primitives::U256::from_str_radix("10000000000000000000000", 10)?;
+            let found_balance = alloy_primitives::U256::from_str_radix(balance_str.as_str(), 10)?;
+            let sent_amount_str = alloy_primitives::U256::from_str_radix(sent_amount, 10)?;
+            if original_balance - found_balance > sent_amount_str {
+                log::info!("Refund sucessful");
+                return Ok(());
+            }
+            Ok(())
+        }
+    ))
+}
+
+pub fn call_execute_withdrawal() -> eyre::Result<TestStep> {
+    Ok(async_step!(
+        "Call execute withdrawal",
+        "call executeWithdraw with empty proof on L1",
+        |ctx| {
+            let bindings = ctx.borrow();
+            let eth_twine_chain = bindings
+                .get(ethereum_ctx_keys::ETHEREUM_TWINE_CHAIN)
+                .expect("Ethereum twine chain address not set in context")
+                .clone();
+            let public_values = bindings
+                .get("sp1_public_values")
+                .expect("SP1 public values not found in context")
+                .clone();
+
+            // Construct and run the cast command for executeForcedWithdrawal
+            let output = Command::new("cast")
+                .args([
+                    "send",
+                    &eth_twine_chain,
+                    "executeL2Withdraw(bytes,bytes)",
+                    &public_values,
+                    "0x", // empty withdrawal proof for now
+                    "--rpc-url",
+                    consts::RETH_RPC_URL,
+                    "--private-key",
+                    consts::L1_PRIVATE_KEY,
+                ])
+                .output()?;
+
+            if !output.status.success() {
+                log::error!(
+                    "ExecuteForcedWithdrawal tx failed: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
+                eyre::bail!(
+                    "ExecuteForcedWithdrawal tx failed: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
+            }
+
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            log::info!("ExecuteForcedWithdrawal output:\n{stdout}");
+
+            Ok(())
+        }
+    ))
+}

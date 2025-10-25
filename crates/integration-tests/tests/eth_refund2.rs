@@ -2,7 +2,6 @@
 
 #[cfg(test)]
 mod eth_refund_test2 {
-    use std::process::Command;
     use std::rc::Rc;
     use std::time::Duration;
 
@@ -33,8 +32,8 @@ mod eth_refund_test2 {
         add_solana_wallet_to_context, load_solana_programs_step, prepare_solana_programs_repo,
     };
     use twine_integration_tests::solidity_contracts::actions::{
-        check_committed_batch, commit_genesis_block_step, compute_message_hash,
-        deposit_and_call_garbage_eth_step,
+        call_execute_refund, check_committed_batch, commit_genesis_block_step,
+        compute_message_hash, deposit_and_call_garbage_eth_step, verify_balance_on_eth,
     };
     use twine_integration_tests::solidity_contracts::{
         build_contracts_step, deploy_contracts_step, load_contract_addresses_step,
@@ -44,7 +43,7 @@ mod eth_refund_test2 {
         query_refund_txn_status, verify_deposited_l2_balance,
     };
     use twine_integration_tests::twine::setup::deploy_cat_contract;
-    use twine_integration_tests::{async_step, consts, ctx, solana_programs};
+    use twine_integration_tests::{async_step, consts, solana_programs};
 
     struct TestServices {
         merkora: SubProcessService,
@@ -221,7 +220,6 @@ mod eth_refund_test2 {
             "Wait for the batch to finalize on L1",
         ));
 
-        // harness.add_step(wait_step(Duration::from_secs(10000), "Buffer"));
         harness.add_step(call_execute_refund()?);
         harness.add_step(verify_balance_on_eth()?);
 
@@ -243,99 +241,5 @@ mod eth_refund_test2 {
             log::info!("The context is {:?}", ctx);
             Ok(())
         }))
-    }
-
-    fn call_execute_refund() -> eyre::Result<TestStep> {
-        Ok(async_step!(
-            "Call execute refund",
-            "call execute refund",
-            |ctx| {
-                let bindings = ctx.borrow_mut();
-                let eth_twine_chain = bindings
-                    .get(ctx::ethereum_ctx_keys::ETHEREUM_TWINE_CHAIN)
-                    .expect("Ethreum twine chain address not set in context")
-                    .clone();
-                let public_values = bindings
-                    .get("sp1_public_values")
-                    .expect("Public Value not found in context")
-                    .clone();
-
-                // Construct and run the cast command
-                let output = Command::new("cast")
-                    .args([
-                        "send".into(),
-                        eth_twine_chain,
-                        "refundDeposit(bytes,bytes)".into(),
-                        public_values,
-                        "0x".into(), // empty proof
-                        "--rpc-url".into(),
-                        consts::RETH_RPC_URL.into(),
-                        "--private-key".into(),
-                        consts::L1_PRIVATE_KEY.into(),
-                    ])
-                    .output()
-                    .wrap_err("failed to execute cast send refundDeposit")?;
-
-                if !output.status.success() {
-                    // eyre::bail!(
-                    //     "RefundDeposit tx failed: {}",
-                    //     String::from_utf8_lossy(&output.stderr)
-                    // );
-                    log::error!(
-                        "RefundDeposit tx failed: {}",
-                        String::from_utf8_lossy(&output.stderr)
-                    );
-                    return Ok(()); // TODO: remove this
-                }
-
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                log::info!("RefundDeposit output:\n{stdout}");
-
-                Ok(())
-            }
-        ))
-    }
-
-    fn verify_balance_on_eth() -> eyre::Result<TestStep> {
-        Ok(async_step!(
-            "verify balance",
-            "verify balance on L1",
-            |ctx| {
-                let bindings = ctx.borrow();
-                let address = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
-
-                let output = Command::new("cast")
-                    .args([
-                        "balance".into(),
-                        address,
-                        "--rpc-url".into(),
-                        consts::RETH_RPC_URL.into(),
-                    ])
-                    .output()
-                    .wrap_err("failed to execute cast balance command")?;
-                if !output.status.success() {
-                    eyre::bail!(
-                        "Failed to fetch balance for {address}: {}",
-                        String::from_utf8_lossy(&output.stderr)
-                    );
-                }
-
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                let balance_str = stdout.trim().to_string();
-                log::info!("Balance for {address} on L1: {balance_str} wei");
-                let sent_amount = consts::TEST_DEPOSIT_AMOUNT;
-
-                let original_balance =
-                    alloy_primitives::U256::from_str_radix("10000000000000000000000", 10)?;
-                let found_balance =
-                    alloy_primitives::U256::from_str_radix(balance_str.as_str(), 10)?;
-                let sent_amount_str = alloy_primitives::U256::from_str_radix(sent_amount, 10)?;
-                if original_balance - found_balance > sent_amount_str {
-                    log::info!("Refund sucessful");
-                    return Ok(());
-                }
-                Ok(())
-            }
-        ))
     }
 }

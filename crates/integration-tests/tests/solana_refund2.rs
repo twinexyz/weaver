@@ -2,8 +2,6 @@
 
 #[cfg(test)]
 mod test_solana_refund2 {
-    use std::path::PathBuf;
-    use std::process::Command;
     use std::rc::Rc;
     use std::time::Duration;
 
@@ -29,6 +27,9 @@ mod test_solana_refund2 {
     };
     use twine_integration_tests::proof_scheduler::{
         make_proof_scheduler_subprocess_service, setup_proof_scheduler_config,
+    };
+    use twine_integration_tests::solana_programs::setup::{
+        call_execute_refund, verify_balance_on_sol,
     };
     use twine_integration_tests::solana_programs::{
         add_solana_wallet_to_context, load_solana_programs_step, prepare_solana_programs_repo,
@@ -227,9 +228,9 @@ mod test_solana_refund2 {
             "Wait for the batch to finalize on L1",
         ));
 
-        harness.add_step(verify_balance_on_solana()?);
+        harness.add_step(verify_balance_on_sol()?);
         harness.add_step(call_execute_refund(solana_programs)?);
-        harness.add_step(verify_balance_on_solana()?);
+        harness.add_step(verify_balance_on_sol()?);
 
         // Clean up
         harness.add_step(stop_service_step("Merkora", 0, None));
@@ -249,87 +250,5 @@ mod test_solana_refund2 {
             log::info!("The context is {:?}", ctx);
             Ok(())
         }))
-    }
-
-    fn call_execute_refund(program_path: PathBuf) -> eyre::Result<TestStep> {
-        Ok(async_step!(
-            "Call execute refund",
-            "call execute refund",
-            |ctx| {
-                let bindings = ctx.borrow_mut();
-                // let solana_twine_chain = bindings
-                //     .get(ctx::solana_ctx_keys::SOLANA_TWINE_CHAIN)
-                //     .expect("Solana twine chain address not set in context")
-                //     .clone();
-                let public_values = bindings
-                    .get("sp1_public_values")
-                    .expect("Public Value not found in context")
-                    .clone();
-                let solana_l1_address = bindings
-                    .get(ctx::solana_ctx_keys::SOLANA_ADDRESS)
-                    .expect("random address not found in context")
-                    .clone();
-
-                let output = Command::new("make")
-                    .args([
-                        "process-native-refund",
-                        &format!("message_nonce={}", 1),
-                        &format!("receiver={}", solana_l1_address),
-                        &format!("public_values={}", public_values),
-                        &format!("proof={}", "0x"),
-                    ])
-                    .current_dir(program_path)
-                    .output()
-                    .context("failed to run `make process-native-refund`")?;
-
-                if !output.status.success() {
-                    // eyre::bail!(
-                    //     "RefundDeposit tx failed: {}",
-                    //     String::from_utf8_lossy(&output.stderr)
-                    // );
-                    log::error!(
-                        "RefundDeposit tx failed: {}",
-                        String::from_utf8_lossy(&output.stderr)
-                    );
-                    return Ok(()); // TODO: remove this
-                }
-
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                log::info!("RefundDeposit output:\n{stdout}");
-
-                Ok(())
-            }
-        ))
-    }
-
-    fn verify_balance_on_solana() -> eyre::Result<TestStep> {
-        Ok(async_step!(
-            "verify balance",
-            "verify balance on L1",
-            |ctx| {
-                let bindings = ctx.borrow();
-                let solana_l1_address = bindings
-                    .get(ctx::solana_ctx_keys::SOLANA_ADDRESS)
-                    .expect("random address not found in context")
-                    .clone();
-
-                let output = Command::new("solana")
-                    .args(["balance".into(), solana_l1_address.clone()])
-                    .output()
-                    .wrap_err("failed to execute cast balance command")?;
-                if !output.status.success() {
-                    eyre::bail!(
-                        "Failed to fetch balance: {}",
-                        String::from_utf8_lossy(&output.stderr)
-                    );
-                }
-
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                let balance_str = stdout.trim().to_string();
-                log::info!("Balance for {solana_l1_address} on L1: {balance_str} wei");
-
-                Ok(())
-            }
-        ))
     }
 }
