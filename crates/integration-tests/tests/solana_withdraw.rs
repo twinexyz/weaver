@@ -42,7 +42,7 @@ mod sol_withdraw_test {
     use twine_integration_tests::twine::action::{
         approve_erc20_gateway_step_sol, verify_deposited_l2_balance, withdraw_erc20_step_sol,
     };
-    use twine_integration_tests::{async_step, consts, ctx};
+    use twine_integration_tests::{async_step, consts, ctx, TestAccountKind};
 
     struct TestServices {
         merkora: SubProcessService,
@@ -191,6 +191,7 @@ mod sol_withdraw_test {
         harness.add_step(solana_programs::setup::deposit_sol_step(
             solana_programs.clone(),
             solana_programs::SolanaTestType::Deposit,
+            TestAccountKind::Prefunded,
         )?);
 
         // Wait till deposit message processed

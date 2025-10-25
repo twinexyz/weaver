@@ -31,7 +31,7 @@ mod relay_to_twine {
     use twine_integration_tests::twine::action::{
         query_refund_txn_status, verify_call_executed, verify_deposited_l2_balance,
     };
-    use twine_integration_tests::{consts, solana_programs, twine};
+    use twine_integration_tests::{consts, solana_programs, twine, TestAccountKind};
 
     struct TestServices {
         merkora: SubProcessService,
@@ -150,7 +150,7 @@ mod relay_to_twine {
         harness.add_step(start_service_step("Merkora", 0, Duration::from_secs(10)));
 
         // test eth deposit
-        harness.add_step(deposit_eth_step()?);
+        harness.add_step(deposit_eth_step(TestAccountKind::Random)?);
         harness.add_step(wait_step(
             Duration::from_secs(WAIT_TIME_FOR_MESSAGE_RELAY),
             "Waiting for message delivery",
@@ -161,7 +161,7 @@ mod relay_to_twine {
         )?);
 
         // test eth deposit and call
-        harness.add_step(deposit_and_call_eth_step()?);
+        harness.add_step(deposit_and_call_eth_step(TestAccountKind::Random)?);
         harness.add_step(wait_step(
             Duration::from_secs(WAIT_TIME_FOR_MESSAGE_RELAY),
             "Waiting for message delivery",
@@ -173,7 +173,7 @@ mod relay_to_twine {
         harness.add_step(verify_call_executed()?);
 
         // test eth refund
-        harness.add_step(deposit_and_call_garbage_eth_step()?);
+        harness.add_step(deposit_and_call_garbage_eth_step(TestAccountKind::Random)?);
         harness.add_step(compute_message_hash()?);
         harness.add_step(wait_step(
             Duration::from_secs(WAIT_TIME_FOR_MESSAGE_RELAY),
@@ -189,6 +189,7 @@ mod relay_to_twine {
         harness.add_step(solana_programs::setup::deposit_sol_step(
             solana_programs.clone(),
             solana_programs::SolanaTestType::Deposit,
+            TestAccountKind::Random,
         )?);
         harness.add_step(wait_step(
             Duration::from_secs(WAIT_TIME_FOR_MESSAGE_RELAY),
@@ -203,6 +204,7 @@ mod relay_to_twine {
         harness.add_step(solana_programs::setup::deposit_sol_step(
             solana_programs.clone(),
             solana_programs::SolanaTestType::DepositAndCall,
+            TestAccountKind::Random,
         )?);
         harness.add_step(wait_step(
             Duration::from_secs(WAIT_TIME_FOR_MESSAGE_RELAY),
@@ -218,6 +220,7 @@ mod relay_to_twine {
         harness.add_step(solana_programs::setup::deposit_sol_step(
             solana_programs,
             solana_programs::SolanaTestType::Refund,
+            TestAccountKind::Random,
         )?);
         // Get message hash
         harness.add_step(get_message_hash()?);

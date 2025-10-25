@@ -1,11 +1,11 @@
 //! Test refunding on ethereum
 
 #[cfg(test)]
-mod eth_refund_test2 {
+mod test_solana_refund2 {
     use std::rc::Rc;
     use std::time::Duration;
 
-    use eyre::{Context, Ok, Result};
+    use eyre::{Context, Result};
     use git2::Repository;
     use test_harness::{SubProcessService, TestHarness, TestStep};
     use twine_integration_tests::aggregator::{
@@ -28,12 +28,14 @@ mod eth_refund_test2 {
     use twine_integration_tests::proof_scheduler::{
         make_proof_scheduler_subprocess_service, setup_proof_scheduler_config,
     };
+    use twine_integration_tests::solana_programs::setup::{
+        call_execute_refund, verify_balance_on_sol,
+    };
     use twine_integration_tests::solana_programs::{
         add_solana_wallet_to_context, load_solana_programs_step, prepare_solana_programs_repo,
     };
     use twine_integration_tests::solidity_contracts::actions::{
-        call_execute_refund, check_committed_batch, commit_genesis_block_step,
-        compute_message_hash, deposit_and_call_garbage_eth_step, verify_balance_on_eth,
+        check_committed_batch, commit_genesis_block_step,
     };
     use twine_integration_tests::solidity_contracts::{
         build_contracts_step, deploy_contracts_step, load_contract_addresses_step,
@@ -43,7 +45,7 @@ mod eth_refund_test2 {
         query_refund_txn_status, verify_deposited_l2_balance,
     };
     use twine_integration_tests::twine::setup::deploy_cat_contract;
-    use twine_integration_tests::{async_step, consts, solana_programs};
+    use twine_integration_tests::{async_step, consts, solana_programs, TestAccountKind};
 
     struct TestServices {
         merkora: SubProcessService,
@@ -159,6 +161,10 @@ mod eth_refund_test2 {
         harness.add_step(commit_genesis_block_step()?);
         harness.add_step(check_committed_batch()?);
 
+        harness.add_step(solana_programs::setup::update_sol_token_mapping(
+            solana_programs.clone(),
+        )?);
+
         // Configure and start merkora
         harness.add_step(setup_merkora_postgres_step()?);
         harness.add_step(setup_aggregator_postgres_step()?);
@@ -190,10 +196,14 @@ mod eth_refund_test2 {
         ));
 
         // Deposit and call garbage data
-        harness.add_step(deposit_and_call_garbage_eth_step()?);
+        harness.add_step(solana_programs::setup::deposit_sol_step(
+            solana_programs.clone(),
+            solana_programs::SolanaTestType::Refund,
+            TestAccountKind::Prefunded,
+        )?);
 
         // compute the hash of the message
-        harness.add_step(compute_message_hash()?);
+        harness.add_step(solana_programs::setup::get_message_hash()?);
 
         // Wait till message is processed
         harness.add_step(wait_step(
@@ -203,12 +213,11 @@ mod eth_refund_test2 {
 
         // Verify balance and txn status on L2
         harness.add_step(verify_deposited_l2_balance(
-            twine_ctx_keys::TWINE_ETH_TOKEN,
+            twine_ctx_keys::TWINE_SOL_TOKEN,
             "0".to_string(),
         )?);
         harness.add_step(query_refund_txn_status()?);
 
-        // harness.add_step(eth_check_last_finalized_batch_step()?);
         harness.add_step(wait_step(
             Duration::from_secs(30),
             "Wait for block to be included in batch",
@@ -216,12 +225,13 @@ mod eth_refund_test2 {
         harness.add_step(fetch_txn_hash_from_db()?);
         harness.add_step(call_merlin_refund_prover(config.as_ref().clone())?);
         harness.add_step(wait_step(
-            Duration::from_secs(200),
+            Duration::from_secs(150),
             "Wait for the batch to finalize on L1",
         ));
 
-        harness.add_step(call_execute_refund()?);
-        harness.add_step(verify_balance_on_eth()?);
+        harness.add_step(verify_balance_on_sol()?);
+        harness.add_step(call_execute_refund(solana_programs)?);
+        harness.add_step(verify_balance_on_sol()?);
 
         // Clean up
         harness.add_step(stop_service_step("Merkora", 0, None));

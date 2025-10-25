@@ -13,7 +13,7 @@ use twine_l1_solana::SolanaProvider;
 
 use super::SolanaTestType;
 use crate::ctx::{common_ctx_keys, ctx_get, solana_ctx_keys, twine_ctx_keys};
-use crate::{async_step, consts, generate_random_eth_address, run_cmd, twine};
+use crate::{async_step, consts, generate_evm_test_address, run_cmd, twine, TestAccountKind};
 
 const PROGRAM_LOG_PREFIX: &str = "Program log: ";
 /// Name of the message event for solana
@@ -238,6 +238,7 @@ pub fn update_sol_token_mapping(program_path: PathBuf) -> eyre::Result<TestStep>
 pub fn deposit_sol_step(
     program_path: PathBuf,
     test_type: SolanaTestType,
+    account_type: TestAccountKind,
 ) -> eyre::Result<TestStep> {
     Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
         name: "Deposit SOL".to_string(),
@@ -245,11 +246,13 @@ pub fn deposit_sol_step(
         futurefn: Box::new(move |ctx| {
             Box::new(async move {
                 let mut bindings = ctx.borrow_mut();
-                let ethereum_address = generate_random_eth_address();
-                let ethereum_address = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266".to_string();
+                let evm_address = generate_evm_test_address(account_type);
+                // let ethereum_address =
+                // "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266".to_string();
+                // let evm_address = consts::EVM_ACCOUNT_ADDRESS.to_string();
                 bindings.insert(
                     common_ctx_keys::RANDOM_ADDRESS.to_string(),
-                    ethereum_address.clone(),
+                    evm_address.clone(),
                 );
                 let l2_token = bindings
                     .get(twine_ctx_keys::TWINE_SOL_TOKEN)
@@ -271,7 +274,7 @@ pub fn deposit_sol_step(
                     .args([
                         "deposit-native-token",
                         &format!("amount={}", consts::TEST_DEPOSIT_AMOUNT),
-                        &format!("receiver_address={}", ethereum_address),
+                        &format!("receiver_address={}", evm_address),
                         &format!("l2_token={}", l2_token),
                         &calldata,
                     ])

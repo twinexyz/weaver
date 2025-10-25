@@ -13,7 +13,6 @@ mod erc20_withdraw_test {
     use twine_integration_tests::cfg::{load_config, TestConfig};
     use twine_integration_tests::cleanup::{cleanup_step, cleanup_test_data};
     use twine_integration_tests::common::{start_service_step, stop_service_step, wait_step};
-    use twine_integration_tests::consts;
     use twine_integration_tests::consts::WAIT_TIME_FOR_MESSAGE_RELAY;
     use twine_integration_tests::ctx::twine_ctx_keys;
     use twine_integration_tests::execution_prover::make_execution_prover_subprocess_service;
@@ -39,8 +38,9 @@ mod erc20_withdraw_test {
         prepare_contract_repo,
     };
     use twine_integration_tests::twine::action::{
-        approve_erc20_gateway_step, verify_deposited_l2_balance, withdraw_erc20_step,
+        approve_erc20_gateway_eth, verify_deposited_l2_balance, withdraw_erc20_step,
     };
+    use twine_integration_tests::{consts, TestAccountKind};
 
     struct TestServices {
         merkora: SubProcessService,
@@ -182,7 +182,7 @@ mod erc20_withdraw_test {
             Duration::from_secs(10),
         ));
 
-        harness.add_step(deposit_eth_step()?);
+        harness.add_step(deposit_eth_step(TestAccountKind::Prefunded)?);
 
         // Wait till deposit message processed
         harness.add_step(wait_step(
@@ -196,7 +196,7 @@ mod erc20_withdraw_test {
             consts::TEST_DEPOSIT_AMOUNT.to_string(),
         )?);
 
-        harness.add_step(approve_erc20_gateway_step()?);
+        harness.add_step(approve_erc20_gateway_eth()?);
         harness.add_step(withdraw_erc20_step()?);
 
         // Step 5: Wait for this txn to be included in a batch

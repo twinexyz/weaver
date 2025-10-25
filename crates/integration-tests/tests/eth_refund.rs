@@ -27,6 +27,7 @@ mod eth_refund_test {
         query_refund_txn_status, verify_deposited_l2_balance,
     };
     use twine_integration_tests::twine::setup::deploy_cat_contract;
+    use twine_integration_tests::TestAccountKind;
 
     struct TestServices {
         merkora: SubProcessService,
@@ -121,7 +122,7 @@ mod eth_refund_test {
         harness.add_step(start_service_step("Merkora", 0, Duration::from_secs(10)));
 
         // Deposit eth
-        harness.add_step(deposit_and_call_garbage_eth_step()?);
+    harness.add_step(deposit_and_call_garbage_eth_step(TestAccountKind::Random)?);
 
         // compute the hash of the message
         harness.add_step(compute_message_hash()?);

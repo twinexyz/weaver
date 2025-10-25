@@ -39,7 +39,7 @@ mod eth_forced_withdraw_test {
         prepare_contract_repo,
     };
     use twine_integration_tests::twine::action::verify_deposited_l2_balance;
-    use twine_integration_tests::{consts, solana_programs};
+    use twine_integration_tests::{consts, solana_programs, TestAccountKind};
 
     struct TestServices {
         merkora: SubProcessService,
@@ -177,7 +177,7 @@ mod eth_forced_withdraw_test {
         ));
 
         // Deposit ETH
-        harness.add_step(deposit_eth_step()?);
+    harness.add_step(deposit_eth_step(TestAccountKind::Prefunded)?);
 
         // Wait till deposit message processed
         harness.add_step(wait_step(

@@ -23,7 +23,7 @@ mod solana_deposit {
         prepare_contract_repo,
     };
     use twine_integration_tests::twine::action::verify_deposited_l2_balance;
-    use twine_integration_tests::{consts, solana_programs, twine};
+    use twine_integration_tests::{consts, solana_programs, twine, TestAccountKind};
 
     struct TestServices {
         merkora: SubProcessService,
@@ -137,6 +137,7 @@ mod solana_deposit {
         harness.add_step(solana_programs::setup::deposit_sol_step(
             solana_programs,
             SolanaTestType::Deposit,
+            TestAccountKind::Random,
         )?);
 
         // Wait for message processing

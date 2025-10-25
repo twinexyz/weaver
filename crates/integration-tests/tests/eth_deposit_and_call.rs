@@ -25,6 +25,7 @@ mod eth_deposit_and_call_test {
         verify_call_executed, verify_deposited_l2_balance,
     };
     use twine_integration_tests::twine::setup::deploy_cat_contract;
+    use twine_integration_tests::TestAccountKind;
 
     struct TestServices {
         merkora: SubProcessService,
@@ -108,7 +109,7 @@ mod eth_deposit_and_call_test {
         harness.add_step(start_service_step("Merkora", 0, Duration::from_secs(10)));
 
         // Deposit eth
-        harness.add_step(deposit_and_call_eth_step()?);
+    harness.add_step(deposit_and_call_eth_step(TestAccountKind::Random)?);
 
         // Wait till message processed
         harness.add_step(wait_step(

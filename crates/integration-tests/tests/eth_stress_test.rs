@@ -22,6 +22,7 @@ mod eth_deposit_stress_test {
         prepare_contract_repo,
     };
     use twine_integration_tests::twine::action::verify_deposited_l2_balance;
+    use twine_integration_tests::TestAccountKind;
 
     struct TestServices {
         merkora: SubProcessService,
@@ -101,6 +102,7 @@ mod eth_deposit_stress_test {
         harness.add_step(batch_deposit_eth_step(
             test_config.test_scripts.path.clone().into(),
             count,
+            TestAccountKind::Random,
         )?);
 
         // Wait till message processed

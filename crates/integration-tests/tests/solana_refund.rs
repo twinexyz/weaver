@@ -27,7 +27,7 @@ mod solana_refund_test {
     use twine_integration_tests::twine::action::{
         query_refund_txn_status, verify_deposited_l2_balance,
     };
-    use twine_integration_tests::{solana_programs, twine};
+    use twine_integration_tests::{solana_programs, twine, TestAccountKind};
 
     struct TestServices {
         merkora: SubProcessService,
@@ -149,6 +149,7 @@ mod solana_refund_test {
         harness.add_step(solana_programs::setup::deposit_sol_step(
             solana_programs,
             solana_programs::SolanaTestType::Refund,
+            TestAccountKind::Random,
         )?);
 
         // Get message hash

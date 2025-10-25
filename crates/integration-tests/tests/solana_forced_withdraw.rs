@@ -13,7 +13,7 @@ mod eth_forced_withdraw_test {
     use twine_integration_tests::cfg::{load_config, TestConfig};
     use twine_integration_tests::cleanup::{cleanup_step, cleanup_test_data};
     use twine_integration_tests::common::{start_service_step, stop_service_step, wait_step};
-    use twine_integration_tests::consts::WAIT_TIME_FOR_MESSAGE_RELAY;
+    use twine_integration_tests::consts::{TEST_DEPOSIT_AMOUNT, WAIT_TIME_FOR_MESSAGE_RELAY};
     use twine_integration_tests::ctx::twine_ctx_keys;
     use twine_integration_tests::execution_prover::make_execution_prover_subprocess_service;
     use twine_integration_tests::kafka::setup_kafka_step;
@@ -41,7 +41,7 @@ mod eth_forced_withdraw_test {
         prepare_contract_repo,
     };
     use twine_integration_tests::twine::action::verify_deposited_l2_balance;
-    use twine_integration_tests::{async_step, consts, solana_programs};
+    use twine_integration_tests::{async_step, consts, solana_programs, TestAccountKind};
 
     struct TestServices {
         merkora: SubProcessService,
@@ -187,6 +187,7 @@ mod eth_forced_withdraw_test {
         harness.add_step(solana_programs::setup::deposit_sol_step(
             solana_programs.clone(),
             solana_programs::SolanaTestType::Deposit,
+            TestAccountKind::Prefunded,
         )?);
 
         // Wait till deposit message processed

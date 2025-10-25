@@ -13,7 +13,7 @@ use twine_evm_contracts::l2_twine_messenger::TwineTypes::MessageData;
 
 use crate::ctx::{common_ctx_keys, ctx_get, ethereum_ctx_keys, twine_ctx_keys};
 use crate::twine::action::cast;
-use crate::{async_step, consts, generate_random_eth_address};
+use crate::{async_step, consts, generate_evm_address, TestAccountKind};
 
 #[derive(Debug, Deserialize)]
 #[allow(dead_code, non_snake_case)]
@@ -98,12 +98,12 @@ pub fn compute_message_hash() -> eyre::Result<TestStep> {
     ))
 }
 
-pub fn deposit_and_call_garbage_eth_step() -> eyre::Result<TestStep> {
+pub fn deposit_and_call_garbage_eth_step(account_kind: TestAccountKind) -> eyre::Result<TestStep> {
     Ok(async_step!(
         "Deposit and call garbage on ETH",
         "Send ETH to L1 Gateway with bad calldata",
         |ctx| {
-            let addr_str = generate_random_eth_address();
+            let addr_str = generate_evm_address(account_kind);
             ctx.borrow_mut()
                 .insert(common_ctx_keys::RANDOM_ADDRESS.into(), addr_str.clone());
 
@@ -127,7 +127,7 @@ pub fn deposit_and_call_garbage_eth_step() -> eyre::Result<TestStep> {
                 "--value",
                 consts::TEST_DEPOSIT_AMOUNT,
                 "--private-key",
-                consts::L1_PRIVATE_KEY,
+                consts::EVM_ACCOUNT_PRIVATE_KEY,
                 "--rpc-url",
                 consts::RETH_RPC_URL,
             ]
@@ -140,12 +140,12 @@ pub fn deposit_and_call_garbage_eth_step() -> eyre::Result<TestStep> {
     ))
 }
 
-pub fn deposit_and_call_eth_step() -> eyre::Result<TestStep> {
+pub fn deposit_and_call_eth_step(account_kind: TestAccountKind) -> eyre::Result<TestStep> {
     Ok(async_step!(
         "Deposit ETH and call",
         "Send ETH to L1 Gateway with calldata",
         |ctx| {
-            let addr_str = generate_random_eth_address();
+            let addr_str = generate_evm_address(account_kind);
             ctx.borrow_mut()
                 .insert(common_ctx_keys::RANDOM_ADDRESS.into(), addr_str.clone());
 
@@ -171,7 +171,7 @@ pub fn deposit_and_call_eth_step() -> eyre::Result<TestStep> {
                 "--value",
                 consts::TEST_DEPOSIT_AMOUNT,
                 "--private-key",
-                consts::L1_PRIVATE_KEY,
+                consts::EVM_ACCOUNT_PRIVATE_KEY,
                 "--rpc-url",
                 consts::RETH_RPC_URL,
             ]
@@ -184,13 +184,12 @@ pub fn deposit_and_call_eth_step() -> eyre::Result<TestStep> {
     ))
 }
 
-pub fn deposit_eth_step() -> eyre::Result<TestStep> {
+pub fn deposit_eth_step(account_kind: TestAccountKind) -> eyre::Result<TestStep> {
     Ok(async_step!(
         "Deposit ETH",
         "Send ETH to L1 Gateway",
         |ctx| {
-            let addr_str = generate_random_eth_address();
-            let addr_str = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266".to_string();
+            let addr_str = generate_evm_address(account_kind);
             ctx.borrow_mut()
                 .insert(common_ctx_keys::RANDOM_ADDRESS.into(), addr_str.clone());
 
@@ -212,7 +211,7 @@ pub fn deposit_eth_step() -> eyre::Result<TestStep> {
                 "--value",
                 consts::TEST_DEPOSIT_AMOUNT,
                 "--private-key",
-                consts::L1_PRIVATE_KEY,
+                consts::EVM_ACCOUNT_PRIVATE_KEY,
                 "--rpc-url",
                 consts::RETH_RPC_URL,
             ]
@@ -226,12 +225,16 @@ pub fn deposit_eth_step() -> eyre::Result<TestStep> {
     ))
 }
 
-pub fn batch_deposit_eth_step(script_path: PathBuf, count: u64) -> eyre::Result<TestStep> {
+pub fn batch_deposit_eth_step(
+    script_path: PathBuf,
+    count: u64,
+    account_kind: TestAccountKind,
+) -> eyre::Result<TestStep> {
     Ok(async_step!(
         "Deposit ETH in batch",
         "Send ETH in batch",
         |ctx| {
-            let addr_str = generate_random_eth_address();
+            let addr_str = generate_evm_address(account_kind);
             ctx.borrow_mut()
                 .insert(common_ctx_keys::RANDOM_ADDRESS.into(), addr_str.clone());
 
@@ -425,7 +428,7 @@ pub fn withdraw_eth_step() -> eyre::Result<TestStep> {
                 consts::TEST_DEPOSIT_AMOUNT,
                 "0",
                 "--private-key",
-                "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+                consts::EVM_ACCOUNT_PRIVATE_KEY,
                 "--rpc-url",
                 consts::TWINE_RPC_URL,
             ]
@@ -453,7 +456,7 @@ pub fn call_forced_withdraw_eth_step() -> eyre::Result<TestStep> {
                 .get(common_ctx_keys::RANDOM_ADDRESS)
                 .expect("Random address not set in context")
                 .clone();
-            let random_address = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+            // let random_address = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
 
             log::info!(
                 "Calling forcedWithdrawEth on L1 gateway {} for address {} with amount {}",
@@ -474,7 +477,7 @@ pub fn call_forced_withdraw_eth_step() -> eyre::Result<TestStep> {
                     "--rpc-url",
                     consts::RETH_RPC_URL,
                     "--private-key",
-                    consts::L1_PRIVATE_KEY,
+                    consts::EVM_ACCOUNT_PRIVATE_KEY,
                 ])
                 .output()?;
 
@@ -522,9 +525,7 @@ pub fn call_execute_forced_withdrawal() -> eyre::Result<TestStep> {
                     "--rpc-url",
                     consts::RETH_RPC_URL,
                     "--private-key",
-                    consts::L1_PRIVATE_KEY,
-                    // "--gas-limit",
-                    // "5000000",
+                    consts::EVM_ACCOUNT_PRIVATE_KEY,
                 ])
                 .output()?;
 
@@ -572,7 +573,7 @@ pub fn call_execute_refund() -> eyre::Result<TestStep> {
                     "--rpc-url".into(),
                     consts::RETH_RPC_URL.into(),
                     "--private-key".into(),
-                    consts::L1_PRIVATE_KEY.into(),
+                    consts::EVM_ACCOUNT_PRIVATE_KEY.into(),
                 ])
                 .output()
                 .wrap_err("failed to execute cast send refundDeposit")?;
@@ -602,12 +603,14 @@ pub fn verify_balance_on_eth() -> eyre::Result<TestStep> {
         "verify balance on L1",
         |ctx| {
             let bindings = ctx.borrow();
-            let address = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+            let address = bindings
+                .get(common_ctx_keys::RANDOM_ADDRESS)
+                .expect("Could not find `RANDOM_ADDRESS` in context");
 
             let output = Command::new("cast")
                 .args([
                     "balance".into(),
-                    address,
+                    address.clone(),
                     "--rpc-url".into(),
                     consts::RETH_RPC_URL.into(),
                 ])
@@ -664,7 +667,7 @@ pub fn call_execute_withdrawal() -> eyre::Result<TestStep> {
                     "--rpc-url",
                     consts::RETH_RPC_URL,
                     "--private-key",
-                    consts::L1_PRIVATE_KEY,
+                    consts::EVM_ACCOUNT_PRIVATE_KEY,
                 ])
                 .output()?;
 

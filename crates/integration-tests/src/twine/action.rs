@@ -267,7 +267,7 @@ pub fn query_refund_txn_status() -> eyre::Result<TestStep> {
     ))
 }
 
-pub fn approve_erc20_gateway_step() -> eyre::Result<TestStep> {
+pub fn approve_erc20_gateway_eth() -> eyre::Result<TestStep> {
     Ok(async_step!(
         "Approve L2ERC20Gateway to spend ERC20 tokens",
         "Call approve() on L2 FauxCoin to allow L2ERC20Gateway to spend tokens",
@@ -289,7 +289,7 @@ pub fn approve_erc20_gateway_step() -> eyre::Result<TestStep> {
                 &l2_erc20_gateway,
                 consts::TEST_DEPOSIT_AMOUNT,
                 "--private-key",
-                consts::L1_PRIVATE_KEY,
+                consts::L2_ADMIN,
                 "--rpc-url",
                 consts::TWINE_RPC_URL,
             ]
@@ -345,7 +345,7 @@ pub fn withdraw_erc20_step() -> eyre::Result<TestStep> {
                 chain_id,
                 gas_limit,
                 "--private-key",
-                consts::L1_PRIVATE_KEY,
+                consts::EVM_ACCOUNT_PRIVATE_KEY,
                 "--rpc-url",
                 consts::TWINE_RPC_URL,
             ]
@@ -368,7 +368,7 @@ pub fn withdraw_erc20_step() -> eyre::Result<TestStep> {
 
             if let Some(m) = re.find(&stdout) {
                 let hash = m.as_str().split_whitespace().last().unwrap().to_string();
-                log::info!("✅ Transaction hash: {}", hash);
+                log::info!("Transaction hash: {}", hash);
                 binding.insert("txn_hash".to_string(), hash);
             } else {
                 eyre::bail!("Transaction hash not found in output: {stdout}");
@@ -449,7 +449,7 @@ pub fn withdraw_erc20_step_sol() -> eyre::Result<TestStep> {
                 .expect("Solana address not found in context")
                 .clone();
 
-            let chain_id = "900"; // Sepolia chain ID
+            let chain_id = "900";
             let gas_limit = "0";
 
             let args = [
@@ -462,7 +462,7 @@ pub fn withdraw_erc20_step_sol() -> eyre::Result<TestStep> {
                 chain_id,
                 gas_limit,
                 "--private-key",
-                consts::L1_PRIVATE_KEY,
+                consts::EVM_ACCOUNT_PRIVATE_KEY,
                 "--rpc-url",
                 consts::TWINE_RPC_URL,
             ]
