@@ -249,7 +249,6 @@ pub fn deposit_sol_step(
                 let evm_address = generate_evm_test_address(account_type);
                 // let ethereum_address =
                 // "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266".to_string();
-                // let evm_address = consts::EVM_ACCOUNT_ADDRESS.to_string();
                 bindings.insert(
                     common_ctx_keys::RANDOM_ADDRESS.to_string(),
                     evm_address.clone(),
@@ -476,15 +475,14 @@ pub fn call_execute_forced_withdrawal(program_path: std::path::PathBuf) -> eyre:
                 .context("failed to run `make process-native-refund`")?;
 
             if !output.status.success() {
-                // eyre::bail!(
-                //     "RefundDeposit tx failed: {}",
-                //     String::from_utf8_lossy(&output.stderr)
-                // );
                 log::error!(
                     "RefundDeposit tx failed: {}",
                     String::from_utf8_lossy(&output.stderr)
                 );
-                return Ok(()); // TODO: remove this
+                eyre::bail!(
+                    "RefundDeposit tx failed: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
             }
 
             let stdout = String::from_utf8_lossy(&output.stdout);
@@ -522,7 +520,7 @@ pub fn call_forced_withdraw_solana_step(
                     &format!("l2_token={}", l2_token),
                     &format!("from_address={}", from_address),
                     &format!("receiver_address={}", solana_l1_address),
-                    &format!("private_key={}", consts::L1_PRIVATE_KEY),
+                    &format!("private_key={}", consts::EVM_ACCOUNT_PRIVATE_KEY),
                     &format!("amount={}", consts::TEST_DEPOSIT_AMOUNT),
                 ])
                 .current_dir(program_path)
@@ -579,15 +577,14 @@ pub fn call_execute_refund(program_path: PathBuf) -> eyre::Result<TestStep> {
                 .context("failed to run `make process-native-refund`")?;
 
             if !output.status.success() {
-                // eyre::bail!(
-                //     "RefundDeposit tx failed: {}",
-                //     String::from_utf8_lossy(&output.stderr)
-                // );
                 log::error!(
                     "RefundDeposit tx failed: {}",
                     String::from_utf8_lossy(&output.stderr)
                 );
-                return Ok(()); // TODO: remove this
+                eyre::bail!(
+                    "RefundDeposit tx failed: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
             }
 
             let stdout = String::from_utf8_lossy(&output.stdout);
@@ -625,15 +622,14 @@ pub fn call_execute_withdrawal(program_path: PathBuf) -> eyre::Result<TestStep> 
                 .context("failed to run `make execute-spl-l2-withdrawal`")?;
 
             if !output.status.success() {
-                // eyre::bail!(
-                //     "RefundDeposit tx failed: {}",
-                //     String::from_utf8_lossy(&output.stderr)
-                // );
                 log::error!(
                     "RefundDeposit tx failed: {}",
                     String::from_utf8_lossy(&output.stderr)
                 );
-                return Ok(()); // TODO: remove this
+                eyre::bail!(
+                    "RefundDeposit tx failed: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
             }
 
             let stdout = String::from_utf8_lossy(&output.stdout);
