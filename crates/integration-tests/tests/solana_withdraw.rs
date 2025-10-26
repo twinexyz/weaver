@@ -2,13 +2,11 @@
 
 #[cfg(test)]
 mod sol_withdraw_test {
-    use std::path::PathBuf;
-    use std::process::Command;
     use std::rc::Rc;
     use std::time::Duration;
 
     use eyre::{Context, Result};
-    use test_harness::{SubProcessService, TestHarness, TestStep};
+    use test_harness::{SubProcessService, TestHarness};
     use twine_integration_tests::aggregator::{
         make_aggregator_subprocess_service, setup_aggregator_config,
     };
@@ -28,7 +26,9 @@ mod sol_withdraw_test {
     use twine_integration_tests::proof_scheduler::{
         make_proof_scheduler_subprocess_service, setup_proof_scheduler_config,
     };
-    use twine_integration_tests::solana_programs::setup::call_execute_withdrawal;
+    use twine_integration_tests::solana_programs::setup::{
+        call_execute_withdrawal, query_sol_balance_step, verify_sol_balance_delta_step,
+    };
     use twine_integration_tests::solana_programs::{
         self, add_solana_wallet_to_context, load_solana_programs_step, prepare_solana_programs_repo,
     };
@@ -42,7 +42,7 @@ mod sol_withdraw_test {
     use twine_integration_tests::twine::action::{
         approve_erc20_gateway_step_sol, verify_deposited_l2_balance, withdraw_erc20_step_sol,
     };
-    use twine_integration_tests::{async_step, consts, ctx, TestAccountKind};
+    use twine_integration_tests::{consts, TestAccountKind};
 
     struct TestServices {
         merkora: SubProcessService,
@@ -222,10 +222,10 @@ mod sol_withdraw_test {
             "Wait for batch to settle",
         ));
 
-        // Step 6: Check account balance on L1
-        harness.add_step(verify_balance_on_l1()?);
+    // Step 6: Check account balance on L1
+    harness.add_step(query_sol_balance_step()?);
         harness.add_step(call_execute_withdrawal(solana_programs)?);
-        harness.add_step(verify_balance_on_l1()?);
+    harness.add_step(verify_sol_balance_delta_step()?);
 
         // harness.add_step(dump_context()?);
         harness.add_step(wait_step(
@@ -244,33 +244,5 @@ mod sol_withdraw_test {
         harness.execute()?;
 
         Ok(())
-    }
-
-    fn verify_balance_on_l1() -> eyre::Result<TestStep> {
-        Ok(async_step!(
-            "Verify ETH balance restored",
-            "Verify ETH balance is restored on L1 after forced withdrawal",
-            |ctx| {
-                let bindings = ctx.borrow();
-                let sol_address = bindings
-                    .get(ctx::solana_ctx_keys::SOLANA_ADDRESS)
-                    .expect("Random address not set in context")
-                    .clone();
-
-                let output = Command::new("solana")
-                    .args(["balance", &sol_address])
-                    .output()?;
-
-                if !output.status.success() {
-                    let stderr = String::from_utf8_lossy(&output.stderr);
-                    eyre::bail!("Failed to check balance: {stderr}");
-                }
-
-                let balance_str = String::from_utf8_lossy(&output.stdout);
-                let balance = balance_str.trim();
-                log::info!("Current L1 balance after withdrawal: {balance}");
-                Ok(())
-            }
-        ))
     }
 }

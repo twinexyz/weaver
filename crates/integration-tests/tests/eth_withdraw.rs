@@ -31,7 +31,7 @@ mod erc20_withdraw_test {
     };
     use twine_integration_tests::solidity_contracts::actions::{
         call_execute_withdrawal, check_committed_batch, commit_genesis_block_step,
-        deposit_eth_step, verify_balance_on_eth,
+        deposit_eth_step, query_eth_balance_step, verify_eth_balance_delta_step,
     };
     use twine_integration_tests::solidity_contracts::{
         build_contracts_step, deploy_contracts_step, load_contract_addresses_step,
@@ -212,10 +212,10 @@ mod erc20_withdraw_test {
             "Wait for batch to settle",
         ));
 
-        // Step 6: Check account balance on L1
-        harness.add_step(verify_balance_on_eth()?);
+    // Step 6: Check account balance on L1
+    harness.add_step(query_eth_balance_step()?);
         harness.add_step(call_execute_withdrawal()?);
-        harness.add_step(verify_balance_on_eth()?);
+    harness.add_step(verify_eth_balance_delta_step()?);
 
         // Clean up
         harness.add_step(stop_service_step("Execution Prover", 3, None));

@@ -49,6 +49,7 @@ pub mod common_ctx_keys {
     pub const RANDOM_ADDRESS: &str = "random_address";
     pub const MESSAGE_HASH: &str = "message_hash";
     pub const L1_BALANCE_SNAPSHOT: &str = "l1_balance_snapshot";
+    pub const SOL_BALANCE_SNAPSHOT: &str = "sol_balance_snapshot";
 }
 
 pub fn ctx_get<'a>(

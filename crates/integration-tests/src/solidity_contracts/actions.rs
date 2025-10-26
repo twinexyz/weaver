@@ -521,7 +521,7 @@ pub fn call_execute_forced_withdrawal() -> eyre::Result<TestStep> {
                     &eth_twine_chain,
                     "executeForcedWithdrawal(bytes,bytes)",
                     &public_values,
-                    "0x", // empty withdrawal proof for now
+                    "0x", // empty withdrawal proof
                     "--rpc-url",
                     consts::RETH_RPC_URL,
                     "--private-key",

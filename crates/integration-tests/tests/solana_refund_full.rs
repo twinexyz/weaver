@@ -29,7 +29,7 @@ mod test_solana_refund2 {
         make_proof_scheduler_subprocess_service, setup_proof_scheduler_config,
     };
     use twine_integration_tests::solana_programs::setup::{
-        call_execute_refund, verify_balance_on_sol,
+        call_execute_refund, query_sol_balance_step, verify_sol_balance_delta_step,
     };
     use twine_integration_tests::solana_programs::{
         add_solana_wallet_to_context, load_solana_programs_step, prepare_solana_programs_repo,
@@ -229,9 +229,9 @@ mod test_solana_refund2 {
             "Wait for the batch to finalize on L1",
         ));
 
-        harness.add_step(verify_balance_on_sol()?);
+    harness.add_step(query_sol_balance_step()?);
         harness.add_step(call_execute_refund(solana_programs)?);
-        harness.add_step(verify_balance_on_sol()?);
+    harness.add_step(verify_sol_balance_delta_step()?);
 
         // Clean up
         harness.add_step(stop_service_step("Merkora", 0, None));

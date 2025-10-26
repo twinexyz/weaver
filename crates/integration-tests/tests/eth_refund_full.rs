@@ -33,7 +33,8 @@ mod eth_refund_test2 {
     };
     use twine_integration_tests::solidity_contracts::actions::{
         call_execute_refund, check_committed_batch, commit_genesis_block_step,
-        compute_message_hash, deposit_and_call_garbage_eth_step, verify_balance_on_eth,
+        compute_message_hash, deposit_and_call_garbage_eth_step, query_eth_balance_step,
+        verify_eth_balance_delta_step,
     };
     use twine_integration_tests::solidity_contracts::{
         build_contracts_step, deploy_contracts_step, load_contract_addresses_step,
@@ -222,8 +223,9 @@ mod eth_refund_test2 {
             "Wait for the batch to finalize on L1",
         ));
 
-        harness.add_step(call_execute_refund()?);
-        harness.add_step(verify_balance_on_eth()?);
+    harness.add_step(query_eth_balance_step()?);
+    harness.add_step(call_execute_refund()?);
+    harness.add_step(verify_eth_balance_delta_step()?);
 
         // Clean up
         harness.add_step(stop_service_step("Merkora", 0, None));

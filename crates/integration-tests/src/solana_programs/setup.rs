@@ -416,21 +416,20 @@ pub fn sol_check_last_finalized_batch_step() -> eyre::Result<TestStep> {
     })))
 }
 
-pub fn verify_balance_on_sol() -> eyre::Result<TestStep> {
+pub fn query_sol_balance_step() -> eyre::Result<TestStep> {
     Ok(async_step!(
-        "Verify ETH balance restored",
-        "Verify ETH balance is restored on L1 after forced withdrawal",
+        "Query Solana balance",
+        "Capture the current Solana balance for later comparison",
         |ctx| {
-            let bindings = ctx.borrow();
-            let solana_l1_address = bindings
-                .get(solana_ctx_keys::SOLANA_ADDRESS)
-                .expect("random address not found in context")
-                .clone();
+            let solana_l1_address = {
+                let bindings = ctx.borrow();
+                ctx_get(&bindings, solana_ctx_keys::SOLANA_ADDRESS)?
+            };
 
             let output = Command::new("solana")
-                .args(["balance".into(), solana_l1_address.clone()])
+                .args(["balance".into(), solana_l1_address.clone(), "--lamports".into()])
                 .output()
-                .wrap_err("failed to execute cast balance command")?;
+                .wrap_err("failed to execute solana balance command")?;
             if !output.status.success() {
                 eyre::bail!(
                     "Failed to fetch balance: {}",
@@ -440,8 +439,66 @@ pub fn verify_balance_on_sol() -> eyre::Result<TestStep> {
 
             let stdout = String::from_utf8_lossy(&output.stdout);
             let balance_str = stdout.trim().to_string();
-            log::info!("Balance for {solana_l1_address} on L1: {balance_str} wei");
+            log::info!(
+                "Captured Solana balance for {solana_l1_address}: {balance_str}"
+            );
 
+            ctx.borrow_mut()
+                .insert(common_ctx_keys::SOL_BALANCE_SNAPSHOT.into(), balance_str);
+            Ok(())
+        }
+    ))
+}
+
+pub fn verify_sol_balance_delta_step() -> eyre::Result<TestStep> {
+    Ok(async_step!(
+        "Verify Solana balance delta",
+        "Ensure Solana balance increased within expected tolerance",
+        |ctx| {
+            let (solana_l1_address, snapshot_str) = {
+                let bindings = ctx.borrow();
+                let addr = ctx_get(&bindings, solana_ctx_keys::SOLANA_ADDRESS)?;
+                let snapshot = ctx_get(&bindings, common_ctx_keys::SOL_BALANCE_SNAPSHOT)?;
+                (addr, snapshot)
+            };
+
+            let output = Command::new("solana")
+                .args(["balance".into(), solana_l1_address.clone(), "--lamports".into()])
+                .output()
+                .wrap_err("failed to execute solana balance command")?;
+            if !output.status.success() {
+                eyre::bail!(
+                    "Failed to fetch balance: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
+            }
+
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let current_balance_str = stdout.trim().to_string();
+            log::info!(
+                "Latest Solana balance for {solana_l1_address}: {current_balance_str}"
+            );
+
+            let snapshot = u128::from_str_radix(&snapshot_str, 10)?;
+            let current = u128::from_str_radix(&current_balance_str, 10)?;
+            let expected = u128::from_str_radix(consts::TEST_DEPOSIT_AMOUNT, 10)?;
+            let tolerance = u128::from_str_radix(consts::SOL_BALANCE_TOLERANCE_LAMPORTS, 10)?;
+
+            let delta = current
+                .checked_sub(snapshot)
+                .ok_or_else(|| eyre!("Current balance is lower than the snapshot balance"))?;
+
+            let minimum_delta = expected.saturating_sub(tolerance);
+            if delta < minimum_delta {
+                log::error!(
+                    "Balance delta {delta} lamports below minimum {minimum_delta} (target {expected}, tolerance {tolerance}). Snapshot {snapshot_str}, current {current_balance_str}"
+                );
+                eyre::bail!("Solana balance delta verification failed");
+            }
+
+            log::info!(
+                "Balance delta {delta} lamports meets minimum {minimum_delta} (target {expected}, tolerance {tolerance})"
+            );
             Ok(())
         }
     ))
