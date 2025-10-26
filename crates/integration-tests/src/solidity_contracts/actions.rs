@@ -597,6 +597,113 @@ pub fn call_execute_refund() -> eyre::Result<TestStep> {
     ))
 }
 
+pub fn query_eth_balance_step() -> eyre::Result<TestStep> {
+    Ok(async_step!(
+        "Query L1 balance",
+        "Capture the current L1 balance for later comparison",
+        |ctx| {
+            let address = {
+                let bindings = ctx.borrow();
+                ctx_get(&bindings, common_ctx_keys::RANDOM_ADDRESS)?
+            };
+
+            let output = Command::new("cast")
+                .args([
+                    "balance".into(),
+                    address.clone(),
+                    "--rpc-url".into(),
+                    consts::RETH_RPC_URL.into(),
+                ])
+                .output()
+                .wrap_err("failed to execute cast balance command")?;
+
+            if !output.status.success() {
+                eyre::bail!(
+                    "Failed to snapshot balance for {address}: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
+            }
+
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let balance_str = stdout.trim().to_string();
+            log::info!("Captured L1 balance for {address}: {balance_str} wei");
+
+            ctx.borrow_mut()
+                .insert(common_ctx_keys::L1_BALANCE_SNAPSHOT.into(), balance_str);
+            Ok(())
+        }
+    ))
+}
+
+pub fn verify_eth_balance_delta_step() -> eyre::Result<TestStep> {
+    Ok(async_step!(
+        "Verify L1 balance delta",
+        "ensure L1 balance increased within expected tolerance",
+        |ctx| {
+            let (address, snapshot_str) = {
+                let bindings = ctx.borrow();
+                let addr = ctx_get(&bindings, common_ctx_keys::RANDOM_ADDRESS)?;
+                let snapshot = ctx_get(&bindings, common_ctx_keys::L1_BALANCE_SNAPSHOT)?;
+                (addr, snapshot)
+            };
+
+            let output = Command::new("cast")
+                .args([
+                    "balance".into(),
+                    address.clone(),
+                    "--rpc-url".into(),
+                    consts::RETH_RPC_URL.into(),
+                ])
+                .output()
+                .wrap_err("failed to execute cast balance command")?;
+
+            if !output.status.success() {
+                eyre::bail!(
+                    "Failed to fetch balance for {address}: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
+            }
+
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let current_balance_str = stdout.trim().to_string();
+            log::info!("Latest L1 balance for {address}: {current_balance_str} wei");
+
+            let snapshot = alloy_primitives::U256::from_str_radix(&snapshot_str, 10)?;
+            let current = alloy_primitives::U256::from_str_radix(&current_balance_str, 10)?;
+            let expected = alloy_primitives::U256::from_str_radix(consts::TEST_DEPOSIT_AMOUNT, 10)?;
+            let tolerance =
+                alloy_primitives::U256::from_str_radix(consts::BALANCE_TOLERANCE_WEI, 10)?;
+
+            let delta = current
+                .checked_sub(snapshot)
+                .ok_or_else(|| eyre!("Current balance is lower than the snapshot balance"))?;
+
+            let minimum_delta = expected.saturating_sub(tolerance);
+            if delta < minimum_delta {
+                log::error!(
+                    "Balance delta {} wei below minimum {} wei (target {}, tolerance {} wei). Snapshot {}, current {}",
+                    delta,
+                    minimum_delta,
+                    expected,
+                    tolerance,
+                    snapshot_str,
+                    current_balance_str,
+                );
+                eyre::bail!("L1 balance delta verification failed");
+            }
+
+            log::info!(
+                "Balance delta {} wei meets minimum {} wei (target {}, tolerance {} wei)",
+                delta,
+                minimum_delta,
+                expected,
+                tolerance
+            );
+            Ok(())
+        }
+    ))
+}
+
 pub fn verify_balance_on_eth() -> eyre::Result<TestStep> {
     Ok(async_step!(
         "verify balance",

@@ -10,7 +10,6 @@ mod eth_deposit_stress_test {
     use twine_integration_tests::cfg::{load_config, TestConfig};
     use twine_integration_tests::cleanup::{cleanup_step, cleanup_test_data};
     use twine_integration_tests::common::{start_service_step, stop_service_step, wait_step};
-    use twine_integration_tests::consts;
     use twine_integration_tests::consts::WAIT_TIME_FOR_MESSAGE_RELAY;
     use twine_integration_tests::ctx::twine_ctx_keys;
     use twine_integration_tests::merkora::{make_merkora_subprocess_service, setup_merkora_config};
@@ -22,7 +21,7 @@ mod eth_deposit_stress_test {
         prepare_contract_repo,
     };
     use twine_integration_tests::twine::action::verify_deposited_l2_balance;
-    use twine_integration_tests::TestAccountKind;
+    use twine_integration_tests::{consts, TestAccountKind};
 
     struct TestServices {
         merkora: SubProcessService,

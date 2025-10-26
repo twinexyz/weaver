@@ -32,7 +32,8 @@ mod eth_forced_withdraw_test {
     };
     use twine_integration_tests::solidity_contracts::actions::{
         call_execute_forced_withdrawal, call_forced_withdraw_eth_step, check_committed_batch,
-        commit_genesis_block_step, deposit_eth_step, verify_balance_on_eth,
+        commit_genesis_block_step, deposit_eth_step, query_eth_balance_step,
+        verify_eth_balance_delta_step,
     };
     use twine_integration_tests::solidity_contracts::{
         build_contracts_step, deploy_contracts_step, load_contract_addresses_step,
@@ -177,7 +178,7 @@ mod eth_forced_withdraw_test {
         ));
 
         // Deposit ETH
-    harness.add_step(deposit_eth_step(TestAccountKind::Prefunded)?);
+        harness.add_step(deposit_eth_step(TestAccountKind::Prefunded)?);
 
         // Wait till deposit message processed
         harness.add_step(wait_step(
@@ -198,21 +199,21 @@ mod eth_forced_withdraw_test {
         ));
 
         harness.add_step(wait_step(
-            Duration::from_secs(200),
+            Duration::from_secs(150),
             "Wait for forced withdraw transaction to be included in L2 batch",
         ));
         harness.add_step(fetch_txn_hash_from_db()?);
         harness.add_step(call_merlin_forced_withdraw_prover(config.as_ref().clone())?);
 
         harness.add_step(wait_step(
-            Duration::from_secs(200),
+            Duration::from_secs(150),
             "Wait for the batch to finalize on L1",
         ));
 
         // Execute forced withdrawal
-        harness.add_step(verify_balance_on_eth()?);
+        harness.add_step(query_eth_balance_step()?);
         harness.add_step(call_execute_forced_withdrawal()?);
-        harness.add_step(verify_balance_on_eth()?);
+        harness.add_step(verify_eth_balance_delta_step()?);
 
         // Clean up
         harness.add_step(stop_service_step("Execution Prover", 3, None));

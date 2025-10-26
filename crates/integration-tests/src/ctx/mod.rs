@@ -48,6 +48,7 @@ pub mod common_ctx_keys {
     pub const KAFKA_BOOTSTRAP_SERVERS: &str = "kafka_bootstrap_servers";
     pub const RANDOM_ADDRESS: &str = "random_address";
     pub const MESSAGE_HASH: &str = "message_hash";
+    pub const L1_BALANCE_SNAPSHOT: &str = "l1_balance_snapshot";
 }
 
 pub fn ctx_get<'a>(

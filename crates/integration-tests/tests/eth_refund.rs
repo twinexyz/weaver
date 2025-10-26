@@ -122,7 +122,7 @@ mod eth_refund_test {
         harness.add_step(start_service_step("Merkora", 0, Duration::from_secs(10)));
 
         // Deposit eth
-    harness.add_step(deposit_and_call_garbage_eth_step(TestAccountKind::Random)?);
+        harness.add_step(deposit_and_call_garbage_eth_step(TestAccountKind::Random)?);
 
         // compute the hash of the message
         harness.add_step(compute_message_hash()?);
