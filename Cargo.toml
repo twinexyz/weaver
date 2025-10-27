@@ -146,22 +146,22 @@ spl-token = { version = "8.0.0", features = ["no-entrypoint"] }
 tempfile = "3.10"
 
 # RETH
-reth = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1" }
-reth-chainspec = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1" }
-reth-ethereum = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1" }
-reth-ethereum-payload-builder = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1" }
-reth-evm = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1" }
-reth-evm-ethereum = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1" }
-reth-execution-types = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1" }
-reth-exex = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1" }
-reth-node-api = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1" }
-reth-node-core = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1" }
-reth-node-ethereum = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1", features = ["test-utils"] }
-reth-primitives = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1", default-features = false, features = ["alloy-compat", "std"] }
-reth-provider = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1", default-features = false }
-reth-revm = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1", default-features = false, features = ["std"] }
-reth-tracing = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1" }
-reth-trie-common = { git = "https://github.com/paradigmxyz/reth", tag = "v1.8.1", default-features = false, features = ["eip1186", "serde"] }
+reth = { git = "https://github.com/twinexyz/reth-2.git", branch = "twine-perf" }
+reth-chainspec = { git = "https://github.com/twinexyz/reth-2.git", branch = "twine-perf" }
+reth-ethereum = { git = "https://github.com/twinexyz/reth-2.git", branch = "twine-perf" }
+reth-ethereum-payload-builder = { git = "https://github.com/twinexyz/reth-2.git", branch = "twine-perf" }
+reth-evm = { git = "https://github.com/twinexyz/reth-2.git", branch = "twine-perf" }
+reth-evm-ethereum = { git = "https://github.com/twinexyz/reth-2.git", branch = "twine-perf" }
+reth-execution-types = { git = "https://github.com/twinexyz/reth-2.git", branch = "twine-perf" }
+reth-exex = { git = "https://github.com/twinexyz/reth-2.git", branch = "twine-perf" }
+reth-node-api = { git = "https://github.com/twinexyz/reth-2.git", branch = "twine-perf" }
+reth-node-core = { git = "https://github.com/twinexyz/reth-2.git", branch = "twine-perf" }
+reth-node-ethereum = { git = "https://github.com/twinexyz/reth-2.git", branch = "twine-perf", features = ["test-utils"] }
+reth-primitives = { git = "https://github.com/twinexyz/reth-2.git", branch = "twine-perf", default-features = false, features = ["alloy-compat", "std"] }
+reth-provider = { git = "https://github.com/twinexyz/reth-2.git", branch = "twine-perf", default-features = false }
+reth-revm = { git = "https://github.com/twinexyz/reth-2.git", branch = "twine-perf", default-features = false, features = ["std"] }
+reth-tracing = { git = "https://github.com/twinexyz/reth-2.git", branch = "twine-perf" }
+reth-trie-common = { git = "https://github.com/twinexyz/reth-2.git", branch = "twine-perf", default-features = false, features = ["eip1186", "serde"] }
 
 revm-context = { version = "9.0.2", default-features = false }
 
