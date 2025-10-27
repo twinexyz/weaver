@@ -5,6 +5,7 @@ use std::time::Duration;
 use reth_tracing::tracing::{error, info};
 
 use crate::chains::factory::L1SenderFactory;
+use crate::chains::twine::provider::TwineProvider;
 use crate::config::AppCfg;
 use crate::database::client::DbClient;
 use crate::polling::WithdrawalEventPoller;
@@ -15,8 +16,14 @@ use crate::proof_generator::ProofGenerator;
 pub async fn run_service(config: AppCfg, db_client: DbClient) -> eyre::Result<()> {
     // Initialize components
     let l1_sender_factory = L1SenderFactory::new(config.chains);
+    let twine_provider = TwineProvider::new(config.twine.clone().rpc);
     let proof_generator = ProofGenerator::new(config.prover, config.twine);
-    let processor = WithdrawalProcessor::new(l1_sender_factory, proof_generator, db_client.clone());
+    let processor = WithdrawalProcessor::new(
+        l1_sender_factory,
+        proof_generator,
+        db_client.clone(),
+        twine_provider,
+    );
     let poller = WithdrawalEventPoller;
 
     // Main processing loop
@@ -24,7 +31,10 @@ pub async fn run_service(config: AppCfg, db_client: DbClient) -> eyre::Result<()
         info!("Polling for withdrawal events...");
 
         // Poll for events
-        let events = match poller.poll_events(db_client.clone()).await {
+        let events = match poller
+            .poll_events(db_client.clone(), &processor.twine_provider)
+            .await
+        {
             Ok(events) => events,
             Err(e) => {
                 error!("Failed to poll for withdrawal events: {}", e);

@@ -15700,6 +15700,7 @@ dependencies = [
  "twine-l1",
  "twine-l1-eth",
  "twine-l1-solana",
+ "twine-rpc",
  "twine-types",
 ]
 

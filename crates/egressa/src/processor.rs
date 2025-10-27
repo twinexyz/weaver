@@ -7,6 +7,7 @@ use tokio::sync::Semaphore;
 use twine_types::proofs::ProofData;
 
 use crate::chains::factory::L1SenderFactory;
+use crate::chains::twine::provider::TwineProvider;
 use crate::database::client::DbClient;
 use crate::proof_generator::ProofGenerator;
 use crate::types::{WithdrawalEvent, WithdrawalEventStatus, WithdrawalEventWithProofs};
@@ -25,6 +26,9 @@ pub struct WithdrawalProcessor {
 
     /// Database pool
     pub db_client: DbClient,
+
+    /// Twine provider
+    pub twine_provider: TwineProvider,
 }
 
 impl WithdrawalProcessor {
@@ -33,12 +37,14 @@ impl WithdrawalProcessor {
         l1_sender_factory: L1SenderFactory,
         proof_generator: ProofGenerator,
         db_client: DbClient,
+        twine_provider: TwineProvider,
     ) -> Self {
         Self {
             l1_sender_factory,
             chain_semaphores: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
             proof_generator,
             db_client,
+            twine_provider,
         }
     }
 
@@ -113,6 +119,21 @@ impl WithdrawalProcessor {
                 return;
             }
         };
+
+        // Verify that the block is included in a batch
+        // This should not fail since we filter events by batch height in polling
+        if let Err(e) = self
+            .twine_provider
+            .batch_client
+            .get_batch_number_for_block(withdrawal_event.height)
+            .await
+        {
+            error!(
+                "Block {} is not included in any batch: {}. This should not happen as events are filtered by batch height during polling.",
+                withdrawal_event.height, e
+            );
+            return;
+        }
 
         // Generate proof for the withdrawal event
         let generated_proof = match self.proof_generator.generate_proof(&withdrawal_event).await {

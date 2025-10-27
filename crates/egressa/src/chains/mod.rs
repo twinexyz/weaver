@@ -1,6 +1,7 @@
 pub mod ethereum;
 pub mod factory;
 pub mod solana;
+pub mod twine;
 
 use alloy_primitives::Bytes;
 use async_trait::async_trait;
