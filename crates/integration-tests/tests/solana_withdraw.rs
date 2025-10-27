@@ -222,16 +222,9 @@ mod sol_withdraw_test {
             "Wait for batch to settle",
         ));
 
-    // Step 6: Check account balance on L1
-    harness.add_step(query_sol_balance_step()?);
+        harness.add_step(query_sol_balance_step()?);
         harness.add_step(call_execute_withdrawal(solana_programs)?);
-    harness.add_step(verify_sol_balance_delta_step()?);
-
-        // harness.add_step(dump_context()?);
-        harness.add_step(wait_step(
-            Duration::from_secs(2000),
-            "Wait for batch to settle",
-        ));
+        harness.add_step(verify_sol_balance_delta_step()?);
 
         // Clean up
         harness.add_step(stop_service_step("Execution Prover", 3, None));

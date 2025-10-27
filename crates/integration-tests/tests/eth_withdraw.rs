@@ -212,10 +212,9 @@ mod erc20_withdraw_test {
             "Wait for batch to settle",
         ));
 
-    // Step 6: Check account balance on L1
-    harness.add_step(query_eth_balance_step()?);
+        harness.add_step(query_eth_balance_step()?);
         harness.add_step(call_execute_withdrawal()?);
-    harness.add_step(verify_eth_balance_delta_step()?);
+        harness.add_step(verify_eth_balance_delta_step()?);
 
         // Clean up
         harness.add_step(stop_service_step("Execution Prover", 3, None));

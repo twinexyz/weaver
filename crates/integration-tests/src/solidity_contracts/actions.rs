@@ -681,23 +681,19 @@ pub fn verify_eth_balance_delta_step() -> eyre::Result<TestStep> {
             let minimum_delta = expected.saturating_sub(tolerance);
             if delta < minimum_delta {
                 log::error!(
-                    "Balance delta {} wei below minimum {} wei (target {}, tolerance {} wei). Snapshot {}, current {}",
+                    "Ethereum balance delta only {} wei; need delta of at least {} wei (balance before withdraw: {}, current balance: {})",
                     delta,
                     minimum_delta,
-                    expected,
-                    tolerance,
                     snapshot_str,
-                    current_balance_str,
+                    current_balance_str
                 );
                 eyre::bail!("L1 balance delta verification failed");
             }
 
             log::info!(
-                "Balance delta {} wei meets minimum {} wei (target {}, tolerance {} wei)",
+                "Ethereum balance delta Ok. found_delta={} wei, minimum_delta= {} wei",
                 delta,
-                minimum_delta,
-                expected,
-                tolerance
+                minimum_delta
             );
             Ok(())
         }
