@@ -23,7 +23,8 @@ RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
     bash \
     curl \
     git \
-    jq && \
+    jq \
+    m4 && \
     git config --global credential.helper store && \
     echo "https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com" > ~/.git-credentials && \
     chmod 600 ~/.git-credentials
