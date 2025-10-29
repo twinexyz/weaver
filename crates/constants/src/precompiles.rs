@@ -12,6 +12,9 @@ pub const TWINE_SYSTEM_STORAGE_CONTRACT: Address = u64_to_address(0x17);
 /// Twine ZSTD Compression and Uncompression Library
 pub const TWINE_ZSTD_PRECOMPILE_ADDRESS: Address = u64_to_address(0x18);
 
+/// Twine Miden Verifier Precompile
+pub const TWINE_MIDEN_VERIFIER_PRECOMPILE_ADDRESS: Address = u64_to_address(0x19);
+
 /// Const function for making an address by concatenating the bytes from two
 /// given numbers.
 ///

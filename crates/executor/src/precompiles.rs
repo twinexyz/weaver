@@ -6,12 +6,11 @@ use reth::revm::interpreter::{InputsImpl, InterpreterResult};
 use reth::revm::precompile::{PrecompileId, PrecompileOutput, PrecompileResult, Precompiles};
 use reth::revm::primitives::hardfork::SpecId;
 use twine_constants::precompiles::{
-    TWINE_CONSENSUS_VERIFIER_PRECOMPILE_ADDRESS, TWINE_TRANSACTION_PRECOMPILE_ADDRESS,
-    TWINE_ZSTD_PRECOMPILE_ADDRESS,
+    TWINE_CONSENSUS_VERIFIER_PRECOMPILE_ADDRESS, TWINE_MIDEN_VERIFIER_PRECOMPILE_ADDRESS, TWINE_TRANSACTION_PRECOMPILE_ADDRESS, TWINE_ZSTD_PRECOMPILE_ADDRESS
 };
 use {
     twine_l1_consensus_verifier_precompile as consensus, twine_l1_transactions_precompile as l1tx,
-    twine_zstd_precompile as zstd,
+    twine_zstd_precompile as zstd, twine_miden_verifier_precompile as miden
 };
 
 /// Twine specific precompiles
@@ -20,6 +19,7 @@ pub struct TwinePrecompiles {
     pub transaction_precompile: Address,
     pub consensus_precompile: Address,
     pub zstd_precompile: Address,
+    pub miden_verifier_precompile: Address,
 }
 
 impl TwinePrecompiles {
@@ -119,6 +119,29 @@ impl TwinePrecompiles {
             precompiles.apply_precompile(&TWINE_ZSTD_PRECOMPILE_ADDRESS, |_| Some(z));
         }
 
+         #[cfg(feature = "twine-miden-verifier-precompile")]
+        {
+            let z: DynPrecompile = (
+                PrecompileId::custom("twine_miden_verifier"),
+                move |input: PrecompileInput<'_>| -> PrecompileResult {
+                    match miden::execute(input.data, input.gas) {
+                        Ok((bytes, gas_used, reverted)) => Ok(PrecompileOutput {
+                            gas_used,
+                            bytes,
+                            reverted,
+                        }),
+                        Err(err) => Ok(PrecompileOutput {
+                            gas_used: 0,
+                            bytes: Bytes::copy_from_slice(err.as_bytes()),
+                            reverted: true,
+                        }),
+                    }
+                },
+            )
+                .into();
+            precompiles.apply_precompile(&TWINE_ZSTD_PRECOMPILE_ADDRESS, |_| Some(z));
+        }
+
         precompiles
     }
 
@@ -143,6 +166,7 @@ impl Default for TwinePrecompiles {
             transaction_precompile: TWINE_TRANSACTION_PRECOMPILE_ADDRESS,
             consensus_precompile: TWINE_CONSENSUS_VERIFIER_PRECOMPILE_ADDRESS,
             zstd_precompile: TWINE_ZSTD_PRECOMPILE_ADDRESS,
+            miden_verifier_precompile: TWINE_MIDEN_VERIFIER_PRECOMPILE_ADDRESS,
         }
     }
 }

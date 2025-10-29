@@ -1,0 +1,24 @@
+[package]
+name = "twine-miden-verifier-precompile"
+version.workspace = true
+edition.workspace = true
+exclude.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+reth-revm.workspace = true
+reth-tracing.workspace = true
+
+alloy-eips.workspace = true
+alloy-primitives.workspace = true
+alloy-sol-types.workspace = true
+
+miden-air.workspace = true
+miden-core.workspace = true
+thiserror.workspace = true
+winter-verifier.workspace = true
+
+[lints]
+workspace = true
