@@ -8,10 +8,8 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-reth-revm.workspace = true
 reth-tracing.workspace = true
 
-alloy-eips.workspace = true
 alloy-primitives.workspace = true
 alloy-sol-types.workspace = true
 

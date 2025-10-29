@@ -6,11 +6,12 @@ use reth::revm::interpreter::{InputsImpl, InterpreterResult};
 use reth::revm::precompile::{PrecompileId, PrecompileOutput, PrecompileResult, Precompiles};
 use reth::revm::primitives::hardfork::SpecId;
 use twine_constants::precompiles::{
-    TWINE_CONSENSUS_VERIFIER_PRECOMPILE_ADDRESS, TWINE_MIDEN_VERIFIER_PRECOMPILE_ADDRESS, TWINE_TRANSACTION_PRECOMPILE_ADDRESS, TWINE_ZSTD_PRECOMPILE_ADDRESS
+    TWINE_CONSENSUS_VERIFIER_PRECOMPILE_ADDRESS, TWINE_MIDEN_VERIFIER_PRECOMPILE_ADDRESS,
+    TWINE_TRANSACTION_PRECOMPILE_ADDRESS, TWINE_ZSTD_PRECOMPILE_ADDRESS,
 };
 use {
     twine_l1_consensus_verifier_precompile as consensus, twine_l1_transactions_precompile as l1tx,
-    twine_zstd_precompile as zstd, twine_miden_verifier_precompile as miden
+    twine_miden_verifier_precompile as miden, twine_zstd_precompile as zstd,
 };
 
 /// Twine specific precompiles
@@ -119,7 +120,7 @@ impl TwinePrecompiles {
             precompiles.apply_precompile(&TWINE_ZSTD_PRECOMPILE_ADDRESS, |_| Some(z));
         }
 
-         #[cfg(feature = "twine-miden-verifier-precompile")]
+        #[cfg(feature = "twine-miden-verifier-precompile")]
         {
             let z: DynPrecompile = (
                 PrecompileId::custom("twine_miden_verifier"),

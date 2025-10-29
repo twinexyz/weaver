@@ -21,7 +21,6 @@ type MidenVerifierPrecompileInput = (
 
 /// Verification of Miden State
 pub fn execute(input: &[u8], gas_limit: u64) -> Result<(Bytes, u64, bool), String> {
-    
     if gas_limit < 42000 {
         return Err("requires minimum 42000 gas".to_owned());
     }

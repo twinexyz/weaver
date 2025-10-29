@@ -16371,12 +16371,10 @@ dependencies = [
 name = "twine-miden-verifier-precompile"
 version = "1.7.0"
 dependencies = [
- "alloy-eips",
  "alloy-primitives",
  "alloy-sol-types",
  "miden-air",
  "miden-core",
- "reth-revm",
  "reth-tracing",
  "thiserror 2.0.16",
  "winter-verifier",
