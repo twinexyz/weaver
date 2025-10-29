@@ -211,8 +211,7 @@ twine-zstd-precompile = { path = "crates/precompiles/zstd" }
 orchestrator-rs = { git = "https://github.com/twinexyz/orchestrator-rs.git" }
 
 # miden verifier
-miden-air = { git = "https://github.com/0xMiden/miden-vm" }
-miden-core = { git = "https://github.com/0xMiden/miden-vm" }
+miden-verifier = { version = "0.18.3", default-features = false }
 winter-verifier = { version = "0.13", default-features = false }
 
 [patch.crates-io]
