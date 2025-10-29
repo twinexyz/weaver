@@ -58,6 +58,9 @@ RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
     git clone --branch staging https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${GITHUB_ORGANIZATION}/twine-rsp.git && \
     cd twine-rsp && \
     cargo update && \
+    cd bin/client && \
+    cargo update && \
+    cdd ../.. && \
     cargo build --release --bin rsp --features $FEATURES 
 
 RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
