@@ -2,8 +2,6 @@ FROM ubuntu:24.04 AS builder
 
 ARG FEATURES
 ARG GITHUB_ORGANIZATION
-ARG SOLANA_STUB_PROVER_FILENAME
-ARG RSP_FILENAME
 ARG ARCH
 
 ARG RSP_BRANCH
@@ -46,10 +44,6 @@ WORKDIR /app
 
 COPY . .
 
-RUN echo "-----------"
-RUN echo $FEATURES
-RUN echo "-----------"
-
 RUN cargo build --release --bin twine-node --features $FEATURES
 RUN cargo build --release --bin twine-proof-scheduler-bin --features l2-proof-scheduler
 RUN mv target/release/twine-proof-scheduler-bin target/release/twine-l2-proof-scheduler-bin
@@ -69,6 +63,9 @@ RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
     cd merlin && \
     cargo build --release
 
+##############################
+# final with all
+##############################
 FROM nvidia/cuda:12.9.1-cudnn-runtime-ubuntu24.04 AS final
 
 ARG RSP_FILENAME
@@ -269,7 +266,6 @@ COPY ./entrypoint.sh /entrypoint.sh
 ##############################
 # solana-scheduler
 ##############################
-
 FROM ubuntu:24.04 AS solana-scheduler
 
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -301,7 +297,6 @@ COPY ./entrypoint.sh /entrypoint.sh
 ##############################
 # twine-node
 ##############################
-
 FROM ubuntu:24.04 AS twine-node
 
 ENV DEBIAN_FRONTEND=noninteractive \
