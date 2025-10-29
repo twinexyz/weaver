@@ -60,7 +60,7 @@ RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
     cargo update && \
     cd bin/client && \
     cargo update && \
-    cdd ../.. && \
+    cd ../.. && \
     cargo build --release --bin rsp --features $FEATURES 
 
 RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
