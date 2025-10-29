@@ -87,6 +87,18 @@ pub struct SolanaEventDB {
     pub block_time: i64,
     pub data: Vec<u8>,
     pub prev_rolling_hash: Option<String>,
+    pub txn_status: EventTxnStatus,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type, Serialize, Deserialize)]
+#[sqlx(type_name = "event_status", rename_all = "PascalCase")]
+#[allow(missing_docs)]
+pub enum EventTxnStatus {
+    EventObserved,
+    ReadyToSend,
+    Sending,
+    Sent,
+    Failed,
 }
 
 impl From<SolanaEventDB> for SolanaEvent {
@@ -105,6 +117,7 @@ impl From<SolanaEventDB> for SolanaEvent {
             block_time: value.block_time as u64,
             data: value.data,
             prev_rolling_hash: value.prev_rolling_hash,
+            status: value.txn_status,
         }
     }
 }

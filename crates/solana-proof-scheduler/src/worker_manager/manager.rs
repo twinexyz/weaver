@@ -193,6 +193,7 @@ impl SolanaProverWorkerManager {
 mod tests {
     #![allow(unused_imports)]
     use super::*;
+    use crate::db::postgres::EventTxnStatus;
     use crate::message_transform::message_transform_request::SolanaEvent;
     #[tokio::test]
     async fn test_prover_invocation() {
@@ -212,6 +213,7 @@ mod tests {
             prev_rolling_hash: Some(
                 "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470".into(),
             ),
+            status: EventTxnStatus::ReadyToSend,
         };
 
         let solana_event = serde_json::to_string(&solana_event).unwrap();

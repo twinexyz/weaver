@@ -3,6 +3,7 @@ use orchestrator_rs::transform::TransformRequest;
 use serde::{Deserialize, Serialize};
 use {serde_json, toml};
 
+use crate::db::postgres::EventTxnStatus;
 use crate::message_transform::message_transform_attempt::SolanaMessageTransformReturnType;
 
 /// Unique Identifier that associates every transform request
@@ -64,6 +65,7 @@ pub struct SolanaEvent {
     pub block_time: u64,
     pub data: Vec<u8>,
     pub prev_rolling_hash: Option<String>,
+    pub status: EventTxnStatus,
 }
 
 impl TransformRequest for SolanaMessageTransformRequest {
