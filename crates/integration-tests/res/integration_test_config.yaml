@@ -37,6 +37,9 @@ execution_prover:
   binary_path: "/path/to/twine-l2-execution-prover-worker/binary"
   prover_binary_path: "/path/to/rsp-amd64"
 
+merlin:
+  binary_path: "/path/to/merlin/binary"
+
 # Smart contract repositories
 smart_contracts:
   solidity:
