@@ -585,7 +585,7 @@ pub fn call_forced_withdraw_solana_step(
                 .clone();
             let from_address = bindings
                 .get(common_ctx_keys::RANDOM_ADDRESS)
-                .expect("Random adrees not found in context")
+                .expect("Random address not found in context")
                 .clone();
 
             let output = Command::new("make")

@@ -223,9 +223,9 @@ mod eth_refund_test2 {
             "Wait for the batch to finalize on L1",
         ));
 
-    harness.add_step(query_eth_balance_step()?);
-    harness.add_step(call_execute_refund()?);
-    harness.add_step(verify_eth_balance_delta_step()?);
+        harness.add_step(query_eth_balance_step()?);
+        harness.add_step(call_execute_refund()?);
+        harness.add_step(verify_eth_balance_delta_step()?);
 
         // Clean up
         harness.add_step(stop_service_step("Merkora", 0, None));

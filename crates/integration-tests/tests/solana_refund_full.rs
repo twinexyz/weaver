@@ -229,9 +229,9 @@ mod test_solana_refund2 {
             "Wait for the batch to finalize on L1",
         ));
 
-    harness.add_step(query_sol_balance_step()?);
+        harness.add_step(query_sol_balance_step()?);
         harness.add_step(call_execute_refund(solana_programs)?);
-    harness.add_step(verify_sol_balance_delta_step()?);
+        harness.add_step(verify_sol_balance_delta_step()?);
 
         // Clean up
         harness.add_step(stop_service_step("Merkora", 0, None));

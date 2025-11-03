@@ -314,7 +314,7 @@ pub fn check_committed_batch() -> eyre::Result<TestStep> {
             let binding = ctx.borrow();
             let twine_chain = ctx_get(&binding, ethereum_ctx_keys::ETHEREUM_TWINE_CHAIN)?;
             let rpc_url = consts::RETH_RPC_URL;
-            info!("Checking commited batch");
+            info!("Checking committed batch");
             let output = Command::new("cast")
                 .args([
                     "call",
@@ -556,7 +556,7 @@ pub fn call_execute_refund() -> eyre::Result<TestStep> {
             let bindings = ctx.borrow_mut();
             let eth_twine_chain = bindings
                 .get(ethereum_ctx_keys::ETHEREUM_TWINE_CHAIN)
-                .expect("Ethreum twine chain address not set in context")
+                .expect("Ethereum twine chain address not set in context")
                 .clone();
             let public_values = bindings
                 .get("sp1_public_values")

@@ -440,10 +440,7 @@ pub fn withdraw_erc20_step_sol() -> eyre::Result<TestStep> {
                 .get(twine_ctx_keys::TWINE_SOL_TOKEN)
                 .expect("L2 ETH Token address not set in context")
                 .clone();
-            let random_address = binding
-                .get(common_ctx_keys::RANDOM_ADDRESS)
-                .expect("Random address not set in context")
-                .clone();
+
             let solana_address = binding
                 .get(solana_ctx_keys::SOLANA_ADDRESS)
                 .expect("Solana address not found in context")
