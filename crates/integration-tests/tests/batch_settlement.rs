@@ -164,8 +164,6 @@ mod batch_settlement {
         harness.add_step(eth_check_last_finalized_batch_step()?);
         harness.add_step(sol_check_last_finalized_batch_step()?);
 
-        harness.add_step(wait_step(Duration::from_secs(600), "Buffer"));
-
         // Cleanup
         harness.add_step(stop_service_step("Aggregator", 0, None));
         harness.add_step(stop_service_step("Proof Scheduler", 1, None));
