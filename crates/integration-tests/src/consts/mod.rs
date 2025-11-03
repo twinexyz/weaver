@@ -30,7 +30,7 @@ pub const AGGREGATOR_CONFIG_PATH: &str = "/tmp/aggregator_config";
 pub const SCHEDULER_CONFIG_PATH: &str = "/tmp/scheduler_config";
 
 pub const BALANCE_TOLERANCE_WEI: &str = "1000000000000000"; // 0.001 ETH tolerance for gas costs
-pub const SOL_BALANCE_TOLERANCE_LAMPORTS: &str = "1000000"; // 0.001 SOL tolerance for fees
+pub const SOL_BALANCE_TOLERANCE_LAMPORTS: &str = "100000"; // 0.001 SOL tolerance for fees
 
 pub const WORKER_MANAGER_PORT: u16 = 8000;
 
