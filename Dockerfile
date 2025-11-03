@@ -30,8 +30,8 @@ RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain none -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 
-RUN rustup toolchain install nightly --allow-downgrade --profile minimal --component clippy && \
-    wget -c https://github.com/mikefarah/yq/releases/download/v4.45.1/yq_linux_${ARCH} -O /usr/bin/yq && \
+RUN rustup toolchain install nightly --allow-downgrade --profile minimal --component clippy 
+RUN wget -c https://github.com/mikefarah/yq/releases/download/v4.45.1/yq_linux_${ARCH} -O /usr/bin/yq && \
     chmod +x /usr/bin/yq && \
     curl -OL https://go.dev/dl/go1.24.0.linux-${ARCH}.tar.gz && \
     tar -C /usr/local -xzf go1.24.0.linux-${ARCH}.tar.gz && \
