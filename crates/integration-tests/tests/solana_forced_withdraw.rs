@@ -217,7 +217,7 @@ mod eth_forced_withdraw_test {
         harness.add_step(call_merlin_forced_withdraw_prover(config.as_ref().clone())?);
 
         harness.add_step(wait_step(
-            Duration::from_secs(120),
+            Duration::from_secs(150),
             "Wait for the batch to finalize on L1",
         ));
 

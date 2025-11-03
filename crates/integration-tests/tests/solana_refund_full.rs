@@ -225,7 +225,7 @@ mod test_solana_refund2 {
         harness.add_step(fetch_txn_hash_from_db()?);
         harness.add_step(call_merlin_refund_prover(config.as_ref().clone())?);
         harness.add_step(wait_step(
-            Duration::from_secs(150),
+            Duration::from_secs(200),
             "Wait for the batch to finalize on L1",
         ));
 

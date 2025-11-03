@@ -539,7 +539,6 @@ pub fn call_execute_forced_withdrawal(program_path: std::path::PathBuf) -> eyre:
             let output = Command::new("make")
                 .args([
                     "process-native-forced-withdrawal",
-                    &format!("message_nonce={}", 1),
                     &format!("receiver={}", solana_l1_address),
                     &format!("public_values={}", public_values),
                     &format!("proof={}", "0x"),
@@ -641,7 +640,6 @@ pub fn call_execute_refund(program_path: PathBuf) -> eyre::Result<TestStep> {
             let output = Command::new("make")
                 .args([
                     "process-native-refund",
-                    &format!("message_nonce={}", 1),
                     &format!("receiver={}", solana_l1_address),
                     &format!("public_values={}", public_values),
                     &format!("proof={}", "0x"),
