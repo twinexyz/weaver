@@ -225,7 +225,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PATH="/root/.cargo/bin:${PATH}"
 
 RUN  apt update && \
-     apt install -y
+     apt install -y \
      cmake
      
 #      nginx \
