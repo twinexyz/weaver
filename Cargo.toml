@@ -15,6 +15,7 @@ members = [
   "bin/nest",
   "bin/node",
   "bin/proof-scheduler-bin",
+  "bin/sequnencer-bin",
   "crates/aggregator/common",
   "crates/aggregator/da-source",
   "crates/aggregator/database",
@@ -47,6 +48,7 @@ members = [
   "crates/precompiles/zstd",
   "crates/proof-scheduler-common",
   "crates/rpc",
+  "crates/sequencer",
   "crates/solana-consensus-prover",
   "crates/solana-proof-scheduler",
   "crates/solana-sdk",
@@ -203,6 +205,7 @@ twine-l2-batch-poller = { path = "crates/l2-batch-poller" }
 twine-l2-proof-scheduler = { path = "crates/l2-proof-scheduler" }
 twine-proof-scheduler-common = { path = "crates/proof-scheduler-common" }
 twine-rpc = { path = "crates/rpc" }
+twine-sequencer = { path = "crates/sequencer" }
 twine-solana-consensus-prover-lib = { path = "crates/solana-consensus-prover" }
 twine-solana-proof-scheduler = { path = "crates/solana-proof-scheduler" }
 twine-solana-sdk = { path = "crates/solana-sdk" }
