@@ -11,32 +11,33 @@ RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
     --mount=type=secret,id=github_username,env=GITHUB_USERNAME \
     apt update && \
     apt install -y \
-    build-essential \
-    clang \
-    libssl-dev \
-    pkg-config \
-    cmake \
-    gcc \
-    wget \
-    bash \
-    curl \
-    git \
-    jq \
-    m4 && \
-    git config --global credential.helper store && \
-    echo "https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com" > ~/.git-credentials && \
-    chmod 600 ~/.git-credentials
+    build-essential
+    
+#     clang \
+#     libssl-dev \
+#     pkg-config \
+#     cmake \
+#     gcc \
+#     wget \
+#     bash \
+#     curl \
+#     git \
+#     jq \
+#     m4 && \
+#     git config --global credential.helper store && \
+#     echo "https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com" > ~/.git-credentials && \
+#     chmod 600 ~/.git-credentials
 
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain none -y
-ENV PATH="/root/.cargo/bin:${PATH}"
+# RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain none -y
+# ENV PATH="/root/.cargo/bin:${PATH}"
 
-RUN rustup toolchain install nightly --allow-downgrade --profile minimal --component clippy 
-RUN wget -c https://github.com/mikefarah/yq/releases/download/v4.45.1/yq_linux_${ARCH} -O /usr/bin/yq && \
-    chmod +x /usr/bin/yq && \
-    curl -OL https://go.dev/dl/go1.24.0.linux-${ARCH}.tar.gz && \
-    tar -C /usr/local -xzf go1.24.0.linux-${ARCH}.tar.gz && \
-    rm go1.24.0.linux-${ARCH}.tar.gz && \
-    curl -L https://sp1.succinct.xyz | bash && ~/.sp1/bin/sp1up
+# RUN rustup toolchain install nightly --allow-downgrade --profile minimal --component clippy 
+# RUN wget -c https://github.com/mikefarah/yq/releases/download/v4.45.1/yq_linux_${ARCH} -O /usr/bin/yq && \
+#     chmod +x /usr/bin/yq && \
+#     curl -OL https://go.dev/dl/go1.24.0.linux-${ARCH}.tar.gz && \
+#     tar -C /usr/local -xzf go1.24.0.linux-${ARCH}.tar.gz && \
+#     rm go1.24.0.linux-${ARCH}.tar.gz && \
+#     curl -L https://sp1.succinct.xyz | bash && ~/.sp1/bin/sp1up
 
 # WORKDIR /app
 
