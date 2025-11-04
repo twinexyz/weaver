@@ -6,4 +6,3 @@ RUN apk update
 
 FROM alpine AS scheduler
 RUN apk update
-
