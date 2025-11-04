@@ -146,7 +146,9 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PATH="/root/.cargo/bin:${PATH}"
 
 RUN  apt update && \
-     apt install ca-certificates curl -y
+     apt install -y \
+     ca-certificates \
+     curl
 #      install -m 0755 -d /etc/apt/keyrings && \
 #      curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc && \
 #      chmod a+r /etc/apt/keyrings/docker.asc && \
@@ -188,6 +190,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 RUN  apt update && \
      apt install -y \
      cmake
+     
 #      nginx \
 #      wget \
 #      curl \
@@ -223,7 +226,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 RUN  apt update && \
      apt install -y
-     cmake \
+     cmake
+     
 #      nginx \
 #      wget \
 #      curl \
