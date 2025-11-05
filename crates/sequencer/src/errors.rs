@@ -11,6 +11,18 @@ pub enum TwineSequencerError {
     /// block production loop terminated
     #[error("Block production loop terminated: {0}")]
     BlockProductionLoopTerminated(String),
+    /// engine api error
+    #[error("{0}")]
+    EngineAPIError(String),
+    /// invalid forkchoice status
+    #[error("Invalid forkchoice status")]
+    InvalidForkchoiceStatus,
+    /// Invalid block hash
+    #[error("Invalid block hash: {0}")]
+    InvalidBlockHash(String),
+    /// invalid payload status
+    #[error("Invalid payload status")]
+    InvalidPayloadStatus,
     /// other failures
     #[error("{0}")]
     Other(String),

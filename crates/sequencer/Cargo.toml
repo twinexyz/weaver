@@ -11,6 +11,7 @@ rust-version.workspace = true
 alloy-eips.workspace = true
 alloy-primitives.workspace = true
 alloy-rpc-types-engine.workspace = true
+eyre.workspace = true
 http.workspace = true
 jsonrpsee.workspace = true
 reth-engine-primitives.workspace = true
@@ -19,6 +20,7 @@ reth-rpc-api.workspace = true
 reth-rpc-layer.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
+tracing.workspace = true
 
 [lints]
 workspace = true
