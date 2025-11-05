@@ -12,6 +12,7 @@ members = [
   "bin/devtest",
   "bin/egressa",
   "bin/l2-execution-prover-worker",
+  "bin/nest",
   "bin/node",
   "bin/proof-scheduler-bin",
   "crates/aggregator/common",
@@ -80,7 +81,7 @@ bls12_381 = { git = "https://github.com/sp1-patches/bls12_381", branch = "n/rele
 
 async-trait = "0.1.89"
 chrono = { version = "0.4", features = ["serde"] }
-clap = { version = "4.5.46", features = ["derive"] }
+clap = { version = "4.5.46", features = ["derive", "env"] }
 dashmap = "6.1.0"
 derive_more = { version = "2", features = ["debug"] }
 env_logger = "0.11.7"
@@ -91,6 +92,7 @@ futures-channel = "0.3.31"
 futures-util = "0.3"
 git2 = "0.20.1"
 hex = "0.4.3"
+http = "1.3.1"
 jsonrpsee = { version = "0.26.0", features = ["client", "jsonrpsee-proc-macros", "tracing", "server"] }
 log = "0.4.26"
 metrics = "0.24.2"
@@ -148,7 +150,9 @@ tempfile = "3.10"
 # RETH
 reth = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1" }
 reth-chainspec = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1" }
+reth-engine-primitives = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1" }
 reth-ethereum = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1" }
+reth-ethereum-engine-primitives = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1" }
 reth-ethereum-payload-builder = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1" }
 reth-evm = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1" }
 reth-evm-ethereum = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1" }
@@ -160,6 +164,7 @@ reth-node-ethereum = { git = "https://github.com/paradigmxyz/reth.git", tag = "v
 reth-primitives = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1", default-features = false, features = ["alloy-compat", "std"] }
 reth-provider = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1", default-features = false }
 reth-revm = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1", default-features = false, features = ["std"] }
+reth-rpc-layer = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1" }
 reth-tracing = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1" }
 reth-trie-common = { git = "https://github.com/paradigmxyz/reth", tag = "v1.8.1", default-features = false, features = ["eip1186", "serde"] }
 
