@@ -1,15 +1,13 @@
-use std::fs::{self, File};
+use std::fs::{self};
 use std::str::FromStr;
 
 use alloy_primitives::hex::FromHex;
-use alloy_primitives::{address, keccak256, Address, Bytes, FixedBytes, TxKind, B256, U256};
-use alloy_provider::{DynProvider, Provider, ProviderBuilder};
-use alloy_rpc_types::EIP1186AccountProofResponse;
+use alloy_primitives::{address, keccak256, Address, Bytes, TxKind, B256, U256};
+use alloy_provider::Provider;
 use alloy_sol_types::{sol, SolCall, SolType};
 use eyre::eyre;
 use log::info;
 use reth_trie_common::AccountProof;
-use serde_json::json;
 use twine_evm_contracts::l2_twine_messenger::L1Txns;
 use twine_l1_eth::twine_l1_eth_writer::transaction::wait_for_receipt;
 use twine_l1_eth::twine_l1_eth_writer::EthereumTransaction;
