@@ -15,6 +15,7 @@ members = [
   "bin/nest",
   "bin/node",
   "bin/proof-scheduler-bin",
+  "bin/sequnencer-bin",
   "crates/aggregator/common",
   "crates/aggregator/da-source",
   "crates/aggregator/database",
@@ -47,6 +48,7 @@ members = [
   "crates/precompiles/zstd",
   "crates/proof-scheduler-common",
   "crates/rpc",
+  "crates/sequencer",
   "crates/solana-consensus-prover",
   "crates/solana-proof-scheduler",
   "crates/solana-sdk",
@@ -150,9 +152,15 @@ tempfile = "3.10"
 # RETH
 reth = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1" }
 reth-chainspec = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1" }
+<<<<<<< HEAD
 reth-engine-primitives = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1" }
 reth-ethereum = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1" }
 reth-ethereum-engine-primitives = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1" }
+=======
+reth-engine-primitives = { git = "https://github.com/paradigmxyz/reth", tag = "v1.8.1" }
+reth-ethereum = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1" }
+reth-ethereum-engine-primitives = { git = "https://github.com/paradigmxyz/reth", tag = "v1.8.1" }
+>>>>>>> 1c257ff (feat: twine-sequencer impl)
 reth-ethereum-payload-builder = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1" }
 reth-evm = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1" }
 reth-evm-ethereum = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1" }
@@ -164,7 +172,12 @@ reth-node-ethereum = { git = "https://github.com/paradigmxyz/reth.git", tag = "v
 reth-primitives = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1", default-features = false, features = ["alloy-compat", "std"] }
 reth-provider = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1", default-features = false }
 reth-revm = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1", default-features = false, features = ["std"] }
+<<<<<<< HEAD
 reth-rpc-layer = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1" }
+=======
+reth-rpc-api = { git = "https://github.com/paradigmxyz/reth", tag = "v1.8.1", features = ["client"] }
+reth-rpc-layer = { git = "https://github.com/paradigmxyz/reth", tag = "v1.8.1" }
+>>>>>>> 1c257ff (feat: twine-sequencer impl)
 reth-tracing = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.8.1" }
 reth-trie-common = { git = "https://github.com/paradigmxyz/reth", tag = "v1.8.1", default-features = false, features = ["eip1186", "serde"] }
 
@@ -203,6 +216,7 @@ twine-l2-batch-poller = { path = "crates/l2-batch-poller" }
 twine-l2-proof-scheduler = { path = "crates/l2-proof-scheduler" }
 twine-proof-scheduler-common = { path = "crates/proof-scheduler-common" }
 twine-rpc = { path = "crates/rpc" }
+twine-sequencer = { path = "crates/sequencer" }
 twine-solana-consensus-prover-lib = { path = "crates/solana-consensus-prover" }
 twine-solana-proof-scheduler = { path = "crates/solana-proof-scheduler" }
 twine-solana-sdk = { path = "crates/solana-sdk" }
