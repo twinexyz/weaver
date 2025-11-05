@@ -1,4 +1,5 @@
 //! sequencer binary
-use twine_sequencer::sequence;
+use twine_sequencer::block_progress::progress;
 
-fn main() { sequence(); }
+#[tokio::main]
+async fn main() { progress().await }
