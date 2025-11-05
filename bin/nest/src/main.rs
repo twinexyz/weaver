@@ -112,3 +112,22 @@ impl Application {
         Ok(())
     }
 }
+
+// //! something
+
+// use alloy_primitives::{Address, FixedBytes, hex::FromHex};
+// use twine_sequencer::block_progress::BlockProducer;
+// use tokio;
+
+// #[tokio::main]
+// async fn main() {
+//     let head_block =
+// FixedBytes::from_hex("
+// 0xb8a38c7a3369757f147068413ce04106972dfac7149f27061d5b687becbd7e6a").
+// unwrap();     let fee_recepient = Address::ZERO;
+//     let block_time = 2000;
+
+//     let mut block_producer = BlockProducer::new(head_block, "/Users/swopnilparajuli/workspace/work/weaver/jwt.hex".to_string(), "http://127.0.0.1:8551".into(), block_time, fee_recepient);
+
+//     block_producer.progress().await.unwrap();
+// }
