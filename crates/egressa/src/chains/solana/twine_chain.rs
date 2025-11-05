@@ -1,6 +1,7 @@
 use borsh::{BorshDeserialize, BorshSerialize};
 use solana_sdk::instruction::{AccountMeta, Instruction};
 use solana_sdk::pubkey::Pubkey;
+#[allow(deprecated)]
 use solana_sdk::system_program;
 use spl_token;
 use twine_l1_solana::address_derivation::SolanaAddressDerivation;
