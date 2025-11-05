@@ -1,0 +1,24 @@
+[package]
+name = "twine-sequencer"
+version.workspace = true
+edition.workspace = true
+exclude.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+alloy-eips.workspace = true
+alloy-primitives.workspace = true
+alloy-rpc-types-engine.workspace = true
+http.workspace = true
+jsonrpsee.workspace = true
+reth-engine-primitives.workspace = true
+reth-ethereum-engine-primitives.workspace = true
+reth-rpc-api.workspace = true
+reth-rpc-layer.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+
+[lints]
+workspace = true
