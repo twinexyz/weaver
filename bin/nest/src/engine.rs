@@ -13,14 +13,12 @@ use reth::rpc::types::engine::{
 };
 use reth_ethereum_engine_primitives::EthEngineTypes;
 use reth_rpc_layer::{secret_to_bearer_header, JwtSecret};
-use tracing::instrument;
 
-/// Thin wrapper around the Engine API endpoint using the canonical alloy/reth
-/// types.
+/// Engine Api Client Requirements
 #[derive(Clone, Debug)]
 pub(crate) struct EngineClient {
     endpoint: Arc<String>,
-    client: HttpClient,
+    jwt_secret: Arc<JwtSecret>,
 }
 
 impl EngineClient {
@@ -35,24 +33,27 @@ impl EngineClient {
             eyre::eyre!("invalid JWT secret at {}: {err}", jwt_secret_path.display())
         })?;
 
-        let mut headers = HeaderMap::new();
-        headers.insert(AUTHORIZATION, secret_to_bearer_header(&secret));
-
-        let client = HttpClientBuilder::new()
-            .set_headers(headers)
-            .build(endpoint.as_str())
-            .with_context(|| format!("failed to build engine api client for {endpoint}"))?;
-
         Ok(Self {
             endpoint: Arc::new(endpoint),
-            client,
+            jwt_secret: Arc::new(secret),
         })
     }
 
-    /// Exchanges capabilities with the execution engine as a lightweight
-    /// liveness probe.
+    /// Create a auth client
+    fn auth_client(&self) -> Result<HttpClient> {
+        let mut headers = HeaderMap::new();
+        headers.insert(AUTHORIZATION, secret_to_bearer_header(&self.jwt_secret));
+
+        HttpClientBuilder::new()
+            .set_headers(headers)
+            .build(self.endpoint.as_str())
+            .with_context(|| format!("failed to build engine api client for {}", self.endpoint))
+    }
+
+    /// Exchanges capabilities with the execution engine
     pub(crate) async fn health_check(&self) -> Result<()> {
-        EngineApiClient::<EthEngineTypes>::exchange_capabilities(&self.client, Vec::new())
+        let client = self.auth_client()?;
+        EngineApiClient::<EthEngineTypes>::exchange_capabilities(&client, Vec::new())
             .await
             .map_err(|err| eyre::eyre!("engine exchangeCapabilities failed: {err}"))?;
         tracing::debug!(
@@ -64,14 +65,14 @@ impl EngineClient {
     }
 
     /// Announces the current forkchoice state without triggering a new payload
-    /// build.
+    /// build
     pub(crate) async fn announce_forkchoice(
         &self,
         state: ForkchoiceState,
     ) -> Result<PayloadStatus> {
+        let client = self.auth_client()?;
         let result =
-            EngineApiClient::<EthEngineTypes>::fork_choice_updated_v3(&self.client, state, None)
-                .await;
+            EngineApiClient::<EthEngineTypes>::fork_choice_updated_v2(&client, state, None).await;
 
         match result {
             Ok(response) => {
@@ -102,14 +103,14 @@ impl EngineClient {
 
     /// Requests the execution engine to start building a payload on top of the
     /// provided state.
-    #[instrument(skip_all, name = "forkchoiceUpdatedV3")]
     pub(crate) async fn request_payload_build(
         &self,
         state: ForkchoiceState,
         attributes: EthPayloadAttributes,
     ) -> Result<(PayloadStatus, PayloadId)> {
+        let client = self.auth_client()?;
         let result = EngineApiClient::<EthEngineTypes>::fork_choice_updated_v3(
-            &self.client,
+            &client,
             state,
             Some(attributes),
         )
@@ -136,18 +137,17 @@ impl EngineClient {
     }
 
     /// Fetches a constructed payload from the execution engine.
-    #[instrument(skip_all, name = "getPayloadV4")]
     pub(crate) async fn get_payload(
         &self,
         payload_id: PayloadId,
     ) -> Result<ExecutionPayloadEnvelopeV4> {
-        EngineApiClient::<EthEngineTypes>::get_payload_v4(&self.client, payload_id)
+        let client = self.auth_client()?;
+        EngineApiClient::<EthEngineTypes>::get_payload_v4(&client, payload_id)
             .await
             .map_err(|err| err.into())
     }
 
     /// Submits a fully formed payload back to the execution engine.
-    #[instrument(skip_all, name = "newPayloadV4")]
     pub(crate) async fn submit_new_payload(
         &self,
         payload: ExecutionPayloadEnvelopeV4,
@@ -157,8 +157,9 @@ impl EngineClient {
         let parent_beacon_block_root = B256::ZERO;
         let execution_requests = RequestsOrHash::Requests(payload.execution_requests.clone());
 
+        let client = self.auth_client()?;
         EngineApiClient::<EthEngineTypes>::new_payload_v4(
-            &self.client,
+            &client,
             execution_payload,
             versioned_hashes,
             parent_beacon_block_root,
