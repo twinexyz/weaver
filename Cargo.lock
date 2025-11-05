@@ -16125,6 +16125,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "twine-sequencer"
+version = "1.7.0"
+dependencies = [
+ "alloy-eips",
+ "alloy-primitives",
+ "alloy-rpc-types-engine",
+ "http 1.3.1",
+ "jsonrpsee",
+ "reth-engine-primitives",
+ "reth-ethereum-engine-primitives",
+ "reth-rpc-api",
+ "reth-rpc-layer",
+ "thiserror 2.0.16",
+ "tokio",
+]
+
+[[package]]
+name = "twine-sequencer-bin"
+version = "1.7.0"
+dependencies = [
+ "tokio",
+ "twine-sequencer",
+]
+
+[[package]]
 name = "twine-solana-consensus-prover-lib"
 version = "0.1.0"
 dependencies = [
