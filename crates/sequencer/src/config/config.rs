@@ -51,14 +51,22 @@ pub struct Config {
     pub solana: L1Config,
     pub ethereum: L1Config,
     pub l2: L2Config,
+    pub extras: Extras,
 }
 
 #[allow(missing_docs)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct L1Config {
-    rpc_url: String,
-    bridge_contract_address: String,
-    verified_batch: u64,
+    pub rpc_url: String,
+    pub bridge_contract_address: String,
+    pub verified_batch: u64,
+    pub chain_id: u64,
+}
+
+#[allow(missing_docs)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Extras {
+    pub verifer_channel_buffer_size: usize,
 }
 
 #[allow(missing_docs)]

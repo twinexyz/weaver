@@ -11,9 +11,12 @@ rust-version.workspace = true
 clap.workspace = true
 tokio.workspace = true
 twine-common.workspace = true
-twine-sequencer.workspace = true
+twine-sequencer = { workspace = true, default-features = false, optional = true }
 
 [lints]
 workspace = true
 
 [features]
+default = ["sequencer", "verifier"]
+sequencer = ["twine-sequencer/sequencer"]
+verifier = ["twine-sequencer/verifier"]

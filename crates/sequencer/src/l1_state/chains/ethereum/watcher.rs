@@ -1,14 +1,17 @@
 //! Ethereum state watcher
 
-use std::collections::HashMap;
+use std::time::Duration;
 
+use alloy_primitives::FixedBytes;
 use async_trait::async_trait;
 use tokio::sync::mpsc::Sender;
+use tokio::time::{self, MissedTickBehavior};
 use twine_l1_eth::twine_l1_eth_reader::{EthReader, EthReaderBuilder};
 
+use crate::config::config::L1Config;
 use crate::errors::TwineSequencerError;
 use crate::l1_state::chains::L2StateCheckpoint;
-use crate::l1_state::state_tracker::{L1StateTracker, L2State};
+use crate::l1_state::state_tracker::{L1StateTracker, L2State, State};
 
 /// Ethereum State watcher
 #[derive(Debug)]
@@ -25,23 +28,13 @@ pub struct EthereumStateWatcher {
 impl L1StateTracker for EthereumStateWatcher {
     /// create new instance of ethereum state watcher
     async fn new(
-        config: HashMap<String, String>,
+        config: L1Config,
         state_sender: Sender<L2State>,
     ) -> Result<Self, TwineSequencerError>
     where
         Self: Sized, {
-        let rpc_url = config
-            .get("ethereum.rpc_url")
-            .ok_or(TwineSequencerError::Other(format!(
-                "ethereum rpc url not set"
-            )))?;
-        let verified_l2_batch: u64 = config
-            .get("ethereum.last_verified_l2_batch")
-            .ok_or(TwineSequencerError::Other(format!(
-                "ethereum rpc url not set"
-            )))?
-            .parse()
-            .map_err(|e| TwineSequencerError::Other(format!("{e}")))?;
+        let rpc_url = config.rpc_url;
+        let verified_l2_batch: u64 = config.verified_batch;
 
         let client = EthReaderBuilder::new()
             .with_execution_rpc(rpc_url)
@@ -57,7 +50,12 @@ impl L1StateTracker for EthereumStateWatcher {
 
     /// watch ethereum state and notify the verifier
     async fn watch(&mut self) -> Result<(), TwineSequencerError> {
+        tracing::info!(target = "eth_watcher", "watcher loop started");
+        // TODO: from config
+        let mut ticker = time::interval(Duration::from_secs(2));
+        ticker.set_missed_tick_behavior(MissedTickBehavior::Delay);
         loop {
+            ticker.tick().await;
             let next_expected_batch = self.verified_l2_batch + 1;
             let next_expected_l2_state = self
                 .get_l2_state_on_l1(L2StateCheckpoint::L2BatchNumber(next_expected_batch))
@@ -70,6 +68,7 @@ impl L1StateTracker for EthereumStateWatcher {
                         "Could not send l2 state of eth l1 to the channel: {e}"
                     ))
                 })?;
+            self.verified_l2_batch = next_expected_batch;
         }
     }
 }
@@ -81,8 +80,11 @@ impl EthereumStateWatcher {
     ) -> Result<L2State, TwineSequencerError> {
         match by {
             L2StateCheckpoint::L2BatchNumber(number) => Ok(L2State {
-                l2_batch_number: number,
-                ..Default::default()
+                chain: "ethereum".to_string(),
+                state: State {
+                    l2_batch_number: number,
+                    l2_batch_hash: FixedBytes::default(),
+                },
             }),
             _ => unimplemented!(),
         }
