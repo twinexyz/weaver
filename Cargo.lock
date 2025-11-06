@@ -16139,6 +16139,7 @@ dependencies = [
  "alloy-eips",
  "alloy-primitives",
  "alloy-rpc-types-engine",
+ "async-trait",
  "eyre",
  "http 1.3.1",
  "jsonrpsee",
@@ -16149,6 +16150,8 @@ dependencies = [
  "thiserror 2.0.16",
  "tokio",
  "tracing",
+ "twine-l1-eth",
+ "twine-l1-solana",
 ]
 
 [[package]]

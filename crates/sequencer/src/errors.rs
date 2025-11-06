@@ -26,6 +26,9 @@ pub enum TwineSequencerError {
     /// unsupported engine api by EL
     #[error("engine api not supported: {0}")]
     UnsupportedEngineAPI(String),
+    /// channel error
+    #[error("{0}")]
+    ChannelError(String),
     /// other failures
     #[error("{0}")]
     Other(String),
