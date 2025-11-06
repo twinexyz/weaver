@@ -6,7 +6,7 @@ use alloy_primitives::{Address, FixedBytes, B256};
 use alloy_rpc_types_engine::{ForkchoiceState, PayloadAttributes};
 use tokio::time;
 
-use crate::engine::EngineClient;
+use super::engine::EngineClient;
 use crate::errors::TwineSequencerError;
 
 /// Twine block producer
@@ -75,8 +75,6 @@ impl BlockProducer {
                 .request_payload_build(fork_choice_state, payload_attributes)
                 .await?;
 
-            println!("forkchoice updated: {forkchoice_updated:#?}");
-
             // validate block hash
             {
                 // safe to unwrap because if the validation in request_payload_build()
@@ -90,8 +88,6 @@ impl BlockProducer {
                 .get_payload(forkchoice_updated.payload_id.unwrap())
                 .await?;
 
-            println!("get payload");
-
             let expected_new_head = execution_payload_envelope_v4
                 .envelope_inner
                 .execution_payload
@@ -104,8 +100,6 @@ impl BlockProducer {
                 .submit_new_payload(execution_payload_envelope_v4)
                 .await?;
 
-            println!("submit new payuload ");
-
             let latest_hash = status.latest_valid_hash.unwrap();
             validate_block_hash(expected_new_head, latest_hash)?;
 
@@ -116,7 +110,6 @@ impl BlockProducer {
             };
 
             let final_status = self.engine_client.announce_forkchoice(final_state).await?;
-            println!("announce forkchoice");
             // can safely unwrap here because of the validation in the engine api call
             let latest_hash = final_status.latest_valid_hash.unwrap();
             validate_block_hash(expected_new_head, latest_hash)?;
