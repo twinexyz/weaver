@@ -12,13 +12,17 @@ alloy-eips.workspace = true
 alloy-primitives.workspace = true
 alloy-rpc-types-engine.workspace = true
 async-trait.workspace = true
+clap.workspace = true
 eyre.workspace = true
 http.workspace = true
 jsonrpsee.workspace = true
+lazy_static.workspace = true
 reth-engine-primitives.workspace = true
 reth-ethereum-engine-primitives.workspace = true
 reth-rpc-api.workspace = true
 reth-rpc-layer.workspace = true
+serde.workspace = true
+serde_yaml.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
 tracing.workspace = true
@@ -27,3 +31,8 @@ twine-l1-solana.workspace = true
 
 [lints]
 workspace = true
+
+# [features]
+# default = ["sequencer"]
+# sequencer = []
+# verifier = []

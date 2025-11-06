@@ -8,27 +8,10 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-twine-common.workspace = true
-# twine-sequencer.workspace = true
-
-alloy-eips.workspace = true
-alloy-primitives.workspace = true
-alloy-rpc-types-engine.workspace = true
 clap.workspace = true
-eyre.workspace = true
-hex.workspace = true
-http.workspace = true
-jsonrpsee.workspace = true
-reth.workspace = true
-reth-engine-primitives.workspace = true
-reth-ethereum-engine-primitives.workspace = true
-reth-rpc-layer.workspace = true
-serde.workspace = true
-serde_yaml.workspace = true
-solana-sdk.workspace = true
-tokio = { workspace = true, features = ["full"] }
-tracing.workspace = true
-tracing-subscriber.workspace = true
+tokio.workspace = true
+twine-common.workspace = true
+twine-sequencer.workspace = true
 
 [lints]
 workspace = true

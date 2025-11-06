@@ -1,20 +1,15 @@
-mode: sequencer
-
-# L1 connections
-l1_eth_rpc: "https://ethereum-mainnet.example.org"
-l1_solana_rpc: "https://solana-mainnet.example.org"
-
-# Optional direct L2 RPC that nests can poll for user txs
-l2_rpc: "http://localhost:9545"
-
-# Engine API (reth / execution layer) endpoint + JWT secret
-engine_api: "http://127.0.0.1:8551"
-jwt_secret_path: "/Users/lilixac/twine/weaver/jwt.hex"
-
-# Bridge contracts/programs
-eth_bridge_address: "0x1234567890abcdef1234567890abcdef12345678"
-solana_bridge_program: "So11111111111111111111111111111111111111112"
-
-# Forkchoice seed (genesis block hash) and expected block cadence
-genesis_block_hash: "0x82dfc4408bf81e1f082ccf9cf846fc0880003106eac880c73b08aeb14a0de448"
-block_time_secs: 2
+solana:
+  rpc_url: "http://127.0.0.1:8899"
+  bridge_contract_address: "JQTqWZGPZMYB6Q1Tvi34abZaYg7xEePgET9iRm9UgfF"
+  verified_batch: 0
+ethereum:
+  rpc_url: "http://127.0.0.1:8570"
+  bridge_contract_address: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+  verified_batch: 0
+l2:
+  rpc_url: "http://127.0.0.1:8545"
+  head_block: "0xb8a38c7a3369757f147068413ce04106972dfac7149f27061d5b687becbd7e6a"
+  fee_recipient: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+  auth_rpc_url: "http://127.0.0.1:8551"
+  jwt_token_path: "jwt.hex"
+  block_time: 2000
