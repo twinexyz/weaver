@@ -1,7 +1,8 @@
 //! block progression loop
-use std::path::Path;
+use std::path::PathBuf;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use alloy_primitives::hex::FromHex;
 use alloy_primitives::{Address, FixedBytes, B256};
 use alloy_rpc_types_engine::{ForkchoiceState, PayloadAttributes};
 use tokio::time;
@@ -26,14 +27,18 @@ pub struct BlockProducer {
 impl BlockProducer {
     /// Creates new instance of Block producer
     pub fn new(
-        head_block: FixedBytes<32>,
-        jwt_token_path: String,
+        head_block: String,
+        jwt_token_path: PathBuf,
         el_auth_url: String,
         block_time: u64,
-        fee_recepient: Address,
+        fee_recepient: String,
     ) -> Self {
-        let engine_client = EngineClient::new(el_auth_url, Path::new(&jwt_token_path))
-            .expect("could not create new producer");
+        let engine_client =
+            EngineClient::new(el_auth_url, &jwt_token_path).expect("could not create new producer");
+        let head_block = FixedBytes::from_hex(&head_block)
+            .expect(&format!("could not parse the head block {head_block}"));
+        let fee_recepient = Address::from_hex(&fee_recepient)
+            .expect(&format!("could not parse address {fee_recepient}"));
         Self {
             head_block,
             block_time,
