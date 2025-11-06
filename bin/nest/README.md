@@ -1,7 +1,7 @@
 # NEST sequencer
 
 ## Running the sequencer
-The sequencer runs in two different modes,
+The sequencer runs in three modes,
 1. Sequencing mode
 In this mode, the sequencer connects to the Executation Layer and progresses the block.
 ```bash
