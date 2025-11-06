@@ -5,32 +5,22 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 
 use async_trait::async_trait;
-use tokio::sync::mpsc::{self, Receiver};
+use tokio::sync::mpsc::Receiver;
 
 use crate::errors::TwineSequencerError;
-use crate::l1_state::chains::ethereum::watcher::EthereumStateWatcher;
-use crate::l1_state::chains::solana::watcher::SolanaStateWatcher;
-use crate::l1_state::state_tracker::{L1StateTracker, L2State};
+use crate::l1_state::state_tracker::L2State;
 use crate::l1_state::state_verifier::StateVerifier;
 
 /// L1 State Verifier
+#[derive(Debug)]
 pub struct L1StateVerifier {
-    /// registered l1 chains
-    pub registered_l1s: HashMap<String, Box<dyn L1StateTracker>>,
     /// state receiver
-    _state_receiver: Receiver<L2State>,
-}
-
-impl Debug for L1StateVerifier {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let registered_l1s: Vec<String> = self
-            .registered_l1s
-            .keys()
-            .into_iter()
-            .map(|k| k.to_string())
-            .collect();
-        f.write_str(&format!("{:?}", registered_l1s))
-    }
+    state_receiver: Receiver<L2State>,
+    /// registered l1s
+    registered_l1s: Vec<String>,
+    /// state record that keeps the record of l2 states of the L1 chains
+    /// hashmap[l1_chain || batch_number] = L2State
+    state_record: HashMap<String, L2State>,
 }
 
 #[async_trait]
@@ -38,43 +28,84 @@ impl StateVerifier for L1StateVerifier {
     /// creates new instance of l1 state verifier
     async fn new(
         config: HashMap<String, String>,
-        _state_receiver: Receiver<L2State>,
+        state_receiver: Receiver<L2State>,
     ) -> Result<Self, TwineSequencerError>
     where
         Self: Sized, {
-        let buffer_size = config
-            .get("verifier.channel_buffer_size")
+        let registered_l1s: Vec<String> = config
+            .get("verifier.registered_l1s")
             .ok_or(TwineSequencerError::Other(format!(
-                "verifier channel_buffer_size not set"
+                "verifier registered_l1s not set"
             )))?
-            .parse()
-            .map_err(|e| TwineSequencerError::Other(format!("{e}")))?;
-        let (state_sender, state_receiver) = mpsc::channel(buffer_size);
-        let ethereum_watcher =
-            EthereumStateWatcher::new(config.clone(), state_sender.clone()).await?;
-        let solana_watcher = SolanaStateWatcher::new(config.clone(), state_sender.clone()).await?;
-
-        let mut registered_l1s: HashMap<String, Box<dyn L1StateTracker>> = HashMap::new();
-        registered_l1s.insert("Ethereum".to_string(), Box::new(ethereum_watcher));
-        registered_l1s.insert("Solana".to_string(), Box::new(solana_watcher));
-
+            .split(",")
+            .into_iter()
+            .map(|l1s| l1s.to_string())
+            .collect();
         Ok(Self {
+            state_receiver,
+            state_record: HashMap::new(),
             registered_l1s,
-            _state_receiver: state_receiver,
         })
     }
 
     /// verify
-    async fn verify(&self) -> Result<(), TwineSequencerError> {
-        // let mut watch_tasks = vec![];
+    async fn verify(&mut self) -> Result<(), TwineSequencerError> {
+        loop {
+            if let Some(l2_state) = self.state_receiver.recv().await {
+                let batch_number = l2_state.l2_batch_number;
+                self.record_l2_state(l2_state.clone());
 
-        // for (_, chains) in self.registered_l1s {
-        //     let join_handle = tokio::spawn(async move {
-        //         chains.watch().await
-        //     });
-        //     watch_tasks.push(join_handle);
-        // }
+                if self.verify_l2_state(l2_state)? {
+                    tracing::warn!(
+                        target = "verifier",
+                        "not enough record to verify l2 batch: {}",
+                        batch_number
+                    );
+                }
+            }
+        }
+    }
+}
 
-        todo!()
+impl L1StateVerifier {
+    fn record_l2_state(&mut self, l2_state: L2State) {
+        self.state_record.insert(
+            self.make_record_key(l2_state.chain.clone(), l2_state.l2_batch_number),
+            l2_state,
+        );
+    }
+
+    /// verifies the l2 state against all the registered L1's view of L2 state
+    /// and archives the state once verified
+    /// TODO: archive the state into the DB
+    fn verify_l2_state(&mut self, l2_state: L2State) -> Result<bool, TwineSequencerError> {
+        let record_keys: Vec<String> = self
+            .registered_l1s
+            .iter()
+            .map(|k| self.make_record_key(k.to_string(), l2_state.l2_batch_number))
+            .collect();
+
+        for key in &record_keys {
+            if let Some(record) = self.state_record.get(key) {
+                if record.clone() == l2_state {
+                    continue;
+                }
+                return Err(TwineSequencerError::StateRecordMismatched(format!(
+                    "key: {}, expected: {:?}, got: {:?}",
+                    key, record, l2_state
+                )));
+            } else {
+                return Ok(false);
+            }
+        }
+
+        for key in &record_keys {
+            self.state_record.remove(key);
+        }
+        return Ok(true);
+    }
+
+    fn make_record_key(&self, chain: String, batch_number: u64) -> String {
+        format!("{}-{}", chain, batch_number)
     }
 }
