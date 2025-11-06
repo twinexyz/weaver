@@ -131,8 +131,8 @@ impl EngineClient {
                     "requested payload build"
                 );
 
-                (response.payload_id.is_none()
-                    || self.validate_payload_status(&response.payload_status))
+                (response.payload_id.is_some()
+                    && self.validate_payload_status(&response.payload_status))
                 .then_some(response)
                 .ok_or_else(|| TwineSequencerError::InvalidForkchoiceStatus)
             }
