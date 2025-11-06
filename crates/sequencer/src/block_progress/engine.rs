@@ -17,6 +17,13 @@ use reth_rpc_layer::{secret_to_bearer_header, JwtSecret};
 
 use crate::errors::TwineSequencerError;
 
+/// Engine api capiabilities of the sequencer
+pub const CAPABILITIES: &[&str] = &[
+    "engine_forkchoiceUpdatedV3",
+    "engine_getPayloadV4",
+    "engine_newPayloadV4",
+];
+
 /// Engine Api Client Requirements
 #[derive(Clone, Debug)]
 pub(crate) struct EngineClient {
@@ -53,17 +60,21 @@ impl EngineClient {
     }
 
     /// Exchanges capabilities with the execution engine
-    pub(crate) async fn health_check(&self) -> Result<(), TwineSequencerError> {
+    pub(crate) async fn health_check(&self) -> Result<Vec<String>, TwineSequencerError> {
         let client = self.auth_client()?;
-        EngineApiClient::<EthEngineTypes>::exchange_capabilities(&client, Vec::new())
-            .await
-            .map_err(|e| TwineSequencerError::EngineAPIError(e.to_string()))?;
+        let capabilities = EngineApiClient::<EthEngineTypes>::exchange_capabilities(
+            &client,
+            CAPABILITIES.into_iter().map(|c| c.to_string()).collect(),
+        )
+        .await
+        .map_err(|e| TwineSequencerError::EngineAPIError(e.to_string()))?;
+
         tracing::debug!(
             target: "engine",
             endpoint = %self.endpoint(),
             "engine capabilities exchange succeeded"
         );
-        Ok(())
+        Ok(capabilities)
     }
 
     /// Announces the current forkchoice state without triggering a new payload

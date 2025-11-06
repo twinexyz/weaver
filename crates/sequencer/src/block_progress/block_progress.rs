@@ -7,6 +7,7 @@ use alloy_rpc_types_engine::{ForkchoiceState, PayloadAttributes};
 use tokio::time;
 
 use super::engine::EngineClient;
+use crate::block_progress::engine::CAPABILITIES;
 use crate::errors::TwineSequencerError;
 
 /// Twine block producer
@@ -48,7 +49,7 @@ impl BlockProducer {
         let mut block_ticker = time::interval(Duration::from_millis(self.block_time));
         block_ticker.set_missed_tick_behavior(time::MissedTickBehavior::Delay);
 
-        self.engine_client.health_check().await?;
+        self.validate_el_capabilities().await?;
 
         loop {
             block_ticker.tick().await;
@@ -131,5 +132,16 @@ impl BlockProducer {
             }
             Ok(())
         }
+    }
+
+    async fn validate_el_capabilities(&self) -> Result<(), TwineSequencerError> {
+        let capabilities = self.engine_client.health_check().await?;
+        for c in CAPABILITIES {
+            let c = c.to_string();
+            if !capabilities.contains(&c) {
+                return Err(TwineSequencerError::UnsupportedEngineAPI(c));
+            }
+        }
+        Ok(())
     }
 }
