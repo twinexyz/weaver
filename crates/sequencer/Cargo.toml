@@ -32,7 +32,7 @@ twine-l1-solana.workspace = true
 [lints]
 workspace = true
 
-# [features]
-# default = ["sequencer"]
-# sequencer = []
-# verifier = []
+[features]
+default = ["sequencer", "verifier"]
+sequencer = []
+verifier = []

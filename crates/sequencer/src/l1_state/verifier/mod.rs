@@ -27,20 +27,11 @@ pub struct L1StateVerifier {
 impl StateVerifier for L1StateVerifier {
     /// creates new instance of l1 state verifier
     async fn new(
-        config: HashMap<String, String>,
+        registered_l1s: Vec<String>,
         state_receiver: Receiver<L2State>,
     ) -> Result<Self, TwineSequencerError>
     where
         Self: Sized, {
-        let registered_l1s: Vec<String> = config
-            .get("verifier.registered_l1s")
-            .ok_or(TwineSequencerError::Other(format!(
-                "verifier registered_l1s not set"
-            )))?
-            .split(",")
-            .into_iter()
-            .map(|l1s| l1s.to_string())
-            .collect();
         Ok(Self {
             state_receiver,
             state_record: HashMap::new(),
@@ -50,27 +41,29 @@ impl StateVerifier for L1StateVerifier {
 
     /// verify
     async fn verify(&mut self) -> Result<(), TwineSequencerError> {
-        loop {
-            if let Some(l2_state) = self.state_receiver.recv().await {
-                let batch_number = l2_state.l2_batch_number;
-                self.record_l2_state(l2_state.clone());
+        tracing::info!(target = "verifier", "verifier loop started");
+        while let Some(l2_state) = self.state_receiver.recv().await {
+            let batch_number = l2_state.state.l2_batch_number;
+            self.record_l2_state(l2_state.clone());
 
-                if self.verify_l2_state(l2_state)? {
-                    tracing::warn!(
-                        target = "verifier",
-                        "not enough record to verify l2 batch: {}",
-                        batch_number
-                    );
-                }
+            if !self.verify_l2_state(l2_state)? {
+                tracing::debug!(
+                    target = "verifier",
+                    "not enough record to verify l2 batch: {}",
+                    batch_number
+                );
             }
+            tracing::info!(target = "verifier", "verified batch: {}", batch_number);
         }
+        println!("terminates loop??");
+        Err(TwineSequencerError::Other(format!("loop terminated")))
     }
 }
 
 impl L1StateVerifier {
     fn record_l2_state(&mut self, l2_state: L2State) {
         self.state_record.insert(
-            self.make_record_key(l2_state.chain.clone(), l2_state.l2_batch_number),
+            self.make_record_key(l2_state.chain.clone(), l2_state.state.l2_batch_number),
             l2_state,
         );
     }
@@ -82,14 +75,20 @@ impl L1StateVerifier {
         let record_keys: Vec<String> = self
             .registered_l1s
             .iter()
-            .map(|k| self.make_record_key(k.to_string(), l2_state.l2_batch_number))
+            .map(|k| self.make_record_key(k.to_string(), l2_state.state.l2_batch_number))
             .collect();
 
         for key in &record_keys {
             if let Some(record) = self.state_record.get(key) {
-                if record.clone() == l2_state {
+                if record.state == l2_state.state {
                     continue;
                 }
+                tracing::error!(
+                    target = "verifier",
+                    "mismatched l2 state, expected: {:?} got: {:?}",
+                    record,
+                    l2_state
+                );
                 return Err(TwineSequencerError::StateRecordMismatched(format!(
                     "key: {}, expected: {:?}, got: {:?}",
                     key, record, l2_state
@@ -100,6 +99,12 @@ impl L1StateVerifier {
         }
 
         for key in &record_keys {
+            tracing::info!(
+                target = "verifier",
+                "pruning state info for l2 batch: {}, namespace: {}",
+                l2_state.state.l2_batch_number,
+                key
+            );
             self.state_record.remove(key);
         }
         return Ok(true);

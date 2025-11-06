@@ -1,7 +1,5 @@
 //! Trait that defines the l1 state verifier
 
-use std::collections::HashMap;
-
 use async_trait::async_trait;
 use tokio::sync::mpsc::Receiver;
 
@@ -13,7 +11,7 @@ use crate::l1_state::state_tracker::L2State;
 pub trait StateVerifier {
     /// creates new instance of l1 state verifier
     async fn new(
-        config: HashMap<String, String>,
+        registered_l1s: Vec<String>,
         state_receiver: Receiver<L2State>,
     ) -> Result<Self, TwineSequencerError>
     where
