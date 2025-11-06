@@ -42,6 +42,8 @@ impl BlockProducer {
     }
 
     /// Progress block
+    /// Error on any point makes sense to break the loop to avoid corrupting the
+    /// EL. TODO: Handling the block progress under failures
     pub async fn progress(&mut self) -> Result<(), TwineSequencerError> {
         let mut block_ticker = time::interval(Duration::from_millis(self.block_time));
         block_ticker.set_missed_tick_behavior(time::MissedTickBehavior::Delay);
@@ -53,7 +55,7 @@ impl BlockProducer {
 
             let time_now = SystemTime::now()
                 .duration_since(UNIX_EPOCH)
-                .unwrap()
+                .map_err(|e| TwineSequencerError::Other(format!("System clock error: {e}")))?
                 .as_secs();
 
             let fork_choice_state = ForkchoiceState {
