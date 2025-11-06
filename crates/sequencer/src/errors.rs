@@ -23,6 +23,9 @@ pub enum TwineSequencerError {
     /// invalid payload status
     #[error("Invalid payload status")]
     InvalidPayloadStatus,
+    /// unsupported engine api by EL
+    #[error("engine api not supported: {0}")]
+    UnsupportedEngineAPI(String),
     /// other failures
     #[error("{0}")]
     Other(String),
