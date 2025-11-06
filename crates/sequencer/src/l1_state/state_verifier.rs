@@ -19,5 +19,5 @@ pub trait StateVerifier {
     where
         Self: Sized;
     /// verify
-    async fn verify(&self) -> Result<(), TwineSequencerError>;
+    async fn verify(&mut self) -> Result<(), TwineSequencerError>;
 }
