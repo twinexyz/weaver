@@ -23,8 +23,10 @@ pub trait L1StateTracker: Send + Sync {
 }
 
 /// L2 state info on L1
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct L2State {
+    /// chain identifier of the l1 chain
+    pub chain: String,
     /// settled l2 batch number
     pub l2_batch_number: u64,
     /// settled l2 batch hash
