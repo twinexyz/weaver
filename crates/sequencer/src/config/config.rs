@@ -9,9 +9,6 @@ use tokio::sync::Mutex;
 use twine_sequencer_db::db::SequencerDB;
 use twine_sequencer_db::error::TwineSequencerDBError;
 
-use crate::common::{
-    LAST_FINALIZED_BLOCK_HASH, NS_BLOCK_PRODUCER, NS_CHAIN_STATE_VERIFIER, VERIFIED_BATCH,
-};
 use crate::errors::TwineSequencerError;
 
 // TODO: dynamically update the config incase of no overrides
@@ -120,7 +117,10 @@ impl Config {
             >,
         >,
     ) -> Result<Self, TwineSequencerError> {
+        #[cfg(feature = "sequencer")]
         {
+            use crate::common::{LAST_FINALIZED_BLOCK_HASH, NS_BLOCK_PRODUCER};
+
             let db_head_block = db
                 .lock()
                 .await
@@ -141,7 +141,9 @@ impl Config {
             }
         }
 
+        #[cfg(feature = "verifier")]
         {
+            use crate::common::{NS_CHAIN_STATE_VERIFIER, VERIFIED_BATCH};
             let db_verified_batch = db
                 .lock()
                 .await
