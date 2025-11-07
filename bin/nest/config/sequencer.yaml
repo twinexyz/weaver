@@ -20,4 +20,4 @@ extras:
 db:
   db_path: "/tmp/sequencer-db"
   db_column_family:
-    - "HELLO"
+    - "BLOCK_PRODUCER"

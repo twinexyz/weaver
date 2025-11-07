@@ -1,19 +1,34 @@
 //! block progression loop
+use std::fmt::Debug;
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use alloy_primitives::hex::FromHex;
 use alloy_primitives::{Address, FixedBytes, B256};
 use alloy_rpc_types_engine::{ForkchoiceState, PayloadAttributes};
+use tokio::sync::Mutex;
 use tokio::time;
+use twine_sequencer_db::db::SequencerDB;
+use twine_sequencer_db::error::TwineSequencerDBError;
 
 use super::engine::EngineClient;
 use crate::block_progress::engine::CAPABILITIES;
+use crate::common::{LAST_FINALIZED_BLOCK_HASH, NS_BLOCK_PRODUCER};
 use crate::errors::TwineSequencerError;
 
 /// Twine block producer
-#[derive(Debug)]
 pub struct BlockProducer {
+    db: Arc<
+        Mutex<
+            dyn SequencerDB<
+                NameSpace = String,
+                SequencerDBError = TwineSequencerDBError,
+                Key = String,
+                Value = String,
+            >,
+        >,
+    >,
     /// Canonical block as seen by the sequencer
     pub head_block: FixedBytes<32>,
     /// block time
@@ -24,6 +39,16 @@ pub struct BlockProducer {
     engine_client: EngineClient,
 }
 
+impl Debug for BlockProducer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("BlockProducer")
+            .field("head_block", &self.head_block)
+            .field("block_time", &self.block_time)
+            .field("fee_recipient", &self.fee_recepient)
+            .finish()
+    }
+}
+
 impl BlockProducer {
     /// Creates new instance of Block producer
     pub fn new(
@@ -32,6 +57,16 @@ impl BlockProducer {
         el_auth_url: String,
         block_time: u64,
         fee_recepient: String,
+        db: Arc<
+            Mutex<
+                dyn SequencerDB<
+                    NameSpace = String,
+                    SequencerDBError = TwineSequencerDBError,
+                    Key = String,
+                    Value = String,
+                >,
+            >,
+        >,
     ) -> Self {
         let engine_client =
             EngineClient::new(el_auth_url, &jwt_token_path).expect("could not create new producer");
@@ -44,6 +79,7 @@ impl BlockProducer {
             block_time,
             engine_client,
             fee_recepient,
+            db,
         }
     }
 
@@ -123,6 +159,19 @@ impl BlockProducer {
             validate_block_hash(expected_new_head, latest_hash)?;
 
             self.head_block = latest_hash;
+
+            {
+                self.db
+                    .lock()
+                    .await
+                    .insert(
+                        NS_BLOCK_PRODUCER.to_string(),
+                        LAST_FINALIZED_BLOCK_HASH.to_string(),
+                        latest_hash.to_string(),
+                    )
+                    .await
+                    .map_err(|e| TwineSequencerError::SequencerDBError(e.to_string()))?;
+            }
         }
 
         fn validate_block_hash(
