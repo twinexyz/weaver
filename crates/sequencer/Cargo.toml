@@ -28,6 +28,7 @@ tokio.workspace = true
 tracing.workspace = true
 twine-l1-eth.workspace = true
 twine-l1-solana.workspace = true
+twine-sequencer-db.workspace = true
 
 [lints]
 workspace = true

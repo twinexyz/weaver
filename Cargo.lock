@@ -16133,6 +16133,7 @@ dependencies = [
  "tracing",
  "twine-l1-eth",
  "twine-l1-solana",
+ "twine-sequencer-db",
 ]
 
 [[package]]
@@ -16141,7 +16142,7 @@ version = "1.7.0"
 dependencies = [
  "async-trait",
  "rocksdb",
- "twine-sequencer",
+ "thiserror 2.0.16",
 ]
 
 [[package]]

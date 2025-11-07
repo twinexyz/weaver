@@ -1,5 +1,6 @@
 //! Twine sequencer library
 
+#![feature(associated_type_defaults)]
 pub mod block_progress;
 pub mod config;
 pub mod errors;

@@ -51,7 +51,7 @@ pub struct Config {
     pub solana: L1Config,
     pub ethereum: L1Config,
     pub l2: L2Config,
-    pub db_path: Option<DB>,
+    pub db: Option<DB>,
     pub extras: Extras,
 }
 

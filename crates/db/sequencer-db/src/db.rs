@@ -1,7 +1,6 @@
 //! Sequencer DB trait
 use std::collections::HashMap;
 use std::error::Error;
-use std::fmt::Debug;
 
 use async_trait::async_trait;
 
@@ -9,13 +8,15 @@ use async_trait::async_trait;
 #[allow(missing_docs)]
 #[async_trait]
 pub trait SequencerDB: Send + Sync {
-    type Config: Debug;
     type NameSpace: ToString;
     type SequencerDBError: Error;
     type Key: ToString;
     type Value: ToString;
     /// creates new instance of db
-    async fn new(config: Option<Self::Config>) -> Result<Self, Self::SequencerDBError>
+    async fn new(
+        db_path: Option<String>,
+        name_spaces: Vec<String>,
+    ) -> Result<Self, Self::SequencerDBError>
     where
         Self: Sized;
     /// insert one entry
