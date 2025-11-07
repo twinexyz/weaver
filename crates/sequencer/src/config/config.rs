@@ -9,7 +9,9 @@ use tokio::sync::Mutex;
 use twine_sequencer_db::db::SequencerDB;
 use twine_sequencer_db::error::TwineSequencerDBError;
 
-use crate::common::{LAST_FINALIZED_BLOCK_HASH, NS_BLOCK_PRODUCER};
+use crate::common::{
+    LAST_FINALIZED_BLOCK_HASH, NS_BLOCK_PRODUCER, NS_CHAIN_STATE_VERIFIER, VERIFIED_BATCH,
+};
 use crate::errors::TwineSequencerError;
 
 // TODO: dynamically update the config incase of no overrides
@@ -118,23 +120,55 @@ impl Config {
             >,
         >,
     ) -> Result<Self, TwineSequencerError> {
-        let db_head_block = db
-            .lock()
-            .await
-            .get(
-                NS_BLOCK_PRODUCER.to_string(),
-                LAST_FINALIZED_BLOCK_HASH.to_string(),
-            )
-            .await
-            .map_err(|e| TwineSequencerError::SequencerDBError(e.to_string()))?;
-        if let Some(head_block) = db_head_block {
-            self.l2.head_block = head_block;
-        } else {
-            tracing::warn!(
-                target = "config",
-                "head block not found in db, using the one in the config file: head_block: {}",
-                self.l2.head_block
-            );
+        {
+            let db_head_block = db
+                .lock()
+                .await
+                .get(
+                    NS_BLOCK_PRODUCER.to_string(),
+                    LAST_FINALIZED_BLOCK_HASH.to_string(),
+                )
+                .await
+                .map_err(|e| TwineSequencerError::SequencerDBError(e.to_string()))?;
+            if let Some(head_block) = db_head_block {
+                self.l2.head_block = head_block;
+            } else {
+                tracing::warn!(
+                    target = "config",
+                    "head block not found in DB, using the one in the config file: head_block: {}",
+                    self.l2.head_block
+                );
+            }
+        }
+
+        {
+            let db_verified_batch = db
+                .lock()
+                .await
+                .get(
+                    NS_CHAIN_STATE_VERIFIER.to_string(),
+                    VERIFIED_BATCH.to_string(),
+                )
+                .await
+                .map_err(|e| TwineSequencerError::SequencerDBError(e.to_string()))?;
+
+            if let Some(verified_block) = db_verified_batch {
+                let verified_batch = verified_block
+                    .parse()
+                    .map_err(|e| TwineSequencerError::Other(format!("{e}")))?;
+                self.solana.verified_batch = verified_batch;
+                self.ethereum.verified_batch = verified_batch;
+            } else {
+                let min_verified_batch =
+                    std::cmp::min(self.solana.verified_batch, self.ethereum.verified_batch);
+                self.solana.verified_batch = min_verified_batch;
+                self.ethereum.verified_batch = min_verified_batch;
+                tracing::warn!(
+                    target = "config",
+                    "last verified batch not found in DB, using the minimum verified batch in the config file: verified batch: {}",
+                    min_verified_batch
+                );
+            }
         }
 
         Ok(self)

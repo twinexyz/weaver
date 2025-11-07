@@ -1,8 +1,13 @@
 //! Traits that defines state trackers of underlying L1 chains
 
+use std::sync::Arc;
+
 use alloy_primitives::FixedBytes;
 use async_trait::async_trait;
 use tokio::sync::mpsc::Sender;
+use tokio::sync::Mutex;
+use twine_sequencer_db::db::SequencerDB;
+use twine_sequencer_db::error::TwineSequencerDBError;
 
 use crate::config::config::L1Config;
 use crate::errors::TwineSequencerError;
@@ -14,6 +19,16 @@ pub trait L1StateTracker: Send + Sync {
     async fn new(
         config: L1Config,
         state_sender: Sender<L2State>,
+        db: Arc<
+            Mutex<
+                dyn SequencerDB<
+                    NameSpace = String,
+                    SequencerDBError = TwineSequencerDBError,
+                    Key = String,
+                    Value = String,
+                >,
+            >,
+        >,
     ) -> Result<Self, TwineSequencerError>
     where
         Self: Sized;

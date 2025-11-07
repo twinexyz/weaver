@@ -3,17 +3,32 @@
 
 use std::collections::HashMap;
 use std::fmt::Debug;
+use std::sync::Arc;
 
 use async_trait::async_trait;
 use tokio::sync::mpsc::Receiver;
+use tokio::sync::Mutex;
+use twine_sequencer_db::db::SequencerDB;
+use twine_sequencer_db::error::TwineSequencerDBError;
 
+use crate::common::{NS_CHAIN_STATE_VERIFIER, VERIFIED_BATCH};
 use crate::errors::TwineSequencerError;
 use crate::l1_state::state_tracker::L2State;
 use crate::l1_state::state_verifier::StateVerifier;
 
 /// L1 State Verifier
-#[derive(Debug)]
 pub struct L1StateVerifier {
+    /// db
+    db: Arc<
+        Mutex<
+            dyn SequencerDB<
+                NameSpace = String,
+                SequencerDBError = TwineSequencerDBError,
+                Key = String,
+                Value = String,
+            >,
+        >,
+    >,
     /// state receiver
     state_receiver: Receiver<L2State>,
     /// registered l1s
@@ -23,12 +38,32 @@ pub struct L1StateVerifier {
     state_record: HashMap<String, L2State>,
 }
 
+impl Debug for L1StateVerifier {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("L1StateVerifier")
+            .field("state_verifier", &self.state_receiver)
+            .field("registered_l1s", &self.registered_l1s)
+            .field("state_record", &self.state_record)
+            .finish()
+    }
+}
+
 #[async_trait]
 impl StateVerifier for L1StateVerifier {
     /// creates new instance of l1 state verifier
     async fn new(
         registered_l1s: Vec<String>,
         state_receiver: Receiver<L2State>,
+        db: Arc<
+            Mutex<
+                dyn SequencerDB<
+                    NameSpace = String,
+                    SequencerDBError = TwineSequencerDBError,
+                    Key = String,
+                    Value = String,
+                >,
+            >,
+        >,
     ) -> Result<Self, TwineSequencerError>
     where
         Self: Sized, {
@@ -36,6 +71,7 @@ impl StateVerifier for L1StateVerifier {
             state_receiver,
             state_record: HashMap::new(),
             registered_l1s,
+            db,
         })
     }
 
@@ -52,6 +88,18 @@ impl StateVerifier for L1StateVerifier {
                     "not enough record to verify l2 batch: {}",
                     batch_number
                 );
+            }
+            {
+                self.db
+                    .lock()
+                    .await
+                    .insert(
+                        NS_CHAIN_STATE_VERIFIER.to_string(),
+                        VERIFIED_BATCH.to_string(),
+                        batch_number.to_string(),
+                    )
+                    .await
+                    .map_err(|e| TwineSequencerError::Other(e.to_string()))?;
             }
             tracing::info!(target = "verifier", "verified batch: {}", batch_number);
         }

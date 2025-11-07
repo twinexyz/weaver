@@ -1,21 +1,36 @@
 //! Ethereum state watcher
 
+use std::fmt::Debug;
+use std::sync::Arc;
 use std::time::Duration;
 
 use alloy_primitives::FixedBytes;
 use async_trait::async_trait;
 use tokio::sync::mpsc::Sender;
+use tokio::sync::Mutex;
 use tokio::time::{self, MissedTickBehavior};
 use twine_l1_eth::twine_l1_eth_reader::{EthReader, EthReaderBuilder};
+use twine_sequencer_db::db::SequencerDB;
+use twine_sequencer_db::error::TwineSequencerDBError;
 
+use crate::common::{ETH_PROCESSED_BATCH, NS_CHAIN_WATCHER};
 use crate::config::config::L1Config;
 use crate::errors::TwineSequencerError;
 use crate::l1_state::chains::L2StateCheckpoint;
 use crate::l1_state::state_tracker::{L1StateTracker, L2State, State};
 
 /// Ethereum State watcher
-#[derive(Debug)]
 pub struct EthereumStateWatcher {
+    db: Arc<
+        Mutex<
+            dyn SequencerDB<
+                NameSpace = String,
+                SequencerDBError = TwineSequencerDBError,
+                Key = String,
+                Value = String,
+            >,
+        >,
+    >,
     /// last verified l2 batch
     pub verified_l2_batch: u64,
     /// client to connect to the L1 chain
@@ -24,12 +39,32 @@ pub struct EthereumStateWatcher {
     pub state_sender: Sender<L2State>,
 }
 
+impl Debug for EthereumStateWatcher {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("EthereumStateWatcher")
+            .field("verified_l2_batch", &self.verified_l2_batch)
+            .field("client", &self.client)
+            .field("state_sender", &self.state_sender)
+            .finish()
+    }
+}
+
 #[async_trait]
 impl L1StateTracker for EthereumStateWatcher {
     /// create new instance of ethereum state watcher
     async fn new(
         config: L1Config,
         state_sender: Sender<L2State>,
+        db: Arc<
+            Mutex<
+                dyn SequencerDB<
+                    NameSpace = String,
+                    SequencerDBError = TwineSequencerDBError,
+                    Key = String,
+                    Value = String,
+                >,
+            >,
+        >,
     ) -> Result<Self, TwineSequencerError>
     where
         Self: Sized, {
@@ -45,6 +80,7 @@ impl L1StateTracker for EthereumStateWatcher {
             client,
             state_sender,
             verified_l2_batch,
+            db,
         })
     }
 
@@ -69,6 +105,19 @@ impl L1StateTracker for EthereumStateWatcher {
                     ))
                 })?;
             self.verified_l2_batch = next_expected_batch;
+
+            {
+                self.db
+                    .lock()
+                    .await
+                    .insert(
+                        NS_CHAIN_WATCHER.to_string(),
+                        ETH_PROCESSED_BATCH.to_string(),
+                        self.verified_l2_batch.to_string(),
+                    )
+                    .await
+                    .map_err(|e| TwineSequencerError::Other(e.to_string()))?;
+            }
         }
     }
 }

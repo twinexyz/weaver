@@ -1,21 +1,37 @@
 //! solana watcher
 
+use std::fmt::Debug;
+use std::sync::Arc;
 use std::time::Duration;
 
 use alloy_primitives::FixedBytes;
 use async_trait::async_trait;
 use tokio::sync::mpsc::Sender;
+use tokio::sync::Mutex;
 use tokio::time::{self, MissedTickBehavior};
 use twine_l1_solana::SolanaProvider;
+use twine_sequencer_db::db::SequencerDB;
+use twine_sequencer_db::error::TwineSequencerDBError;
 
+use crate::common::{NS_CHAIN_WATCHER, SOLANA_PROCESSED_BATCH};
 use crate::config::config::L1Config;
 use crate::errors::TwineSequencerError;
 use crate::l1_state::chains::L2StateCheckpoint;
 use crate::l1_state::state_tracker::{L1StateTracker, L2State, State};
 
 /// Solana State watcher
-#[derive(Debug)]
 pub struct SolanaStateWatcher {
+    /// db
+    db: Arc<
+        Mutex<
+            dyn SequencerDB<
+                NameSpace = String,
+                SequencerDBError = TwineSequencerDBError,
+                Key = String,
+                Value = String,
+            >,
+        >,
+    >,
     /// verified l2 batch
     pub verified_l2_batch: u64,
     /// provider to query solana chain
@@ -24,12 +40,32 @@ pub struct SolanaStateWatcher {
     pub state_sender: Sender<L2State>,
 }
 
+impl Debug for SolanaStateWatcher {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SolanaStateWatcher")
+            .field("verified_l2_batch", &self.verified_l2_batch)
+            .field("provider", &self.provider)
+            .field("state_sender", &self.state_sender)
+            .finish()
+    }
+}
+
 #[async_trait]
 impl L1StateTracker for SolanaStateWatcher {
     /// creates new instance of state tracker
     async fn new(
         config: L1Config,
         state_sender: Sender<L2State>,
+        db: Arc<
+            Mutex<
+                dyn SequencerDB<
+                    NameSpace = String,
+                    SequencerDBError = TwineSequencerDBError,
+                    Key = String,
+                    Value = String,
+                >,
+            >,
+        >,
     ) -> Result<Self, TwineSequencerError>
     where
         Self: Sized, {
@@ -46,6 +82,7 @@ impl L1StateTracker for SolanaStateWatcher {
             verified_l2_batch,
             provider,
             state_sender,
+            db,
         })
     }
 
@@ -69,6 +106,19 @@ impl L1StateTracker for SolanaStateWatcher {
                     ))
                 })?;
             self.verified_l2_batch = next_expected_batch;
+
+            {
+                self.db
+                    .lock()
+                    .await
+                    .insert(
+                        NS_CHAIN_WATCHER.to_string(),
+                        SOLANA_PROCESSED_BATCH.to_string(),
+                        self.verified_l2_batch.to_string(),
+                    )
+                    .await
+                    .map_err(|e| TwineSequencerError::Other(e.to_string()))?;
+            }
         }
     }
 }
