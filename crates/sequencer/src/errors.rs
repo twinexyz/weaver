@@ -32,6 +32,9 @@ pub enum TwineSequencerError {
     /// channel error
     #[error("{0}")]
     ChannelError(String),
+    /// db error
+    #[error["DB error: {0}"]]
+    SequencerDBError(String),
     /// other failures
     #[error("{0}")]
     Other(String),
