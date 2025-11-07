@@ -17,3 +17,7 @@ l2:
   block_time: 2000
 extras:
   verifer_channel_buffer_size: 10
+db:
+  db_path: "/tmp/sequencer-db"
+  db_column_family:
+    - "HELLO"

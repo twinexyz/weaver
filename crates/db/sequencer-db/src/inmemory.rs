@@ -3,10 +3,9 @@
 use std::collections::HashMap;
 
 use async_trait::async_trait;
-use twine_sequencer::config::config::Config;
-use twine_sequencer::errors::TwineSequencerError;
 
 use crate::db::SequencerDB;
+use crate::error::TwineSequencerDBError;
 
 /// Inmemory DB for twine sequencer
 #[derive(Debug)]
@@ -16,14 +15,16 @@ pub struct InMemory {
 
 #[async_trait]
 impl SequencerDB for InMemory {
-    type Config = Config;
     type Key = String;
     type NameSpace = String;
-    type SequencerDBError = TwineSequencerError;
+    type SequencerDBError = TwineSequencerDBError;
     type Value = String;
 
     /// creates new instance of db
-    async fn new(_config: Option<Self::Config>) -> Result<Self, Self::SequencerDBError>
+    async fn new(
+        _db_path: Option<String>,
+        _name_spaces: Vec<String>,
+    ) -> Result<Self, Self::SequencerDBError>
     where
         Self: Sized, {
         Ok(Self { db: HashMap::new() })
