@@ -1,10 +1,15 @@
 //! Configuration for the sequencer
 
 use std::fs::File;
+use std::sync::Arc;
 
 use clap::Parser;
 use serde::{Deserialize, Serialize};
+use tokio::sync::Mutex;
+use twine_sequencer_db::db::SequencerDB;
+use twine_sequencer_db::error::TwineSequencerDBError;
 
+use crate::common::{LAST_FINALIZED_BLOCK_HASH, NS_BLOCK_PRODUCER};
 use crate::errors::TwineSequencerError;
 
 // TODO: dynamically update the config incase of no overrides
@@ -97,6 +102,42 @@ impl Config {
         let config: Config = serde_yaml::from_reader(config_file)
             .map_err(|e| TwineSequencerError::Other(e.to_string()))?;
         Ok(config)
+    }
+
+    /// handle dynamic config update
+    pub async fn dynamic_load(
+        mut self,
+        db: Arc<
+            Mutex<
+                dyn SequencerDB<
+                    NameSpace = String,
+                    SequencerDBError = TwineSequencerDBError,
+                    Key = String,
+                    Value = String,
+                >,
+            >,
+        >,
+    ) -> Result<Self, TwineSequencerError> {
+        let db_head_block = db
+            .lock()
+            .await
+            .get(
+                NS_BLOCK_PRODUCER.to_string(),
+                LAST_FINALIZED_BLOCK_HASH.to_string(),
+            )
+            .await
+            .map_err(|e| TwineSequencerError::SequencerDBError(e.to_string()))?;
+        if let Some(head_block) = db_head_block {
+            self.l2.head_block = head_block;
+        } else {
+            tracing::warn!(
+                target = "config",
+                "head block not found in db, using the one in the config file: head_block: {}",
+                self.l2.head_block
+            );
+        }
+
+        Ok(self)
     }
 
     /// over ride the file config in any exists

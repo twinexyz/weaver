@@ -1,10 +1,12 @@
 //! Instantiates the sequencer
 
+use std::fmt::Debug;
 use std::sync::Arc;
 
 use async_trait::async_trait;
 use tokio::sync::Mutex;
 use twine_sequencer_db::db::SequencerDB;
+use twine_sequencer_db::error::TwineSequencerDBError;
 use twine_sequencer_db::rocksdb::SequencerRocksDB;
 
 use crate::config::config::{Args, Config};
@@ -12,12 +14,26 @@ use crate::errors::TwineSequencerError;
 use crate::instance::SequencerInstance;
 
 /// Sequencer Instance
-#[derive(Debug)]
 pub struct TwineSequencerInstance {
     /// config
     config: Config,
     /// DB instance
-    _db: Arc<Mutex<SequencerRocksDB>>,
+    db: Arc<
+        Mutex<
+            dyn SequencerDB<
+                NameSpace = String,
+                SequencerDBError = TwineSequencerDBError,
+                Key = String,
+                Value = String,
+            >,
+        >,
+    >,
+}
+
+impl Debug for TwineSequencerInstance {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("twine sequencer instance")
+    }
 }
 
 #[async_trait]
@@ -27,7 +43,7 @@ impl SequencerInstance for TwineSequencerInstance {
     async fn new(args: Args) -> Result<Self, TwineSequencerError>
     where
         Self: Sized, {
-        let config = Config::load(&args.config)?.handle_overrides(args)?;
+        let config = Config::load(&args.config)?;
 
         let db_cfg = config.db.clone().expect("DB config not set");
 
@@ -35,10 +51,14 @@ impl SequencerInstance for TwineSequencerInstance {
             .await
             .map_err(|e| TwineSequencerError::SequencerDBError(e.to_string()))?;
 
-        Ok(Self {
-            config,
-            _db: Arc::new(Mutex::new(db)),
-        })
+        let db = Arc::new(Mutex::new(db));
+
+        let config = config
+            .dynamic_load(db.clone())
+            .await?
+            .handle_overrides(args)?;
+
+        Ok(Self { config, db })
     }
 
     /// start sequencer with different sequencer tasks
@@ -57,6 +77,7 @@ impl SequencerInstance for TwineSequencerInstance {
                 config.l2.auth_rpc_url,
                 config.l2.block_time,
                 config.l2.fee_recipient,
+                self.db.clone(),
             );
             let block_progress_task = tokio::spawn(async move { block_producer.progress().await });
             join_handles.push(block_progress_task);
