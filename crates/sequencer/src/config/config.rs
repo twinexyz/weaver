@@ -51,7 +51,15 @@ pub struct Config {
     pub solana: L1Config,
     pub ethereum: L1Config,
     pub l2: L2Config,
+    pub db_path: Option<DB>,
     pub extras: Extras,
+}
+
+#[allow(missing_docs)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DB {
+    pub db_path: String,
+    pub db_column_family: Vec<String>,
 }
 
 #[allow(missing_docs)]

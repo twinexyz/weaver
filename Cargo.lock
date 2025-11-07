@@ -16144,6 +16144,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "twine-sequencer-db"
+version = "1.7.0"
+dependencies = [
+ "async-trait",
+ "rocksdb",
+ "twine-sequencer",
+]
+
+[[package]]
 name = "twine-solana-consensus-prover-lib"
 version = "0.1.0"
 dependencies = [

@@ -24,6 +24,7 @@ members = [
   "crates/common",
   "crates/constants",
   "crates/db/batch",
+  "crates/db/sequencer-db",
   "crates/egressa",
   "crates/ethereum-consensus-prover",
   "crates/evm-contracts",
@@ -207,6 +208,7 @@ twine-l2-proof-scheduler = { path = "crates/l2-proof-scheduler" }
 twine-proof-scheduler-common = { path = "crates/proof-scheduler-common" }
 twine-rpc = { path = "crates/rpc" }
 twine-sequencer = { path = "crates/sequencer", default-features = false }
+twine-sequencer-db = { path = "crates/db/sequencer-db" }
 twine-solana-consensus-prover-lib = { path = "crates/solana-consensus-prover" }
 twine-solana-proof-scheduler = { path = "crates/solana-proof-scheduler" }
 twine-solana-sdk = { path = "crates/solana-sdk" }
