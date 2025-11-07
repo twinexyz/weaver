@@ -20,6 +20,3 @@ extras:
 db:
   db_path: "/tmp/sequencer-db"
   db_column_family:
-    - "BLOCK_PRODUCER"
-    - "CHAIN_WATCHER"
-    - "CHAIN_STATE_VERIFIER"

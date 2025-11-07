@@ -9,6 +9,7 @@ use twine_sequencer_db::db::SequencerDB;
 use twine_sequencer_db::error::TwineSequencerDBError;
 use twine_sequencer_db::rocksdb::SequencerRocksDB;
 
+use crate::common::DEFAULT_DB_NAMESPACES;
 use crate::config::config::{Args, Config};
 use crate::errors::TwineSequencerError;
 use crate::instance::SequencerInstance;
@@ -47,9 +48,19 @@ impl SequencerInstance for TwineSequencerInstance {
         Self: Sized, {
         let config = Config::load(&args.config)?;
 
-        let db_cfg = config.db.clone().expect("DB config not set");
+        let mut db_cfg = config.db.clone().expect("DB config not set");
 
-        let db = SequencerRocksDB::new(Some(db_cfg.db_path), db_cfg.db_column_family)
+        let mut db_cf = vec![];
+        db_cf.append(&mut db_cfg.db_column_family);
+
+        for cf in DEFAULT_DB_NAMESPACES {
+            let cf = cf.to_string();
+            if !db_cf.contains(&cf) {
+                db_cf.push(cf.to_string());
+            }
+        }
+
+        let db = SequencerRocksDB::new(Some(db_cfg.db_path), db_cf)
             .await
             .map_err(|e| TwineSequencerError::SequencerDBError(e.to_string()))?;
 
