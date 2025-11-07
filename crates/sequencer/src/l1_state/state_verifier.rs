@@ -1,7 +1,12 @@
 //! Trait that defines the l1 state verifier
 
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use tokio::sync::mpsc::Receiver;
+use tokio::sync::Mutex;
+use twine_sequencer_db::db::SequencerDB;
+use twine_sequencer_db::error::TwineSequencerDBError;
 
 use crate::errors::TwineSequencerError;
 use crate::l1_state::state_tracker::L2State;
@@ -13,6 +18,16 @@ pub trait StateVerifier {
     async fn new(
         registered_l1s: Vec<String>,
         state_receiver: Receiver<L2State>,
+        db: Arc<
+            Mutex<
+                dyn SequencerDB<
+                    NameSpace = String,
+                    SequencerDBError = TwineSequencerDBError,
+                    Key = String,
+                    Value = String,
+                >,
+            >,
+        >,
     ) -> Result<Self, TwineSequencerError>
     where
         Self: Sized;

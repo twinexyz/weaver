@@ -32,7 +32,9 @@ pub struct TwineSequencerInstance {
 
 impl Debug for TwineSequencerInstance {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("twine sequencer instance")
+        f.debug_struct("TwineSequencerInstance")
+            .field("config", &self.config)
+            .finish()
     }
 }
 
@@ -65,10 +67,11 @@ impl SequencerInstance for TwineSequencerInstance {
     async fn start(&self) -> Result<(), TwineSequencerError> {
         let config = self.config.clone();
         let mut join_handles = vec![];
-        use std::path::PathBuf;
 
         #[cfg(feature = "sequencer")]
         {
+            use std::path::PathBuf;
+
             use crate::block_progress::block_progress::BlockProducer;
 
             let mut block_producer = BlockProducer::new(
@@ -97,14 +100,17 @@ impl SequencerInstance for TwineSequencerInstance {
                 mpsc::channel(config.extras.verifer_channel_buffer_size);
 
             let mut eth_watcher =
-                EthereumStateWatcher::new(config.ethereum, state_sender.clone()).await?;
+                EthereumStateWatcher::new(config.ethereum, state_sender.clone(), self.db.clone())
+                    .await?;
 
             let mut solana_watcher =
-                SolanaStateWatcher::new(config.solana, state_sender.clone()).await?;
+                SolanaStateWatcher::new(config.solana, state_sender.clone(), self.db.clone())
+                    .await?;
 
             let mut state_verifier = L1StateVerifier::new(
                 vec!["solana".to_string(), "ethereum".to_string()],
                 state_receiver,
+                self.db.clone(),
             )
             .await?;
 
