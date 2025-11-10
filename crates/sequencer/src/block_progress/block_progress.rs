@@ -7,6 +7,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use alloy_primitives::hex::FromHex;
 use alloy_primitives::{Address, FixedBytes, B256};
 use alloy_rpc_types_engine::{ForkchoiceState, PayloadAttributes};
+use tokio::sync::broadcast::Receiver;
 use tokio::sync::Mutex;
 use tokio::time;
 use twine_sequencer_db::db::SequencerDB;
@@ -19,6 +20,8 @@ use crate::errors::TwineSequencerError;
 
 /// Twine block producer
 pub struct BlockProducer {
+    /// kill signal receiver
+    kill_sig_recv: Receiver<bool>,
     db: Arc<
         Mutex<
             dyn SequencerDB<
@@ -52,6 +55,7 @@ impl Debug for BlockProducer {
 impl BlockProducer {
     /// Creates new instance of Block producer
     pub fn new(
+        kill_sig_recv: Receiver<bool>,
         head_block: String,
         jwt_token_path: PathBuf,
         el_auth_url: String,
@@ -75,6 +79,7 @@ impl BlockProducer {
         let fee_recepient = Address::from_hex(&fee_recepient)
             .expect(&format!("could not parse address {fee_recepient}"));
         Self {
+            kill_sig_recv,
             head_block,
             block_time,
             engine_client,
@@ -93,84 +98,91 @@ impl BlockProducer {
         self.validate_el_capabilities().await?;
 
         loop {
-            block_ticker.tick().await;
+            tokio::select! {
+                _ = self.kill_sig_recv.recv() => {
+                    tracing::warn!(target = "block_produver", "stopping block producer");
+                    return Ok(())
+                }
+                _ = block_ticker.tick() => {
 
-            let time_now = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .map_err(|e| TwineSequencerError::Other(format!("System clock error: {e}")))?
-                .as_secs();
+                    let time_now = SystemTime::now()
+                        .duration_since(UNIX_EPOCH)
+                        .map_err(|e| TwineSequencerError::Other(format!("System clock error: {e}")))?
+                        .as_secs();
 
-            let fork_choice_state = ForkchoiceState {
-                head_block_hash: self.head_block,
-                safe_block_hash: self.head_block,
-                finalized_block_hash: self.head_block,
-            };
+                    let fork_choice_state = ForkchoiceState {
+                        head_block_hash: self.head_block,
+                        safe_block_hash: self.head_block,
+                        finalized_block_hash: self.head_block,
+                    };
 
-            let payload_attributes = PayloadAttributes {
-                timestamp: time_now + 2,
-                prev_randao: B256::ZERO,
-                suggested_fee_recipient: self.fee_recepient,
-                withdrawals: Some(vec![]),
-                parent_beacon_block_root: Some(B256::ZERO),
-            };
+                    let payload_attributes = PayloadAttributes {
+                        timestamp: time_now + 2,
+                        prev_randao: B256::ZERO,
+                        suggested_fee_recipient: self.fee_recepient,
+                        withdrawals: Some(vec![]),
+                        parent_beacon_block_root: Some(B256::ZERO),
+                    };
 
-            let forkchoice_updated = self
-                .engine_client
-                .request_payload_build(fork_choice_state, payload_attributes)
-                .await?;
+                    let forkchoice_updated = self
+                        .engine_client
+                        .request_payload_build(fork_choice_state, payload_attributes)
+                        .await?;
 
-            // validate block hash
-            {
-                // safe to unwrap because if the validation in request_payload_build()
-                let block_hash = &forkchoice_updated.payload_status.latest_valid_hash.unwrap();
-                validate_block_hash(self.head_block, *block_hash)?;
-            }
+                    // validate block hash
+                    {
+                        // safe to unwrap because if the validation in request_payload_build()
+                        let block_hash = &forkchoice_updated.payload_status.latest_valid_hash.unwrap();
+                        validate_block_hash(self.head_block, *block_hash)?;
+                    }
 
-            // safe to unwrap here because of the validation in request_payload_build
-            let execution_payload_envelope_v4 = self
-                .engine_client
-                .get_payload(forkchoice_updated.payload_id.unwrap())
-                .await?;
+                    // safe to unwrap here because of the validation in request_payload_build
+                    let execution_payload_envelope_v4 = self
+                        .engine_client
+                        .get_payload(forkchoice_updated.payload_id.unwrap())
+                        .await?;
 
-            let expected_new_head = execution_payload_envelope_v4
-                .envelope_inner
-                .execution_payload
-                .payload_inner
-                .payload_inner
-                .block_hash;
+                    let expected_new_head = execution_payload_envelope_v4
+                        .envelope_inner
+                        .execution_payload
+                        .payload_inner
+                        .payload_inner
+                        .block_hash;
 
-            let status = self
-                .engine_client
-                .submit_new_payload(execution_payload_envelope_v4)
-                .await?;
+                    let status = self
+                        .engine_client
+                        .submit_new_payload(execution_payload_envelope_v4)
+                        .await?;
 
-            let latest_hash = status.latest_valid_hash.unwrap();
-            validate_block_hash(expected_new_head, latest_hash)?;
+                    let latest_hash = status.latest_valid_hash.unwrap();
+                    validate_block_hash(expected_new_head, latest_hash)?;
 
-            let final_state = ForkchoiceState {
-                head_block_hash: expected_new_head,
-                safe_block_hash: expected_new_head,
-                finalized_block_hash: expected_new_head,
-            };
+                    let final_state = ForkchoiceState {
+                        head_block_hash: expected_new_head,
+                        safe_block_hash: expected_new_head,
+                        finalized_block_hash: expected_new_head,
+                    };
 
-            let final_status = self.engine_client.announce_forkchoice(final_state).await?;
-            // can safely unwrap here because of the validation in the engine api call
-            let latest_hash = final_status.latest_valid_hash.unwrap();
-            validate_block_hash(expected_new_head, latest_hash)?;
+                    let final_status = self.engine_client.announce_forkchoice(final_state).await?;
+                    // can safely unwrap here because of the validation in the engine api call
+                    let latest_hash = final_status.latest_valid_hash.unwrap();
+                    validate_block_hash(expected_new_head, latest_hash)?;
 
-            self.head_block = latest_hash;
+                    self.head_block = latest_hash;
 
-            {
-                self.db
-                    .lock()
-                    .await
-                    .insert(
-                        NS_BLOCK_PRODUCER.to_string(),
-                        LAST_FINALIZED_BLOCK_HASH.to_string(),
-                        latest_hash.to_string(),
-                    )
-                    .await
-                    .map_err(|e| TwineSequencerError::SequencerDBError(e.to_string()))?;
+                    {
+                        self.db
+                            .lock()
+                            .await
+                            .insert(
+                                NS_BLOCK_PRODUCER.to_string(),
+                                LAST_FINALIZED_BLOCK_HASH.to_string(),
+                                latest_hash.to_string(),
+                            )
+                            .await
+                            .map_err(|e| TwineSequencerError::SequencerDBError(e.to_string()))?;
+                    }
+                }
             }
         }
 

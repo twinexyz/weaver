@@ -1,6 +1,7 @@
 //! Instantiates the sequencer
 
 use async_trait::async_trait;
+use tokio::sync::broadcast::Sender;
 use twine_sequencer_db::db::SequencerDB;
 
 use crate::config::config::Args;
@@ -20,5 +21,5 @@ pub trait SequencerInstance: Send + Sync {
         Self: Sized;
 
     /// starts the sequencer instance
-    async fn start(&self) -> Result<(), TwineSequencerError>;
+    async fn start(&self, kill_sig_sender: Sender<bool>) -> Result<(), TwineSequencerError>;
 }

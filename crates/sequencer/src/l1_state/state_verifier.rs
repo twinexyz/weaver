@@ -3,6 +3,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use tokio::sync::broadcast::Receiver as KReceiver;
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::Mutex;
 use twine_sequencer_db::db::SequencerDB;
@@ -16,6 +17,7 @@ use crate::l1_state::state_tracker::L2State;
 pub trait StateVerifier {
     /// creates new instance of l1 state verifier
     async fn new(
+        kill_sig_recv: KReceiver<bool>,
         registered_l1s: Vec<String>,
         state_receiver: Receiver<L2State>,
         db: Arc<
