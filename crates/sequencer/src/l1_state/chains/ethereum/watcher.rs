@@ -6,6 +6,7 @@ use std::time::Duration;
 
 use alloy_primitives::FixedBytes;
 use async_trait::async_trait;
+use tokio::sync::broadcast::Receiver;
 use tokio::sync::mpsc::Sender;
 use tokio::sync::Mutex;
 use tokio::time::{self, MissedTickBehavior};
@@ -21,6 +22,8 @@ use crate::l1_state::state_tracker::{L1StateTracker, L2State, State};
 
 /// Ethereum State watcher
 pub struct EthereumStateWatcher {
+    /// kill sig receiver
+    kill_sig_recv: Receiver<bool>,
     db: Arc<
         Mutex<
             dyn SequencerDB<
@@ -53,6 +56,7 @@ impl Debug for EthereumStateWatcher {
 impl L1StateTracker for EthereumStateWatcher {
     /// create new instance of ethereum state watcher
     async fn new(
+        kill_sig_recv: Receiver<bool>,
         config: L1Config,
         state_sender: Sender<L2State>,
         db: Arc<
@@ -77,6 +81,7 @@ impl L1StateTracker for EthereumStateWatcher {
             .await
             .map_err(|e| TwineSequencerError::Other(e.to_string()))?;
         Ok(Self {
+            kill_sig_recv,
             client,
             state_sender,
             verified_l2_batch,
@@ -91,32 +96,40 @@ impl L1StateTracker for EthereumStateWatcher {
         let mut ticker = time::interval(Duration::from_secs(2));
         ticker.set_missed_tick_behavior(MissedTickBehavior::Delay);
         loop {
-            ticker.tick().await;
-            let next_expected_batch = self.verified_l2_batch + 1;
-            let next_expected_l2_state = self
-                .get_l2_state_on_l1(L2StateCheckpoint::L2BatchNumber(next_expected_batch))
-                .await?; // TODO: exponential backoff and retry
-            self.state_sender
-                .send(next_expected_l2_state)
-                .await
-                .map_err(|e| {
-                    TwineSequencerError::ChannelError(format!(
-                        "Could not send l2 state of eth l1 to the channel: {e}"
-                    ))
-                })?;
-            self.verified_l2_batch = next_expected_batch;
+            tokio::select! {
+                _ = self.kill_sig_recv.recv() => {
+                    tracing::warn!(target = "state_watcher", "stopping ethereum state watcher");
+                    return Ok(())
+                }
 
-            {
-                self.db
-                    .lock()
-                    .await
-                    .insert(
-                        NS_CHAIN_WATCHER.to_string(),
-                        ETH_PROCESSED_BATCH.to_string(),
-                        self.verified_l2_batch.to_string(),
-                    )
-                    .await
-                    .map_err(|e| TwineSequencerError::Other(e.to_string()))?;
+                _ = ticker.tick() => {
+                    let next_expected_batch = self.verified_l2_batch + 1;
+                    let next_expected_l2_state = self
+                        .get_l2_state_on_l1(L2StateCheckpoint::L2BatchNumber(next_expected_batch))
+                        .await?; // TODO: exponential backoff and retry
+                    self.state_sender
+                        .send(next_expected_l2_state)
+                        .await
+                        .map_err(|e| {
+                            TwineSequencerError::ChannelError(format!(
+                                "Could not send l2 state of eth l1 to the channel: {e}"
+                            ))
+                        })?;
+                    self.verified_l2_batch = next_expected_batch;
+
+                    {
+                        self.db
+                            .lock()
+                            .await
+                            .insert(
+                                NS_CHAIN_WATCHER.to_string(),
+                                ETH_PROCESSED_BATCH.to_string(),
+                                self.verified_l2_batch.to_string(),
+                            )
+                            .await
+                            .map_err(|e| TwineSequencerError::Other(e.to_string()))?;
+                    }
+                }
             }
         }
     }

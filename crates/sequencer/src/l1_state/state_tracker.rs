@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use alloy_primitives::FixedBytes;
 use async_trait::async_trait;
+use tokio::sync::broadcast::Receiver;
 use tokio::sync::mpsc::Sender;
 use tokio::sync::Mutex;
 use twine_sequencer_db::db::SequencerDB;
@@ -17,6 +18,7 @@ use crate::errors::TwineSequencerError;
 pub trait L1StateTracker: Send + Sync {
     /// creates new instance of state tracker
     async fn new(
+        kill_sig_recv: Receiver<bool>,
         config: L1Config,
         state_sender: Sender<L2State>,
         db: Arc<

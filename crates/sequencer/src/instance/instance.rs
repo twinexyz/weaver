@@ -4,6 +4,7 @@ use std::fmt::Debug;
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use tokio::sync::broadcast::Sender;
 use tokio::sync::Mutex;
 use twine_sequencer_db::db::SequencerDB;
 use twine_sequencer_db::error::TwineSequencerDBError;
@@ -75,7 +76,7 @@ impl SequencerInstance for TwineSequencerInstance {
     }
 
     /// start sequencer with different sequencer tasks
-    async fn start(&self) -> Result<(), TwineSequencerError> {
+    async fn start(&self, kill_sig_sender: Sender<bool>) -> Result<(), TwineSequencerError> {
         let config = self.config.clone();
         let mut join_handles = vec![];
 
@@ -86,6 +87,7 @@ impl SequencerInstance for TwineSequencerInstance {
             use crate::block_progress::block_progress::BlockProducer;
 
             let mut block_producer = BlockProducer::new(
+                kill_sig_sender.subscribe(),
                 config.l2.head_block,
                 PathBuf::from(config.l2.jwt_token_path),
                 config.l2.auth_rpc_url,
@@ -110,15 +112,24 @@ impl SequencerInstance for TwineSequencerInstance {
             let (state_sender, state_receiver) =
                 mpsc::channel(config.extras.verifer_channel_buffer_size);
 
-            let mut eth_watcher =
-                EthereumStateWatcher::new(config.ethereum, state_sender.clone(), self.db.clone())
-                    .await?;
+            let mut eth_watcher = EthereumStateWatcher::new(
+                kill_sig_sender.subscribe(),
+                config.ethereum,
+                state_sender.clone(),
+                self.db.clone(),
+            )
+            .await?;
 
-            let mut solana_watcher =
-                SolanaStateWatcher::new(config.solana, state_sender.clone(), self.db.clone())
-                    .await?;
+            let mut solana_watcher = SolanaStateWatcher::new(
+                kill_sig_sender.subscribe(),
+                config.solana,
+                state_sender.clone(),
+                self.db.clone(),
+            )
+            .await?;
 
             let mut state_verifier = L1StateVerifier::new(
+                kill_sig_sender.subscribe(),
                 vec!["solana".to_string(), "ethereum".to_string()],
                 state_receiver,
                 self.db.clone(),

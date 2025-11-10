@@ -6,6 +6,7 @@ use std::fmt::Debug;
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use tokio::sync::broadcast::Receiver as KReceiver;
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::Mutex;
 use twine_sequencer_db::db::SequencerDB;
@@ -18,6 +19,8 @@ use crate::l1_state::state_verifier::StateVerifier;
 
 /// L1 State Verifier
 pub struct L1StateVerifier {
+    /// kill signal receiver
+    kill_sig_recv: KReceiver<bool>,
     /// db
     db: Arc<
         Mutex<
@@ -52,6 +55,7 @@ impl Debug for L1StateVerifier {
 impl StateVerifier for L1StateVerifier {
     /// creates new instance of l1 state verifier
     async fn new(
+        kill_sig_recv: KReceiver<bool>,
         registered_l1s: Vec<String>,
         state_receiver: Receiver<L2State>,
         db: Arc<
@@ -68,6 +72,7 @@ impl StateVerifier for L1StateVerifier {
     where
         Self: Sized, {
         Ok(Self {
+            kill_sig_recv,
             state_receiver,
             state_record: HashMap::new(),
             registered_l1s,
@@ -78,33 +83,39 @@ impl StateVerifier for L1StateVerifier {
     /// verify
     async fn verify(&mut self) -> Result<(), TwineSequencerError> {
         tracing::info!(target = "verifier", "verifier loop started");
-        while let Some(l2_state) = self.state_receiver.recv().await {
-            let batch_number = l2_state.state.l2_batch_number;
-            self.record_l2_state(l2_state.clone());
+        loop {
+            tokio::select! {
+                _ = self.kill_sig_recv.recv() => {
+                    tracing::warn!(target = "state_watcher", "stopping state verifier");
+                    return Ok(())
+                }
+                Some(l2_state) = self.state_receiver.recv() => {
+                    let batch_number = l2_state.state.l2_batch_number;
+                    self.record_l2_state(l2_state.clone());
 
-            if !self.verify_l2_state(l2_state)? {
-                tracing::debug!(
-                    target = "verifier",
-                    "not enough record to verify l2 batch: {}",
-                    batch_number
-                );
+                    if !self.verify_l2_state(l2_state)? {
+                        tracing::debug!(
+                            target = "verifier",
+                            "not enough record to verify l2 batch: {}",
+                            batch_number
+                        );
+                    }
+                    {
+                        self.db
+                            .lock()
+                            .await
+                            .insert(
+                                NS_CHAIN_STATE_VERIFIER.to_string(),
+                                VERIFIED_BATCH.to_string(),
+                                batch_number.to_string(),
+                            )
+                            .await
+                            .map_err(|e| TwineSequencerError::Other(e.to_string()))?;
+                    }
+                    tracing::info!(target = "verifier", "verified batch: {}", batch_number);
+                }
             }
-            {
-                self.db
-                    .lock()
-                    .await
-                    .insert(
-                        NS_CHAIN_STATE_VERIFIER.to_string(),
-                        VERIFIED_BATCH.to_string(),
-                        batch_number.to_string(),
-                    )
-                    .await
-                    .map_err(|e| TwineSequencerError::Other(e.to_string()))?;
-            }
-            tracing::info!(target = "verifier", "verified batch: {}", batch_number);
         }
-        println!("terminates loop??");
-        Err(TwineSequencerError::Other(format!("loop terminated")))
     }
 }
 
