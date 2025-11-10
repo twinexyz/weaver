@@ -8,6 +8,7 @@ use tokio::sync::broadcast::Sender;
 use tokio::sync::Mutex;
 use twine_sequencer_db::db::SequencerDB;
 use twine_sequencer_db::error::TwineSequencerDBError;
+use twine_sequencer_db::inmemory::SequencerInMemoryDB;
 use twine_sequencer_db::rocksdb::SequencerRocksDB;
 
 use crate::common::DEFAULT_DB_NAMESPACES;
@@ -49,23 +50,37 @@ impl SequencerInstance for TwineSequencerInstance {
         Self: Sized, {
         let config = Config::load(&args.config)?;
 
-        let mut db_cfg = config.db.clone().expect("DB config not set");
+        let db: Arc<
+            Mutex<
+                dyn SequencerDB<
+                        NameSpace = String,
+                        SequencerDBError = TwineSequencerDBError,
+                        Key = String,
+                        Value = String,
+                    > + 'static,
+            >,
+        > = if let Some(mut db_cfg) = config.db.clone() {
+            let mut db_cf = vec![];
+            db_cf.append(&mut db_cfg.db_column_family);
 
-        let mut db_cf = vec![];
-        db_cf.append(&mut db_cfg.db_column_family);
-
-        for cf in DEFAULT_DB_NAMESPACES {
-            let cf = cf.to_string();
-            if !db_cf.contains(&cf) {
-                db_cf.push(cf.to_string());
+            for cf in DEFAULT_DB_NAMESPACES {
+                let cf = cf.to_string();
+                if !db_cf.contains(&cf) {
+                    db_cf.push(cf.to_string());
+                }
             }
-        }
 
-        let db = SequencerRocksDB::new(Some(db_cfg.db_path), db_cf)
-            .await
-            .map_err(|e| TwineSequencerError::SequencerDBError(e.to_string()))?;
+            let db = SequencerRocksDB::new(Some(db_cfg.db_path), db_cf)
+                .await
+                .map_err(|e| TwineSequencerError::SequencerDBError(e.to_string()))?;
 
-        let db = Arc::new(Mutex::new(db));
+            Arc::new(Mutex::new(db))
+        } else {
+            let db = SequencerInMemoryDB::new(None, vec![])
+                .await
+                .map_err(|e| TwineSequencerError::SequencerDBError(e.to_string()))?;
+            Arc::new(Mutex::new(db))
+        };
 
         let config = config
             .dynamic_load(db.clone())

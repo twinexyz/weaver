@@ -9,12 +9,12 @@ use crate::error::TwineSequencerDBError;
 
 /// Inmemory DB for twine sequencer
 #[derive(Debug)]
-pub struct InMemory {
+pub struct SequencerInMemoryDB {
     db: HashMap<String, String>,
 }
 
 #[async_trait]
-impl SequencerDB for InMemory {
+impl SequencerDB for SequencerInMemoryDB {
     type Key = String;
     type NameSpace = String;
     type SequencerDBError = TwineSequencerDBError;
@@ -33,10 +33,11 @@ impl SequencerDB for InMemory {
     /// insert one entry
     async fn insert(
         &mut self,
-        _ns: Self::NameSpace,
+        ns: Self::NameSpace,
         key: Self::Key,
         value: Self::Value,
     ) -> Result<(), Self::SequencerDBError> {
+        let key = format!("{ns}_{key}");
         self.db.insert(key, value);
         Ok(())
     }
@@ -44,9 +45,13 @@ impl SequencerDB for InMemory {
     /// insert multiple entries
     async fn insert_multi(
         &mut self,
-        _ns: Self::NameSpace,
+        ns: Self::NameSpace,
         entries: HashMap<Self::Key, Self::Value>,
     ) -> Result<(), Self::SequencerDBError> {
+        let entries: HashMap<String, String> = entries
+            .iter()
+            .map(|entry| (format!("{ns}_{}", entry.0), entry.1.clone()))
+            .collect();
         self.db.extend(entries);
         Ok(())
     }
@@ -54,20 +59,22 @@ impl SequencerDB for InMemory {
     /// get one entry
     async fn get(
         &mut self,
-        _ns: Self::NameSpace,
+        ns: Self::NameSpace,
         key: Self::Key,
     ) -> Result<Option<Self::Value>, Self::SequencerDBError> {
+        let key = format!("{ns}_{key}");
         Ok(self.db.get(&key).map(|v| v.clone()))
     }
 
     /// get multiple entries
     async fn get_multi(
         &mut self,
-        _ns: Self::NameSpace,
+        ns: Self::NameSpace,
         keys: Vec<Self::Key>,
     ) -> Result<Vec<Option<Self::Value>>, Self::SequencerDBError> {
         let mut return_map = Vec::new();
         for key in keys {
+            let key = format!("{ns}_{key}");
             let value = self.db.get(&key).map(|v| v.clone());
             return_map.push(value);
         }
@@ -77,9 +84,10 @@ impl SequencerDB for InMemory {
     /// prune one entry
     async fn prune(
         &mut self,
-        _ns: Self::NameSpace,
+        ns: Self::NameSpace,
         key: Self::Key,
     ) -> Result<Option<Self::Value>, Self::SequencerDBError> {
+        let key = format!("{ns}_{key}");
         let value = self.db.remove(&key);
         Ok(value)
     }
@@ -87,11 +95,12 @@ impl SequencerDB for InMemory {
     /// prune multiple entries
     async fn prune_multi(
         &mut self,
-        _ns: Self::NameSpace,
+        ns: Self::NameSpace,
         keys: Vec<Self::Key>,
     ) -> Result<Vec<Option<Self::Value>>, Self::SequencerDBError> {
         let mut return_map = Vec::new();
         for key in keys {
+            let key = format!("{ns}_{key}");
             let value = self.db.remove(&key);
             return_map.push(value);
         }
