@@ -5,6 +5,7 @@ use std::{env, fs, time};
 use reth_tracing::tracing::{error, info, warn};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
+use tokio::time::sleep;
 use twine_types::proofs::ZkProof;
 
 use crate::config::{ProverConfig, TwineConfig};
@@ -44,6 +45,8 @@ impl ProofGenerator {
         event: &WithdrawalEvent,
     ) -> Result<ZkProof, ProofGenerationError> {
         let start_time = time::Instant::now();
+        const PROOF_GENERATION_MAX_RETRIES: u32 = 3;
+        const PROOF_GENERATION_RETRY_DELAY_SECS: u64 = 10;
 
         // Determine which binary to use and what arguments to pass
         let (binary_path, args) = match self.get_binary_and_args(event) {
@@ -64,62 +67,97 @@ impl ProofGenerator {
         env::set_var("RUST_LOG", "info");
         env::set_var("RUST_BACKTRACE", "1");
 
-        info!(
-            "Generating proof for withdrawal event: type={:?}, chain_id={}, nonce={}, txn_hash={} binary: {}",
-            event.event_type, event.l1_chain_id, event.nonce, event.l2_transaction_hash, binary_path
-        );
+        let mut attempt = 0;
+        let mut last_error: Option<ProofGenerationError> = None;
 
-        // Execute the prover binary
-        if let Err(e) = self.execute_prover_binary(binary_path, args).await {
-            // Record failed proof generation
-            crate::metrics::record_proof_generation_failed(
+        loop {
+            info!(
+                "Generating proof for withdrawal event: type={:?}, chain_id={}, nonce={}, txn_hash={}, binary={}, attempt={}/{}",
+                event.event_type,
                 event.l1_chain_id,
                 event.nonce,
-                &event.event_type.to_string(),
-                "binary_execution_failed",
+                event.l2_transaction_hash,
+                binary_path,
+                attempt + 1,
+                PROOF_GENERATION_MAX_RETRIES
             );
-            return Err(e);
+
+            match self
+                .execute_prover_binary(binary_path.clone(), args.clone())
+                .await
+            {
+                Ok(_) => {
+                    let proof_file_path = format!(
+                        "{}/{}.json",
+                        self.config.proof_output_dir, event.l2_transaction_hash
+                    );
+
+                    match self.process_proof_file(proof_file_path) {
+                        Ok(proof) => {
+                            let elapsed_time = start_time.elapsed();
+
+                            crate::metrics::record_proof_generated(
+                                event.l1_chain_id,
+                                event.nonce,
+                                &event.event_type.to_string(),
+                                elapsed_time.as_secs_f64(),
+                            );
+
+                            info!(
+                                "Proof generation completed in {:.2} secs for withdrawal event: chain={}, nonce={}, tx={}",
+                                elapsed_time.as_secs_f64(),
+                                event.l1_chain_id,
+                                event.nonce,
+                                event.l2_transaction_hash
+                            );
+
+                            return Ok(proof);
+                        }
+                        Err(e) => {
+                            crate::metrics::record_proof_generation_failed(
+                                event.l1_chain_id,
+                                event.nonce,
+                                &event.event_type.to_string(),
+                                "proof_file_processing_failed",
+                            );
+                            error!(
+                                "Failed to process proof file for withdrawal event {} on attempt {}: {}",
+                                event.l2_transaction_hash,
+                                attempt + 1,
+                                e
+                            );
+                            last_error = Some(e);
+                        }
+                    }
+                }
+                Err(e) => {
+                    crate::metrics::record_proof_generation_failed(
+                        event.l1_chain_id,
+                        event.nonce,
+                        &event.event_type.to_string(),
+                        "binary_execution_failed",
+                    );
+                    error!(
+                        "Failed to execute prover binary for withdrawal event {} on attempt {}: {}",
+                        event.l2_transaction_hash,
+                        attempt + 1,
+                        e
+                    );
+                    last_error = Some(e);
+                }
+            }
+
+            attempt += 1;
+            if attempt >= PROOF_GENERATION_MAX_RETRIES {
+                break;
+            }
+
+            sleep(time::Duration::from_secs(PROOF_GENERATION_RETRY_DELAY_SECS)).await;
         }
 
-        // Process the generated proof file
-        let proof_file_path = format!(
-            "{}/{}.json",
-            self.config.proof_output_dir, event.l2_transaction_hash
-        );
-
-        let proof = match self.process_proof_file(proof_file_path) {
-            Ok(p) => p,
-            Err(e) => {
-                // Record failed proof generation
-                crate::metrics::record_proof_generation_failed(
-                    event.l1_chain_id,
-                    event.nonce,
-                    &event.event_type.to_string(),
-                    "proof_file_processing_failed",
-                );
-                return Err(e);
-            }
-        };
-
-        let elapsed_time = start_time.elapsed();
-
-        // Record successful proof generation
-        crate::metrics::record_proof_generated(
-            event.l1_chain_id,
-            event.nonce,
-            &event.event_type.to_string(),
-            elapsed_time.as_secs_f64(),
-        );
-
-        info!(
-            "Proof generation completed in {:.2} secs for withdrawal event: chain={}, nonce={}, tx={}",
-            elapsed_time.as_secs_f64(),
-            event.l1_chain_id,
-            event.nonce,
-            event.l2_transaction_hash
-        );
-
-        Ok(proof)
+        Err(last_error.unwrap_or_else(|| {
+            ProofGenerationError::Other("Proof generation failed for unknown reasons".to_string())
+        }))
     }
 
     /// Get the appropriate binary path and arguments based on withdrawal event
