@@ -137,19 +137,39 @@ impl WithdrawalProcessor {
 
         // Generate proof for the withdrawal event
         let generated_proof = match self.proof_generator.generate_proof(&withdrawal_event).await {
-            Ok(zk_proof) => {
-                info!(
-                    "Successfully generated proof for withdrawal event: {}",
-                    withdrawal_event.l2_transaction_hash
-                );
-                // Convert ZkProof to Bytes for L1 sender
-                zk_proof
-            }
+            Ok(zk_proof) => zk_proof,
             Err(e) => {
                 error!(
-                    "Failed to generate proof for withdrawal event {}: {}",
+                    "Failed to generate proof for withdrawal event {} after retries: {}",
                     withdrawal_event.l2_transaction_hash, e
                 );
+
+                let status = WithdrawalEventStatus {
+                    is_processed: false,
+                    is_failed: true,
+                    failure_reason: Some(e.to_string()),
+                    process_txn_hash: None,
+                };
+
+                if let Err(db_err) = self
+                    .db_client
+                    .egressa()
+                    .insert_withdrawal_event_with_proofs_and_status(
+                        WithdrawalEventWithProofs {
+                            withdrawal_event,
+                            public_values: Vec::new(),
+                            proof: Vec::new(),
+                        },
+                        status,
+                    )
+                    .await
+                {
+                    error!(
+                        "Failed to insert withdrawal event with proof generation error status: {}",
+                        db_err
+                    );
+                }
+
                 return;
             }
         };

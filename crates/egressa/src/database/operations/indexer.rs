@@ -57,7 +57,6 @@ impl<'a> IndexerOperations<'a> {
                       AND tf.handle_tx_hash IS NOT NULL
                       AND tf.handle_status = 0
                       AND tf.execute_tx_hash IS NULL
-                      AND tf.is_completed = false
                       AND tf.handle_block_number <= $1
 
                     UNION ALL
@@ -129,7 +128,6 @@ impl<'a> IndexerOperations<'a> {
                       AND tf.handle_tx_hash IS NOT NULL
                       AND tf.handle_status = 0
                       AND tf.execute_tx_hash IS NULL
-                      AND tf.is_completed = false
 
                     UNION ALL
 
