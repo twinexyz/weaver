@@ -87,8 +87,15 @@ impl TransactionPrecompile {
     }
 }
 
-/// Stateless entry point compatible with EVM PrecompilesMap integration
+/// Stateless entry point compatible with EVM `PrecompilesMap` integration
+/// The second param `u64` must return the gas to be used by the precompile
 pub fn execute(input: &[u8], gas_limit: u64) -> Result<(Bytes, u64, bool), String> {
+    const L1_TXN_BASE_GAS: u64 = 50_000;
+
+    if L1_TXN_BASE_GAS > gas_limit {
+        return Err("out of gas".to_owned());
+    }
+
     // ABI: (chain_id, chain_input)
     let (chain_id, chain_precompile_input) = TransactionPrecompileInput::abi_decode_sequence(input)
         .map_err(|_| TransactionPrecompileError::DecodeTransactionPrecompileInput.to_string())?;
@@ -106,11 +113,11 @@ pub fn execute(input: &[u8], gas_limit: u64) -> Result<(Bytes, u64, bool), Strin
             let output = execute_ethereum(
                 proof_height.to::<u64>(),
                 &state_root,
-                message_data.clone(),
+                message_data,
                 &serialized_state_proof,
             )
             .map_err(|e| e.to_string())?;
-            Ok((output, gas_limit.saturating_sub(25_000), false))
+            Ok((output, L1_TXN_BASE_GAS, false))
         }
         L1ChainType::Solana => {
             let (prev_rolling_hash, message_data, public_values) =
@@ -118,15 +125,15 @@ pub fn execute(input: &[u8], gas_limit: u64) -> Result<(Bytes, u64, bool), Strin
                     .map_err(|_| {
                         TransactionPrecompileError::DecodeTransactionPrecompileInput.to_string()
                     })?;
-            let output = execute_solana(&prev_rolling_hash, message_data.clone(), &public_values)
+            let output = execute_solana(&prev_rolling_hash, message_data, &public_values)
                 .map_err(|e| e.to_string())?;
-            Ok((output, gas_limit.saturating_sub(50_000), false))
+            Ok((output, L1_TXN_BASE_GAS, false))
         }
     }
 }
 
 /// Processes ethereum transaction and its proof.
-fn handle_ethereum_transaction(
+pub fn handle_ethereum_transaction(
     proof_height: u64,
     state_root: &FixedBytes<32>,
     message_data: MessageData,
@@ -135,7 +142,7 @@ fn handle_ethereum_transaction(
     let chain_id = message_data.chainId;
     let message_hash = message_data.hash_message_data();
 
-    let account_proofs: AccountProof = serde_json::from_slice(&state_proof)
+    let account_proofs: AccountProof = serde_json::from_slice(state_proof)
         .map_err(|_| TransactionPrecompileError::DecodedAccountProof)?;
 
     account_proofs.verify(*state_root).map_err(|e| {
@@ -145,19 +152,19 @@ fn handle_ethereum_transaction(
 
     let value_stored: FixedBytes<32> = account_proofs.storage_proofs[0].value.into();
     if !value_stored.eq(&message_hash) {
-        return Err(TransactionPrecompileError::InvalidValueStored.into());
+        return Err(TransactionPrecompileError::InvalidValueStored);
     }
 
     if !whitelisted_contract(chain_id).contains(&account_proofs.address) {
-        return Err(TransactionPrecompileError::InvalidMessageHandlerAddress.into());
+        return Err(TransactionPrecompileError::InvalidMessageHandlerAddress);
     }
 
     if message_data.blockNumber > proof_height {
         tracing::debug!("The message block number cannot be greater than the state root block");
-        return Err(TransactionPrecompileError::InvalidHeight.into());
+        return Err(TransactionPrecompileError::InvalidHeight);
     }
 
-    return get_return_output(&message_data);
+    get_return_output(&message_data)
 }
 
 fn execute_ethereum(
@@ -190,7 +197,7 @@ fn execute_ethereum(
             fromAddress: message_data.fromAddress.clone(),
             l1Token: message_data.l1Token.clone(),
         },
-        contractCallData: message_data.message.clone(),
+        contractCallData: message_data.message,
     };
     Ok(l1_txn.abi_encode().into())
 }
@@ -207,8 +214,8 @@ fn handle_solana_transaction(
 
     // compute message_rolling_hash stored in `MessageBuffer` PDA
     let mut hasher = Keccak256::new();
-    hasher.update(&prev_rolling_hash);
-    hasher.update(&message_data_hash);
+    hasher.update(prev_rolling_hash);
+    hasher.update(message_data_hash);
     let message_rolling_hash = hasher.finalize();
     info!("message rolling hash: {}", message_rolling_hash);
 
@@ -240,9 +247,9 @@ fn handle_solana_transaction(
 
     // Same hashing as solana prover program
     let mut hasher = sha2::Sha256::new();
-    hasher.update(&MESSAGE_BUFFER_PDA);
-    hasher.update(&slot_changed.to_le_bytes());
-    hasher.update(&message_pda_data_hash);
+    hasher.update(MESSAGE_BUFFER_PDA);
+    hasher.update(slot_changed.to_le_bytes());
+    hasher.update(message_pda_data_hash);
     let computed_account_data_hash = hasher.finalize();
 
     info!(
@@ -252,7 +259,7 @@ fn handle_solana_transaction(
 
     // Checks against the public commitments
     let solana_commitment =
-        match bincode::deserialize::<solana_commitment::PublicCommitments>(&public_values) {
+        match bincode::deserialize::<solana_commitment::PublicCommitments>(public_values) {
             Ok(x) => x,
             Err(e) => {
                 error!(error=?e, "failed to deserialize to public commitments");
@@ -268,7 +275,7 @@ fn handle_solana_transaction(
         return Err(TransactionPrecompileError::SolanaSlotMismatch);
     }
 
-    return get_return_output(&message_data);
+    get_return_output(&message_data)
 }
 
 fn execute_solana(
@@ -298,7 +305,7 @@ fn execute_solana(
             fromAddress: message_data.fromAddress.clone(),
             l1Token: message_data.l1Token.clone(),
         },
-        contractCallData: message_data.message.clone(),
+        contractCallData: message_data.message,
     };
     Ok(l1_txn.abi_encode().into())
 }
