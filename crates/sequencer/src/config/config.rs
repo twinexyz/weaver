@@ -71,6 +71,7 @@ pub struct DB {
 pub struct L1Config {
     pub rpc_url: String,
     pub bridge_contract_address: String,
+    pub twine_chain_address: String,
     pub verified_batch: u64,
     pub chain_id: u64,
 }

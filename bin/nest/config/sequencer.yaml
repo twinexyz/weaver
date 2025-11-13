@@ -1,20 +1,22 @@
 solana:
   rpc_url: "http://127.0.0.1:8899"
-  bridge_contract_address: "JQTqWZGPZMYB6Q1Tvi34abZaYg7xEePgET9iRm9UgfF"
+  bridge_contract_address: "4Krs5KgAWswnGhRLo68z9Z7Yeq45FQwzkqotDrP7rULH"
+  twine_chain_address: "0x9A9f2CCfdE556A7E9Ff0848998Aa4a0CFD8863AE"
   verified_batch: 0
   chain_id: 900
 ethereum:
-  rpc_url: "http://127.0.0.1:8545"
+  rpc_url: "http://127.0.0.1:8570"
   bridge_contract_address: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+  twine_chain_address: "0x0B306BF915C4d645ff596e518fAf3F9669b97016"
   verified_batch: 0
   chain_id: 17000
 l2:
   rpc_url: "http://127.0.0.1:8545"
-  head_block: "0xb8a38c7a3369757f147068413ce04106972dfac7149f27061d5b687becbd7e6a"
+  head_block: "0x2f980576711e3617a5e4d83dd539548ec0f7792007d505a3d2e9674833af2d7c"
   fee_recipient: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
-  auth_rpc_url: "http://127.0.0.1:8551"
-  jwt_token_path: "jwt.hex"
-  block_time: 2000
+  auth_rpc_url: "http://127.0.0.1:8573"
+  jwt_token_path: "/tmp/reth/jwt.hex"
+  block_time: 20000
 extras:
   verifer_channel_buffer_size: 10
 db:

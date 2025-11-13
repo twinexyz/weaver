@@ -97,32 +97,33 @@ impl SequencerInstance for TwineSequencerInstance {
 
         #[cfg(feature = "sequencer")]
         {
-            use std::path::PathBuf;
+            // use std::path::PathBuf;
 
-            use crate::block_progress::block_progress::BlockProducer;
+            // use crate::block_progress::block_progress::BlockProducer;
 
-            let mut block_producer = BlockProducer::new(
-                kill_sig_sender.subscribe(),
-                config.l2.head_block,
-                PathBuf::from(config.l2.jwt_token_path),
-                config.l2.auth_rpc_url,
-                config.l2.block_time,
-                config.l2.fee_recipient,
-                self.db.clone(),
-            );
-            let block_progress_task = tokio::spawn(async move { block_producer.progress().await });
-            join_handles.push(block_progress_task);
+            // let mut block_producer = BlockProducer::new(
+            //     kill_sig_sender.subscribe(),
+            //     config.l2.head_block,
+            //     PathBuf::from(config.l2.jwt_token_path),
+            //     config.l2.auth_rpc_url,
+            //     config.l2.block_time,
+            //     config.l2.fee_recipient,
+            //     self.db.clone(),
+            // );
+            // let block_progress_task = tokio::spawn(async move {
+            // block_producer.progress().await }); join_handles.
+            // push(block_progress_task);
         }
 
         #[cfg(feature = "verifier")]
         {
             use tokio::sync::mpsc;
 
-            use crate::l1_state::chains::ethereum::watcher::EthereumStateWatcher;
-            use crate::l1_state::chains::solana::watcher::SolanaStateWatcher;
+            use crate::l1_state::chains::{EthereumStateWatcher, SolanaStateWatcher};
             use crate::l1_state::state_tracker::L1StateTracker;
             use crate::l1_state::state_verifier::StateVerifier;
             use crate::l1_state::verifier::L1StateVerifier;
+            use crate::l2_state::watcher::L2ChainWatcher;
 
             let (state_sender, state_receiver) =
                 mpsc::channel(config.extras.verifer_channel_buffer_size);
@@ -143,9 +144,21 @@ impl SequencerInstance for TwineSequencerInstance {
             )
             .await?;
 
+            let mut l2_watcher = L2ChainWatcher::new(
+                kill_sig_sender.subscribe(),
+                config.l2.clone(),
+                state_sender.clone(),
+                self.db.clone(),
+            )
+            .await?;
+
             let mut state_verifier = L1StateVerifier::new(
                 kill_sig_sender.subscribe(),
-                vec!["solana".to_string(), "ethereum".to_string()],
+                vec![
+                    "solana".to_string(),
+                    "ethereum".to_string(),
+                    "twine".to_string(),
+                ],
                 state_receiver,
                 self.db.clone(),
             )
@@ -155,11 +168,14 @@ impl SequencerInstance for TwineSequencerInstance {
 
             let solana_watcher_job = tokio::spawn(async move { solana_watcher.watch().await });
 
+            let l2_watcher_job = tokio::spawn(async move { l2_watcher.watch().await });
+
             let state_verifier_job = tokio::spawn(async move { state_verifier.verify().await });
 
             join_handles.append(&mut vec![
                 eth_watcher_job,
                 solana_watcher_job,
+                l2_watcher_job,
                 state_verifier_job,
             ]);
         }

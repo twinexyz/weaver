@@ -144,6 +144,23 @@ impl EthQueryExecutionClient {
             .await?;
         Ok(gas_estimation)
     }
+
+    /// Calls a contract function
+    pub async fn call_contract(
+        &self,
+        tx: &TransactionRequest,
+        block: Option<BlockId>,
+    ) -> Result<alloy_primitives::Bytes> {
+        let config = RetryConfig::debug_default();
+        let result = retry_with_metrics(self.chain_id, "eth_call", &config, || async {
+            self.provider
+                .call(tx.clone())
+                .block(block.unwrap_or(BlockId::latest()))
+                .await
+        })
+        .await?;
+        Ok(result)
+    }
 }
 
 impl EthQueryExecutionClient {
