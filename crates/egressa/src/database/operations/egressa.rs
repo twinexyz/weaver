@@ -1,6 +1,6 @@
 use eyre::Result;
 use reth_tracing::tracing::warn;
-use sqlx::FromRow;
+use sqlx::{FromRow, Row};
 
 use crate::types::{WithdrawalEventStatus, WithdrawalEventWithProofs};
 
@@ -113,5 +113,36 @@ impl<'a> EgressaOperations<'a> {
             && (result.as_ref().unwrap().is_processed || result.as_ref().unwrap().is_failed);
 
         is_processed
+    }
+
+    /// Bulk check which withdrawal events are already processed or failed
+    /// Returns a HashSet of l2_transaction_hashes that are already processed
+    pub async fn get_already_processed_events(
+        &self,
+        l2_transaction_hashes: &[String],
+    ) -> Result<std::collections::HashSet<String>> {
+        if l2_transaction_hashes.is_empty() {
+            return Ok(std::collections::HashSet::new());
+        }
+
+        // Use ANY array for PostgreSQL to check multiple hashes efficiently
+        let rows = sqlx::query(
+            r#"
+            SELECT l2_transaction_hash
+            FROM withdrawal_events
+            WHERE l2_transaction_hash = ANY($1::text[])
+            AND (is_processed = true OR is_failed = true)
+            "#,
+        )
+        .bind(l2_transaction_hashes)
+        .fetch_all(self.db_pool)
+        .await?;
+
+        let processed_hashes: std::collections::HashSet<String> = rows
+            .into_iter()
+            .map(|row| row.try_get::<String, _>("l2_transaction_hash").unwrap())
+            .collect();
+
+        Ok(processed_hashes)
     }
 }

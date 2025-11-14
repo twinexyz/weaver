@@ -30,6 +30,8 @@ pub trait L1TransactionSender: Send + Sync {
         }
     }
 
+    async fn get_last_finalized_batch(&self) -> Result<u64>;
+
     /// Execute forced withdrawal
     async fn execute_forced_withdrawal(
         &self,

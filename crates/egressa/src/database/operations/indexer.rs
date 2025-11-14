@@ -33,9 +33,10 @@ impl<'a> IndexerOperations<'a> {
     /// max_block_height are returned
     pub async fn find_pending_transaction_events(
         &self,
-        max_block_height: Option<u64>,
+        chain_id: u64,
+        max_block_height: u64,
     ) -> Result<Vec<FetchedIndexerEvent>> {
-        let query = if let Some(max_height) = max_block_height {
+        let events =
             sqlx::query_as::<_, FetchedIndexerEvent>(
                 r#"
                 WITH pending_events AS (
@@ -55,9 +56,10 @@ impl<'a> IndexerOperations<'a> {
                     JOIN transaction_flows tf ON st.chain_id = tf.chain_id AND st.nonce = tf.nonce
                     WHERE st.transaction_type = 'Deposit'::transaction_type_enum
                       AND tf.handle_tx_hash IS NOT NULL
+                      AND st.chain_id = $1
                       AND tf.handle_status = 0
                       AND tf.execute_tx_hash IS NULL
-                      AND tf.handle_block_number <= $1
+                      AND tf.handle_block_number <= $2
 
                     UNION ALL
 
@@ -77,7 +79,8 @@ impl<'a> IndexerOperations<'a> {
                     LEFT JOIN transaction_flows tf ON st.chain_id = tf.chain_id AND st.nonce = tf.nonce
                     WHERE st.transaction_type = 'Withdraw'::transaction_type_enum
                       AND tf.chain_id IS NULL
-                      AND st.block_number <= $1
+                      AND st.destination_chain_id = $1
+                      AND st.block_number <= $2
 
                     UNION ALL
 
@@ -99,84 +102,18 @@ impl<'a> IndexerOperations<'a> {
                       AND tf.handle_tx_hash IS NOT NULL
                       AND tf.execute_tx_hash IS NULL
                       AND tf.handle_status = 1
-                      AND tf.handle_block_number <= $1
+                      AND st.chain_id = $1
+                      AND tf.handle_block_number <= $2
                 )
                 SELECT * FROM pending_events
                 ORDER BY l2_block_height ASC NULLS LAST
                 "#
             )
-            .bind(max_height as i64)
-        } else {
-            sqlx::query_as::<_, FetchedIndexerEvent>(
-                r#"
-                WITH pending_events AS (
-                    -- Deposit events: has l2_handle_tx_hash, status 0, no l1_execute_hash, is_completed = false
-                    SELECT
-                        st.chain_id as l1_chain_id,
-                        st.nonce,
-                        st.transaction_type::text,
-                        tf.handle_block_number AS l2_block_height,
-                        st.l1_token,
-                        st.l2_token,
-                        st.l1_address,
-                        st.transaction_hash as source_transaction_hash,
-                        tf.handle_tx_hash as l2_transaction_hash,
-                        tf.handle_status
-                    FROM source_transactions st
-                    JOIN transaction_flows tf ON st.chain_id = tf.chain_id AND st.nonce = tf.nonce
-                    WHERE st.transaction_type = 'Deposit'::transaction_type_enum
-                      AND tf.handle_tx_hash IS NOT NULL
-                      AND tf.handle_status = 0
-                      AND tf.execute_tx_hash IS NULL
-
-                    UNION ALL
-
-                    -- Withdraw events: only those without corresponding transaction_flow records
-                    SELECT
-                        st.destination_chain_id as l1_chain_id,
-                        st.nonce,
-                        st.transaction_type::text,
-                        st.block_number as l2_block_height,
-                        st.l1_token,
-                        st.l2_token,
-                        st.l1_address,
-                        st.transaction_hash as source_transaction_hash,
-                        st.transaction_hash as l2_transaction_hash,
-                        tf.handle_status
-                    FROM source_transactions st
-                    LEFT JOIN transaction_flows tf ON st.chain_id = tf.chain_id AND st.nonce = tf.nonce
-                    WHERE st.transaction_type = 'Withdraw'::transaction_type_enum
-                      AND tf.chain_id IS NULL
-
-                    UNION ALL
-
-                    -- Forced withdraw events: has l2_handle_hash but no l1_execute_hash
-                    SELECT
-                        st.chain_id as l1_chain_id,
-                        st.nonce,
-                        st.transaction_type::text,
-                        tf.handle_block_number as l2_block_height,
-                        st.l1_token,
-                        st.l2_token,
-                        st.l1_address,
-                        st.transaction_hash as source_transaction_hash,
-                        tf.handle_tx_hash as l2_transaction_hash,
-                        tf.handle_status
-                    FROM source_transactions st
-                    JOIN transaction_flows tf ON st.chain_id = tf.chain_id AND st.nonce = tf.nonce
-                    WHERE st.transaction_type = 'ForcedWithdraw'::transaction_type_enum
-                      AND tf.handle_tx_hash IS NOT NULL
-                      AND tf.execute_tx_hash IS NULL
-                      AND tf.handle_status = 1
-                )
-                SELECT * FROM pending_events
-                ORDER BY l2_block_height ASC NULLS LAST
-                "#,
-            )
-        };
-
-        let events = query.fetch_all(self.db_pool).await?;
-
+            .bind(chain_id as i64)
+            .bind(max_block_height as i64)
+            .fetch_all(self.db_pool)
+            .await
+            .map_err(|e| eyre::eyre!("Failed to find pending transaction events: {}", e))?;
         Ok(events)
     }
 }

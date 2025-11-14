@@ -295,6 +295,11 @@ impl SolanaSender {
 
 #[async_trait]
 impl L1TransactionSender for SolanaSender {
+    async fn get_last_finalized_batch(&self) -> eyre::Result<u64> {
+        let twine_chain_storage = self.transaction_builder.get_twine_chain_storage().await?;
+        Ok(twine_chain_storage.last_finalized_batch_number)
+    }
+
     async fn execute_forced_withdrawal(
         &self,
         withdrawal_event: WithdrawalEvent,

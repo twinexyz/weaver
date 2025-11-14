@@ -1,6 +1,7 @@
 use std::str::FromStr as _;
 use std::sync::Arc;
 use std::time::Duration;
+use std::u64;
 
 use alloy_primitives::{Address, Bytes};
 use alloy_provider::{DynProvider, ProviderBuilder};
@@ -149,6 +150,21 @@ impl EthereumSender {
 
 #[async_trait]
 impl L1TransactionSender for EthereumSender {
+    /// Get the last finalized batch number
+    async fn get_last_finalized_batch(&self) -> eyre::Result<u64> {
+        let twine_chain = TwineChain::new(self.get_twine_chain_address(), &self.provider);
+        let last_finalized = twine_chain
+            .lastFinalizedBatchNumber()
+            .call()
+            .await
+            .map_err(|e| eyre::eyre!("Failed to call lastFinalizedBatchNumber: {}", e));
+
+        match last_finalized {
+            Ok(last_finalized) => Ok(last_finalized.to::<u64>()),
+            Err(e) => Err(eyre::eyre!("Failed to get last finalized batch: {}", e)),
+        }
+    }
+
     async fn execute_forced_withdrawal(
         &self,
         _event: WithdrawalEvent,
