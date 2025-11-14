@@ -60,13 +60,13 @@ jobs:
   #
   build:
     needs: ["pre-notify"]
-    uses: twinexyz/workflows/.github/workflows/build.yml@main
+    uses: twinexyz/workflows/.github/workflows/build-test.yaml@main
     secrets: inherit
     with:
       sha: ${{ github.sha  }}
       branch_slug: ${{ github.ref_name }}
       repo_name: ${{ github.event.repository.name }}
-      docker_targets: '["final"]'
+      docker_targets: '["prover", "egressa", "scheduler"]'
       dependency_clone: false
   container-scan:
     needs: ["build"]
