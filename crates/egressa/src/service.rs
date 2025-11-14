@@ -19,7 +19,7 @@ pub async fn run_service(config: AppCfg, db_client: DbClient) -> eyre::Result<()
     let twine_provider = TwineProvider::new(config.twine.clone().rpc);
     let proof_generator = ProofGenerator::new(config.prover, config.twine);
     let processor = WithdrawalProcessor::new(
-        l1_sender_factory,
+        l1_sender_factory.clone(),
         proof_generator,
         db_client.clone(),
         twine_provider,
@@ -32,7 +32,11 @@ pub async fn run_service(config: AppCfg, db_client: DbClient) -> eyre::Result<()
 
         // Poll for events
         let events = match poller
-            .poll_events(db_client.clone(), &processor.twine_provider)
+            .poll_events(
+                db_client.clone(),
+                &processor.twine_provider,
+                &l1_sender_factory,
+            )
             .await
         {
             Ok(events) => events,

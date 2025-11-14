@@ -1,3 +1,4 @@
+use std::collections::hash_map::Values;
 use std::collections::HashMap;
 
 use crate::chains::ethereum::sender::EthereumSender;
@@ -45,4 +46,7 @@ impl L1SenderFactory {
             _ => None,
         }
     }
+
+    ///
+    pub fn get_l1_chains(&self) -> Values<'_, String, ChainConfig> { self.chains.values() }
 }
