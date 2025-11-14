@@ -23,56 +23,60 @@ RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
     bash \
     curl \
     git \
-    jq && \
+    jq \
+    m4 && \
     git config --global credential.helper store && \
     echo "https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com" > ~/.git-credentials && \
     chmod 600 ~/.git-credentials
 
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain none -y
 ENV PATH="/root/.cargo/bin:${PATH}"
-
 RUN rustup toolchain install nightly --allow-downgrade --profile minimal --component clippy
 
 RUN wget -c https://github.com/mikefarah/yq/releases/download/v4.45.1/yq_linux_${ARCH} -O /usr/bin/yq && \
-    chmod +x /usr/bin/yq
-
-RUN curl -OL https://go.dev/dl/go1.24.0.linux-${ARCH}.tar.gz && \
+    chmod +x /usr/bin/yq && \
+    curl -OL https://go.dev/dl/go1.24.0.linux-${ARCH}.tar.gz && \
     tar -C /usr/local -xzf go1.24.0.linux-${ARCH}.tar.gz && \
-    rm go1.24.0.linux-${ARCH}.tar.gz
-
-RUN curl -L https://sp1.succinct.xyz | bash && ~/.sp1/bin/sp1up
+    rm go1.24.0.linux-${ARCH}.tar.gz && \
+    curl -L https://sp1.succinct.xyz | bash && ~/.sp1/bin/sp1up
 
 WORKDIR /app
 
 COPY . .
 
-RUN echo "-----------"
-RUN echo $FEATURES
-RUN echo "-----------"
-
-RUN cargo build --release --bin twine-node --features $FEATURES
-RUN cargo build --release --bin twine-proof-scheduler-bin --features l2-proof-scheduler
-RUN mv target/release/twine-proof-scheduler-bin target/release/twine-l2-proof-scheduler-bin
-RUN cargo build --release --bin twine-proof-scheduler-bin --features solana-proof-scheduler
-RUN mv target/release/twine-proof-scheduler-bin target/release/twine-solana-proof-scheduler-bin
-RUN cargo build --release --bin twine-l2-execution-prover-worker
-RUN cargo build --release --bin twine-aggregator
-RUN cargo build --release --bin twine-egressa-bin
-
-RUN cargo install tomq sqlx-cli
+RUN cargo build --release --bin twine-node --features $FEATURES && \
+    cargo build --release --bin twine-proof-scheduler-bin --features l2-proof-scheduler && \
+    mv target/release/twine-proof-scheduler-bin target/release/twine-l2-proof-scheduler-bin && \
+    cargo build --release --bin twine-proof-scheduler-bin --features solana-proof-scheduler && \
+    mv target/release/twine-proof-scheduler-bin target/release/twine-solana-proof-scheduler-bin && \
+    cargo build --release --bin twine-l2-execution-prover-worker && \
+    cargo build --release --bin twine-aggregator && \
+    cargo build --release --bin twine-egressa-bin && \
+    cargo install tomq sqlx-cli
 
 RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
     --mount=type=secret,id=github_username,env=GITHUB_USERNAME \
     git clone --branch staging https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${GITHUB_ORGANIZATION}/twine-rsp.git && \
+    cd twine-rsp && \
+    cargo update && \
+    cd bin/client && \
+    cargo update && \
+    cd ../.. && \
+    cargo build --release --bin rsp --features $FEATURES
+
+RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
+    --mount=type=secret,id=github_username,env=GITHUB_USERNAME \
     git clone --branch v0.1.0-devnet https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${GITHUB_ORGANIZATION}/solana-stub-prover.git && \
+    cd solana-stub-prover && \
+    cargo build --release
+
+RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
+    --mount=type=secret,id=github_username,env=GITHUB_USERNAME \
     git clone --branch v0.1.0-testnet https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${GITHUB_ORGANIZATION}/merlin.git && \
     cd merlin && \
     cargo build --release
 
 FROM nvidia/cuda:12.9.1-cudnn-runtime-ubuntu24.04 AS final
-
-ARG RSP_FILENAME
-ARG SOLANA_STUB_PROVER_FILENAME
 
 ENV DEBIAN_FRONTEND=noninteractive \
     RUSTUP_HOME=/root/.rustup \
@@ -108,12 +112,11 @@ COPY --from=builder /usr/bin/yq /usr/local/bin/yq
 COPY --from=builder /root/.cargo/bin/tomq /usr/local/bin/tomq
 COPY --from=builder /root/.cargo/bin/sqlx /usr/local/bin/sqlx
 
-COPY --from=builder /app/twine-rsp/$RSP_FILENAME /usr/local/bin/rsp
+COPY --from=builder /app/twine-rsp/target/release/rsp /usr/local/bin/rsp
 COPY --from=builder /app/merlin/target/release/withdraw-prover /usr/local/bin/withdraw-prover
 COPY --from=builder /app/merlin/target/release/l1-txns-prover /usr/local/bin/l1-txns-prover
 COPY --from=builder /app/merlin/target/release/refund-prover /usr/local/bin/refund-prover
-COPY --from=builder /app/solana-stub-prover/$SOLANA_STUB_PROVER_FILENAME /usr/local/bin/solana-stub-prover
-
+COPY --from=builder /app/solana-stub-prover/target/release/solana-stub-prover /usr/local/bin/solana-stub-prover
 
 COPY --from=builder /app/target/release/twine-node /usr/local/bin/twine-node
 COPY --from=builder /app/target/release/twine-aggregator /usr/local/bin/aggregator
