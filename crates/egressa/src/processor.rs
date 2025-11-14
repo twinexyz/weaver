@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use alloy_primitives::Bytes;
-use reth_tracing::tracing::{error, info, warn};
+use reth_tracing::tracing::{debug, error, info, warn};
 use tokio::sync::Semaphore;
 use twine_types::proofs::ProofData;
 
@@ -91,7 +91,7 @@ impl WithdrawalProcessor {
     async fn process_withdrawal_event(&self, withdrawal_event: WithdrawalEvent) {
         let chain_id = withdrawal_event.l1_chain_id;
 
-        info!(
+        debug!(
             "Processing withdrawal event for chain {}: {:?}",
             chain_id, withdrawal_event.event_type
         );
@@ -103,7 +103,7 @@ impl WithdrawalProcessor {
             .await;
 
         if is_already_processed {
-            warn!(
+            debug!(
                 "Withdrawal event for chain {}: {} is already processed",
                 chain_id, withdrawal_event.l2_transaction_hash
             );
@@ -120,20 +120,10 @@ impl WithdrawalProcessor {
             }
         };
 
-        // Verify that the block is included in a batch
-        // This should not fail since we filter events by batch height in polling
-        if let Err(e) = self
-            .twine_provider
-            .batch_client
-            .get_batch_number_for_block(withdrawal_event.height)
-            .await
-        {
-            error!(
-                "Block {} is not included in any batch: {}. This should not happen as events are filtered by batch height during polling.",
-                withdrawal_event.height, e
-            );
-            return;
-        }
+        info!(
+            "Acquired semaphore for chain {}: {:?} and Processing withdrawal event at height {}: {}",
+            chain_id, withdrawal_event.event_type, withdrawal_event.height, withdrawal_event.l2_transaction_hash
+        );
 
         // Generate proof for the withdrawal event
         let generated_proof = match self.proof_generator.generate_proof(&withdrawal_event).await {
