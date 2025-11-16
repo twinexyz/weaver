@@ -120,12 +120,17 @@ impl SequencerInstance for TwineSequencerInstance {
             use tokio::sync::mpsc;
 
             use crate::l1_state::chains::{EthereumStateWatcher, SolanaStateWatcher};
+            use crate::l1_state::state_aggregator::StateAggregator;
             use crate::l1_state::state_tracker::L1StateTracker;
             use crate::l1_state::state_verifier::StateVerifier;
-            use crate::l1_state::verifier::L1StateVerifier;
+            // use crate::l1_state::state_verifier::StateVerifier;
+            // use crate::l1_state::verifier::L1StateVerifier;
             use crate::l2_state::watcher::L2ChainWatcher;
 
             let (state_sender, state_receiver) =
+                mpsc::channel(config.extras.verifer_channel_buffer_size);
+
+            let (aggregated_sender, aggregated_receiver) =
                 mpsc::channel(config.extras.verifer_channel_buffer_size);
 
             let mut eth_watcher = EthereumStateWatcher::new(
@@ -152,14 +157,28 @@ impl SequencerInstance for TwineSequencerInstance {
             )
             .await?;
 
-            let mut state_verifier = L1StateVerifier::new(
+            // let mut state_verifier = L1StateVerifier::new(
+            //     kill_sig_sender.subscribe(),
+            //     vec![
+            //         "solana".to_string(),
+            //         "ethereum".to_string(),
+            //         "twine".to_string(),
+            //     ],
+            //     state_receiver,
+            //     self.db.clone(),
+            // )
+            // .await?;
+            let mut state_aggregator = StateAggregator::new(
                 kill_sig_sender.subscribe(),
-                vec![
-                    "solana".to_string(),
-                    "ethereum".to_string(),
-                    "twine".to_string(),
-                ],
                 state_receiver,
+                vec!["solana".to_string(), "ethereum".to_string()],
+                aggregated_sender,
+            )
+            .await?;
+
+            let mut state_verifier = StateVerifier::new(
+                kill_sig_sender.subscribe(),
+                aggregated_receiver,
                 self.db.clone(),
             )
             .await?;
@@ -170,12 +189,19 @@ impl SequencerInstance for TwineSequencerInstance {
 
             let l2_watcher_job = tokio::spawn(async move { l2_watcher.watch().await });
 
-            let state_verifier_job = tokio::spawn(async move { state_verifier.verify().await });
+            let state_aggregator_job = tokio::spawn(async move { state_aggregator.run().await });
+
+            let state_verifier_job = tokio::spawn(async move { state_verifier.run().await });
+
+            // let state_verifier_job = tokio::spawn(async move {
+            // state_verifier.verify().await });
 
             join_handles.append(&mut vec![
                 eth_watcher_job,
                 solana_watcher_job,
                 l2_watcher_job,
+                // state_verifier_job,
+                state_aggregator_job,
                 state_verifier_job,
             ]);
         }
