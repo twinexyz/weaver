@@ -5,6 +5,7 @@ use std::sync::Arc;
 use borsh::{BorshDeserialize, BorshSerialize};
 use eyre::Context;
 use reth_tracing::tracing;
+use reth_tracing::tracing_subscriber::fmt::format;
 use solana_client::rpc_client::RpcClient;
 use solana_sdk::commitment_config::CommitmentConfig;
 use solana_sdk::pubkey::Pubkey;
@@ -81,33 +82,26 @@ impl SolanaProvider {
         })
         .await?;
 
-        // let account_data = client.get_account_data(&commitment_pda).map_err(|e| {
-        //     tracing::error!(
-        //         target = "solana_provider",
-        //         batch_number = batch_number,
-        //         commitment_pda = %commitment_pda,
-        //         error = ?e,
-        //         "commitment PDA account not found or failed to query"
-        //     );
-        //     eyre::eyre!(
-        //         "Commitment PDA for batch {} not found or failed to query: {}",
-        //         batch_number,
-        //         e
-        //     )
-        // })?;
-
         // Parse the batch hash from account data
         if account_data.len() == 33 {
             // Skip first byte  and take next 32 bytes
             let mut batch_hash = [0u8; 32];
             batch_hash.copy_from_slice(&account_data[1..33]);
 
+            let batch_hash_str = format!(
+                "0x{}",
+                batch_hash
+                    .iter()
+                    .map(|b| format!("{:02x}", b))
+                    .collect::<String>()
+            );
+
             tracing::info!(
                 target = "solana_provider",
                 batch_number = batch_number,
-                batch_hash = ?batch_hash,
+                batch_hash = batch_hash_str,
                 data_length = account_data.len(),
-                "extracted batch hash from commitment PDA (skipping discriminator byte)"
+                "extracted batch hash from commitment PDA"
             );
 
             Ok(batch_hash)

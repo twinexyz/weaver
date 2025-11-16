@@ -120,10 +120,10 @@ impl L2ChainWatcher {
                     match self.get_l2_state(L2StateCheckpoint::BatchNumber(next_expected_batch)).await {
                         Ok(next_expected_l2_state) => {
                             if next_expected_l2_state.state.batch_hash == FixedBytes::<32>::ZERO {
-                                tracing::info!(
+                                tracing::debug!(
                                     target = "l2_watcher",
                                     batch_number = next_expected_batch,
-                                    "batch not built yet (hash is zero), will retry in next interval"
+                                    "batch not ready, waiting"
                                 );
                                 continue;
                             }
@@ -157,7 +157,7 @@ impl L2ChainWatcher {
                                 target = "l2_watcher",
                                 batch_number = next_expected_batch,
                                 error = ?e,
-                                "failed to fetch L2 state, will retry in next interval"
+                                "fetch failed, retrying"
                             );
                             continue;
                         }
@@ -229,11 +229,11 @@ impl L2ChainWatcher {
         let batch_hash = self.rpc_client.get_batch_hash(number).await?;
 
         if batch_hash != FixedBytes::<32>::ZERO {
-            tracing::info!(
+            tracing::debug!(
                 target = "l2_watcher",
                 batch_number = number,
                 batch_hash = %batch_hash,
-                "fetched L2 batch hash from L2 RPC"
+                "fetched from L2"
             );
         }
 

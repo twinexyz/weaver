@@ -91,7 +91,7 @@ impl StateAggregator {
                     if self.all_chains_present(batch_number) {
                         tracing::info!(
                             target = "aggregator",
-                            "all chains present for batch: {}. emitting aggregated batch",
+                            "All states from batch {} found, sending to verifier",
                             batch_number
                         );
 

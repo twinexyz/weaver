@@ -102,9 +102,9 @@ impl StateVerifier {
                     let batch_number = agg.batch_number;
                     let states = agg.states;
 
-                    tracing::info!(
+                    tracing::debug!(
                         target = "final_verifier",
-                        "verifying aggregated batch: {} with {} states",
+                        "verifying batch {} ({} chains)",
                         batch_number,
                         states.len()
                     );
@@ -182,8 +182,9 @@ impl StateVerifier {
 
                     tracing::info!(
                         target = "final_verifier",
-                        "verified batch: {}, hash: {:?}",
-                        batch_number, states
+                        "VERIFIED BATCH. batch_number: {} | hash: {:x}",
+                        batch_number,
+                        reference_state.batch_hash
                     );
 
                     // Notify block producer of successful verification

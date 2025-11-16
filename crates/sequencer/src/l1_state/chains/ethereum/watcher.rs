@@ -125,10 +125,10 @@ impl L1StateTracker for EthereumStateWatcher {
                         Ok(next_expected_l2_state) => {
                             // Check if batch hash is built yet
                             if next_expected_l2_state.state.batch_hash== FixedBytes::<32>::ZERO {
-                                tracing::info!(
+                                tracing::debug!(
                                     target = "eth_watcher",
                                     batch_number = next_expected_batch,
-                                    "batch not built yet, will retry in next interval"
+                                    "batch not ready, waiting"
                                 );
                                 continue; // Skip processing and wait for next tick
                             }
@@ -162,7 +162,7 @@ impl L1StateTracker for EthereumStateWatcher {
                                 target = "eth_watcher",
                                 batch_number = next_expected_batch,
                                 error = ?e,
-                                "failed to fetch L2 state, will retry in next interval"
+                                "fetch failed, retrying"
                             );
                             // Continue to next iteration instead of failing
                             continue;
@@ -279,11 +279,11 @@ impl EthereumStateWatcher {
         let batch_hash = FixedBytes::<32>::from(decoded.0);
 
         if batch_hash != FixedBytes::<32>::ZERO {
-            tracing::info!(
+            tracing::debug!(
                 target = "eth_watcher",
                 batch_number = number,
                 batch_hash = %batch_hash,
-                "fetched L2 batch hash from bridge contract"
+                "fetched from ethereum"
             );
         }
 
