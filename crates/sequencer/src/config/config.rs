@@ -120,7 +120,7 @@ impl Config {
     ) -> Result<Self, TwineSequencerError> {
         #[cfg(feature = "sequencer")]
         {
-            use crate::common::{LAST_FINALIZED_BLOCK_HASH, NS_BLOCK_PRODUCER};
+            use crate::common::consts::{LAST_FINALIZED_BLOCK_HASH, NS_BLOCK_PRODUCER};
 
             let db_head_block = db
                 .lock()
@@ -144,7 +144,7 @@ impl Config {
 
         #[cfg(feature = "verifier")]
         {
-            use crate::common::{NS_CHAIN_STATE_VERIFIER, VERIFIED_BATCH};
+            use crate::common::consts::{NS_CHAIN_STATE_VERIFIER, VERIFIED_BATCH};
             let db_verified_batch = db
                 .lock()
                 .await

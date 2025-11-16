@@ -30,6 +30,8 @@ pub const TWINE_CHAIN_STORGAE: &str = "twine_chain_storage";
 pub const DETAILED_MESSAGES_BUFFER_PREFIX: &str = "detailed_messages_buffer";
 /// Messages replicator prefix
 pub const MEESSAGES_REPLICATOR_PREFIX: &str = "messages_replicator_prefix";
+/// Commitment PDA prefix
+pub const COMMITMENT_PDA_PREFIX: &str = "twine_batch";
 
 /// Solana address derivation
 /// This is a utility struct for deriving Solana PDA addresses for various
@@ -135,6 +137,17 @@ impl SolanaAddressDerivation {
                 MEESSAGES_REPLICATOR_PREFIX.as_bytes(),
                 &start_nonce.to_be_bytes(),
                 &end_nonce.to_be_bytes(),
+            ],
+            program_id,
+        )
+    }
+
+    /// Derive commitment PDA for a given batch number
+    pub fn derive_commitment_pda(program_id: &Pubkey, batch_number: u64) -> (Pubkey, u8) {
+        Pubkey::find_program_address(
+            &[
+                COMMITMENT_PDA_PREFIX.as_bytes(),
+                &batch_number.to_be_bytes(),
             ],
             program_id,
         )

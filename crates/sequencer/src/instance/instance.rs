@@ -11,7 +11,7 @@ use twine_sequencer_db::error::TwineSequencerDBError;
 use twine_sequencer_db::inmemory::SequencerInMemoryDB;
 use twine_sequencer_db::rocksdb::SequencerRocksDB;
 
-use crate::common::DEFAULT_DB_NAMESPACES;
+use crate::common::consts;
 use crate::config::config::{Args, Config};
 use crate::errors::TwineSequencerError;
 use crate::instance::SequencerInstance;
@@ -63,7 +63,7 @@ impl SequencerInstance for TwineSequencerInstance {
             let mut db_cf = vec![];
             db_cf.append(&mut db_cfg.db_column_family);
 
-            for cf in DEFAULT_DB_NAMESPACES {
+            for cf in consts::DEFAULT_DB_NAMESPACES {
                 let cf = cf.to_string();
                 if !db_cf.contains(&cf) {
                     db_cf.push(cf.to_string());
@@ -128,12 +128,6 @@ impl SequencerInstance for TwineSequencerInstance {
             let (state_sender, state_receiver) =
                 mpsc::channel(config.extras.verifer_channel_buffer_size);
 
-            let (aggregated_sender, aggregated_receiver) =
-                mpsc::channel(config.extras.verifer_channel_buffer_size);
-
-            let (verification_event_sender, _verification_event_receiver) =
-                broadcast::channel::<VerificationEvent>(100);
-
             let mut eth_watcher = EthereumStateWatcher::new(
                 kill_sig_sender.subscribe(),
                 config.ethereum,
@@ -158,19 +152,25 @@ impl SequencerInstance for TwineSequencerInstance {
             )
             .await?;
 
+            let (aggregated_sender, aggregated_receiver) =
+                mpsc::channel(config.extras.verifer_channel_buffer_size);
+
             let mut state_aggregator = StateAggregator::new(
                 kill_sig_sender.subscribe(),
                 state_receiver,
-                vec!["solana".to_string(), "ethereum".to_string()],
+                consts::ALL_CHAINS.iter().map(|s| s.to_string()).collect(),
                 aggregated_sender,
             )
             .await?;
 
+            let (_verification_event_sender, _verification_event_receiver) =
+                broadcast::channel::<VerificationEvent>(100); // the block producer should be the receiver to this channel
             let mut state_verifier = StateVerifier::new(
                 kill_sig_sender.subscribe(),
                 aggregated_receiver,
                 self.db.clone(),
-                Some(verification_event_sender),
+                // Some(verification_event_sender),
+                None,
             )
             .await?;
 

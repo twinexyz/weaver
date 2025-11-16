@@ -5,9 +5,6 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use alloy_primitives::FixedBytes;
-use reqwest::Client;
-use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
 use tokio::sync::broadcast::Receiver;
 use tokio::sync::mpsc::Sender;
 use tokio::sync::Mutex;
@@ -15,42 +12,11 @@ use tokio::time::{self, MissedTickBehavior};
 use twine_sequencer_db::db::SequencerDB;
 use twine_sequencer_db::error::TwineSequencerDBError;
 
-use crate::common::{L2_PROCESSED_BATCH, NS_L2_WATCHER};
+use super::rpc_client::L2RpcClient;
+use crate::common::consts::{L2_PROCESSED_BATCH, NS_L2_WATCHER, TWINE_CHAIN_IDENTIFIER};
 use crate::config::config::L2Config;
 use crate::errors::TwineSequencerError;
 use crate::l1_state::state_tracker::{L2State, L2StateCheckpoint, State};
-
-/// JSON RPC request structure
-#[allow(dead_code)]
-#[derive(Debug, Serialize)]
-struct JsonRpcRequest {
-    jsonrpc: String,
-    method: String,
-    params: Value,
-    id: u64,
-}
-
-/// JSON RPC response structure
-#[allow(dead_code)]
-#[derive(Debug, Deserialize)]
-struct JsonRpcResponse<T> {
-    jsonrpc: String,
-    result: Option<T>,
-    error: Option<JsonRpcError>,
-    id: u64,
-}
-
-/// JSON RPC error structure
-#[allow(dead_code)]
-#[derive(Debug, Deserialize)]
-struct JsonRpcError {
-    code: i32,
-    message: String,
-    data: Option<Value>,
-}
-
-/// Batch hash response from L2 RPC
-type BatchHashResponse = String;
 
 /// L2 chain watcher implementation
 pub struct L2ChainWatcher {
@@ -68,10 +34,8 @@ pub struct L2ChainWatcher {
     >,
     /// last verified l2 batch
     pub verified_l2_batch: u64,
-    /// HTTP client for JSON RPC calls
-    client: Client,
-    /// L2 RPC URL
-    rpc_url: String,
+    /// L2 RPC client
+    rpc_client: L2RpcClient,
     /// L2 state sender
     pub state_sender: Sender<L2State>,
 }
@@ -80,7 +44,7 @@ impl Debug for L2ChainWatcher {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("L2ChainWatcher")
             .field("verified_l2_batch", &self.verified_l2_batch)
-            .field("rpc_url", &self.rpc_url)
+            .field("rpc_url", &self.rpc_client.rpc_url())
             .field("state_sender", &self.state_sender)
             .finish()
     }
@@ -124,19 +88,13 @@ impl L2ChainWatcher {
             }
         };
 
-        let client = Client::builder()
-            .timeout(Duration::from_secs(30))
-            .build()
-            .map_err(|e| {
-                TwineSequencerError::Other(format!("Failed to create HTTP client: {}", e))
-            })?;
+        let rpc_client = L2RpcClient::new(rpc_url)?;
 
         Ok(Self {
             kill_sig_recv,
             db,
             verified_l2_batch,
-            client,
-            rpc_url,
+            rpc_client,
             state_sender,
         })
     }
@@ -268,7 +226,7 @@ impl L2ChainWatcher {
     }
 
     async fn try_get_l2_state(&self, number: u64) -> Result<L2State, TwineSequencerError> {
-        let batch_hash = self.get_batch_hash(number).await?;
+        let batch_hash = self.rpc_client.get_batch_hash(number).await?;
 
         if batch_hash != FixedBytes::<32>::ZERO {
             tracing::info!(
@@ -280,7 +238,7 @@ impl L2ChainWatcher {
         }
 
         let state = L2State {
-            chain: "twine".to_string(),
+            chain: TWINE_CHAIN_IDENTIFIER.to_string(),
             state: State {
                 batch_number: number,
                 batch_hash,
@@ -295,81 +253,5 @@ impl L2ChainWatcher {
         );
 
         Ok(state)
-    }
-
-    /// Get batch hash for an arbitrary batch number
-    pub async fn get_batch_hash(
-        &self,
-        batch_number: u64,
-    ) -> Result<FixedBytes<32>, TwineSequencerError> {
-        let request = JsonRpcRequest {
-            jsonrpc: "2.0".to_string(),
-            method: "twine_getBatchHash".to_string(),
-            params: json!([batch_number]),
-            id: 1,
-        };
-
-        let response = self.send_rpc_request::<BatchHashResponse>(request).await?;
-        match response {
-            Some(hash_str) => {
-                let hash_str = if hash_str.starts_with("0x") {
-                    &hash_str[2..]
-                } else {
-                    &hash_str
-                };
-
-                let hash_bytes = hex::decode(hash_str).map_err(|e| {
-                    TwineSequencerError::Other(format!("Invalid batch hash format: {}", e))
-                })?;
-
-                if hash_bytes.len() != 32 {
-                    return Err(TwineSequencerError::Other(format!(
-                        "Invalid batch hash length: expected 32 bytes, got {}",
-                        hash_bytes.len()
-                    )));
-                }
-
-                Ok(FixedBytes::from_slice(&hash_bytes))
-            }
-            None => Err(TwineSequencerError::Other(format!(
-                "Batch {} not found",
-                batch_number
-            ))),
-        }
-    }
-
-    /// Send JSON RPC request to L2 chain
-    async fn send_rpc_request<T: for<'de> Deserialize<'de>>(
-        &self,
-        request: JsonRpcRequest,
-    ) -> Result<Option<T>, TwineSequencerError> {
-        let response = self
-            .client
-            .post(&self.rpc_url)
-            .header("Content-Type", "application/json")
-            .json(&request)
-            .send()
-            .await
-            .map_err(|e| TwineSequencerError::Other(format!("RPC request failed: {}", e)))?;
-
-        if !response.status().is_success() {
-            return Err(TwineSequencerError::Other(format!(
-                "RPC request failed with status: {}",
-                response.status()
-            )));
-        }
-
-        let rpc_response: JsonRpcResponse<T> = response.json().await.map_err(|e| {
-            TwineSequencerError::Other(format!("Failed to parse RPC response: {}", e))
-        })?;
-
-        if let Some(error) = rpc_response.error {
-            return Err(TwineSequencerError::Other(format!(
-                "RPC error {}: {}",
-                error.code, error.message
-            )));
-        }
-
-        Ok(rpc_response.result)
     }
 }

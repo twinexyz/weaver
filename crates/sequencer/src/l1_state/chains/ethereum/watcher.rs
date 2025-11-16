@@ -6,26 +6,27 @@ use std::time::Duration;
 
 use alloy_primitives::FixedBytes;
 use alloy_rpc_types::TransactionRequest;
-use alloy_sol_types::{sol, SolCall};
+use alloy_sol_types::SolCall;
 use async_trait::async_trait;
 use tokio::sync::broadcast::Receiver;
 use tokio::sync::mpsc::Sender;
 use tokio::sync::Mutex;
 use tokio::time::{self, MissedTickBehavior};
+use twine_evm_contracts::twine_chain::TwineChain;
 use twine_l1_eth::twine_l1_eth_reader::{EthReader, EthReaderBuilder};
 use twine_sequencer_db::db::SequencerDB;
 use twine_sequencer_db::error::TwineSequencerDBError;
 
-use crate::common::{ETH_PROCESSED_BATCH, NS_CHAIN_WATCHER};
+use crate::common::consts::{ETHEREUM_CHAIN_IDENTIFIER, ETH_PROCESSED_BATCH, NS_CHAIN_WATCHER};
 use crate::config::config::L1Config;
 use crate::errors::TwineSequencerError;
 use crate::l1_state::state_tracker::{L1StateTracker, L2State, L2StateCheckpoint, State};
 
-sol! {
-    interface TwineChain {
-        function committedBatch(uint64 batchNumber) external view returns (bytes32);
-    }
-}
+// sol! {
+//     interface TwineChain {
+//         function committedBatch(uint64 batchNumber) external view returns
+// (bytes32);     }
+// }
 
 /// Ethereum State watcher
 pub struct EthereumStateWatcher {
@@ -233,7 +234,6 @@ impl EthereumStateWatcher {
 
                             tokio::time::sleep(retry_delay).await;
 
-                            // Exponential backoff: double the delay each time, max 10 seconds
                             retry_delay = std::cmp::min(retry_delay * 2, Duration::from_secs(10));
                         }
                     }
@@ -248,9 +248,7 @@ impl EthereumStateWatcher {
             TwineSequencerError::Other("Execution client not initialized".to_string())
         })?;
 
-        let call = TwineChain::committedBatchCall {
-            batchNumber: number,
-        };
+        let call = TwineChain::committedBatchCall { 0: number };
         let calldata = call.abi_encode();
 
         let tx = TransactionRequest::default()
@@ -290,7 +288,7 @@ impl EthereumStateWatcher {
         }
 
         let state = L2State {
-            chain: "ethereum".to_string(),
+            chain: ETHEREUM_CHAIN_IDENTIFIER.to_string(),
             state: State {
                 batch_number: number,
                 batch_hash,

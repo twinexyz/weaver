@@ -10,6 +10,7 @@ use solana_sdk::commitment_config::CommitmentConfig;
 use solana_sdk::pubkey::Pubkey;
 use twine_common::retry::{retry_with_metrics, RetryConfig};
 
+use crate::address_derivation::SolanaAddressDerivation;
 use crate::SolanaProvider;
 
 /// SEED for twine chain storage pda in the contract
@@ -47,6 +48,82 @@ impl SolanaProvider {
 
         TwineChainStorage::deserialize(&mut pda_serialized.as_slice())
             .context("failed to deserialize TwineChainStorage")
+    }
+
+    /// Get batch hash from batch number
+    pub async fn get_batch_hash_from_commitment_pda(
+        &self,
+        batch_number: u64,
+    ) -> eyre::Result<[u8; 32]> {
+        let commitment_pda =
+            SolanaAddressDerivation::derive_commitment_pda(&self.twine_chain_program, batch_number)
+                .0;
+
+        let client = Arc::new(RpcClient::new_with_commitment(
+            self.rpc.clone(),
+            CommitmentConfig::finalized(),
+        ));
+
+        let retry_config = RetryConfig::debug_default();
+
+        let account_data = retry_with_metrics(self.chain_id, "getAccountInfo", &retry_config, {
+            let client = Arc::clone(&client);
+            move || {
+                let client = Arc::clone(&client);
+                let pda = commitment_pda;
+                async move {
+                    client.get_account_data(&pda).map_err(|e| {
+                        tracing::error!("Failed to fetch account data: {:?}", e);
+                        e
+                    })
+                }
+            }
+        })
+        .await?;
+
+        // let account_data = client.get_account_data(&commitment_pda).map_err(|e| {
+        //     tracing::error!(
+        //         target = "solana_provider",
+        //         batch_number = batch_number,
+        //         commitment_pda = %commitment_pda,
+        //         error = ?e,
+        //         "commitment PDA account not found or failed to query"
+        //     );
+        //     eyre::eyre!(
+        //         "Commitment PDA for batch {} not found or failed to query: {}",
+        //         batch_number,
+        //         e
+        //     )
+        // })?;
+
+        // Parse the batch hash from account data
+        if account_data.len() == 33 {
+            // Skip first byte  and take next 32 bytes
+            let mut batch_hash = [0u8; 32];
+            batch_hash.copy_from_slice(&account_data[1..33]);
+
+            tracing::info!(
+                target = "solana_provider",
+                batch_number = batch_number,
+                batch_hash = ?batch_hash,
+                data_length = account_data.len(),
+                "extracted batch hash from commitment PDA (skipping discriminator byte)"
+            );
+
+            Ok(batch_hash)
+        } else {
+            tracing::error!(
+                target = "solana_provider",
+                batch_number = batch_number,
+                data_length = account_data.len(),
+                "The account data size is invalid to contain batch hash"
+            );
+            Err(eyre::eyre!(
+                "The account data size is invalid to contain batch hash. Expected: {} bytes, got {} bytes",
+                33,
+                account_data.len()
+            ))
+        }
     }
 }
 

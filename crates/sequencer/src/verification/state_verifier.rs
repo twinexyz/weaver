@@ -9,7 +9,7 @@ use tokio::sync::Mutex;
 use twine_sequencer_db::db::SequencerDB;
 use twine_sequencer_db::error::TwineSequencerDBError;
 
-use crate::common::{NS_CHAIN_STATE_VERIFIER, VERIFIED_BATCH};
+use crate::common::consts::{NS_CHAIN_STATE_VERIFIER, VERIFIED_BATCH};
 use crate::errors::TwineSequencerError;
 use crate::l1_state::state_tracker::State;
 use crate::verification::state_aggregator::AggregatedBatchState;

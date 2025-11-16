@@ -6,9 +6,6 @@ use std::time::Duration;
 
 use alloy_primitives::FixedBytes;
 use async_trait::async_trait;
-use solana_client::rpc_client::RpcClient;
-use solana_sdk::commitment_config::CommitmentConfig;
-use solana_sdk::pubkey::Pubkey;
 use tokio::sync::broadcast::Receiver;
 use tokio::sync::mpsc::Sender;
 use tokio::sync::Mutex;
@@ -17,13 +14,10 @@ use twine_l1_solana::SolanaProvider;
 use twine_sequencer_db::db::SequencerDB;
 use twine_sequencer_db::error::TwineSequencerDBError;
 
-use crate::common::{NS_CHAIN_WATCHER, SOLANA_PROCESSED_BATCH};
+use crate::common::consts::{NS_CHAIN_WATCHER, SOLANA_CHAIN_IDENTIFIER, SOLANA_PROCESSED_BATCH};
 use crate::config::config::L1Config;
 use crate::errors::TwineSequencerError;
 use crate::l1_state::state_tracker::{L1StateTracker, L2State, L2StateCheckpoint, State};
-
-/// Prefix for commitment PDA accounts
-const COMMITMENT_PDA_PREFIX: &str = "twine_batch";
 
 /// Solana State watcher
 pub struct SolanaStateWatcher {
@@ -254,8 +248,12 @@ impl SolanaStateWatcher {
         } else {
             // The requested batch is older than the last committed batch
             // Query the individual commitment PDA for this batch
-            match self.get_batch_hash_from_commitment_pda(number).await {
-                Ok(hash) => hash,
+            match self
+                .provider
+                .get_batch_hash_from_commitment_pda(number)
+                .await
+            {
+                Ok(hash) => FixedBytes::<32>::from(hash),
                 Err(e) => {
                     tracing::warn!(
                         target = "solana_watcher",
@@ -263,7 +261,7 @@ impl SolanaStateWatcher {
                         error = ?e,
                         "failed to get batch hash from commitment PDA"
                     );
-                    return Err(e);
+                    return Err(TwineSequencerError::Other(e.to_string()));
                 }
             }
         };
@@ -278,7 +276,7 @@ impl SolanaStateWatcher {
         }
 
         let state = L2State {
-            chain: "solana".to_string(),
+            chain: SOLANA_CHAIN_IDENTIFIER.to_string(),
             state: State {
                 batch_number: number,
                 batch_hash,
@@ -293,92 +291,5 @@ impl SolanaStateWatcher {
         );
 
         Ok(state)
-    }
-
-    /// Get batch hash from individual commitment PDA
-    async fn get_batch_hash_from_commitment_pda(
-        &self,
-        batch_number: u64,
-    ) -> Result<FixedBytes<32>, TwineSequencerError> {
-        // Derive the commitment PDA for this batch
-        let commitment_pda = self.derive_commitment_pda(batch_number);
-
-        // Create RPC client
-        let client = RpcClient::new_with_commitment(
-            self.provider.rpc.clone(),
-            CommitmentConfig::finalized(),
-        );
-
-        // Query the commitment account
-        match client.get_account_data(&commitment_pda) {
-            Ok(account_data) => {
-                tracing::info!("The data is: {:?}", account_data);
-                if account_data.len() == 33 {
-                    // skipp first byte and take next 32 bytes
-                    let mut batch_hash = [0u8; 32];
-                    batch_hash.copy_from_slice(&account_data[1..33]);
-                    tracing::info!("The batch hash is: {:?}", batch_hash);
-                    tracing::info!(
-                        target = "solana_watcher",
-                        batch_number = batch_number,
-                        batch_hash = hex::encode(&batch_hash),
-                        data_length = account_data.len(),
-                        "extracted batch hash from raw bytes (skipping first discriminator byte)"
-                    );
-                    Ok(FixedBytes::<32>::from(batch_hash))
-                } else if account_data.len() >= 32 {
-                    // Fallback: try extracting the last 32 bytes as the hash
-                    let hash_start = account_data.len() - 32;
-                    let mut batch_hash = [0u8; 32];
-                    batch_hash.copy_from_slice(&account_data[hash_start..]);
-
-                    tracing::info!(
-                        target = "solana_watcher",
-                        batch_number = batch_number,
-                        batch_hash = hex::encode(&batch_hash),
-                        data_length = account_data.len(),
-                        "extracted batch hash from raw bytes (last 32 bytes)"
-                    );
-                    Ok(FixedBytes::<32>::from(batch_hash))
-                } else {
-                    tracing::error!(
-                        target = "solana_watcher",
-                        batch_number = batch_number,
-                        data_length = account_data.len(),
-                        "account data too small to contain batch hash"
-                    );
-                    Err(TwineSequencerError::Other(format!(
-                        "Account data for batch {} is too small ({} bytes)",
-                        batch_number,
-                        account_data.len()
-                    )))
-                }
-            }
-            Err(e) => {
-                tracing::error!(
-                    target = "solana_watcher",
-                    batch_number = batch_number,
-                    commitment_pda = commitment_pda.to_string(),
-                    error = ?e,
-                    "commitment PDA account not found or failed to query"
-                );
-                Err(TwineSequencerError::Other(format!(
-                    "Commitment PDA for batch {} not found or failed to query: {}",
-                    batch_number, e
-                )))
-            }
-        }
-    }
-
-    /// Derive commitment PDA for a given batch number
-    fn derive_commitment_pda(&self, batch_number: u64) -> Pubkey {
-        let (commitment_pda, _) = Pubkey::find_program_address(
-            &[
-                COMMITMENT_PDA_PREFIX.as_bytes(),
-                &batch_number.to_be_bytes(),
-            ],
-            &self.provider.twine_chain_program,
-        );
-        commitment_pda
     }
 }

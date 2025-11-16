@@ -15,7 +15,7 @@ use twine_sequencer_db::error::TwineSequencerDBError;
 
 use super::engine::EngineClient;
 use crate::block_progress::engine::CAPABILITIES;
-use crate::common::{LAST_FINALIZED_BLOCK_HASH, NS_BLOCK_PRODUCER};
+use crate::common::consts::{LAST_FINALIZED_BLOCK_HASH, NS_BLOCK_PRODUCER};
 use crate::errors::TwineSequencerError;
 
 /// Twine block producer
