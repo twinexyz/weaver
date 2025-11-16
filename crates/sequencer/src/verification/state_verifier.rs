@@ -3,7 +3,7 @@
 use std::fmt::Debug as FmtDebug;
 use std::sync::Arc;
 
-use tokio::sync::broadcast::Receiver as KReceiver;
+use tokio::sync::broadcast::{Receiver as KReceiver, Sender as BroadcastSender};
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::Mutex;
 use twine_sequencer_db::db::SequencerDB;
@@ -11,7 +11,29 @@ use twine_sequencer_db::error::TwineSequencerDBError;
 
 use crate::common::{NS_CHAIN_STATE_VERIFIER, VERIFIED_BATCH};
 use crate::errors::TwineSequencerError;
-use crate::l1_state::state_aggregator::AggregatedBatchState;
+use crate::l1_state::state_tracker::State;
+use crate::verification::state_aggregator::AggregatedBatchState;
+
+/// Verification event sent to the block producer
+#[derive(Debug, Clone)]
+pub enum VerificationEvent {
+    /// Verification succeeded
+    StateVerified {
+        /// batch number which was verified
+        batch_number: u64,
+        /// verified state
+        state: State,
+    },
+    /// Verification failed
+    StateVerificationFailed {
+        /// batch number which failed verification
+        batch_number: u64,
+        /// reason for failure
+        reason: String,
+        /// mismatched chain identifier
+        mismatched_chain: Option<String>,
+    },
+}
 
 /// Receives AggregatedBatchState instances from the aggregator,
 /// verifies that all views of the L2 state are consistent across chains,
@@ -32,6 +54,8 @@ pub struct StateVerifier {
             >,
         >,
     >,
+    /// Verification event sender to notify block producer
+    verification_event_sender: Option<BroadcastSender<VerificationEvent>>,
 }
 
 impl FmtDebug for StateVerifier {
@@ -55,11 +79,13 @@ impl StateVerifier {
                 >,
             >,
         >,
+        verification_event_sender: Option<BroadcastSender<VerificationEvent>>,
     ) -> Result<Self, TwineSequencerError> {
         Ok(Self {
             kill_sig_recv,
             aggregated_receiver,
             db,
+            verification_event_sender,
         })
     }
 
@@ -83,21 +109,14 @@ impl StateVerifier {
                         states.len()
                     );
 
+                    // should not be empty as aggregator won't send empty states
+                    // but kept just for safety
                     if states.is_empty() {
-                        tracing::error!(
-                            target = "final_verifier",
-                            "received empty aggregated batch for batch: {}",
-                            batch_number
-                        );
-                        return Err(TwineSequencerError::StateRecordMismatched(
-                            format!(
-                                "empty aggregated batch for batch_number {}",
-                                batch_number
-                            ),
-                        ));
+                        let error_msg = format!("no states to verify for batch: {}", batch_number);
+                        return Err(TwineSequencerError::StateRecordMismatched(error_msg));
                     }
 
-                    // the first state's inner state as the reference
+                    // take the first state's inner state as the reference
                     let reference_state = states
                         .values()
                         .next()
@@ -120,11 +139,30 @@ impl StateVerifier {
                                 st.state,
                             );
 
+                            let error_reason = format!(
+                                "chain: {}, expected: {:?}, got: {:?}",
+                                chain, reference_state, st.state
+                            );
+
+                            // Notify block producer of verification failure
+                            if let Some(sender) = &self.verification_event_sender {
+                                let event = VerificationEvent::StateVerificationFailed {
+                                    batch_number,
+                                    reason: error_reason.clone(),
+                                    mismatched_chain: Some(chain.clone()),
+                                };
+
+                               if let Err(e) = sender.send(event) {
+                                   tracing::error!(
+                                       target = "final_verifier",
+                                       "failed to send verification failure event: {}",
+                                       e
+                                   );
+                               }
+                            }
+
                             return Err(TwineSequencerError::StateRecordMismatched(
-                                format!(
-                                    "batch: {}, chain: {}, expected: {:?}, got: {:?}",
-                                    batch_number, chain, reference_state, st.state
-                                ),
+                                format!("batch: {}, {}", batch_number, error_reason),
                             ));
                         }
                     }
@@ -147,6 +185,22 @@ impl StateVerifier {
                         "verified batch: {}, hash: {:?}",
                         batch_number, states
                     );
+
+                    // Notify block producer of successful verification
+                    if let Some(sender) = &self.verification_event_sender {
+                        let event = VerificationEvent::StateVerified {
+                            batch_number,
+                            state: reference_state,
+                        };
+                        if let Err(e) = sender.send(event) {
+                            tracing::error!(
+                                target = "final_verifier",
+
+                                "failed to send state verified event: {}",
+                                e
+                            );
+                        }
+                    }
                 }
             }
         }

@@ -8,3 +8,4 @@ pub mod errors;
 pub mod instance;
 pub mod l1_state;
 pub mod l2_state;
+pub mod verification;
