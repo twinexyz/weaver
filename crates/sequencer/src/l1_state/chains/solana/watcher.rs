@@ -92,7 +92,7 @@ impl L1StateTracker for SolanaStateWatcher {
     /// watches l1 state and notifies the verifier
     async fn watch(&mut self) -> Result<(), TwineSequencerError> {
         tracing::info!(target = "solana_watcher", "solana watcher loop started");
-        let mut ticker = time::interval(Duration::from_secs(2));
+        let mut ticker = time::interval(Duration::from_secs(5));
         ticker.set_missed_tick_behavior(MissedTickBehavior::Delay);
         loop {
             tokio::select! {
@@ -172,7 +172,7 @@ impl SolanaStateWatcher {
     ) -> Result<L2State, TwineSequencerError> {
         match by {
             L2StateCheckpoint::BatchNumber(number) => {
-                const MAX_RETRIES: u32 = 3;
+                const MAX_RETRIES: u32 = 5;
                 const INITIAL_RETRY_DELAY_MS: u64 = 1000; // 1 second
 
                 let mut retry_count = 0;
@@ -283,7 +283,7 @@ impl SolanaStateWatcher {
             },
         };
 
-        tracing::debug!(
+        tracing::info!(
             target = "solana_watcher",
             "L2 state for batch {} on solana: {:?}",
             number,

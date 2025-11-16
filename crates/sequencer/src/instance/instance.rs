@@ -165,6 +165,7 @@ impl SequencerInstance for TwineSequencerInstance {
 
             let (_verification_event_sender, _verification_event_receiver) =
                 broadcast::channel::<VerificationEvent>(100); // the block producer should be the receiver to this channel
+                                                              // TODO: channel size from config
             let mut state_verifier = StateVerifier::new(
                 kill_sig_sender.subscribe(),
                 aggregated_receiver,

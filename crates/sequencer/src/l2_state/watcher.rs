@@ -13,7 +13,7 @@ use twine_sequencer_db::db::SequencerDB;
 use twine_sequencer_db::error::TwineSequencerDBError;
 
 use super::rpc_client::L2RpcClient;
-use crate::common::consts::{L2_PROCESSED_BATCH, NS_L2_WATCHER, TWINE_CHAIN_IDENTIFIER};
+use crate::common::consts::{NS_CHAIN_WATCHER, TWINE_CHAIN_IDENTIFIER, TWINE_PROCESSED_BATCH};
 use crate::config::config::L2Config;
 use crate::errors::TwineSequencerError;
 use crate::l1_state::state_tracker::{L2State, L2StateCheckpoint, State};
@@ -73,7 +73,10 @@ impl L2ChainWatcher {
         let verified_l2_batch: u64 = match db
             .lock()
             .await
-            .get(NS_L2_WATCHER.to_string(), L2_PROCESSED_BATCH.to_string())
+            .get(
+                NS_CHAIN_WATCHER.to_string(),
+                TWINE_PROCESSED_BATCH.to_string(),
+            )
             .await
         {
             Ok(Some(s)) => s.parse().unwrap_or(0),
@@ -103,7 +106,7 @@ impl L2ChainWatcher {
     pub async fn watch(&mut self) -> Result<(), TwineSequencerError> {
         tracing::info!(target = "l2_watcher", "watcher loop started");
 
-        // Poll every 5 seconds
+        // TODO: from config
         let mut ticker = time::interval(Duration::from_secs(5));
         ticker.set_missed_tick_behavior(MissedTickBehavior::Delay);
 
@@ -144,8 +147,8 @@ impl L2ChainWatcher {
                                     .lock()
                                     .await
                                     .insert(
-                                        NS_L2_WATCHER.to_string(),
-                                        L2_PROCESSED_BATCH.to_string(),
+                                        NS_CHAIN_WATCHER.to_string(),
+                                        TWINE_PROCESSED_BATCH.to_string(),
                                         self.verified_l2_batch.to_string(),
                                     )
                                     .await
@@ -174,7 +177,7 @@ impl L2ChainWatcher {
     ) -> Result<L2State, TwineSequencerError> {
         match checkpoint {
             L2StateCheckpoint::BatchNumber(number) => {
-                const MAX_RETRIES: u32 = 3;
+                const MAX_RETRIES: u32 = 5;
                 const INITIAL_RETRY_DELAY_MS: u64 = 1000;
 
                 let mut retry_count = 0;
@@ -245,7 +248,7 @@ impl L2ChainWatcher {
             },
         };
 
-        tracing::debug!(
+        tracing::info!(
             target = "l2_watcher",
             "L2 state for batch {}: {:?}",
             number,

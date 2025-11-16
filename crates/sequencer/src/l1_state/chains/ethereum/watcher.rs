@@ -22,12 +22,6 @@ use crate::config::config::L1Config;
 use crate::errors::TwineSequencerError;
 use crate::l1_state::state_tracker::{L1StateTracker, L2State, L2StateCheckpoint, State};
 
-// sol! {
-//     interface TwineChain {
-//         function committedBatch(uint64 batchNumber) external view returns
-// (bytes32);     }
-// }
-
 /// Ethereum State watcher
 pub struct EthereumStateWatcher {
     /// kill sig receiver
@@ -189,10 +183,7 @@ impl EthereumStateWatcher {
     ) -> Result<L2State, TwineSequencerError> {
         match by {
             L2StateCheckpoint::BatchNumber(number) => {
-                // For zero hash (batch not built), we don't retry here - let the main loop
-                // handle it. For other errors, we still use retry logic with exponential
-                // backoff
-                const MAX_RETRIES: u32 = 3;
+                const MAX_RETRIES: u32 = 5;
                 const INITIAL_RETRY_DELAY_MS: u64 = 1000; // 1 second
 
                 let mut retry_count = 0;
@@ -295,7 +286,7 @@ impl EthereumStateWatcher {
             },
         };
 
-        tracing::debug!(
+        tracing::info!(
             target = "eth_watcher",
             "L2 state for batch {} on ethereum: {:?}",
             number,

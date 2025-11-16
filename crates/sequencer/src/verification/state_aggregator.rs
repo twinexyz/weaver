@@ -61,6 +61,8 @@ impl StateAggregator {
 
     /// Aggregation loop
     pub async fn run(&mut self) -> Result<(), TwineSequencerError> {
+        // FIX: resume aggregation from last verified batch from DB
+        // FIX: need to add the last verified batch number to the type
         tracing::info!(target = "aggregator", "state aggregator loop started");
 
         loop {
