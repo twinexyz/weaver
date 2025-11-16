@@ -159,9 +159,9 @@ impl L2ChainWatcher {
                     let next_expected_batch = self.verified_l2_batch + 1;
 
                     // Try to get the L2 state
-                    match self.get_l2_state(L2StateCheckpoint::L2BatchNumber(next_expected_batch)).await {
+                    match self.get_l2_state(L2StateCheckpoint::BatchNumber(next_expected_batch)).await {
                         Ok(next_expected_l2_state) => {
-                            if next_expected_l2_state.state.l2_batch_hash == FixedBytes::<32>::ZERO {
+                            if next_expected_l2_state.state.batch_hash == FixedBytes::<32>::ZERO {
                                 tracing::info!(
                                     target = "l2_watcher",
                                     batch_number = next_expected_batch,
@@ -215,7 +215,7 @@ impl L2ChainWatcher {
         checkpoint: L2StateCheckpoint,
     ) -> Result<L2State, TwineSequencerError> {
         match checkpoint {
-            L2StateCheckpoint::L2BatchNumber(number) => {
+            L2StateCheckpoint::BatchNumber(number) => {
                 const MAX_RETRIES: u32 = 3;
                 const INITIAL_RETRY_DELAY_MS: u64 = 1000;
 
@@ -282,8 +282,8 @@ impl L2ChainWatcher {
         let state = L2State {
             chain: "twine".to_string(),
             state: State {
-                l2_batch_number: number,
-                l2_batch_hash: batch_hash,
+                batch_number: number,
+                batch_hash,
             },
         };
 

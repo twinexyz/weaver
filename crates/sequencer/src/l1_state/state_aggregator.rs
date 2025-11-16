@@ -1,4 +1,4 @@
-// state_aggregator.rs
+//! module for L2 state aggregation across multiple chains
 
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -70,7 +70,7 @@ impl StateAggregator {
                     return Ok(());
                 }
                 Some(l2_state) = self.state_receiver.recv() => {
-                    let batch_number = l2_state.state.l2_batch_number;
+                    let batch_number = l2_state.state.batch_number;
                     let chain = l2_state.chain.clone();
 
                     tracing::debug!(

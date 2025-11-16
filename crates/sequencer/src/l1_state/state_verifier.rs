@@ -1,3 +1,5 @@
+//! module for L2 state verification across multiple chains
+
 use std::fmt::Debug as FmtDebug;
 use std::sync::Arc;
 

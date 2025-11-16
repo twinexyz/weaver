@@ -110,10 +110,10 @@ impl L1StateTracker for SolanaStateWatcher {
                 _ = ticker.tick() => {
                     let next_expected_batch = self.verified_l2_batch + 1;
 
-                    match self.get_l2_state_on_l1(L2StateCheckpoint::L2BatchNumber(next_expected_batch)).await {
+                    match self.get_l2_state_on_l1(L2StateCheckpoint::BatchNumber(next_expected_batch)).await {
                         Ok(next_expected_l2_state) => {
                             // Check if batch hash is built yet
-                            if next_expected_l2_state.state.l2_batch_hash == FixedBytes::<32>::ZERO {
+                            if next_expected_l2_state.state.batch_hash == FixedBytes::<32>::ZERO {
                                 tracing::info!(
                                     target = "solana_watcher",
                                     batch_number = next_expected_batch,
@@ -177,8 +177,7 @@ impl SolanaStateWatcher {
         by: L2StateCheckpoint,
     ) -> Result<L2State, TwineSequencerError> {
         match by {
-            L2StateCheckpoint::L2BatchNumber(number) => {
-                // Use retry logic with exponential backoff similar to Ethereum
+            L2StateCheckpoint::BatchNumber(number) => {
                 const MAX_RETRIES: u32 = 3;
                 const INITIAL_RETRY_DELAY_MS: u64 = 1000; // 1 second
 
@@ -281,8 +280,8 @@ impl SolanaStateWatcher {
         let state = L2State {
             chain: "solana".to_string(),
             state: State {
-                l2_batch_number: number,
-                l2_batch_hash: batch_hash,
+                batch_number: number,
+                batch_hash,
             },
         };
 

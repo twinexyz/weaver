@@ -1,4 +1,4 @@
-//! Traits that defines state trackers of underlying L1 chains
+//! Generic state tracking types and traits for chain watchers
 
 use std::sync::Arc;
 
@@ -11,10 +11,40 @@ use tokio::sync::Mutex;
 use twine_sequencer_db::db::SequencerDB;
 use twine_sequencer_db::error::TwineSequencerDBError;
 
-use crate::config::config::{L1Config, L2Config};
+use crate::config::config::L1Config;
 use crate::errors::TwineSequencerError;
 
+/// L2 State info
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct State {
+    /// Batch number
+    pub batch_number: u64,
+    /// Batch hash
+    pub batch_hash: FixedBytes<32>,
+}
+
+/// L2 chain state with associated chain identifier
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct L2State {
+    /// Chain identifier
+    pub chain: String,
+    /// State information
+    pub state: State,
+}
+
+/// Checkpoint for L2 state
+#[derive(Debug, Clone)]
+pub enum L2StateCheckpoint {
+    /// Latest finalized batch
+    Latest,
+    /// Batch indexed by batch number
+    BatchNumber(u64),
+    /// Batch indexed by batch hash
+    BatchHash(FixedBytes<32>),
+}
+
 /// L1 state tracker trait for monitoring L1 chains (Ethereum, Solana)
+/// L1 trackers watch L1 chains for L2 batch commitments
 #[async_trait]
 pub trait L1StateTracker: Send + Sync {
     /// Creates new instance of L1 state tracker
@@ -44,65 +74,4 @@ pub trait L1StateTracker: Send + Sync {
         &self,
         checkpoint: L2StateCheckpoint,
     ) -> Result<L2State, TwineSequencerError>;
-}
-
-/// L2 state tracker trait for monitoring L2 chain
-#[async_trait]
-pub trait L2StateTracker: Send + Sync {
-    /// Creates new instance of L2 state tracker
-    async fn new(
-        kill_sig_recv: Receiver<bool>,
-        config: L2Config,
-        state_sender: Sender<L2State>,
-        db: Arc<
-            Mutex<
-                dyn SequencerDB<
-                    NameSpace = String,
-                    SequencerDBError = TwineSequencerDBError,
-                    Key = String,
-                    Value = String,
-                >,
-            >,
-        >,
-    ) -> Result<Self, TwineSequencerError>
-    where
-        Self: Sized;
-
-    /// Watches L2 state and notifies subscribers
-    async fn watch(&mut self) -> Result<(), TwineSequencerError>;
-
-    /// Gets current L2 state at a specific checkpoint
-    async fn get_l2_state(
-        &self,
-        checkpoint: L2StateCheckpoint,
-    ) -> Result<L2State, TwineSequencerError>;
-}
-
-/// L2 state info on L1 chains (what L1 trackers provide)
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct L2State {
-    /// Chain identifier of the L1 chain
-    pub chain: String,
-    /// State information
-    pub state: State,
-}
-
-/// L2 state information stored on L1
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct State {
-    /// Settled L2 batch number
-    pub l2_batch_number: u64,
-    /// Settled L2 batch hash
-    pub l2_batch_hash: FixedBytes<32>,
-}
-
-/// L2 state checkpoint on L1
-#[derive(Debug, Clone)]
-pub enum L2StateCheckpoint {
-    /// Latest finalized L2 batch on L1
-    Latest,
-    /// Finalized L2 batch on L1 indexed by batch number
-    L2BatchNumber(u64),
-    /// Finalized L2 batch on L1 indexed by batch hash
-    L2BatchHash(FixedBytes<32>),
 }

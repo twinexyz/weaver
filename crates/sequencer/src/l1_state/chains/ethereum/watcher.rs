@@ -120,10 +120,10 @@ impl L1StateTracker for EthereumStateWatcher {
                 _ = ticker.tick() => {
                     let next_expected_batch = self.verified_l2_batch + 1;
 
-                    match self.get_l2_state_on_l1(L2StateCheckpoint::L2BatchNumber(next_expected_batch)).await {
+                    match self.get_l2_state_on_l1(L2StateCheckpoint::BatchNumber(next_expected_batch)).await {
                         Ok(next_expected_l2_state) => {
                             // Check if batch hash is built yet
-                            if next_expected_l2_state.state.l2_batch_hash == FixedBytes::<32>::ZERO {
+                            if next_expected_l2_state.state.batch_hash== FixedBytes::<32>::ZERO {
                                 tracing::info!(
                                     target = "eth_watcher",
                                     batch_number = next_expected_batch,
@@ -187,7 +187,7 @@ impl EthereumStateWatcher {
         by: L2StateCheckpoint,
     ) -> Result<L2State, TwineSequencerError> {
         match by {
-            L2StateCheckpoint::L2BatchNumber(number) => {
+            L2StateCheckpoint::BatchNumber(number) => {
                 // For zero hash (batch not built), we don't retry here - let the main loop
                 // handle it. For other errors, we still use retry logic with exponential
                 // backoff
@@ -292,8 +292,8 @@ impl EthereumStateWatcher {
         let state = L2State {
             chain: "ethereum".to_string(),
             state: State {
-                l2_batch_number: number,
-                l2_batch_hash: batch_hash,
+                batch_number: number,
+                batch_hash,
             },
         };
 
