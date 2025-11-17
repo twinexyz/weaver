@@ -622,7 +622,7 @@
         "internalType": "string"
       },
       {
-        "name": "L1TokenAddress",
+        "name": "l1TokenAddress",
         "type": "string",
         "indexed": false,
         "internalType": "string"
@@ -721,13 +721,13 @@
         "internalType": "string"
       },
       {
-        "name": "L1TokenAddress",
+        "name": "l1TokenAddress",
         "type": "string",
         "indexed": false,
         "internalType": "string"
       },
       {
-        "name": "ChainId",
+        "name": "chainId",
         "type": "uint64",
         "indexed": false,
         "internalType": "uint64"
