@@ -11,12 +11,13 @@ alloy-rpc-types.workspace = true
 alloy-signer-local.workspace = true
 alloy-sol-types.workspace = true
 env_logger.workspace = true
-eyre = { workspace = true }
+eyre.workspace = true
 log.workspace = true
 regex.workspace = true
 reth-trie-common.workspace = true
 serde_json.workspace = true
 tokio.workspace = true
+twine-constants.workspace = true
 twine-evm-contracts.workspace = true
 twine-l1-eth.workspace = true
 
