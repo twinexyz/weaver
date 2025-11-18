@@ -3,7 +3,7 @@ use std::pin::Pin;
 
 use log::{error, info};
 
-use crate::precompile_test;
+use crate::{genesis_test, precompile_test};
 
 pub type TestFuture = Pin<Box<dyn Future<Output = eyre::Result<()>> + 'static>>;
 
@@ -24,7 +24,10 @@ impl Default for Tests {
 impl Tests {
     pub fn new() -> Self {
         Self {
-            tests: vec![precompile_test::register_precompile_block_production_test()],
+            tests: vec![
+                precompile_test::register_precompile_block_production_test(),
+                genesis_test::register_genesis_correct_preloaded_storage_contract(),
+            ],
         }
     }
 
