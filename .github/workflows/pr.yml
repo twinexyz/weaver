@@ -72,7 +72,7 @@ jobs:
         with:
           branch: ${{ steps.changes.outputs.branch_name }}
           delete-branch: true
-          base: main
+          base: staging
           title: "evm contract updates from workflow"
           body: |
             This PR was automatically created by a workflow.
