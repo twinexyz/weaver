@@ -37,8 +37,9 @@ RUN wget -c https://github.com/mikefarah/yq/releases/download/v4.45.1/yq_linux_$
     chmod +x /usr/bin/yq && \
     curl -OL https://go.dev/dl/go1.24.0.linux-${ARCH}.tar.gz && \
     tar -C /usr/local -xzf go1.24.0.linux-${ARCH}.tar.gz && \
-    rm go1.24.0.linux-${ARCH}.tar.gz && \
-    curl -L https://sp1.succinct.xyz | bash && ~/.sp1/bin/sp1up
+    rm go1.24.0.linux-${ARCH}.tar.gz
+    
+RUN curl -L https://sp1.succinct.xyz | bash && ~/.sp1/bin/sp1up
 
 WORKDIR /app
 
