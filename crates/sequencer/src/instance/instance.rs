@@ -119,35 +119,18 @@ impl SequencerInstance for TwineSequencerInstance {
         {
             use tokio::sync::{broadcast, mpsc};
 
-            use crate::l1_state::chains::{EthereumStateWatcher, SolanaStateWatcher};
-            use crate::l1_state::state_tracker::L1StateTracker;
-            use crate::l2_state::watcher::L2ChainWatcher;
+            use crate::chain_watcher::manager::ChainWatcherManager;
             use crate::verification::state_aggregator::StateAggregator;
             use crate::verification::state_verifier::{StateVerifier, VerificationEvent};
 
             let (state_sender, state_receiver) =
                 mpsc::channel(config.extras.verifer_channel_buffer_size);
 
-            let mut eth_watcher = EthereumStateWatcher::new(
+            // Spawn all chain watchers and get task handles
+            let mut watcher_handles = ChainWatcherManager::spawn_all(
                 kill_sig_sender.subscribe(),
-                config.ethereum,
-                state_sender.clone(),
-                self.db.clone(),
-            )
-            .await?;
-
-            let mut solana_watcher = SolanaStateWatcher::new(
-                kill_sig_sender.subscribe(),
-                config.solana,
-                state_sender.clone(),
-                self.db.clone(),
-            )
-            .await?;
-
-            let mut l2_watcher = L2ChainWatcher::new(
-                kill_sig_sender.subscribe(),
-                config.l2.clone(),
-                state_sender.clone(),
+                config.clone(),
+                state_sender,
                 self.db.clone(),
             )
             .await?;
@@ -175,23 +158,13 @@ impl SequencerInstance for TwineSequencerInstance {
             )
             .await?;
 
-            let eth_watcher_job = tokio::spawn(async move { eth_watcher.watch().await });
-
-            let solana_watcher_job = tokio::spawn(async move { solana_watcher.watch().await });
-
-            let l2_watcher_job = tokio::spawn(async move { l2_watcher.watch().await });
-
             let state_aggregator_job = tokio::spawn(async move { state_aggregator.run().await });
 
             let state_verifier_job = tokio::spawn(async move { state_verifier.run().await });
 
-            join_handles.append(&mut vec![
-                eth_watcher_job,
-                solana_watcher_job,
-                l2_watcher_job,
-                state_aggregator_job,
-                state_verifier_job,
-            ]);
+            // Collect all task handles
+            join_handles.append(&mut watcher_handles);
+            join_handles.append(&mut vec![state_aggregator_job, state_verifier_job]);
         }
 
         for handle in join_handles {

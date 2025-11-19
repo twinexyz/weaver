@@ -6,8 +6,8 @@ use std::fmt::Debug;
 use tokio::sync::broadcast::Receiver as KReceiver;
 use tokio::sync::mpsc::{Receiver, Sender};
 
+use crate::chain_state::state::L2State;
 use crate::errors::TwineSequencerError;
-use crate::l1_state::state_tracker::L2State;
 
 /// Aggregated set of L2 states for a single batch across all registered chains.
 #[derive(Clone, Debug)]

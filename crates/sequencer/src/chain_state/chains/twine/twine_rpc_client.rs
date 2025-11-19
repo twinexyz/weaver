@@ -11,7 +11,7 @@ use crate::errors::TwineSequencerError;
 
 /// JSON RPC request structure
 #[derive(Debug, Serialize)]
-pub struct JsonRpcRequest {
+pub(super) struct JsonRpcRequest {
     /// JSON RPC protocol version
     pub jsonrpc: String,
     /// RPC method name
@@ -24,25 +24,28 @@ pub struct JsonRpcRequest {
 
 /// JSON RPC response structure
 #[derive(Debug, Deserialize)]
-pub struct JsonRpcResponse<T> {
+pub(super) struct JsonRpcResponse<T> {
     /// JSON RPC protocol version
+    #[allow(dead_code)]
     pub jsonrpc: String,
     /// Response result if successful
     pub result: Option<T>,
     /// Error details if request failed
     pub error: Option<JsonRpcError>,
     /// Request identifier
+    #[allow(dead_code)]
     pub id: u64,
 }
 
 /// JSON RPC error structure
 #[derive(Debug, Deserialize)]
-pub struct JsonRpcError {
+pub(super) struct JsonRpcError {
     /// Error code
     pub code: i32,
     /// Human-readable error message
     pub message: String,
     /// Optional additional error data
+    #[allow(dead_code)]
     pub data: Option<Value>,
 }
 
@@ -51,7 +54,7 @@ type BatchHashResponse = String;
 
 /// L2 JSON RPC client
 #[derive(Debug)]
-pub struct L2RpcClient {
+pub(super) struct L2RpcClient {
     /// HTTP client for JSON RPC calls
     client: Client,
     /// L2 RPC URL
@@ -59,8 +62,8 @@ pub struct L2RpcClient {
 }
 
 impl L2RpcClient {
-    /// Create a new L2 RPC client
-    pub fn new(rpc_url: String) -> Result<Self, TwineSequencerError> {
+    /// Creates a new L2 RPC client
+    pub(super) fn new(rpc_url: String) -> Result<Self, TwineSequencerError> {
         let client = Client::builder()
             .timeout(Duration::from_secs(30))
             .build()
@@ -72,7 +75,7 @@ impl L2RpcClient {
     }
 
     /// Get batch hash for a specific batch number
-    pub async fn get_batch_hash(
+    pub(super) async fn get_batch_hash(
         &self,
         batch_number: u64,
     ) -> Result<FixedBytes<32>, TwineSequencerError> {
@@ -113,7 +116,7 @@ impl L2RpcClient {
     }
 
     /// Send a generic JSON RPC request to twine RPC service
-    pub async fn send_request<T: for<'de> Deserialize<'de>>(
+    pub(super) async fn send_request<T: for<'de> Deserialize<'de>>(
         &self,
         request: JsonRpcRequest,
     ) -> Result<Option<T>, TwineSequencerError> {
@@ -148,5 +151,5 @@ impl L2RpcClient {
     }
 
     /// Get the RPC URL
-    pub fn rpc_url(&self) -> &str { &self.rpc_url }
+    pub(super) fn rpc_url(&self) -> &str { &self.rpc_url }
 }
