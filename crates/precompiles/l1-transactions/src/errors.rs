@@ -75,7 +75,7 @@ impl From<TransactionPrecompileError> for InterpreterResult {
     fn from(err: TransactionPrecompileError) -> Self {
         let binding = err.to_string();
         let err_bytes = binding.as_bytes();
-        InterpreterResult {
+        Self {
             result: InstructionResult::PrecompileError,
             output: Bytes::copy_from_slice(err_bytes),
             gas: Gas::new(0),
