@@ -6,16 +6,27 @@ use log::{error, info};
 use regex::Regex;
 use serde::Deserialize;
 use serde_json::Value as JsonValue;
+use solana_sdk::pubkey::Pubkey;
 use test_harness::{AsyncFnStep, TestStep};
 use twine_evm_contracts::l2_twine_messenger::TwineTypes::MessageData;
+use twine_l1_solana::SolanaProvider;
 
 use super::SolanaTestType;
 use crate::ctx::{common_ctx_keys, ctx_get, solana_ctx_keys, twine_ctx_keys};
-use crate::{async_step, consts, generate_random_eth_address, run_cmd, twine};
+use crate::{async_step, consts, generate_evm_test_address, run_cmd, twine, TestAccountKind};
 
 const PROGRAM_LOG_PREFIX: &str = "Program log: ";
 /// Name of the message event for solana
 const MESSAGE_TRANSACTION: &str = "MessageTransaction";
+
+fn parse_lamports(raw: &str) -> eyre::Result<u128> {
+    let amount_str = raw
+        .split_whitespace()
+        .next()
+        .ok_or_else(|| eyre!("Unable to parse lamports from balance output: {}", raw))?;
+    u128::from_str_radix(amount_str, 10)
+        .map_err(|_| eyre!("Invalid lamport amount in balance output: {}", raw))
+}
 
 #[derive(Debug, Clone, Deserialize)]
 #[allow(dead_code)]
@@ -67,11 +78,6 @@ pub fn deploy_solana_program_step(program_path: PathBuf) -> eyre::Result<TestSte
         futurefn: Box::new(|ctx| {
             Box::new(async move {
                 let program_path = program_path.clone();
-                let status = Command::new("solana").arg("airdrop").arg("10").status()?;
-
-                if !status.success() {
-                    return Err(eyre!("Airdrop failed"));
-                }
 
                 let out = Command::new("make")
                     .arg("clean")
@@ -116,8 +122,8 @@ pub fn deploy_solana_program_step(program_path: PathBuf) -> eyre::Result<TestSte
                 let out = Command::new("make")
                     .arg("build")
                     .current_dir(&program_path)
-                    .stderr(Stdio::inherit())
-                    .stdout(Stdio::inherit())
+                    .stderr(Stdio::null())
+                    .stdout(Stdio::null())
                     .output()
                     .context("failed to run `make build`")?;
                 if !out.status.success() {
@@ -128,8 +134,8 @@ pub fn deploy_solana_program_step(program_path: PathBuf) -> eyre::Result<TestSte
                 let out = Command::new("make")
                     .arg("build-sbf")
                     .current_dir(&program_path)
-                    .stderr(Stdio::inherit())
-                    .stdout(Stdio::inherit())
+                    .stderr(Stdio::null())
+                    .stdout(Stdio::null())
                     .output()
                     .context("failed to run `make build-sbf`")?;
                 if !out.status.success() {
@@ -152,8 +158,8 @@ pub fn deploy_solana_program_step(program_path: PathBuf) -> eyre::Result<TestSte
                 let out = Command::new("make")
                     .arg("build-sbf")
                     .current_dir(&program_path)
-                    .stderr(Stdio::inherit())
-                    .stdout(Stdio::inherit())
+                    .stderr(Stdio::null())
+                    .stdout(Stdio::null())
                     .output()
                     .context("failed to run `make build-sbf`")?;
 
@@ -241,6 +247,7 @@ pub fn update_sol_token_mapping(program_path: PathBuf) -> eyre::Result<TestStep>
 pub fn deposit_sol_step(
     program_path: PathBuf,
     test_type: SolanaTestType,
+    account_type: TestAccountKind,
 ) -> eyre::Result<TestStep> {
     Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
         name: "Deposit SOL".to_string(),
@@ -248,10 +255,12 @@ pub fn deposit_sol_step(
         futurefn: Box::new(move |ctx| {
             Box::new(async move {
                 let mut bindings = ctx.borrow_mut();
-                let ethereum_address = generate_random_eth_address();
+                let evm_address = generate_evm_test_address(account_type);
+                // let ethereum_address =
+                // "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266".to_string();
                 bindings.insert(
                     common_ctx_keys::RANDOM_ADDRESS.to_string(),
-                    ethereum_address.clone(),
+                    evm_address.clone(),
                 );
                 let l2_token = bindings
                     .get(twine_ctx_keys::TWINE_SOL_TOKEN)
@@ -273,7 +282,7 @@ pub fn deposit_sol_step(
                     .args([
                         "deposit-native-token",
                         &format!("amount={}", consts::TEST_DEPOSIT_AMOUNT),
-                        &format!("receiver_address={}", ethereum_address),
+                        &format!("receiver_address={}", evm_address),
                         &format!("l2_token={}", l2_token),
                         &calldata,
                     ])
@@ -378,4 +387,327 @@ fn parse_handle_message_event(line: &str) -> eyre::Result<MessageData> {
         blockNumber: solana_event.slot_number,
     };
     Ok(message_data)
+}
+
+pub fn sol_check_last_finalized_batch_step() -> eyre::Result<TestStep> {
+    Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
+        name: "Last Finalized batch on solana".to_string(),
+        description: "Last finalized batch on solana".to_string(),
+        futurefn: Box::new(move |ctx| {
+            Box::new(async move {
+                let c = ctx.borrow();
+                let twine_chain_program = c
+                    .get(solana_ctx_keys::SOLANA_TWINE_CHAIN)
+                    .expect("Could not get solana twine chain program in context");
+                let chain_id = consts::SOLANA_CHAIN_ID.parse::<u64>()?;
+
+                let twine_chain_pubkey = Pubkey::from_str_const(twine_chain_program.trim());
+                let admin_pubkey = Pubkey::from_str_const("11111111111111111111111111111111"); // placeholder
+                let solana_provider = SolanaProvider {
+                    rpc: consts::SOLANA_RPC_URL.into(),
+                    chain_id,
+                    twine_chain_program: twine_chain_pubkey,
+                    admin_pubkey,
+                    admin_wallet_path: "".into(),
+                };
+                let twine_chain_storage = solana_provider.get_twine_chain_storage().await?;
+                let last_finalized_batch = twine_chain_storage.last_finalized_batch_number;
+                if last_finalized_batch <= 1 {
+                    error!(
+                        "Batch settlement failed on Solana. Found last finalized batch number: {last_finalized_batch} "
+                    );
+                    eyre::bail!("Batch settlement failed on Solana");
+                }
+                info!("Batch settlement passed on Solana. Last finalized batch number: {last_finalized_batch}");
+                Ok(())
+            })
+        }),
+    })))
+}
+
+pub fn query_sol_balance_step() -> eyre::Result<TestStep> {
+    Ok(async_step!(
+        "Query Solana balance",
+        "Capture the current Solana balance for later comparison",
+        |ctx| {
+            let solana_l1_address = {
+                let bindings = ctx.borrow();
+                ctx_get(&bindings, solana_ctx_keys::SOLANA_ADDRESS)?
+            };
+
+            let output = Command::new("solana")
+                .args([
+                    "balance".into(),
+                    solana_l1_address.clone(),
+                    "--lamports".into(),
+                ])
+                .output()
+                .wrap_err("failed to execute solana balance command")?;
+            if !output.status.success() {
+                eyre::bail!(
+                    "Failed to fetch balance: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
+            }
+
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let balance_str = stdout.trim();
+            let lamports = parse_lamports(balance_str)?;
+            log::info!("Captured Solana balance for {solana_l1_address}: {lamports} lamports");
+
+            ctx.borrow_mut().insert(
+                common_ctx_keys::SOL_BALANCE_SNAPSHOT.into(),
+                lamports.to_string(),
+            );
+            Ok(())
+        }
+    ))
+}
+
+pub fn verify_sol_balance_delta_step() -> eyre::Result<TestStep> {
+    Ok(async_step!(
+        "Verify Solana balance delta",
+        "Ensure Solana balance increased within expected tolerance",
+        |ctx| {
+            let (solana_l1_address, snapshot_str) = {
+                let bindings = ctx.borrow();
+                let addr = ctx_get(&bindings, solana_ctx_keys::SOLANA_ADDRESS)?;
+                let snapshot = ctx_get(&bindings, common_ctx_keys::SOL_BALANCE_SNAPSHOT)?;
+                (addr, snapshot)
+            };
+
+            let output = Command::new("solana")
+                .args([
+                    "balance".into(),
+                    solana_l1_address.clone(),
+                    "--lamports".into(),
+                ])
+                .output()
+                .wrap_err("failed to execute solana balance command")?;
+            if !output.status.success() {
+                eyre::bail!(
+                    "Failed to fetch balance: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
+            }
+
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let current_balance_str = stdout.trim();
+            let current = parse_lamports(current_balance_str)?;
+            log::info!("Latest Solana balance for {solana_l1_address}: {current} lamports");
+
+            let snapshot = u128::from_str_radix(&snapshot_str, 10)?;
+            let expected = u128::from_str_radix(consts::TEST_DEPOSIT_AMOUNT, 10)?;
+            let tolerance = u128::from_str_radix(consts::SOL_BALANCE_TOLERANCE_LAMPORTS, 10)?;
+
+            let delta = current
+                .checked_sub(snapshot)
+                .ok_or_else(|| eyre!("Current balance is lower than the snapshot balance"))?;
+
+            let minimum_delta = expected.saturating_sub(tolerance);
+
+            if delta < minimum_delta {
+                log::error!(
+                    "Solana Balance delta insufficient | address={solana_l1_address} delta={delta} min_required={minimum_delta} snapshot={snapshot} current={current}"
+                );
+                eyre::bail!("Solana balance delta verification failed");
+            }
+
+            log::info!(
+                "Solana Balance delta OK | address={solana_l1_address} delta={delta} min_required={minimum_delta}"
+            );
+            Ok(())
+        }
+    ))
+}
+
+pub fn call_execute_forced_withdrawal(program_path: std::path::PathBuf) -> eyre::Result<TestStep> {
+    Ok(async_step!(
+        "Call execute forced withdrawal",
+        "call executeForcedWithdraw with empty proof on L1",
+        |ctx| {
+            let bindings = ctx.borrow_mut();
+            let public_values = bindings
+                .get("sp1_public_values")
+                .expect("Public Value not found in context")
+                .clone();
+            let solana_l1_address = bindings
+                .get(solana_ctx_keys::SOLANA_ADDRESS)
+                .expect("random address not found in context")
+                .clone();
+
+            let output = Command::new("make")
+                .args([
+                    "process-native-forced-withdrawal",
+                    &format!("receiver={}", solana_l1_address),
+                    &format!("public_values={}", public_values),
+                    &format!("proof={}", "0x"),
+                ])
+                .current_dir(program_path)
+                .output()
+                .context("failed to run `make process-native-refund`")?;
+
+            if !output.status.success() {
+                log::error!(
+                    "RefundDeposit tx failed: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
+                eyre::bail!(
+                    "RefundDeposit tx failed: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
+            }
+
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            log::info!("RefundDeposit output:\n{stdout}");
+
+            Ok(())
+        }
+    ))
+}
+
+pub fn call_forced_withdraw_solana_step(
+    program_path: std::path::PathBuf,
+) -> eyre::Result<TestStep> {
+    Ok(async_step!(
+        "Call forcedWithdrawEth on L1 ETH Gateway",
+        "initiate forced withdrawal on L1 ETH gateway",
+        |ctx| {
+            let bindings = ctx.borrow_mut();
+            let solana_l1_address = bindings
+                .get(solana_ctx_keys::SOLANA_ADDRESS)
+                .expect("random address not found in context")
+                .clone();
+            let l2_token = bindings
+                .get(twine_ctx_keys::TWINE_SOL_TOKEN)
+                .expect("Twine sol token not found in context")
+                .clone();
+            let from_address = bindings
+                .get(common_ctx_keys::RANDOM_ADDRESS)
+                .expect("Random address not found in context")
+                .clone();
+
+            let output = Command::new("make")
+                .args([
+                    "forced-native-withdrawal",
+                    &format!("l2_token={}", l2_token),
+                    &format!("from_address={}", from_address),
+                    &format!("receiver_address={}", solana_l1_address),
+                    &format!("private_key={}", consts::EVM_ACCOUNT_PRIVATE_KEY),
+                    &format!("amount={}", consts::TEST_DEPOSIT_AMOUNT),
+                ])
+                .current_dir(program_path)
+                .output()
+                .context("failed to run `make forced-native-withdrawal`")?;
+
+            if !output.status.success() {
+                log::error!(
+                    "ForcedWithdrawEth tx failed: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
+                eyre::bail!(
+                    "ForcedWithdrawEth tx failed: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
+            }
+
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            log::info!("ForcedWithdrawEth output:\n{stdout}");
+            Ok(())
+        }
+    ))
+}
+
+pub fn call_execute_refund(program_path: PathBuf) -> eyre::Result<TestStep> {
+    Ok(async_step!(
+        "Call execute refund",
+        "call execute refund",
+        |ctx| {
+            let bindings = ctx.borrow_mut();
+            // let solana_twine_chain = bindings
+            //     .get(ctx::solana_ctx_keys::SOLANA_TWINE_CHAIN)
+            //     .expect("Solana twine chain address not set in context")
+            //     .clone();
+            let public_values = bindings
+                .get("sp1_public_values")
+                .expect("Public Value not found in context")
+                .clone();
+            let solana_l1_address = bindings
+                .get(solana_ctx_keys::SOLANA_ADDRESS)
+                .expect("random address not found in context")
+                .clone();
+
+            let output = Command::new("make")
+                .args([
+                    "process-native-refund",
+                    &format!("receiver={}", solana_l1_address),
+                    &format!("public_values={}", public_values),
+                    &format!("proof={}", "0x"),
+                ])
+                .current_dir(program_path)
+                .output()
+                .context("failed to run `make process-native-refund`")?;
+
+            if !output.status.success() {
+                log::error!(
+                    "RefundDeposit tx failed: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
+                eyre::bail!(
+                    "RefundDeposit tx failed: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
+            }
+
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            log::info!("RefundDeposit output:\n{stdout}");
+
+            Ok(())
+        }
+    ))
+}
+
+pub fn call_execute_withdrawal(program_path: PathBuf) -> eyre::Result<TestStep> {
+    Ok(async_step!(
+        "Call execute withdrawal",
+        "call executeWithdraw with empty proof on L1",
+        |ctx| {
+            let bindings = ctx.borrow_mut();
+            let public_values = bindings
+                .get("sp1_public_values")
+                .expect("Public Value not found in context")
+                .clone();
+            let solana_l1_address = bindings
+                .get(solana_ctx_keys::SOLANA_ADDRESS)
+                .expect("random address not found in context")
+                .clone();
+            let output = Command::new("make")
+                .args([
+                    "execute-native-l2-withdrawal",
+                    // &format!("splToken={}", twine_token),
+                    &format!("receiver={}", solana_l1_address),
+                    &format!("publicValue={}", public_values),
+                    &format!("executionProof={}", "0x"),
+                ])
+                .current_dir(program_path)
+                .output()
+                .context("failed to run `make execute-spl-l2-withdrawal`")?;
+
+            if !output.status.success() {
+                log::error!(
+                    "RefundDeposit tx failed: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
+                eyre::bail!(
+                    "RefundDeposit tx failed: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
+            }
+
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            log::info!("RefundDeposit output:\n{stdout}");
+
+            Ok(())
+        }
+    ))
 }

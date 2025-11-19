@@ -36,4 +36,5 @@ echo "Using data directory: $DATA_DIR"
   --rpc.eth-proof-window 1000 \
   --rpc.proof-permits 1000 \
   --ws \
-  --dev.block-time 5sec &
+  --dev.block-time 5sec \
+  --twine.max-blocks-per-batch 5 &

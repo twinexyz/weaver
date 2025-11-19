@@ -15816,11 +15816,16 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml",
+ "solana-sdk",
+ "sqlx",
  "test-harness",
  "testcontainers",
  "testcontainers-modules",
  "tokio",
+ "toml 0.8.23",
+ "twine-aggregator-common",
  "twine-evm-contracts",
+ "twine-l1-solana",
 ]
 
 [[package]]

@@ -10,12 +10,11 @@ mod eth_deposit_and_call_test {
     use twine_integration_tests::cfg::{load_config, TestConfig};
     use twine_integration_tests::cleanup::{cleanup_step, cleanup_test_data};
     use twine_integration_tests::common::{start_service_step, stop_service_step, wait_step};
-    use twine_integration_tests::consts;
     use twine_integration_tests::consts::WAIT_TIME_FOR_MESSAGE_RELAY;
     use twine_integration_tests::ctx::twine_ctx_keys;
     use twine_integration_tests::merkora::{make_merkora_subprocess_service, setup_merkora_config};
     use twine_integration_tests::nodes::{deploy_l1_nodes, kill_l1_nodes};
-    use twine_integration_tests::postgresql::setup_postgres_step;
+    use twine_integration_tests::postgresql::setup_merkora_postgres_step;
     use twine_integration_tests::solidity_contracts::actions::deposit_and_call_eth_step;
     use twine_integration_tests::solidity_contracts::{
         build_contracts_step, deploy_contracts_step, load_contract_addresses_step,
@@ -25,6 +24,7 @@ mod eth_deposit_and_call_test {
         verify_call_executed, verify_deposited_l2_balance,
     };
     use twine_integration_tests::twine::setup::deploy_cat_contract;
+    use twine_integration_tests::{consts, TestAccountKind};
 
     struct TestServices {
         merkora: SubProcessService,
@@ -103,12 +103,12 @@ mod eth_deposit_and_call_test {
         harness.add_step(deploy_cat_contract(repo_root)?);
 
         // Configure and start merkora
-        harness.add_step(setup_postgres_step()?);
+        harness.add_step(setup_merkora_postgres_step()?);
         harness.add_step(setup_merkora_config()?);
         harness.add_step(start_service_step("Merkora", 0, Duration::from_secs(10)));
 
         // Deposit eth
-        harness.add_step(deposit_and_call_eth_step()?);
+        harness.add_step(deposit_and_call_eth_step(TestAccountKind::Random)?);
 
         // Wait till message processed
         harness.add_step(wait_step(

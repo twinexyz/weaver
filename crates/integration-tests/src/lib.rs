@@ -17,18 +17,42 @@ pub mod cleanup;
 pub mod common;
 pub mod twine;
 
+pub mod aggregator;
 pub mod cfg;
 pub mod consts;
 pub mod ctx;
+pub mod execution_prover;
 pub mod git;
+pub mod kafka;
 pub mod merkora;
+pub mod merlin;
 pub mod nodes;
 pub mod postgresql;
+pub mod proof_scheduler;
 pub mod solana_programs;
 pub mod solidity_contracts;
 
+pub(crate) use common::dump_context;
+
+#[derive(Debug, Clone, Copy)]
+pub enum TestAccountKind {
+    Random,
+    Prefunded,
+}
+
+pub fn generate_evm_test_address(account_kind: TestAccountKind) -> String {
+    generate_evm_address(account_kind)
+}
+
+pub fn generate_evm_address(account_kind: TestAccountKind) -> String {
+    match account_kind {
+        TestAccountKind::Random => random_eth_address(),
+        TestAccountKind::Prefunded => consts::EVM_ACCOUNT_ADDRESS.to_string(),
+    }
+}
+
 /// Generate random ethereum address
-pub fn generate_random_eth_address() -> String {
+fn random_eth_address() -> String {
     fn pseudo_random_bytes(mut seed: u64) -> [u8; 20] {
         let mut bytes = [0u8; 20];
 

@@ -14,7 +14,7 @@ mod solana_deposit {
     use twine_integration_tests::ctx::twine_ctx_keys;
     use twine_integration_tests::merkora::{make_merkora_subprocess_service, setup_merkora_config};
     use twine_integration_tests::nodes::{deploy_l1_nodes, kill_l1_nodes};
-    use twine_integration_tests::postgresql::setup_postgres_step;
+    use twine_integration_tests::postgresql::setup_merkora_postgres_step;
     use twine_integration_tests::solana_programs::{
         load_solana_programs_step, prepare_solana_programs_repo, SolanaTestType,
     };
@@ -23,7 +23,7 @@ mod solana_deposit {
         prepare_contract_repo,
     };
     use twine_integration_tests::twine::action::verify_deposited_l2_balance;
-    use twine_integration_tests::{consts, solana_programs, twine};
+    use twine_integration_tests::{consts, solana_programs, twine, TestAccountKind};
 
     struct TestServices {
         merkora: SubProcessService,
@@ -129,7 +129,7 @@ mod solana_deposit {
         )?);
 
         // Configure and start Merkora
-        harness.add_step(setup_postgres_step()?);
+        harness.add_step(setup_merkora_postgres_step()?);
         harness.add_step(setup_merkora_config()?);
         harness.add_step(start_service_step("Merkora", 0, Duration::from_secs(10)));
 
@@ -137,6 +137,7 @@ mod solana_deposit {
         harness.add_step(solana_programs::setup::deposit_sol_step(
             solana_programs,
             SolanaTestType::Deposit,
+            TestAccountKind::Random,
         )?);
 
         // Wait for message processing

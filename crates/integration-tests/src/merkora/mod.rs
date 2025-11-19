@@ -96,7 +96,7 @@ pub fn setup_merkora_config() -> eyre::Result<TestStep> {
                     .map_or(solana_placeholder, |v| v.clone());
 
                 let db_connection_string = c
-                    .get(ctx::common_ctx_keys::MERKORA_DB_CONNECTION_STRING)
+                    .get(ctx::common_ctx_keys::MERKORA_DB_CONNECTION)
                     .expect("Failed getting merkora db connection string")
                     .clone();
 

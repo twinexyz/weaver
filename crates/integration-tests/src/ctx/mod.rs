@@ -22,6 +22,7 @@ pub mod solana_ctx_keys {
     pub const SOLANA_TWINE_CHAIN: &str = "solana_twine_chain";
     pub const SOLANA_ADDRESS: &str = "solana_address";
     pub const SOLANA_TX_SIGNATURE: &str = "solana_tx_signature";
+    pub const SOLANA_WALLET_PATH: &str = "solana_wallet_path";
 }
 
 pub mod twine_ctx_keys {
@@ -41,9 +42,14 @@ pub mod twine_ctx_keys {
 }
 
 pub mod common_ctx_keys {
-    pub const MERKORA_DB_CONNECTION_STRING: &str = "merkora_db_connection_string";
+    pub const MERKORA_DB_CONNECTION: &str = "merkora_db_connection";
+    pub const AGGREGATOR_DB_CONNECTION: &str = "aggregator_db_connection";
+    pub const SCHEDULER_DB_CONNECTION: &str = "scheduler_db_connection";
+    pub const KAFKA_BOOTSTRAP_SERVERS: &str = "kafka_bootstrap_servers";
     pub const RANDOM_ADDRESS: &str = "random_address";
     pub const MESSAGE_HASH: &str = "message_hash";
+    pub const L1_BALANCE_SNAPSHOT: &str = "l1_balance_snapshot";
+    pub const SOL_BALANCE_SNAPSHOT: &str = "sol_balance_snapshot";
 }
 
 pub fn ctx_get<'a>(

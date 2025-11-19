@@ -15,7 +15,7 @@ mod solana_refund_test {
     use twine_integration_tests::ctx::twine_ctx_keys;
     use twine_integration_tests::merkora::{make_merkora_subprocess_service, setup_merkora_config};
     use twine_integration_tests::nodes::{deploy_l1_nodes, kill_l1_nodes};
-    use twine_integration_tests::postgresql::setup_postgres_step;
+    use twine_integration_tests::postgresql::setup_merkora_postgres_step;
     use twine_integration_tests::solana_programs::setup::get_message_hash;
     use twine_integration_tests::solana_programs::{
         load_solana_programs_step, prepare_solana_programs_repo,
@@ -27,7 +27,7 @@ mod solana_refund_test {
     use twine_integration_tests::twine::action::{
         query_refund_txn_status, verify_deposited_l2_balance,
     };
-    use twine_integration_tests::{solana_programs, twine};
+    use twine_integration_tests::{solana_programs, twine, TestAccountKind};
 
     struct TestServices {
         merkora: SubProcessService,
@@ -141,7 +141,7 @@ mod solana_refund_test {
         )?);
 
         // Configure and start Merkora
-        harness.add_step(setup_postgres_step()?);
+        harness.add_step(setup_merkora_postgres_step()?);
         harness.add_step(setup_merkora_config()?);
         harness.add_step(start_service_step("Merkora", 0, Duration::from_secs(10)));
 
@@ -149,6 +149,7 @@ mod solana_refund_test {
         harness.add_step(solana_programs::setup::deposit_sol_step(
             solana_programs,
             solana_programs::SolanaTestType::Refund,
+            TestAccountKind::Random,
         )?);
 
         // Get message hash
