@@ -30,6 +30,8 @@ pub(super) struct Global {
     pub db_path: String,
     #[serde(rename = "dummy-mode", default)]
     pub dummy_mode: bool,
+    #[serde(rename = "force-sequential", default)]
+    pub force_sequential: bool,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

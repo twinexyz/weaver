@@ -125,6 +125,7 @@ pub fn generate_merkora_config(
             log: "info".to_string(),
             db_path: db_connection,
             dummy_mode: true,
+            force_sequential: false,
         },
         twine: Twine {
             // chain_id: 1,
