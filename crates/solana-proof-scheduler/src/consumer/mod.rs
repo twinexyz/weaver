@@ -2,6 +2,7 @@
 //! processes the proofs
 
 /// proof consumer
+#[allow(clippy::module_inception)]
 pub mod consumer;
 
 /// consume attempt

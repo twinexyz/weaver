@@ -22,9 +22,8 @@ pub enum L1ChainType {
 /// Get chain type based on chain id
 pub fn get_chain_type(chain_id: u64) -> Option<L1ChainType> {
     match chain_id {
-        ETHEREUM_CHAIN_ID => Some(L1ChainType::Ethereum),
-        ETHEREUM_HOLESKY_CHAIN_ID => Some(L1ChainType::Ethereum),
-        ETHEREUM_SEPOLIA_CHAIN_ID => Some(L1ChainType::Ethereum),
+        ETHEREUM_CHAIN_ID | ETHEREUM_HOLESKY_CHAIN_ID | ETHEREUM_SEPOLIA_CHAIN_ID =>
+            Some(L1ChainType::Ethereum),
         SOLANA_CHAIN_ID => Some(L1ChainType::Solana),
         _ => None,
     }
@@ -75,7 +74,7 @@ pub fn get_l1_bridge_address(_chain_id: u64) -> Address {
         };
     }
 
-    return Address::default();
+    Address::default()
 }
 
 /// Get whitelisted contract for evm chain

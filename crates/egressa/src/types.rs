@@ -12,6 +12,17 @@ pub enum WithdrawalEventType {
     RefundDeposit,
 }
 
+impl std::fmt::Display for WithdrawalEventType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            Self::ForcedWithdraw => "ForcedWithdraw",
+            Self::L2Withdraw => "Withdraw",
+            Self::RefundDeposit => "Deposit",
+        };
+        write!(f, "{s}")
+    }
+}
+
 impl WithdrawalEventType {
     /// Create a new withdrawal event type from a database string
     pub fn from_db_string(event_type: String) -> Result<Self, String> {
@@ -19,16 +30,7 @@ impl WithdrawalEventType {
             "ForcedWithdraw" => Ok(Self::ForcedWithdraw),
             "Withdraw" => Ok(Self::L2Withdraw),
             "Deposit" => Ok(Self::RefundDeposit),
-            _ => Err(format!("Invalid withdrawal event type: {}", event_type)),
-        }
-    }
-
-    /// Convert a withdrawal event type to a string
-    pub fn to_string(&self) -> String {
-        match self {
-            Self::ForcedWithdraw => "ForcedWithdraw".to_string(),
-            Self::L2Withdraw => "Withdraw".to_string(),
-            Self::RefundDeposit => "Deposit".to_string(),
+            _ => Err(format!("Invalid withdrawal event type: {event_type}")),
         }
     }
 }

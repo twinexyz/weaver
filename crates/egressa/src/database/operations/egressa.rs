@@ -30,7 +30,7 @@ pub struct WithdrawalEventWithProofAndStatus {
     pub public_values: Vec<u8>,
     /// Proof
     pub proof: Vec<u8>,
-    /// St pub is_processed: bool,
+    /// St pub `is_processed`: bool,
     pub is_failed: bool,
     /// Failure reason
     pub failure_reason: Option<String>,
@@ -58,13 +58,13 @@ impl<'a> EgressaOperations<'a> {
         RETURNING id, event_type::text, l1_chain_id, l2_transaction_hash, l1_token, l1_address, public_values, proof, is_processed, is_failed, failure_reason, process_txn_hash
         "#,
         )
-        .bind(&event.withdrawal_event.event_type.to_string())
+        .bind(event.withdrawal_event.event_type.to_string())
         .bind(event.withdrawal_event.l1_chain_id as i64)
         .bind(&event.withdrawal_event.l2_transaction_hash)
         .bind(&event.withdrawal_event.l1_token)
         .bind(&event.withdrawal_event.l1_address)
-        .bind(&event.public_values.to_vec())
-        .bind(&event.proof.to_vec())
+        .bind(event.public_values.clone())
+        .bind(event.proof.clone())
         .bind(status.is_processed)
         .bind(status.is_failed)
         .bind(&status.failure_reason)
@@ -75,7 +75,7 @@ impl<'a> EgressaOperations<'a> {
         Ok(row)
     }
 
-    /// Check if a withdrawal event with the given l2_transaction_hash is
+    /// Check if a withdrawal event with the given `l2_transaction_hash` is
     /// already processed or failed
     pub async fn check_withdrawal_event_status(
         &self,
@@ -95,7 +95,7 @@ impl<'a> EgressaOperations<'a> {
         Ok(row)
     }
 
-    /// Check if a withdrawal event with the given l2_transaction_hash is
+    /// Check if a withdrawal event with the given `l2_transaction_hash` is
     /// already processed or failed
     pub async fn is_event_already_processed(&self, l2_transaction_hash: &str) -> bool {
         let result = match self
@@ -116,7 +116,8 @@ impl<'a> EgressaOperations<'a> {
     }
 
     /// Bulk check which withdrawal events are already processed or failed
-    /// Returns a HashSet of l2_transaction_hashes that are already processed
+    /// Returns a `HashSet` of `l2_transaction_hashes` that are already
+    /// processed
     pub async fn get_already_processed_events(
         &self,
         l2_transaction_hashes: &[String],

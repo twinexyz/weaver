@@ -63,7 +63,7 @@ impl ProofApiServer for ProofApiImpl {
                 error!("Failed to process proof via RPC: {:?}", e);
                 Err(jsonrpsee::types::ErrorObject::owned(
                     jsonrpsee::types::ErrorCode::InternalError.code(),
-                    format!("Failed to process proof: {}", e),
+                    format!("Failed to process proof: {e}"),
                     None::<()>,
                 ))
             }

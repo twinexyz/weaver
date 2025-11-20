@@ -26,7 +26,7 @@ pub fn deserialize_u64_from_string<'de, D>(deserializer: D) -> Result<u64, D::Er
 where
     D: Deserializer<'de>, {
     let s = String::deserialize(deserializer)?;
-    Ok(s.parse().map_err(serde::de::Error::custom)?)
+    s.parse().map_err(serde::de::Error::custom)
 }
 
 pub fn deserialize_u64_vec_from_string<'de, D>(deserializer: D) -> Result<Vec<u64>, D::Error>
@@ -46,7 +46,7 @@ pub fn deserialize_u256<'de, D>(deserializer: D) -> Result<U256, D::Error>
 where
     D: Deserializer<'de>, {
     let s = String::deserialize(deserializer)?;
-    Ok(s.parse().map_err(serde::de::Error::custom)?)
+    s.parse().map_err(serde::de::Error::custom)
 }
 
 #[derive(Deserialize, Encode, Decode, Serialize, Clone, TreeHash, Debug, PartialEq, Eq)]

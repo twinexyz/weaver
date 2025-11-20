@@ -46,7 +46,7 @@ impl TwinePrecompiles {
     /// custom precompiles
     pub fn create_precompiles_map() -> PrecompilesMap {
         // Start with standard Ethereum precompiles
-        let mut precompiles = PrecompilesMap::from_static(&Precompiles::prague());
+        let mut precompiles = PrecompilesMap::from_static(Precompiles::prague());
 
         // Add Twine custom precompiles
         #[cfg(feature = "twine-l1-transactions-precompile")]

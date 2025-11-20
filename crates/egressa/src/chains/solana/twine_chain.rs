@@ -1,6 +1,7 @@
 use borsh::{BorshDeserialize, BorshSerialize};
 use solana_sdk::instruction::{AccountMeta, Instruction};
 use solana_sdk::pubkey::Pubkey;
+#[allow(deprecated)]
 use solana_sdk::system_program;
 use spl_token;
 use twine_l1_solana::address_derivation::SolanaAddressDerivation;
@@ -86,7 +87,7 @@ pub enum GatewayInstruction {
 }
 
 /// Role types for authorization
-#[derive(BorshSerialize, BorshDeserialize, Debug, Clone, Copy, PartialEq)]
+#[derive(BorshSerialize, BorshDeserialize, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RoleType {
     TwineOperationHandler,
 }
@@ -181,6 +182,7 @@ pub fn create_execute_l2_native_withdrawal_instruction(
 }
 
 /// Create execute L2 SPL withdrawal instruction
+#[allow(clippy::too_many_arguments)]
 pub fn create_execute_l2_spl_withdrawal_instruction(
     initializer: &Pubkey,
     l1_receiver_address: Pubkey,
@@ -254,6 +256,7 @@ pub fn create_execute_l2_spl_withdrawal_instruction(
 }
 
 /// Create process native refund instruction
+#[allow(clippy::too_many_arguments)]
 pub fn create_process_native_refund_instruction(
     initializer: &Pubkey,
     l1_receiver_address: Pubkey,
@@ -339,6 +342,7 @@ pub fn create_process_native_refund_instruction(
 }
 
 /// Create process SPL refund instruction
+#[allow(clippy::too_many_arguments)]
 pub fn create_process_spl_refund_instruction(
     initializer: &Pubkey,
     l1_receiver_address: Pubkey,
@@ -428,6 +432,7 @@ pub fn create_process_spl_refund_instruction(
 }
 
 /// Create process native forced withdrawal instruction
+#[allow(clippy::too_many_arguments)]
 pub fn create_process_native_forced_withdrawal_instruction(
     initializer: &Pubkey,
     l1_receiver_address: Pubkey,
@@ -512,6 +517,7 @@ pub fn create_process_native_forced_withdrawal_instruction(
 }
 
 /// Create process SPL forced withdrawal instruction
+#[allow(clippy::too_many_arguments)]
 pub fn create_process_spl_forced_withdrawal_instruction(
     initializer: &Pubkey,
     l1_receiver_address: Pubkey,

@@ -78,7 +78,7 @@ impl ConsumeAttemptCreator for TwineBatchTransformResultConsumeAttemptCreator {
         consume_attempt_id: Option<<Self::ConsumeAttempt as ConsumeAttempt>::Identifier>,
         request: &Self::TransformAttempt,
     ) -> Result<Self::ConsumeAttempt, Self::ConsumeAttemptCreationError> {
-        if let Some(_) = self.attempts.get(&request.identifier) {
+        if self.attempts.contains_key(&request.identifier) {
             return Err(ProofSchedulerError::KeyAlreadyExists(format!(
                 "{:?}",
                 request.identifier
@@ -86,7 +86,7 @@ impl ConsumeAttemptCreator for TwineBatchTransformResultConsumeAttemptCreator {
         }
 
         let consume_attempt_id =
-            consume_attempt_id.unwrap_or(TwineBatchTransformResultConsumeAttemptID {
+            consume_attempt_id.unwrap_or_else(|| TwineBatchTransformResultConsumeAttemptID {
                 identifier: 0,
                 transform_attempt_identifier: request.identifier.clone(),
             });
@@ -171,10 +171,7 @@ impl ConsumeAttemptCreator for TwineBatchTransformResultConsumeAttemptCreator {
             return Ok(Duration::from_secs(elapsed_time));
         }
 
-        log::warn!(
-            "Key {:?} not found in consume attempts record",
-            transform_request_id
-        );
+        log::warn!("Key {transform_request_id:?} not found in consume attempts record");
         Ok(Duration::from_secs(0))
     }
 }

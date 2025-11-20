@@ -368,7 +368,7 @@ pub fn withdraw_erc20_step() -> eyre::Result<TestStep> {
 
             if let Some(m) = re.find(&stdout) {
                 let hash = m.as_str().split_whitespace().last().unwrap().to_string();
-                log::info!("Transaction hash: {}", hash);
+                log::info!("Transaction hash: {hash}");
                 binding.insert("txn_hash".to_string(), hash);
             } else {
                 eyre::bail!("Transaction hash not found in output: {stdout}");
@@ -378,7 +378,7 @@ pub fn withdraw_erc20_step() -> eyre::Result<TestStep> {
     ))
 }
 
-/// Approve L2ERC20Gateway to spend ERC20 tokens on L2
+/// Approve `L2ERC20Gateway` to spend ERC20 tokens on L2
 pub fn approve_erc20_gateway_step_sol() -> eyre::Result<TestStep> {
     Ok(async_step!(
         "Approve L2ERC20Gateway to spend ERC20 tokens",
@@ -425,7 +425,7 @@ pub fn approve_erc20_gateway_step_sol() -> eyre::Result<TestStep> {
     ))
 }
 
-/// Withdraw ERC20 tokens using the L2ERC20Gateway
+/// Withdraw ERC20 tokens using the `L2ERC20Gateway`
 pub fn withdraw_erc20_step_sol() -> eyre::Result<TestStep> {
     Ok(async_step!(
         "Withdraw ERC20 using new flow",
@@ -482,7 +482,7 @@ pub fn withdraw_erc20_step_sol() -> eyre::Result<TestStep> {
 
             if let Some(m) = re.find(&stdout) {
                 let hash = m.as_str().split_whitespace().last().unwrap().to_string();
-                log::info!("✅ Transaction hash: {}", hash);
+                log::info!("✅ Transaction hash: {hash}");
                 binding.insert("txn_hash".to_string(), hash);
             } else {
                 eyre::bail!("Transaction hash not found in output: {stdout}");

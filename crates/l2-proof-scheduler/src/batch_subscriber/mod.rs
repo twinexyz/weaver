@@ -85,7 +85,7 @@ impl Emitter for TwineBatchSubscriber {
 
         let start_block = block_number
             .as_integer()
-            .ok_or(ProofSchedulerError::Other("parse error".to_string()))?
+            .ok_or_else(|| ProofSchedulerError::Other("parse error".to_string()))?
             as u64;
 
         let identifier = init_config
@@ -100,7 +100,7 @@ impl Emitter for TwineBatchSubscriber {
 
         let identifier = identifier
             .as_integer()
-            .ok_or(ProofSchedulerError::Other("parse error".to_string()))?
+            .ok_or_else(|| ProofSchedulerError::Other("parse error".to_string()))?
             as u64; // TODO: map error
 
         let twine_client = TwineBatchClient::new(&twine_rpc_url);
@@ -159,7 +159,7 @@ impl Emitter for TwineBatchSubscriber {
                 full_batch = self.twine_client.get_full_batch(self.batch, None) => {
                     let (start_block, end_block, batch_hash) = match full_batch {
                        Ok(batch) => {
-                            let mut block_range = batch.block_range().clone().into_iter();
+                            let mut block_range = batch.block_range().clone();
                             let start_block = block_range.next().unwrap_or_default();
                             let end_block = block_range.last().unwrap_or(start_block);
                             if batch.batch_hash().is_none() {
@@ -198,7 +198,7 @@ impl Emitter for TwineBatchSubscriber {
                                     end_block,
                                 },
                                 call_context: TwineBatchTransformCallCtx {
-                                    twine_node_rpc: self.twine_rpc_url.to_owned()
+                                    twine_node_rpc: self.twine_rpc_url.clone()
                                 }
                             })
                             .await

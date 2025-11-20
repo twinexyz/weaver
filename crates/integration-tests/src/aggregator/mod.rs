@@ -38,7 +38,7 @@ pub fn setup_aggregator_config(config_path: &str) -> eyre::Result<TestStep> {
         name: "Aggregator Config".to_string(),
         description: "Setup aggregator config".to_string(),
         futurefn: Box::new(move |ctx| {
-            let config_path = config_path.clone();
+            let config_path = config_path;
             Box::new(async move {
                 let mut c = ctx.borrow_mut();
                 info!("Setting up aggregator config");
@@ -147,6 +147,6 @@ pub fn generate_aggregator_config(
     serde_yaml::to_writer(writer, &config)
         .map_err(|e| eyre::eyre!("Failed to serialize config to YAML: {}", e))?;
 
-    info!("Generated aggregator config at {}", config_path);
+    info!("Generated aggregator config at {config_path}");
     Ok(())
 }

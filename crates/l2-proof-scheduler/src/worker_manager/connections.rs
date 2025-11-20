@@ -45,7 +45,7 @@ pub struct ConnectionMessage {
 impl ConnectionMessage {
     /// default connection message with type
     pub fn default_message_with_type(connection_message_type: ConnectionMessageTypes) -> Self {
-        ConnectionMessage {
+        Self {
             message_type: connection_message_type,
             message: MessageData {
                 transform_attempt_id: TwineBatchTransformAttemptID {
@@ -246,7 +246,7 @@ impl Connections {
 
                             write.send(message.into()).await.unwrap();
                             write.flush().await.unwrap();
-                            log::info!("keep alive signal from prover {:?}", new_connection_id);
+                            log::info!("keep alive signal from prover {new_connection_id:?}");
                         }
                         ConnectionMessageTypes::InvalidParams
                         | ConnectionMessageTypes::MessageNotReady => {} /* todo: terminate
@@ -309,7 +309,7 @@ impl Connections {
                 *last_timed_out_check = Instant::now();
             }
 
-            if jobs.len() == 0 {
+            if jobs.is_empty() {
                 log::info!("no timed out jobs found");
                 return;
             }
@@ -322,7 +322,7 @@ impl Connections {
                 {
                     let mut worker_connection_details = self.worker_connection_details.lock().await;
                     worker_connection_details.assigned_jobs.remove(&job_id);
-                    log::warn!("removed from assigned jobs {:?}", job_id);
+                    log::warn!("removed from assigned jobs {job_id:?}");
                     worker_connection_details
                         .connection_status
                         .remove(&job_id.1);

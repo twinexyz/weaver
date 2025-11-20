@@ -78,14 +78,14 @@ impl TransformAttemptCreator for SolanaMessageTransformAttemptCreator {
         transform_attempt_id: Option<<Self::TransformAttempt as TransformAttempt>::Identifier>,
         request: &Self::TransformRequest,
     ) -> Result<Self::TransformAttempt, Self::TransformAttemptCreationError> {
-        if let Some(_) = self.attempts.get(&request.identifier) {
+        if self.attempts.contains_key(&request.identifier) {
             return Err(ProofSchedulerError::KeyAlreadyExists(format!(
                 "{:?}",
                 request.identifier
             )));
         }
         let transform_attempt_id =
-            transform_attempt_id.unwrap_or(SolanaMessageTransformAttemptID {
+            transform_attempt_id.unwrap_or_else(|| SolanaMessageTransformAttemptID {
                 identifier: 0,
                 transform_request_id: request.identifier.clone(),
             });
@@ -136,7 +136,7 @@ impl TransformAttemptCreator for SolanaMessageTransformAttemptCreator {
                 time: Instant::now(),
             };
 
-            *attempt = attempt_details.clone();
+            *attempt = attempt_details;
             return Ok(transform_attempt);
         }
 
@@ -157,10 +157,7 @@ impl TransformAttemptCreator for SolanaMessageTransformAttemptCreator {
             return Ok(Duration::from_secs(elapsed_time));
         }
 
-        log::warn!(
-            "Key {:?} not found in transform attempts record",
-            transform_request_id
-        );
+        log::warn!("Key {transform_request_id:?} not found in transform attempts record");
         Ok(Duration::from_secs(0))
     }
 }

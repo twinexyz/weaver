@@ -31,10 +31,10 @@ impl EthereumL1 {
         chain_id: u64,
         gas_limit: u64,
         twine_chain_address: &str,
-    ) -> eyre::Result<EthereumL1> {
+    ) -> eyre::Result<Self> {
         let client = EthClient::new(rpc_url, private_key, Some(chain_id)).await?;
         let twine_chain_contract = Address::from_str(twine_chain_address).expect("Invalid address");
-        Ok(EthereumL1 {
+        Ok(Self {
             inner: client,
             gas_limit,
             twine_chain_contract,

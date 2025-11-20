@@ -13,7 +13,7 @@ mod eth_forced_withdraw_test {
     use twine_integration_tests::cfg::{load_config, TestConfig};
     use twine_integration_tests::cleanup::{cleanup_step, cleanup_test_data};
     use twine_integration_tests::common::{start_service_step, stop_service_step, wait_step};
-    use twine_integration_tests::consts::{TEST_DEPOSIT_AMOUNT, WAIT_TIME_FOR_MESSAGE_RELAY};
+    use twine_integration_tests::consts::WAIT_TIME_FOR_MESSAGE_RELAY;
     use twine_integration_tests::ctx::twine_ctx_keys;
     use twine_integration_tests::execution_prover::make_execution_prover_subprocess_service;
     use twine_integration_tests::kafka::setup_kafka_step;
@@ -223,7 +223,7 @@ mod eth_forced_withdraw_test {
 
         // Execute forced withdrawal
         harness.add_step(query_sol_balance_step()?);
-        harness.add_step(call_execute_forced_withdrawal(solana_programs.clone())?);
+        harness.add_step(call_execute_forced_withdrawal(solana_programs)?);
         harness.add_step(verify_sol_balance_delta_step()?);
 
         // Clean up
@@ -242,7 +242,7 @@ mod eth_forced_withdraw_test {
 
     fn dump_context() -> eyre::Result<TestStep> {
         Ok(async_step!("Dump Context", "Dump Context", |ctx| {
-            log::info!("The context is {:?}", ctx);
+            log::info!("The context is {ctx:?}");
             Ok(())
         }))
     }

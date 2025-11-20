@@ -161,7 +161,7 @@ mod erc20_withdraw_test {
             "Wait for Postgres and Kafka to start",
         ));
 
-        harness.add_step(add_solana_wallet_to_context(test_config.clone())?);
+        harness.add_step(add_solana_wallet_to_context(test_config)?);
 
         // Setup service configs
         harness.add_step(setup_aggregator_config(consts::AGGREGATOR_CONFIG_PATH)?);

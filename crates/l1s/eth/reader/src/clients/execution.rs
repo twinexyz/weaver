@@ -168,7 +168,7 @@ impl EthQueryExecutionClient {
             Ok(logs) => Ok(sort_logs(logs)),
             Err(e) => {
                 tracing::error!(err=?e, "Error fetching event");
-                return Err(eyre!(""));
+                Err(eyre!(""))
             }
         }
     }

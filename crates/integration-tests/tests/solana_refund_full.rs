@@ -248,7 +248,7 @@ mod test_solana_refund2 {
 
     fn dump_context() -> eyre::Result<TestStep> {
         Ok(async_step!("Dump Context", "Dump Context", |ctx| {
-            log::info!("The context is {:?}", ctx);
+            log::info!("The context is {ctx:?}");
             Ok(())
         }))
     }

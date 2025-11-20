@@ -338,7 +338,7 @@ pub async fn execution_proof_exists(pool: &PgPool, batch_id: u64) -> eyre::Resul
     Ok(exists)
 }
 
-/// Get batch data by batch ID and return as CommitAndFinalizeBatch
+/// Get batch data by batch ID and return as `CommitAndFinalizeBatch`
 pub async fn get_settlement_batch_by_id(
     pool: &PgPool,
     batch_id: u64,

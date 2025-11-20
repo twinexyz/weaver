@@ -5,6 +5,7 @@ use crate::chains::twine::provider::TwineProvider;
 use crate::database::client::DbClient;
 use crate::types::{WithdrawalEvent, WithdrawalEventType};
 
+/// `WithdrawEventPoller` for egressa
 #[derive(Debug)]
 pub struct WithdrawalEventPoller;
 

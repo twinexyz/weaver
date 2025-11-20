@@ -21,7 +21,7 @@ pub enum TransactionError {
     ReceiptTimeout,
 }
 
-/// TransactionProcessor handles the complete lifecycle of transaction
+/// `TransactionProcessor` handles the complete lifecycle of transaction
 /// processing:
 /// - Sending signed transactions to the blockchain
 /// - Retry logic for failed transactions
@@ -37,7 +37,7 @@ pub struct TransactionProcessor {
 }
 
 impl TransactionProcessor {
-    /// Create a new TransactionProcessor instance
+    /// Create a new `TransactionProcessor` instance
     pub fn new(
         query_client: EthQueryExecutionClient,
         max_retries: u32,
@@ -148,7 +148,7 @@ impl TransactionProcessor {
             .await
             .map_err(|e| {
                 error!("Failed to send transaction: {}", e);
-                TransactionError::ProcessDepositError(format!("Failed to send transaction: {}", e))
+                TransactionError::ProcessDepositError(format!("Failed to send transaction: {e}"))
             })?;
 
         let tx_hash = tx.tx_hash();
@@ -195,15 +195,14 @@ impl TransactionProcessor {
                             receipt.block_number, receipt.gas_used
                         );
                         return Ok(());
-                    } else {
-                        error!(
-                            "❌ Transaction failed (reverted) in block {:?}: {}",
-                            receipt.block_number, tx_hash
-                        );
-                        return Err(TransactionError::ProcessDepositError(
-                            "Transaction was mined but reverted".to_string(),
-                        ));
                     }
+                    error!(
+                        "❌ Transaction failed (reverted) in block {:?}: {}",
+                        receipt.block_number, tx_hash
+                    );
+                    return Err(TransactionError::ProcessDepositError(
+                        "Transaction was mined but reverted".to_string(),
+                    ));
                 }
                 Ok(None) => {
                     // Transaction is still pending
@@ -217,7 +216,7 @@ impl TransactionProcessor {
                         return Err(TransactionError::ReceiptTimeout);
                     }
 
-                    if attempts % 10 == 0 {
+                    if attempts.is_multiple_of(10) {
                         debug!(
                             "⏳ Still waiting for confirmation... Attempt {}/{}: {}",
                             attempts, max_attempts, tx_hash
@@ -232,8 +231,7 @@ impl TransactionProcessor {
                         attempts, e, tx_hash
                     );
                     return Err(TransactionError::ProcessDepositError(format!(
-                        "Error checking receipt: {}",
-                        e
+                        "Error checking receipt: {e}"
                     )));
                 }
             }

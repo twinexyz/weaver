@@ -38,8 +38,8 @@ pub struct PublicCommitments {
     pub total_active_stake: u64,
     /// Number of validators in the epoch
     pub validator_count: u32,
-    /// Map of monitored account -> {last_change_slot,
-    /// account_data_hash_at_that_slot}
+    /// Map of monitored account -> {`last_change_slot`,
+    /// `account_data_hash_at_that_slot`}
     pub monitored_accounts_state: Vec<AccountStateCommitment>,
     /// Aggregated validation result (true if all validations passed)
     pub validations_passed: bool,

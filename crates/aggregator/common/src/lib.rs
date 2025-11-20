@@ -20,8 +20,8 @@ pub enum SettlementChains {
 impl fmt::Display for SettlementChains {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            SettlementChains::Ethereum => write!(f, "ethereum"),
-            SettlementChains::Solana => write!(f, "solana"),
+            Self::Ethereum => write!(f, "ethereum"),
+            Self::Solana => write!(f, "solana"),
         }
     }
 }
@@ -35,7 +35,7 @@ pub enum DAChains {
 impl fmt::Display for DAChains {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            DAChains::Celestia => write!(f, "celestia"),
+            Self::Celestia => write!(f, "celestia"),
         }
     }
 }
@@ -58,7 +58,7 @@ pub trait DALayer: Send + Sync {
     async fn post(&self, payload: &[u8]) -> eyre::Result<()>;
 }
 
-/// TransactionStatus
+/// `TransactionStatus`
 #[derive(Debug, Clone, Default)]
 pub struct TransactionStatus {
     /// status

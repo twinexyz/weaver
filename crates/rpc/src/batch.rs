@@ -42,7 +42,7 @@ impl TwineBatchApiServer for TwineBatchRPC {
             Ok(b) => Ok(b),
             Err(e) => RpcResult::Err(ErrorObject::owned(
                 ErrorCode::InternalError.code(),
-                format!("{:?}", e),
+                format!("{e:?}"),
                 Some(0),
             )),
         }
@@ -53,7 +53,7 @@ impl TwineBatchApiServer for TwineBatchRPC {
             Some(b) => Ok(b),
             None => RpcResult::Err(ErrorObject::owned(
                 ErrorCode::InternalError.code(),
-                format!("Failed to find block number"),
+                "Failed to find block number".to_string(),
                 Some(0),
             )),
         }
@@ -70,7 +70,7 @@ impl TwineBatchApiServer for TwineBatchRPC {
                 Ok(batch) => Ok(batch),
                 Err(e) => RpcResult::Err(ErrorObject::owned(
                     ErrorCode::InternalError.code(),
-                    format!("{:?}", e),
+                    format!("{e:?}"),
                     Some(0),
                 )),
             };
@@ -92,7 +92,7 @@ impl TwineBatchApiServer for TwineBatchRPC {
             Err(e) =>
                 return RpcResult::Err(ErrorObject::owned(
                     ErrorCode::InternalError.code(),
-                    format!("failed to read batch version: {:?}", e),
+                    format!("failed to read batch version: {e:?}"),
                     Some(0),
                 )),
         };

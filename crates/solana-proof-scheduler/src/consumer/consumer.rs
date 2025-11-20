@@ -105,7 +105,6 @@ impl Consumer for SolanaProofConsumer {
             .ok_or_else(|| ProofSchedulerError::Other("could not cast to string".to_string()))?;
 
         _ = serde_json::from_slice::<toml::Value>(&security_protocol).map(|security_protocol| {
-            let security_protocol = security_protocol.clone();
             security_protocol
                 .as_str()
                 .and_then(|v| kafka_config.insert("security.protocol".to_string(), v.to_string()));

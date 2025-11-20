@@ -306,7 +306,7 @@ impl Contracts {
     /// Validate contracts configuration
     pub fn validate(&self, chain_name: &str, chain_type: &str) -> eyre::Result<()> {
         match self {
-            Contracts::Evm(evm_contracts) => {
+            Self::Evm(evm_contracts) => {
                 if chain_type == "solana" {
                     return Err(eyre::eyre!(
                         "Chain '{}': Solana chains must use Svm contracts, not Evm contracts",
@@ -315,7 +315,7 @@ impl Contracts {
                 }
                 evm_contracts.validate(chain_name)?;
             }
-            Contracts::Svm(svm_contracts) => {
+            Self::Svm(svm_contracts) => {
                 if chain_type != "solana" {
                     return Err(eyre::eyre!(
                         "Chain '{}': Only Solana chains can use Svm contracts",

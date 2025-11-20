@@ -29,16 +29,16 @@ impl ZStdPrecompile {
         _is_static: bool,
         gas_limit: u64,
     ) -> Result<Option<InterpreterResult>, String> {
-        match ZStdPrecompile::run_precompile(inputs, _context, gas_limit) {
-            Ok(result) => return Ok(Some(result)),
+        match Self::run_precompile(inputs, _context, gas_limit) {
+            Ok(result) => Ok(Some(result)),
             Err(err) => {
                 tracing::error!("zstd_precompile_error: {err:?}");
                 let err_bytes = Bytes::copy_from_slice(err.as_bytes());
-                return Ok(Some(InterpreterResult {
+                Ok(Some(InterpreterResult {
                     result: InstructionResult::PrecompileError,
                     output: err_bytes,
                     gas: Gas::new(0),
-                }));
+                }))
             }
         }
     }
@@ -60,8 +60,8 @@ impl ZStdPrecompile {
             .map_err(|_| "Failed to extract 4-byte selector".to_string())?;
 
         let original = &input_bytes[4..];
-        match selector {
-            &ZstdLib::compressCall::SELECTOR => {
+        match *selector {
+            ZstdLib::compressCall::SELECTOR => {
                 tracing::info!("ZSTD Compression");
                 let compressed = compress_to_vec(original, CompressionLevel::Fastest);
                 tracing::info!(
@@ -76,9 +76,9 @@ impl ZStdPrecompile {
                     gas: Gas::new(gas_limit - 21000),
                 });
             }
-            &ZstdLib::decompressCall::SELECTOR => {
+            ZstdLib::decompressCall::SELECTOR => {
                 tracing::info!("ZSTD Decompression");
-                let mut source: &[u8] = &original;
+                let mut source: &[u8] = original;
                 let mut decoder = StreamingDecoder::new(&mut source).map_err(|e| e.to_string())?;
                 let mut result = Vec::new();
                 decoder
@@ -98,9 +98,9 @@ impl ZStdPrecompile {
     }
 }
 
-/// Stateless entry point compatible with EVM PrecompilesMap integration.
+/// Stateless entry point compatible with EVM `PrecompilesMap` integration.
 ///
-/// Returns tuple of (output_bytes, gas_used, reverted_flag).
+/// Returns tuple of (`output_bytes`, `gas_used`, `reverted_flag`).
 pub fn execute(input: &[u8], gas_limit: u64) -> Result<(Bytes, u64, bool), String> {
     if input.len() < 4 {
         return Err("Invalid Input Length".to_string());
@@ -111,8 +111,8 @@ pub fn execute(input: &[u8], gas_limit: u64) -> Result<(Bytes, u64, bool), Strin
         .map_err(|_| "Failed to extract 4-byte selector".to_string())?;
 
     let original = &input[4..];
-    match selector {
-        &ZstdLib::compressCall::SELECTOR => {
+    match *selector {
+        ZstdLib::compressCall::SELECTOR => {
             let compressed = compress_to_vec(original, CompressionLevel::Fastest);
             // Simple gas model: base + 3 gas per byte processed, capped by gas_limit
             let mut gas_used = 20_000u64.saturating_add(3u64.saturating_mul(original.len() as u64));
@@ -121,8 +121,8 @@ pub fn execute(input: &[u8], gas_limit: u64) -> Result<(Bytes, u64, bool), Strin
             }
             Ok((compressed.into(), gas_used, false))
         }
-        &ZstdLib::decompressCall::SELECTOR => {
-            let mut source: &[u8] = &original;
+        ZstdLib::decompressCall::SELECTOR => {
+            let mut source: &[u8] = original;
             let mut decoder = StreamingDecoder::new(&mut source).map_err(|e| e.to_string())?;
             let mut result = Vec::new();
             decoder

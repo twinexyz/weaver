@@ -64,12 +64,13 @@ pub struct TransactionServiceMetrics {
 }
 
 impl TransactionServiceMetrics {
-    /// Creates metrics with only the chain_id label.
+    /// Creates metrics with only the `chain_id` label.
     pub fn new(chain_id: u64) -> Self {
         Self::new_with_extra_labels(chain_id, std::iter::empty::<(String, String)>())
     }
 
-    /// Creates metrics with chain_id label plus the provided additional labels.
+    /// Creates metrics with `chain_id` label plus the provided additional
+    /// labels.
     pub fn new_with_extra_labels<I, K, V>(chain_id: u64, extra: I) -> Self
     where
         I: IntoIterator<Item = (K, V)>,

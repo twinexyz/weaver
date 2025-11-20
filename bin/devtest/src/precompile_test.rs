@@ -1,15 +1,13 @@
-use std::fs::{self, File};
+use std::fs::{self};
 use std::str::FromStr;
 
 use alloy_primitives::hex::FromHex;
-use alloy_primitives::{address, keccak256, Address, Bytes, FixedBytes, TxKind, B256, U256};
-use alloy_provider::{DynProvider, Provider, ProviderBuilder};
-use alloy_rpc_types::EIP1186AccountProofResponse;
+use alloy_primitives::{address, keccak256, Address, Bytes, TxKind, B256, U256};
+use alloy_provider::Provider;
 use alloy_sol_types::{sol, SolCall, SolType};
 use eyre::eyre;
 use log::info;
 use reth_trie_common::AccountProof;
-use serde_json::json;
 use twine_evm_contracts::l2_twine_messenger::L1Txns;
 use twine_l1_eth::twine_l1_eth_writer::transaction::wait_for_receipt;
 use twine_l1_eth::twine_l1_eth_writer::EthereumTransaction;
@@ -123,7 +121,7 @@ async fn precompile_correct_execution() -> eyre::Result<()> {
     let addr = deploy_receipt
         .contract_address
         .ok_or_else(|| eyre!("contract deployment missing address"))?;
-    info!("Precompile calling contract deployed at {}", addr);
+    info!("Precompile calling contract deployed at {addr}");
 
     info!("Testing ethereum transaction precompile");
     handle_ethereum_precompile(&eth_writer, &addr).await?;
@@ -215,7 +213,7 @@ pub async fn handle_ethereum_precompile(
     let receipt = wait_for_receipt(receiver).await?;
 
     let tx_hash = receipt.transaction_hash;
-    info!("Ethereum transaction successful: {}", tx_hash);
+    info!("Ethereum transaction successful: {tx_hash}");
     for log in receipt.logs() {
         let decoded_log = log.log_decode::<L1TransactionsHandled>()?;
         let l1_txns = L1Txns::abi_decode(&decoded_log.inner.transactionOutput)?;
@@ -294,7 +292,7 @@ pub async fn handle_solana_precompile(eth_writer: &EthClient, addr: &Address) ->
     let receipt = wait_for_receipt(receiver).await?;
 
     let tx_hash = receipt.transaction_hash;
-    info!("Solana transaction successful: {}", tx_hash);
+    info!("Solana transaction successful: {tx_hash}");
 
     let expected_nonce = message_data.nonce;
     let expected_block_number = message_data.blockNumber;

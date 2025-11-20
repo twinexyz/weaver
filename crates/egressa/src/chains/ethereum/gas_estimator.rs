@@ -10,9 +10,8 @@ pub enum GasEstimator {
 impl GasEstimator {
     pub fn estimate_gas(&self) -> u64 {
         match self {
-            GasEstimator::ExecuteForcedWithdrawal => 200_000,
-            GasEstimator::ExecuteL2Withdraw => 200_000,
-            GasEstimator::RefundDeposit => 200_000,
+            Self::ExecuteForcedWithdrawal | Self::ExecuteL2Withdraw | Self::RefundDeposit =>
+                200_000,
         }
     }
 }

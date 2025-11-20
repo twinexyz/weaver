@@ -37,7 +37,7 @@ impl EthClient {
         rpc_url: &str,
         private_key: &str,
         chain_id: Option<u64>,
-    ) -> eyre::Result<EthClient> {
+    ) -> eyre::Result<Self> {
         let signer = PrivateKeySigner::from_bytes(
             &B256::from_hex(private_key).context("Invalid private key hex")?,
         )
@@ -79,9 +79,9 @@ impl EthClient {
         .await
         .context("Failed to initialize transaction service")?;
 
-        tokio::spawn(async move { service.await });
+        tokio::spawn(service);
 
-        Ok(EthClient {
+        Ok(Self {
             reader,
             provider: dyn_provider,
             transaction_service,

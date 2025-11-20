@@ -28,7 +28,7 @@ pub trait Sanitize {
 
 impl<T: Sanitize> Sanitize for Vec<T> {
     fn sanitize(&self) -> Result<(), SanitizeError> {
-        for x in self.iter() {
+        for x in self {
             x.sanitize()?;
         }
         Ok(())

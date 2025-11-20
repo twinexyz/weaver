@@ -46,18 +46,18 @@ impl AggregatorClient {
             Ok(res) => {
                 if !res.status().is_success() {
                     log::error!("could not send proof to the aggregator");
-                    return Err(ProofSchedulerError::Other(format!(
-                        "could not send proof to aggregator"
-                    )));
+                    return Err(ProofSchedulerError::Other(
+                        "could not send proof to aggregator".to_string(),
+                    ));
                 }
                 log::info!("proof sent to the aggregator");
                 Ok(())
             }
             Err(e) => {
                 log::error!("could not send proof to the aggregator");
-                return Err(ProofSchedulerError::Other(format!(
+                Err(ProofSchedulerError::Other(format!(
                     "could not send proof to aggregator: {e}"
-                )));
+                )))
             }
         }
     }

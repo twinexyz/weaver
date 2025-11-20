@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::str::FromStr;
 
@@ -101,8 +101,8 @@ pub fn setup_l2_contracts_step(contracts_dir: PathBuf) -> eyre::Result<TestStep>
 }
 
 /// Load required contract addresses to context
-pub fn load_contract_addresses_step(contract_path: &PathBuf) -> eyre::Result<TestStep> {
-    let mut path = contract_path.clone();
+pub fn load_contract_addresses_step(contract_path: &Path) -> eyre::Result<TestStep> {
+    let mut path = contract_path.to_path_buf();
     path.push("script/utils/twineAddresses.json");
     Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
         name: "Load Twine Addresses".to_string(),
@@ -170,7 +170,7 @@ pub fn update_sol_token_mapping() -> eyre::Result<TestStep> {
 }
 
 /// Deploy a test contract to try deposit and call
-/// Param: contracts_dir: point to testing/
+/// Param: `contracts_dir`: point to testing/
 pub fn deploy_cat_contract(contracts_dir: PathBuf) -> eyre::Result<TestStep> {
     Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
         name: "Deploy Cat Contract".to_string(),

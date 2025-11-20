@@ -26,13 +26,7 @@ impl L1SenderFactory {
 
     /// Get the L1 transaction sender for a given chain ID
     pub async fn get_l1_provider(&self, chain_id: u64) -> Option<Box<dyn L1TransactionSender>> {
-        let maybe_chain = self.get_chain_by_id(chain_id);
-
-        if maybe_chain.is_none() {
-            return None;
-        }
-
-        let chain = maybe_chain.unwrap();
+        let chain = self.get_chain_by_id(chain_id)?;
 
         match chain.chain.to_lowercase().as_str() {
             "ethereum" => {
@@ -47,6 +41,6 @@ impl L1SenderFactory {
         }
     }
 
-    ///
+    /// Get all L1 chains
     pub fn get_l1_chains(&self) -> Values<'_, String, ChainConfig> { self.chains.values() }
 }

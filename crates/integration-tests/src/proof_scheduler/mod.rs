@@ -39,7 +39,7 @@ pub fn setup_proof_scheduler_config(config_path: &str) -> eyre::Result<TestStep>
         name: "Proof Scheduler Config".to_string(),
         description: "Setup proof scheduler config".to_string(),
         futurefn: Box::new(move |ctx| {
-            let config_path = config_path.clone();
+            let config_path = config_path;
             Box::new(async move {
                 let mut c = ctx.borrow_mut();
                 info!("Setting up proof scheduler config");
@@ -80,10 +80,7 @@ fn generate_proof_scheduler_config(
     batch_subscriber.insert("next_transform_request_id".into(), Value::Integer(0));
 
     let mut consumer = toml::map::Map::new();
-    consumer.insert(
-        "kafka_broker_url".into(),
-        Value::String(kafka_bootstrap.to_string()),
-    );
+    consumer.insert("kafka_broker_url".into(), Value::String(kafka_bootstrap));
     consumer.insert("kafka_topics".into(), Value::String("l2-proofs".into()));
     consumer.insert("kafka_groups".into(), Value::String("test-group".into()));
     consumer.insert("auto_offset_reset".into(), Value::String("earliest".into()));
@@ -103,7 +100,7 @@ fn generate_proof_scheduler_config(
     );
 
     let mut db = toml::map::Map::new();
-    db.insert("conn_str".into(), Value::String(db_url.to_string()));
+    db.insert("conn_str".into(), Value::String(db_url));
 
     let mut processor = toml::map::Map::new();
     processor.insert("transform_request_channel_size".into(), Value::Integer(3));
@@ -143,7 +140,7 @@ fn generate_proof_scheduler_config(
         .wrap_err("writing config file")?;
     writer.flush().ok();
 
-    info!("Generated proof scheduler config at {}", config_path);
+    info!("Generated proof scheduler config at {config_path}");
 
     Ok(())
 }

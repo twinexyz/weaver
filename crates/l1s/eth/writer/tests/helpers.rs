@@ -26,9 +26,8 @@ pub(crate) async fn wait_for_receipt(
         match rx.recv().await {
             Ok(TransactionStatus::Confirmed(receipt)) => return Ok(*receipt),
             Ok(TransactionStatus::Failed(err)) => return Err(eyre!("transaction failed: {err}")),
-            Ok(_) => continue,
             Err(broadcast::error::RecvError::Closed) => return Err(eyre!("status channel closed")),
-            Err(broadcast::error::RecvError::Lagged(_)) => continue,
+            _ => {}
         }
     }
 }

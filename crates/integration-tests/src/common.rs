@@ -7,7 +7,7 @@ use test_harness::{AsyncFnStep, SubProcessServiceStarter, SubProcessServiceStopp
 pub fn start_service_step(name: &str, idx: usize, wait: Duration) -> TestStep {
     TestStep::Service(Box::new(SubProcessServiceStarter {
         name: name.to_string(),
-        description: format!("Starts {}", name),
+        description: format!("Starts {name}"),
         service_idx: idx,
         wait_after: Some(wait),
     }))
@@ -17,7 +17,7 @@ pub fn start_service_step(name: &str, idx: usize, wait: Duration) -> TestStep {
 pub fn stop_service_step(name: &str, idx: usize, wait: Option<Duration>) -> TestStep {
     TestStep::Service(Box::new(SubProcessServiceStopper {
         name: name.to_string(),
-        description: format!("Stops {}", name),
+        description: format!("Stops {name}"),
         service_idx: idx,
         wait_after: wait,
     }))
@@ -51,7 +51,7 @@ macro_rules! async_step {
 
 pub fn dump_context() -> eyre::Result<TestStep> {
     Ok(async_step!("Dump Context", "Dump Context", |ctx| {
-        log::info!("The context is {:?}", ctx);
+        log::info!("The context is {ctx:?}");
         Ok(())
     }))
 }

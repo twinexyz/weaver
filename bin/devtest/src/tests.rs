@@ -46,7 +46,7 @@ impl Tests {
 
     pub fn run(&self, regex_to_match: &str) -> eyre::Result<()> {
         let matching_regex = regex::Regex::new(regex_to_match)?;
-        info!("Matching regex: {}", matching_regex);
+        info!("Matching regex: {matching_regex}");
         let runtime = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()?;
@@ -58,7 +58,7 @@ impl Tests {
             info!("Running test: {}", test.name);
             match runtime.block_on((test.test)()) {
                 Ok(_) => info!("Test passed"),
-                Err(e) => error!("Test failed: {:?}", e),
+                Err(e) => error!("Test failed: {e:?}"),
             }
         }
         Ok(())

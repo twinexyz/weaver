@@ -6,6 +6,10 @@ use twine_aggregator_common::{DAChains, DALayer};
 #[derive(Debug, Clone)]
 pub struct CelestiaDA {}
 
+impl Default for CelestiaDA {
+    fn default() -> Self { Self::new() }
+}
+
 impl CelestiaDA {
     /// Initialize celestia da
     pub fn new() -> Self { Self {} }

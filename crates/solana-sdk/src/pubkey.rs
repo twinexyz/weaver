@@ -38,8 +38,8 @@ impl<T> DecodeError<T> for PubkeyError {
 impl From<u64> for PubkeyError {
     fn from(error: u64) -> Self {
         match error {
-            0 => PubkeyError::MaxSeedLengthExceeded,
-            1 => PubkeyError::InvalidSeeds,
+            0 => Self::MaxSeedLengthExceeded,
+            1 => Self::InvalidSeeds,
             _ => panic!("Unsupported PubkeyError"),
         }
     }
@@ -109,10 +109,10 @@ impl FromStr for Pubkey {
         let pubkey_vec = bs58::decode(s)
             .into_vec()
             .map_err(|_| ParsePubkeyError::Invalid)?;
-        if pubkey_vec.len() != mem::size_of::<Pubkey>() {
-            Err(ParsePubkeyError::WrongSize)
+        if pubkey_vec.len() == mem::size_of::<Self>() {
+            Self::try_from(pubkey_vec).map_err(|_| ParsePubkeyError::Invalid)
         } else {
-            Pubkey::try_from(pubkey_vec).map_err(|_| ParsePubkeyError::Invalid)
+            Err(ParsePubkeyError::WrongSize)
         }
     }
 }
@@ -143,7 +143,7 @@ impl TryFrom<Vec<u8>> for Pubkey {
 impl TryFrom<&str> for Pubkey {
     type Error = ParsePubkeyError;
 
-    fn try_from(s: &str) -> Result<Self, Self::Error> { Pubkey::from_str(s) }
+    fn try_from(s: &str) -> Result<Self, Self::Error> { Self::from_str(s) }
 }
 
 impl AsRef<[u8]> for Pubkey {
@@ -195,7 +195,7 @@ impl Pubkey {
     #[deprecated(since = "1.3.9", note = "Please use 'Pubkey::new_unique' instead")]
     pub fn new_rand() -> Self {
         // Consider removing Pubkey::new_rand() entirely in the v1.5 or v1.6 timeframe
-        Pubkey::from(rand::random::<[u8; 32]>())
+        Self::from(rand::random::<[u8; 32]>())
     }
 
     /// unique Pubkey for tests and benchmarks.

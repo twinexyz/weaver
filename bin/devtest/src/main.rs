@@ -14,7 +14,7 @@ fn main() -> eyre::Result<()> {
     if args.len() >= 2 {
         let first_arg = &args[1];
         regex_to_match = first_arg.to_string();
-        info!("Running tests that match regex: {}", regex_to_match);
+        info!("Running tests that match regex: {regex_to_match}");
     } else {
         info!("No regex provided, running all tests");
     }

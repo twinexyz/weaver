@@ -68,7 +68,7 @@ impl ProofGenerator {
         env::set_var("RUST_BACKTRACE", "1");
 
         let mut attempt = 0;
-        let mut last_error: Option<ProofGenerationError> = None;
+        let mut last_error;
 
         loop {
             info!(
@@ -245,8 +245,7 @@ impl ProofGenerator {
                 Ok(())
             }
             Err(e) => Err(ProofGenerationError::BinaryExecutionFailed(format!(
-                "Failed to spawn prover binary '{}': {}",
-                binary_path, e
+                "Failed to spawn prover binary '{binary_path}': {e}"
             ))),
         }
     }
@@ -255,16 +254,14 @@ impl ProofGenerator {
     fn process_proof_file(&self, proof_file_path: String) -> Result<ZkProof, ProofGenerationError> {
         let proof_file = fs::File::open(&proof_file_path).map_err(|e| {
             ProofGenerationError::ProofFileProcessingFailed(format!(
-                "Failed to open proof file '{}': {}",
-                proof_file_path, e
+                "Failed to open proof file '{proof_file_path}': {e}"
             ))
         })?;
 
         // Parse the JSON file as ZkProof
         let zk_proof: ZkProof = serde_json::from_reader(proof_file).map_err(|e| {
             ProofGenerationError::ProofFileProcessingFailed(format!(
-                "Failed to parse proof file '{}' as ZkProof: {}",
-                proof_file_path, e
+                "Failed to parse proof file '{proof_file_path}' as ZkProof: {e}"
             ))
         })?;
 

@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use borsh::{BorshDeserialize, BorshSerialize};
 use log::{debug, info, warn};
 use serde::{Deserialize, Serialize};
+use solana_short_vec as short_vec;
 use twine_solana_sdk::{Hash, Pubkey};
-use {bincode, solana_short_vec as short_vec};
 
 #[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize)]
 pub struct PublicValuesStruct {
@@ -200,7 +200,7 @@ impl DepositMessagesBuffer {
 
         // Get the discriminator for debugging
         let discriminator = &data[0..8];
-        debug!("Account discriminator: {:02X?}", discriminator);
+        debug!("Account discriminator: {discriminator:02X?}");
 
         // Skip the 8-byte discriminator and attempt to deserialize
         match Self::try_from_slice(&data[8..]) {
@@ -231,8 +231,7 @@ impl DepositMessagesBuffer {
         // Make sure we have enough data to at least read the header
         if data.len() < 20 {
             return Err(format!(
-                "{}. Account data too small to contain vector length.",
-                diagnostic
+                "{diagnostic}. Account data too small to contain vector length."
             ));
         }
 
@@ -240,17 +239,16 @@ impl DepositMessagesBuffer {
         let deposit_nonce = u64::from_le_bytes([
             data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15],
         ]);
-        diagnostic.push_str(&format!(". Deposit nonce: {}", deposit_nonce));
+        diagnostic.push_str(&format!(". Deposit nonce: {deposit_nonce}"));
 
         // Try to extract the vector length
         let vec_len = u32::from_le_bytes([data[16], data[17], data[18], data[19]]) as usize;
-        diagnostic.push_str(&format!(". Vector length: {}", vec_len));
+        diagnostic.push_str(&format!(". Vector length: {vec_len}"));
 
         // Sanity check the vector length
         if vec_len == 0 || vec_len > 1000 {
             return Err(format!(
-                "{}. Vector length {} appears invalid.",
-                diagnostic, vec_len
+                "{diagnostic}. Vector length {vec_len} appears invalid."
             ));
         }
 
@@ -259,12 +257,11 @@ impl DepositMessagesBuffer {
         let remaining_bytes = data.len() - 20;
         let estimated_msg_size = remaining_bytes as f64 / vec_len as f64;
         diagnostic.push_str(&format!(
-            ". Estimated message size: {:.2} bytes",
-            estimated_msg_size
+            ". Estimated message size: {estimated_msg_size:.2} bytes"
         ));
 
         // Log the diagnostics so far
-        info!("{}", diagnostic);
+        info!("{diagnostic}");
 
         // Try to manually parse the messages
         let mut offset = 20; // Start after header
@@ -341,7 +338,7 @@ impl DepositMessagesBuffer {
 
                     // Sanity check the string length
                     if str_len > 10000 {
-                        return Err(format!("String length too large: {}", str_len));
+                        return Err(format!("String length too large: {str_len}"));
                     }
 
                     // Check if we have enough bytes for the string content
@@ -359,7 +356,7 @@ impl DepositMessagesBuffer {
                     // Convert to UTF-8 string
                     match std::str::from_utf8(str_bytes) {
                         Ok(s) => Ok(s.to_string()),
-                        Err(e) => Err(format!("Invalid UTF-8 string: {}", e)),
+                        Err(e) => Err(format!("Invalid UTF-8 string: {e}")),
                     }
                 };
 
@@ -368,8 +365,7 @@ impl DepositMessagesBuffer {
                 Ok(s) => s,
                 Err(e) =>
                     return Err(format!(
-                        "Error parsing from_l1_pubkey for message #{}: {}",
-                        i, e
+                        "Error parsing from_l1_pubkey for message #{i}: {e}"
                     )),
             };
 
@@ -377,24 +373,23 @@ impl DepositMessagesBuffer {
                 Ok(s) => s,
                 Err(e) =>
                     return Err(format!(
-                        "Error parsing to_twine_address for message #{}: {}",
-                        i, e
+                        "Error parsing to_twine_address for message #{i}: {e}"
                     )),
             };
 
             let l1_token = match parse_string(data, &mut offset) {
                 Ok(s) => s,
-                Err(e) => return Err(format!("Error parsing l1_token for message #{}: {}", i, e)),
+                Err(e) => return Err(format!("Error parsing l1_token for message #{i}: {e}")),
             };
 
             let l2_token = match parse_string(data, &mut offset) {
                 Ok(s) => s,
-                Err(e) => return Err(format!("Error parsing l2_token for message #{}: {}", i, e)),
+                Err(e) => return Err(format!("Error parsing l2_token for message #{i}: {e}")),
             };
 
             let amount = match parse_string(data, &mut offset) {
                 Ok(s) => s,
-                Err(e) => return Err(format!("Error parsing amount for message #{}: {}", i, e)),
+                Err(e) => return Err(format!("Error parsing amount for message #{i}: {e}")),
             };
 
             // Create and add the message

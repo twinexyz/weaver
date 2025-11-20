@@ -18,12 +18,7 @@ pub(crate) async fn start_dispatcher(
 ) -> eyre::Result<tokio::task::JoinHandle<()>> {
     let mut settlement_chains: Vec<Arc<dyn SettleBatch + Send + Sync>> = Vec::new();
 
-    let da_client = if config.dispatcher.use_da {
-        // TODO: Implement proper DA configuration when available
-        Some(CelestiaDA::new())
-    } else {
-        None
-    };
+    let da_client = config.dispatcher.use_da.then(CelestiaDA::new);
 
     if config.eth.is_some() {
         let eth_config = config.eth.as_ref().unwrap();
@@ -71,7 +66,7 @@ pub(crate) async fn start_dispatcher(
 
     let handle = tokio::spawn(async move {
         if let Err(e) = dispatcher.run().await {
-            eprintln!("Dispatcher error: {:?}", e);
+            eprintln!("Dispatcher error: {e:?}");
         }
     });
 

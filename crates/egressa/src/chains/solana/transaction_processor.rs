@@ -11,7 +11,7 @@ use solana_sdk::transaction::Transaction;
 use tokio::time::{sleep, Duration};
 use twine_l1::error::TransactionError;
 
-/// TransactionProcessor handles the complete lifecycle of transaction
+/// `TransactionProcessor` handles the complete lifecycle of transaction
 /// processing:
 /// - Signing transactions via external signing service
 /// - Sending signed transactions to the blockchain
@@ -32,7 +32,7 @@ pub struct TransactionProcessor {
 }
 
 impl TransactionProcessor {
-    /// Create a new TransactionProcessor instance
+    /// Create a new `TransactionProcessor` instance
     pub fn new(
         max_retries: u32,
         retry_delay: Duration,
@@ -64,7 +64,7 @@ impl TransactionProcessor {
             })
             .await
             .map_err(|e| {
-                TransactionError::SendError(format!("Failed to broadcast transaction: {}", e))
+                TransactionError::SendError(format!("Failed to broadcast transaction: {e}"))
             })?;
 
         let signature_str = signature.to_string();
@@ -92,7 +92,7 @@ impl TransactionProcessor {
 
         while retry_count <= self.max_retries {
             match self
-                .process_single_transaction(&mut unsigned_tx, &from_pubkey)
+                .process_single_transaction(&unsigned_tx, &from_pubkey)
                 .await
             {
                 Ok(signature) => {
@@ -163,7 +163,7 @@ impl TransactionProcessor {
     /// Process a single transaction attempt (sign + send)
     async fn process_single_transaction(
         &self,
-        unsigned_tx: &mut Transaction,
+        unsigned_tx: &Transaction,
         _from_pubkey: &Pubkey,
     ) -> Result<String, TransactionError> {
         debug!("Processing single transaction attempt");
@@ -184,7 +184,7 @@ impl TransactionProcessor {
 
         let signature = signature_str.parse::<Signature>().map_err(|e| {
             error!("Invalid signature format: {}", e);
-            TransactionError::SendError(format!("Invalid signature format: {}", e))
+            TransactionError::SendError(format!("Invalid signature format: {e}"))
         })?;
 
         let mut attempts = 0;
@@ -212,8 +212,7 @@ impl TransactionProcessor {
                     Err(e) => {
                         error!("❌ Transaction failed on-chain: {:?}", e);
                         return Err(TransactionError::ReceiptError(format!(
-                            "Transaction failed on-chain: {:?}",
-                            e
+                            "Transaction failed on-chain: {e:?}"
                         )));
                     }
                 },
@@ -229,7 +228,7 @@ impl TransactionProcessor {
                         return Err(TransactionError::ReceiptTimeout);
                     }
 
-                    if attempts % 10 == 0 {
+                    if attempts.is_multiple_of(10) {
                         debug!(
                             "⏳ Still waiting for confirmation... Attempt {}/{}: {}",
                             attempts, max_attempts, signature_str
@@ -244,8 +243,7 @@ impl TransactionProcessor {
                         attempts, e, signature_str
                     );
                     return Err(TransactionError::ReceiptError(format!(
-                        "Error checking transaction status (attempt {}): {}: {}",
-                        attempts, e, signature_str
+                        "Error checking transaction status (attempt {attempts}): {e}: {signature_str}"
                     )));
                 }
             }
@@ -266,7 +264,7 @@ impl TransactionProcessor {
 
         let recent = self.client.get_latest_blockhash().await.map_err(|e| {
             error!("Failed to get latest blockhash: {}", e);
-            TransactionError::ReceiptError(format!("Failed to get latest blockhash: {}", e))
+            TransactionError::ReceiptError(format!("Failed to get latest blockhash: {e}"))
         })?;
 
         info!("Latest blockhash: {:?}", recent.to_string());

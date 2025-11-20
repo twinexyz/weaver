@@ -77,8 +77,8 @@ where
                         record_batch_dispatched(&da_id, next);
                     }
                     Err(e) => {
+                        // retry on next tick
                         warn!(batch = next, chain = da_id, error = ?e, "DA post failed");
-                        continue; // retry on next tick
                     }
                 }
             }

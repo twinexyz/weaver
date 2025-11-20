@@ -85,7 +85,7 @@ impl BatchStore {
         }
     }
 
-    /// Load batch metadata for batch_number
+    /// Load batch metadata for `batch_number`
     pub fn load_batch(&self, batch_number: u64) -> eyre::Result<VersionedBatchMeta> {
         let cf = self
             .db
@@ -208,12 +208,11 @@ impl BatchStore {
         let bytes = self.db.get_cf(cf, batch_number.to_be_bytes()).ok()??;
         let (version, payload) = bincode_utils::deserialize_versioned(&bytes).ok()?;
 
-        let val = match version {
+        match version {
             BatchVersionID::V0 => bincode::deserialize::<BatchMeta>(payload)
                 .ok()
                 .map(|batch| batch.block_range),
-        };
-        val
+        }
     }
 
     /// Peek the batch version
@@ -280,12 +279,7 @@ mod batch_db_tests {
                 })
                 .collect::<Vec<BlockMetadata>>();
 
-            store.seal_batch(
-                batch_number,
-                block_range.clone(),
-                prev_batch_hash,
-                block_metadata,
-            )?;
+            store.seal_batch(batch_number, block_range, prev_batch_hash, block_metadata)?;
         }
 
         {
@@ -300,12 +294,7 @@ mod batch_db_tests {
                 })
                 .collect::<Vec<BlockMetadata>>();
 
-            store.seal_batch(
-                batch_number,
-                block_range.clone(),
-                prev_batch_hash,
-                block_metadata,
-            )?;
+            store.seal_batch(batch_number, block_range, prev_batch_hash, block_metadata)?;
         }
 
         {
@@ -320,12 +309,7 @@ mod batch_db_tests {
                 })
                 .collect::<Vec<BlockMetadata>>();
 
-            store.seal_batch(
-                batch_number,
-                block_range.clone(),
-                prev_batch_hash,
-                block_metadata,
-            )?;
+            store.seal_batch(batch_number, block_range, prev_batch_hash, block_metadata)?;
         }
 
         {

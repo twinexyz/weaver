@@ -1,4 +1,5 @@
 /// consumes the results from the worker instances
+#[allow(clippy::module_inception)]
 pub mod consumer;
 
 /// consume attempt

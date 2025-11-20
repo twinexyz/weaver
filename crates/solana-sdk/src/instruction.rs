@@ -10,7 +10,7 @@ use thiserror::Error;
 /// change at any time and changes to them are difficult to detect.
 #[derive(Serialize, Deserialize, Debug, Error, PartialEq, Eq, Clone)]
 pub enum InstructionError {
-    /// Deprecated! Use CustomError instead!
+    /// Deprecated! Use `CustomError` instead!
     /// The program instruction returned an error
     #[error("generic instruction error")]
     GenericError,
@@ -86,7 +86,7 @@ pub enum InstructionError {
     #[error("instruction changed executable bit of an account")]
     ExecutableModified,
 
-    /// Rent_epoch account changed, but shouldn't have
+    /// `Rent_epoch` account changed, but shouldn't have
     #[error("instruction modified rent epoch of an account")]
     RentEpochModified,
 

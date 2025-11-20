@@ -92,11 +92,12 @@ impl WorkerManager for TwineWorkerManager {
         'outer: loop {
             tokio::select! {
                 Some(input) = self.transform_attempt_receiver.recv() => {
-                    'inner: loop {
+                    loop {
                         sleep(Duration::from_secs(1)).await;
                         let mut job = job_mutex.lock().await;
                         match job.clone(){
-                            Some(_) => continue 'inner,
+                            Some(_) => {
+                            },
                             None => {
                                 *job = Some(input);
                                 continue 'outer;
@@ -140,7 +141,7 @@ pub async fn start_worker_register_server(
         last_timed_out_check: Mutex::new(Instant::now()),
     });
 
-    let cloned_connection = connections.clone();
+    let cloned_connection = connections;
     let cloned_sender = sender.clone();
     let wss_handle = tokio::spawn(async move {
         let total_connections = Arc::new(Mutex::new(ConnectionID(0u64)));

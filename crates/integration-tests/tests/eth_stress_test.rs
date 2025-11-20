@@ -99,7 +99,7 @@ mod eth_deposit_stress_test {
         // Deposit eth
         let count = 250;
         harness.add_step(batch_deposit_eth_step(
-            test_config.test_scripts.path.clone().into(),
+            test_config.test_scripts.path.into(),
             count,
             TestAccountKind::Random,
         )?);

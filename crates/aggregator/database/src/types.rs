@@ -25,7 +25,7 @@ impl fmt::Display for OnChainStatus {
             Self::SendFailedFinalized => "send_failed_finalized",
             Self::SendSuccessfulFinalized => "send_successful_finalized",
         };
-        write!(f, "{}", s)
+        write!(f, "{s}")
     }
 }
 
@@ -39,7 +39,7 @@ impl FromStr for OnChainStatus {
             "send_successful" => Ok(Self::SendSuccessful),
             "send_failed_finalized" => Ok(Self::SendFailedFinalized),
             "send_successful_finalized" => Ok(Self::SendSuccessfulFinalized),
-            _ => Err(format!("Invalid OnChainStatus: {}", s)),
+            _ => Err(format!("Invalid OnChainStatus: {s}")),
         }
     }
 }
@@ -65,7 +65,7 @@ impl fmt::Display for DaPostingStatus {
             Self::VerifyFailed => "verify_failed",
             Self::Verified => "verified",
         };
-        write!(f, "{}", s)
+        write!(f, "{s}")
     }
 }
 
@@ -79,7 +79,7 @@ impl FromStr for DaPostingStatus {
             "committed" => Ok(Self::Committed),
             "verify_failed" => Ok(Self::VerifyFailed),
             "verified" => Ok(Self::Verified),
-            _ => Err(format!("Invalid DaPostingStatus: {}", s)),
+            _ => Err(format!("Invalid DaPostingStatus: {s}")),
         }
     }
 }

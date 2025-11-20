@@ -52,7 +52,7 @@ impl SolanaSender {
         info!("Relayer public key: {:?}", relayer_pubkey.to_string());
 
         let contracts = match config.clone().contracts {
-            Contracts::Svm(svm) => svm.clone(),
+            Contracts::Svm(svm) => svm,
             Contracts::Evm(_) => {
                 return Err(eyre::eyre!(
                     "Solana sender requires SVM contracts, not EVM contracts"
@@ -78,7 +78,7 @@ impl SolanaSender {
             transaction_processor,
             chain_id: config.chain_id,
             relayer_address: relayer_pubkey,
-            rpc: rpc.clone(),
+            rpc,
         })
     }
 

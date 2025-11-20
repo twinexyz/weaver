@@ -28,7 +28,7 @@ async fn main() -> eyre::Result<()> {
         }
         cli::Commands::ShowConfig => {
             let config_str = toml::to_string_pretty(&config)?;
-            println!("{}", config_str);
+            println!("{config_str}");
         }
     }
 
