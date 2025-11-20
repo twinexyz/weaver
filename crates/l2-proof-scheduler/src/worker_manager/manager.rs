@@ -92,11 +92,12 @@ impl WorkerManager for TwineWorkerManager {
         'outer: loop {
             tokio::select! {
                 Some(input) = self.transform_attempt_receiver.recv() => {
-                    'inner: loop {
+                    loop {
                         sleep(Duration::from_secs(1)).await;
                         let mut job = job_mutex.lock().await;
                         match job.clone(){
-                            Some(_) => continue 'inner,
+                            Some(_) => {
+                            },
                             None => {
                                 *job = Some(input);
                                 continue 'outer;

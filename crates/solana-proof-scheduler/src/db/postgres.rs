@@ -49,7 +49,7 @@ impl DBConnection {
     }
 }
 
-/// TODO: remove this is production
+// TODO: remove this is production
 // fn shortcircuit_solana_event(nonce: u64) -> SolanaEvent {
 //     SolanaEvent {
 //         chain_id: 900,

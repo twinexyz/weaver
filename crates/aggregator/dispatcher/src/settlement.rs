@@ -207,8 +207,8 @@ pub async fn run_settlement_pipeline(
                 if let Err(e) =
                     handle_settlement_result(&pool, batch_id, &chain, settle_result, next).await
                 {
+                    // continue
                     warn!(batch = next, chain = chain, error = ?e, "Error handling settlement result");
-                    continue;
                 }
             }
             Ok(None) => {

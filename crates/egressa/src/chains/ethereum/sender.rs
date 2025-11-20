@@ -1,7 +1,6 @@
 use std::str::FromStr as _;
 use std::sync::Arc;
 use std::time::Duration;
-use std::u64;
 
 use alloy_primitives::{Address, Bytes};
 use alloy_provider::{DynProvider, ProviderBuilder};
@@ -75,7 +74,6 @@ impl EthereumSender {
         );
 
         let query_client = client
-            .clone()
             .reader
             .execution
             .clone()
@@ -85,7 +83,7 @@ impl EthereumSender {
             TransactionBuilder::new(query_client.clone(), evm_contracts.clone(), chain.chain_id);
 
         let transaction_processor = TransactionProcessor::new(
-            query_client.clone(),
+            query_client,
             chain.max_retries,
             Duration::from_secs(chain.retry_delay),
             Arc::new(provider.clone()),

@@ -79,17 +79,18 @@ impl ConsumeAttemptCreator for SolanaMessageTransformResultConsumeAttemptCreator
         consume_attempt_id: Option<<Self::ConsumeAttempt as ConsumeAttempt>::Identifier>,
         request: &Self::TransformAttempt,
     ) -> Result<Self::ConsumeAttempt, Self::ConsumeAttemptCreationError> {
-        if self.attempts.get(&request.identifier).is_some() {
+        if self.attempts.contains_key(&request.identifier) {
             return Err(ProofSchedulerError::KeyAlreadyExists(format!(
                 "{:?}",
                 request.identifier
             )));
         }
 
-        let consume_attempt_id = consume_attempt_id.unwrap_or(SolanaMessageConsumeAttemptID {
-            identifier: 0,
-            transform_attempt_identifier: request.identifier.clone(),
-        });
+        let consume_attempt_id =
+            consume_attempt_id.unwrap_or_else(|| SolanaMessageConsumeAttemptID {
+                identifier: 0,
+                transform_attempt_identifier: request.identifier.clone(),
+            });
         let consume_attempt = SolanaMessageConsumeAttempt::new(
             consume_attempt_id,
             SolanaMessageTransformResultConsumeContext {},
@@ -167,9 +168,7 @@ impl ConsumeAttemptCreator for SolanaMessageTransformResultConsumeAttemptCreator
             return Ok(Duration::from_secs(elapsed_time));
         }
 
-        log::warn!(
-            "Key {transform_request_id:?} not found in consume attempts record"
-        );
+        log::warn!("Key {transform_request_id:?} not found in consume attempts record");
         Ok(Duration::from_secs(0))
     }
 }

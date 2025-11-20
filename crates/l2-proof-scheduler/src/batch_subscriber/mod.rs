@@ -85,7 +85,7 @@ impl Emitter for TwineBatchSubscriber {
 
         let start_block = block_number
             .as_integer()
-            .ok_or(ProofSchedulerError::Other("parse error".to_string()))?
+            .ok_or_else(|| ProofSchedulerError::Other("parse error".to_string()))?
             as u64;
 
         let identifier = init_config
@@ -100,7 +100,7 @@ impl Emitter for TwineBatchSubscriber {
 
         let identifier = identifier
             .as_integer()
-            .ok_or(ProofSchedulerError::Other("parse error".to_string()))?
+            .ok_or_else(|| ProofSchedulerError::Other("parse error".to_string()))?
             as u64; // TODO: map error
 
         let twine_client = TwineBatchClient::new(&twine_rpc_url);

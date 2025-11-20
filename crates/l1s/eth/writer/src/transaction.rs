@@ -1,7 +1,6 @@
 //! Ethereum Transactions
 
 use std::sync::Arc;
-use std::u128;
 
 use alloy_consensus::{Transaction, TxEip1559, TxEnvelope, TypedTransaction};
 use alloy_eips::eip1559::Eip1559Estimation;

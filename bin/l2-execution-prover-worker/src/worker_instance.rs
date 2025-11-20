@@ -45,6 +45,7 @@ pub struct WorkerInstance {
 
 impl WorkerInstance {
     /// creates new worker instance
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         prover_bin_path: String,
         job_receiver: Receiver<TwineBatchTransformAttempt>,

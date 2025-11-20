@@ -65,7 +65,7 @@ impl Emitter for SolanaMessageSubscriber {
 
         let next_message_nonce = next_message_nonce
             .as_integer()
-            .ok_or(ProofSchedulerError::Other("parse error".to_string()))?
+            .ok_or_else(|| ProofSchedulerError::Other("parse error".to_string()))?
             as u64;
 
         let db_conn_string = init_config
@@ -80,7 +80,7 @@ impl Emitter for SolanaMessageSubscriber {
 
         let db_conn_string = db_conn_string
             .as_str()
-            .ok_or(ProofSchedulerError::Other("parse error".to_string()))?;
+            .ok_or_else(|| ProofSchedulerError::Other("parse error".to_string()))?;
 
         let solana_rpc = init_config
             .lock()
@@ -94,7 +94,7 @@ impl Emitter for SolanaMessageSubscriber {
 
         let solana_rpc = solana_rpc
             .as_str()
-            .ok_or(ProofSchedulerError::Other("parse error".to_string()))?;
+            .ok_or_else(|| ProofSchedulerError::Other("parse error".to_string()))?;
 
         let chain_id = init_config
             .lock()
@@ -108,7 +108,7 @@ impl Emitter for SolanaMessageSubscriber {
 
         let chain_id = chain_id
             .as_integer()
-            .ok_or(ProofSchedulerError::Other("parse error".to_string()))?
+            .ok_or_else(|| ProofSchedulerError::Other("parse error".to_string()))?
             as u64;
 
         let identifier = init_config
@@ -123,7 +123,7 @@ impl Emitter for SolanaMessageSubscriber {
 
         let identifier = identifier
             .as_integer()
-            .ok_or(ProofSchedulerError::Other("parse error".to_string()))?
+            .ok_or_else(|| ProofSchedulerError::Other("parse error".to_string()))?
             as u64;
 
         let db_connection = DBConnection::new(db_conn_string.to_owned(), chain_id).await;
@@ -180,7 +180,7 @@ impl Emitter for SolanaMessageSubscriber {
                             let wait_duration = self.backoff.wait_duration();
                             log::warn!("cannot find the next unprocessed message of nonce: {} error: {e}.. retrying in {wait_duration} secs", self.next_message_nonce);
                             self.backoff.wait_and_backoff().await;
-                            continue;
+                            // continue
                         }
                     }
                 }

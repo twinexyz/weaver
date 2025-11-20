@@ -79,16 +79,17 @@ impl TransformAttemptCreator for TwineBatchTransformAttemptCreator {
         transform_attempt_id: Option<<Self::TransformAttempt as TransformAttempt>::Identifier>,
         request: &Self::TransformRequest,
     ) -> Result<Self::TransformAttempt, Self::TransformAttemptCreationError> {
-        if self.attempts.get(&request.identifier).is_some() {
+        if self.attempts.contains_key(&request.identifier) {
             return Err(ProofSchedulerError::KeyAlreadyExists(format!(
                 "{:?}",
                 request.identifier
             )));
         }
-        let transform_attempt_id = transform_attempt_id.unwrap_or(TwineBatchTransformAttemptID {
-            identifier: 0,
-            transform_request_id: request.identifier.clone(),
-        });
+        let transform_attempt_id =
+            transform_attempt_id.unwrap_or_else(|| TwineBatchTransformAttemptID {
+                identifier: 0,
+                transform_request_id: request.identifier.clone(),
+            });
         let transform_attempt = TwineBatchTransformAttempt::new(
             transform_attempt_id,
             request.call_context.clone(),
@@ -155,9 +156,7 @@ impl TransformAttemptCreator for TwineBatchTransformAttemptCreator {
             return Ok(Duration::from_secs(elapsed_time));
         }
 
-        log::warn!(
-            "Key {transform_request_id:?} not found in transform attempts record"
-        );
+        log::warn!("Key {transform_request_id:?} not found in transform attempts record");
         Ok(Duration::from_secs(0))
     }
 }

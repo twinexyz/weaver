@@ -554,7 +554,7 @@ impl Signer {
     /// notifying `status_tx` on each status update.
     async fn send_and_watch_transaction(
         &self,
-        mut tx: EthereumTransaction,
+        tx: EthereumTransaction,
     ) -> Result<(), SignerError> {
         // Fetch the fees for the first transaction.
         let fees = match self
@@ -570,7 +570,7 @@ impl Signer {
         };
 
         // Validate the transaction.
-        if let Err(err) = self.validate_transaction(&mut tx, fees).await {
+        if let Err(err) = self.validate_transaction(&tx, fees).await {
             self.on_failed_transaction(tx.id, err).await?;
             return Ok(());
         }
