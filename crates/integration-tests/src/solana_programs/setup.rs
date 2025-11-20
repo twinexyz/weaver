@@ -24,7 +24,7 @@ fn parse_lamports(raw: &str) -> eyre::Result<u128> {
         .split_whitespace()
         .next()
         .ok_or_else(|| eyre!("Unable to parse lamports from balance output: {}", raw))?;
-    u128::from_str_radix(amount_str, 10)
+    amount_str.parse::<u128>()
         .map_err(|_| eyre!("Invalid lamport amount in balance output: {}", raw))
 }
 
@@ -496,9 +496,9 @@ pub fn verify_sol_balance_delta_step() -> eyre::Result<TestStep> {
             let current = parse_lamports(current_balance_str)?;
             log::info!("Latest Solana balance for {solana_l1_address}: {current} lamports");
 
-            let snapshot = u128::from_str_radix(&snapshot_str, 10)?;
-            let expected = u128::from_str_radix(consts::TEST_DEPOSIT_AMOUNT, 10)?;
-            let tolerance = u128::from_str_radix(consts::SOL_BALANCE_TOLERANCE_LAMPORTS, 10)?;
+            let snapshot = snapshot_str.parse::<u128>()?;
+            let expected = consts::TEST_DEPOSIT_AMOUNT.parse::<u128>()?;
+            let tolerance = consts::SOL_BALANCE_TOLERANCE_LAMPORTS.parse::<u128>()?;
 
             let delta = current
                 .checked_sub(snapshot)
