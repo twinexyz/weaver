@@ -1,4 +1,5 @@
 #![allow(missing_docs)]
+#![allow(clippy::field_reassign_with_default)]
 
 use std::collections::HashSet;
 use std::str::FromStr;
