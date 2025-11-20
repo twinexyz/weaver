@@ -52,7 +52,7 @@ impl CheckpointStore for InMemoryCheckpoint {
 
 /// Twine Batch Poller
 #[derive(Debug, Clone)]
-pub struct AsyncBatchPoller<F, Fut> {
+pub struct AsyncBatchPoller<F> {
     /// batch client
     client: BatchClient,
     /// checkpoint for batch poller
@@ -64,10 +64,10 @@ pub struct AsyncBatchPoller<F, Fut> {
     /// Handler
     handler: F,
     /// Phantom
-    _marker: std::marker::PhantomData<Fut>,
+    _marker: std::marker::PhantomData<F>,
 }
 
-impl<F, Fut> AsyncBatchPoller<F, Fut>
+impl<F, Fut> AsyncBatchPoller<F>
 where
     F: Fn(VersionedBatchMeta) -> Fut + Send + Sync + Clone + 'static,
     Fut: std::future::Future<Output = eyre::Result<()>> + Send,

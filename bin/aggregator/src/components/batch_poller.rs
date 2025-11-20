@@ -6,6 +6,7 @@ use reth_tracing::tracing::{debug, error, info};
 use twine_aggregator_common::config::AppCfg;
 use twine_aggregator_database::operations::{get_last_polled_batch, insert_batch};
 use twine_l2_batch_poller::poll_batches_async;
+use twine_types::VersionedBatchMeta;
 
 /// Start the L2 batch poller and return a handle for graceful shutdown
 pub(crate) async fn start_batch_poller(
@@ -26,43 +27,64 @@ pub(crate) async fn start_batch_poller(
         poll_interval.as_secs()
     );
 
-    let db_pool_clone = db_pool;
-    let handle = tokio::spawn(async move {
-        info!("Batch poller task started");
-        let _l2_poller = poll_batches_async(&twine_rpc, start_batch, poll_interval, move |bm| {
-            let db_pool = db_pool_clone.clone();
-            async move {
-                info!("Observed twine batch: {}", bm.batch_number());
-
-                // Record metrics for the observed batch
-                twine_aggregator_metrics::record_twine_batch_observed(
-                    &twine_chain_id.to_string(),
-                    bm.batch_number(),
-                );
-
-                if let Some(hash) = bm.batch_hash() {
-                    match insert_batch(&db_pool, bm.batch_number(), hash.0).await {
-                        Ok(()) => {
-                            debug!(
-                                "Successfully inserted batch {} into database",
-                                bm.batch_number()
-                            );
-                        }
-                        Err(e) => {
-                            error!(
-                                "Failed to insert batch {} into database: {:?}",
-                                bm.batch_number(),
-                                e
-                            );
-                            return Err(eyre::eyre!("Failed to insert batch: {:?}", e));
-                        }
-                    }
-                }
-                Ok(())
-            }
-        })
-        .await;
-    });
-
+    let handle = tokio::spawn(run_batch_poller(
+        twine_rpc,
+        twine_chain_id,
+        start_batch,
+        poll_interval,
+        db_pool,
+    ));
     Ok(handle)
+}
+
+async fn run_batch_poller(
+    twine_rpc: String,
+    twine_chain_id: u64,
+    start_batch: u64,
+    poll_interval: Duration,
+    db_pool: sqlx::PgPool,
+) {
+    if let Err(e) = poll_batches_async(&twine_rpc, start_batch, poll_interval, {
+        let handler_pool = db_pool.clone();
+        move |bm| {
+            let pool = handler_pool.clone();
+            async move { handle_polled_batch(pool, twine_chain_id, bm).await }
+        }
+    })
+    .await
+    {
+        error!("Batch poller terminated with error: {:?}", e);
+    }
+}
+
+async fn handle_polled_batch(
+    db_pool: sqlx::PgPool,
+    twine_chain_id: u64,
+    bm: VersionedBatchMeta,
+) -> eyre::Result<()> {
+    let batch_number = bm.batch_number();
+
+    info!("Observed twine batch: {batch_number}");
+
+    twine_aggregator_metrics::record_twine_batch_observed(
+        &twine_chain_id.to_string(),
+        batch_number,
+    );
+
+    if let Some(hash) = bm.batch_hash() {
+        match insert_batch(&db_pool, batch_number, hash.0).await {
+            Ok(()) => {
+                debug!("Successfully inserted batch {batch_number} into database");
+            }
+            Err(e) => {
+                error!(
+                    "Failed to insert batch {batch_number} into database: {:?}",
+                    e
+                );
+                return Err(eyre::eyre!("Failed to insert batch: {:?}", e));
+            }
+        }
+    }
+
+    Ok(())
 }
