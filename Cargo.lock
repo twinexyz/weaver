@@ -15996,9 +15996,11 @@ dependencies = [
 name = "twine-l2-batch-poller"
 version = "1.7.0"
 dependencies = [
+ "async-trait",
  "eyre",
  "reth-tracing",
  "tokio",
+ "twine-common",
  "twine-rpc",
  "twine-types",
 ]

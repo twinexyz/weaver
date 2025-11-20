@@ -8,9 +8,11 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+async-trait.workspace = true
 eyre.workspace = true
 reth-tracing.workspace = true
 tokio.workspace = true
+twine-common.workspace = true
 twine-rpc.workspace = true
 twine-types.workspace = true
 
