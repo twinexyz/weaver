@@ -3,14 +3,12 @@
 use std::sync::Arc;
 
 use tokio::sync::broadcast::Receiver;
-use tokio::sync::mpsc::Sender;
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 use twine_sequencer_db::db::SequencerDB;
 use twine_sequencer_db::error::TwineSequencerDBError;
 
 use crate::chain_state::chains::{EthereumStateWatcher, SolanaStateWatcher, TwineChainWatcher};
-use crate::chain_state::state::L2State;
 use crate::common::shutdown::ShutdownSignal;
 use crate::config::config::Config;
 use crate::errors::TwineSequencerError;
@@ -24,7 +22,6 @@ impl ChainWatcherManager {
     pub async fn spawn_all(
         kill_sig_recv: Receiver<ShutdownSignal>,
         config: Config,
-        state_sender: Sender<L2State>,
         db: Arc<
             Mutex<
                 dyn SequencerDB<
@@ -41,7 +38,6 @@ impl ChainWatcherManager {
         let mut eth_watcher = EthereumStateWatcher::from_config(
             kill_sig_recv.resubscribe(),
             config.ethereum,
-            state_sender.clone(),
             db.clone(),
             initial_eth_batch,
         )
@@ -52,7 +48,6 @@ impl ChainWatcherManager {
         let mut solana_watcher = SolanaStateWatcher::from_config(
             kill_sig_recv.resubscribe(),
             config.solana,
-            state_sender.clone(),
             db.clone(),
             initial_solana_batch,
         )
@@ -62,7 +57,6 @@ impl ChainWatcherManager {
         let mut l2_watcher = TwineChainWatcher::new(
             kill_sig_recv.resubscribe(),
             config.l2.clone(),
-            state_sender.clone(),
             db.clone(),
         )
         .await?;

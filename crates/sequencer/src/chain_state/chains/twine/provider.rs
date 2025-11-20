@@ -6,13 +6,11 @@ use std::sync::Arc;
 use alloy_primitives::FixedBytes;
 use async_trait::async_trait;
 use tokio::sync::broadcast::Receiver;
-use tokio::sync::mpsc::Sender;
 use tokio::sync::Mutex;
 use twine_sequencer_db::db::SequencerDB;
 use twine_sequencer_db::error::TwineSequencerDBError;
 
 use super::twine_rpc_client::L2RpcClient;
-use crate::chain_state::state::L2State;
 use crate::chain_watcher::watcher::{ChainStateProvider, ChainWatcher};
 use crate::common::consts::{TWINE_CHAIN_IDENTIFIER, TWINE_PROCESSED_BATCH};
 use crate::common::shutdown::ShutdownSignal;
@@ -63,7 +61,6 @@ impl ChainWatcher<L2ChainProvider> {
     pub async fn new(
         kill_sig_recv: Receiver<ShutdownSignal>,
         config: L2Config,
-        state_sender: Sender<L2State>,
         db: Arc<
             Mutex<
                 dyn SequencerDB<
@@ -75,6 +72,6 @@ impl ChainWatcher<L2ChainProvider> {
             >,
         >,
     ) -> Result<Self, TwineSequencerError> {
-        Self::from_config(kill_sig_recv, config, state_sender, db, None).await
+        Self::from_config(kill_sig_recv, config, db, None).await
     }
 }

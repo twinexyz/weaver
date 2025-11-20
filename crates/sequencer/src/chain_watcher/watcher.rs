@@ -7,7 +7,6 @@ use std::time::Duration;
 use alloy_primitives::FixedBytes;
 use async_trait::async_trait;
 use tokio::sync::broadcast::Receiver;
-use tokio::sync::mpsc::Sender;
 use tokio::sync::Mutex;
 use tokio::time::{self, MissedTickBehavior};
 use twine_sequencer_db::db::SequencerDB;
@@ -113,8 +112,6 @@ pub struct ChainWatcher<P: ChainStateProvider> {
     verified_batch: u64,
     /// Chain-specific state provider
     provider: P,
-    /// Channel to send state updates
-    state_sender: Sender<L2State>,
     /// Watcher configuration
     config: WatcherConfig,
 }
@@ -134,7 +131,6 @@ impl<P: ChainStateProvider> ChainWatcher<P> {
     pub async fn from_config(
         kill_sig_recv: Receiver<ShutdownSignal>,
         config: P::Config,
-        state_sender: Sender<L2State>,
         db: Arc<
             Mutex<
                 dyn SequencerDB<
@@ -195,7 +191,6 @@ impl<P: ChainStateProvider> ChainWatcher<P> {
             db,
             verified_batch,
             provider,
-            state_sender,
             config: watcher_config,
         })
     }
@@ -238,18 +233,6 @@ impl<P: ChainStateProvider> ChainWatcher<P> {
                             }
 
                             let batch_hash = next_state.state.batch_hash;
-
-                            // Batch is ready, send it
-                            self.state_sender
-                                .send(next_state)
-                                .await
-                                .map_err(|e| {
-                                    TwineSequencerError::ChannelError(format!(
-                                        "Could not send state for chain {} to channel: {}",
-                                        self.provider.chain_id(),
-                                        e
-                                    ))
-                                })?;
 
                             self.verified_batch = next_expected_batch;
 

@@ -95,16 +95,15 @@ impl StateVerifier {
                         return Err(TwineSequencerError::StateRecordMismatched(error_msg));
                     }
 
-                    // take the first state's inner state as the reference
+                    // take the first state as the reference
                     let reference_state = states
                         .values()
                         .next()
                         .expect("non-empty states map guaranteed above")
-                        .state
                         .clone();
 
-                    for (chain, st) in &states {
-                        if st.state != reference_state {
+                    for (chain, state) in &states {
+                        if state != &reference_state {
                             tracing::error!(
                                 target = "final_verifier",
                                 "mismatched l2 state for batch: {} on chain: {}",
@@ -115,12 +114,12 @@ impl StateVerifier {
                                 target = "final_verifier",
                                 "expected: {:?}, got: {:?}",
                                 reference_state,
-                                st.state,
+                                state,
                             );
 
                             let error_reason = format!(
                                 "chain: {}, expected: {:?}, got: {:?}",
-                                chain, reference_state, st.state
+                                chain, reference_state, state
                             );
 
                             // Send kill signal to stop block producer on verification failure

@@ -127,14 +127,10 @@ impl SequencerInstance for TwineSequencerInstance {
             use crate::verification::state_aggregator::StateAggregator;
             use crate::verification::state_verifier::StateVerifier;
 
-            let (state_sender, state_receiver) =
-                mpsc::channel(config.extras.verifer_channel_buffer_size);
-
             // Spawn all chain watchers and get task handles
             let mut watcher_handles = ChainWatcherManager::spawn_all(
                 kill_sig_sender.subscribe(),
                 config.clone(),
-                state_sender,
                 self.db.clone(),
             )
             .await?;
@@ -144,9 +140,10 @@ impl SequencerInstance for TwineSequencerInstance {
 
             let mut state_aggregator = StateAggregator::new(
                 kill_sig_sender.subscribe(),
-                state_receiver,
+                self.db.clone(),
                 consts::ALL_CHAINS.iter().map(|s| s.to_string()).collect(),
                 aggregated_sender,
+                5, // poll interval in seconds
             )
             .await?;
 
