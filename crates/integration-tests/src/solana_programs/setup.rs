@@ -24,7 +24,8 @@ fn parse_lamports(raw: &str) -> eyre::Result<u128> {
         .split_whitespace()
         .next()
         .ok_or_else(|| eyre!("Unable to parse lamports from balance output: {}", raw))?;
-    amount_str.parse::<u128>()
+    amount_str
+        .parse::<u128>()
         .map_err(|_| eyre!("Invalid lamport amount in balance output: {}", raw))
 }
 
@@ -395,10 +396,13 @@ pub fn sol_check_last_finalized_batch_step() -> eyre::Result<TestStep> {
         description: "Last finalized batch on solana".to_string(),
         futurefn: Box::new(move |ctx| {
             Box::new(async move {
-                let c = ctx.borrow();
-                let twine_chain_program = c
-                    .get(solana_ctx_keys::SOLANA_TWINE_CHAIN)
-                    .expect("Could not get solana twine chain program in context");
+                let twine_chain_program = {
+                    let c = ctx.borrow();
+                    c.get(solana_ctx_keys::SOLANA_TWINE_CHAIN)
+                        .expect("Could not get solana twine chain program in context")
+                        .clone() 
+                };
+
                 let chain_id = consts::SOLANA_CHAIN_ID.parse::<u64>()?;
 
                 let twine_chain_pubkey = Pubkey::from_str_const(twine_chain_program.trim());

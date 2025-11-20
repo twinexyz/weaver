@@ -38,12 +38,13 @@ pub fn fetch_txn_hash_from_db() -> eyre::Result<TestStep> {
         description: "Fetch last txn hash from Merkora archived_events".to_string(),
         futurefn: Box::new(move |ctx| {
             Box::new(async move {
-                let mut bindings = ctx.borrow_mut();
-
-                let connection_url = bindings
-                    .get::<String>(&ctx::common_ctx_keys::MERKORA_DB_CONNECTION.into())
-                    .expect("Could not find Merkora DB connection string in context")
-                    .clone();
+                let connection_url = {
+                    let bindings = ctx.borrow(); 
+                    bindings
+                        .get::<String>(&ctx::common_ctx_keys::MERKORA_DB_CONNECTION.into())
+                        .expect("Could not find Merkora DB connection string in context")
+                        .clone()
+                };
 
                 let pool = PgPool::connect(&connection_url)
                     .await
@@ -63,7 +64,10 @@ pub fn fetch_txn_hash_from_db() -> eyre::Result<TestStep> {
 
                 if let Some(row) = row {
                     let txn_hash: String = row.try_get("twine_tx_hash")?;
-                    bindings.insert("txn_hash".to_string(), txn_hash.clone());
+
+                    let mut bindings = ctx.borrow_mut();
+                    bindings.insert("txn_hash".into(), txn_hash.clone());
+
                     log::info!("The fetched L2 txn_hash is: {txn_hash}");
                 } else {
                     eyre::bail!("No entries found in archived_events table");
