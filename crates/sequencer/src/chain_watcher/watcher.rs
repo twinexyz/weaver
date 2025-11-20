@@ -15,6 +15,7 @@ use twine_sequencer_db::error::TwineSequencerDBError;
 
 use crate::chain_state::state::{L2State, L2StateCheckpoint, State};
 use crate::common::consts::NS_CHAIN_WATCHER;
+use crate::common::shutdown::ShutdownSignal;
 use crate::errors::TwineSequencerError;
 
 /// Configuration for retry behavior
@@ -96,7 +97,7 @@ pub trait ChainStateProvider: Send + Sync + Debug {
 /// Generic chain watcher that polls a chain for batch state
 pub struct ChainWatcher<P: ChainStateProvider> {
     /// Kill signal receiver
-    kill_sig_recv: Receiver<bool>,
+    kill_sig_recv: Receiver<ShutdownSignal>,
     /// Database handle
     db: Arc<
         Mutex<
@@ -131,7 +132,7 @@ impl<P: ChainStateProvider> Debug for ChainWatcher<P> {
 impl<P: ChainStateProvider> ChainWatcher<P> {
     /// Create a new chain watcher from configuration
     pub async fn from_config(
-        kill_sig_recv: Receiver<bool>,
+        kill_sig_recv: Receiver<ShutdownSignal>,
         config: P::Config,
         state_sender: Sender<L2State>,
         db: Arc<

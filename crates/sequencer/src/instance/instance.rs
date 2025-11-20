@@ -12,6 +12,7 @@ use twine_sequencer_db::inmemory::SequencerInMemoryDB;
 use twine_sequencer_db::rocksdb::SequencerRocksDB;
 
 use crate::common::consts;
+use crate::common::shutdown::ShutdownSignal;
 use crate::config::config::{Args, Config};
 use crate::errors::TwineSequencerError;
 use crate::instance::SequencerInstance;
@@ -91,7 +92,10 @@ impl SequencerInstance for TwineSequencerInstance {
     }
 
     /// start sequencer with different sequencer tasks
-    async fn start(&self, kill_sig_sender: Sender<bool>) -> Result<(), TwineSequencerError> {
+    async fn start(
+        &self,
+        kill_sig_sender: Sender<ShutdownSignal>,
+    ) -> Result<(), TwineSequencerError> {
         let config = self.config.clone();
         let mut join_handles = vec![];
 
@@ -117,11 +121,11 @@ impl SequencerInstance for TwineSequencerInstance {
 
         #[cfg(feature = "verifier")]
         {
-            use tokio::sync::{broadcast, mpsc};
+            use tokio::sync::mpsc;
 
             use crate::chain_watcher::manager::ChainWatcherManager;
             use crate::verification::state_aggregator::StateAggregator;
-            use crate::verification::state_verifier::{StateVerifier, VerificationEvent};
+            use crate::verification::state_verifier::StateVerifier;
 
             let (state_sender, state_receiver) =
                 mpsc::channel(config.extras.verifer_channel_buffer_size);
@@ -146,15 +150,11 @@ impl SequencerInstance for TwineSequencerInstance {
             )
             .await?;
 
-            let (_verification_event_sender, _verification_event_receiver) =
-                broadcast::channel::<VerificationEvent>(100); // the block producer should be the receiver to this channel
-                                                              // TODO: channel size from config
             let mut state_verifier = StateVerifier::new(
                 kill_sig_sender.subscribe(),
                 aggregated_receiver,
                 self.db.clone(),
-                // Some(verification_event_sender),
-                None,
+                kill_sig_sender.clone(),
             )
             .await?;
 

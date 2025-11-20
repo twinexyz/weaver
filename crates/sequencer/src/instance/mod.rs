@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use tokio::sync::broadcast::Sender;
 use twine_sequencer_db::db::SequencerDB;
 
+use crate::common::shutdown::ShutdownSignal;
 use crate::config::config::Args;
 use crate::errors::TwineSequencerError;
 
@@ -21,5 +22,5 @@ pub trait SequencerInstance: Send + Sync {
         Self: Sized;
 
     /// starts the sequencer instance
-    async fn start(&self, kill_sig_sender: Sender<bool>) -> Result<(), TwineSequencerError>;
+    async fn start(&self, kill_sig_sender: Sender<ShutdownSignal>) -> Result<(), TwineSequencerError>;
 }

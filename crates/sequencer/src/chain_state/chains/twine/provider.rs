@@ -15,6 +15,7 @@ use super::twine_rpc_client::L2RpcClient;
 use crate::chain_state::state::L2State;
 use crate::chain_watcher::watcher::{ChainStateProvider, ChainWatcher};
 use crate::common::consts::{TWINE_CHAIN_IDENTIFIER, TWINE_PROCESSED_BATCH};
+use crate::common::shutdown::ShutdownSignal;
 use crate::config::config::L2Config;
 use crate::errors::TwineSequencerError;
 
@@ -60,7 +61,7 @@ impl ChainStateProvider for L2ChainProvider {
 impl ChainWatcher<L2ChainProvider> {
     /// Create new instance of L2 chain watcher from the L2-specific config
     pub async fn new(
-        kill_sig_recv: Receiver<bool>,
+        kill_sig_recv: Receiver<ShutdownSignal>,
         config: L2Config,
         state_sender: Sender<L2State>,
         db: Arc<

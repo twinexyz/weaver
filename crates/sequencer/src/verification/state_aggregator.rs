@@ -7,6 +7,7 @@ use tokio::sync::broadcast::Receiver as KReceiver;
 use tokio::sync::mpsc::{Receiver, Sender};
 
 use crate::chain_state::state::L2State;
+use crate::common::shutdown::ShutdownSignal;
 use crate::errors::TwineSequencerError;
 
 /// Aggregated set of L2 states for a single batch across all registered chains.
@@ -23,7 +24,7 @@ pub struct AggregatedBatchState {
 /// for a given batch.
 pub struct StateAggregator {
     /// kill signal receiver
-    kill_sig_recv: KReceiver<bool>,
+    kill_sig_recv: KReceiver<ShutdownSignal>,
     /// incoming L2State events from watchers
     state_receiver: Receiver<L2State>,
     /// list of chains we expect a state from
@@ -45,7 +46,7 @@ impl Debug for StateAggregator {
 impl StateAggregator {
     /// Creates a new StateAggregator instance.
     pub async fn new(
-        kill_sig_recv: KReceiver<bool>,
+        kill_sig_recv: KReceiver<ShutdownSignal>,
         state_receiver: Receiver<L2State>,
         registered_l1s: Vec<String>,
         aggregated_sender: Sender<AggregatedBatchState>,
@@ -63,6 +64,8 @@ impl StateAggregator {
     pub async fn run(&mut self) -> Result<(), TwineSequencerError> {
         // FIX: resume aggregation from last verified batch from DB
         // FIX: need to add the last verified batch number to the type
+        // FIX: remove exit after some failures, this should poll indefinitely
+        //      even when chains are down
         tracing::info!(target = "aggregator", "state aggregator loop started");
 
         loop {

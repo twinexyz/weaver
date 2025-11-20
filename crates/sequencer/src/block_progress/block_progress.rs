@@ -16,12 +16,13 @@ use twine_sequencer_db::error::TwineSequencerDBError;
 use super::engine::EngineClient;
 use crate::block_progress::engine::CAPABILITIES;
 use crate::common::consts::{LAST_FINALIZED_BLOCK_HASH, NS_BLOCK_PRODUCER};
+use crate::common::shutdown::ShutdownSignal;
 use crate::errors::TwineSequencerError;
 
 /// Twine block producer
 pub struct BlockProducer {
     /// kill signal receiver
-    kill_sig_recv: Receiver<bool>,
+    kill_sig_recv: Receiver<ShutdownSignal>,
     db: Arc<
         Mutex<
             dyn SequencerDB<
@@ -55,7 +56,7 @@ impl Debug for BlockProducer {
 impl BlockProducer {
     /// Creates new instance of Block producer
     pub fn new(
-        kill_sig_recv: Receiver<bool>,
+        kill_sig_recv: Receiver<ShutdownSignal>,
         head_block: String,
         jwt_token_path: PathBuf,
         el_auth_url: String,

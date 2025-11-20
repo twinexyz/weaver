@@ -11,6 +11,7 @@ use twine_sequencer_db::error::TwineSequencerDBError;
 
 use crate::chain_state::chains::{EthereumStateWatcher, SolanaStateWatcher, TwineChainWatcher};
 use crate::chain_state::state::L2State;
+use crate::common::shutdown::ShutdownSignal;
 use crate::config::config::Config;
 use crate::errors::TwineSequencerError;
 
@@ -21,7 +22,7 @@ pub struct ChainWatcherManager;
 impl ChainWatcherManager {
     /// Create and spawn all chain watchers from config, returning task handles
     pub async fn spawn_all(
-        kill_sig_recv: Receiver<bool>,
+        kill_sig_recv: Receiver<ShutdownSignal>,
         config: Config,
         state_sender: Sender<L2State>,
         db: Arc<

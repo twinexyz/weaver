@@ -9,38 +9,17 @@ use tokio::sync::Mutex;
 use twine_sequencer_db::db::SequencerDB;
 use twine_sequencer_db::error::TwineSequencerDBError;
 
-use crate::chain_state::state::State;
 use crate::common::consts::{NS_CHAIN_STATE_VERIFIER, VERIFIED_BATCH};
+use crate::common::shutdown::ShutdownSignal;
 use crate::errors::TwineSequencerError;
 use crate::verification::state_aggregator::AggregatedBatchState;
-
-/// Verification event sent to the block producer
-#[derive(Debug, Clone)]
-pub enum VerificationEvent {
-    /// Verification succeeded
-    StateVerified {
-        /// batch number which was verified
-        batch_number: u64,
-        /// verified state
-        state: State,
-    },
-    /// Verification failed
-    StateVerificationFailed {
-        /// batch number which failed verification
-        batch_number: u64,
-        /// reason for failure
-        reason: String,
-        /// mismatched chain identifier
-        mismatched_chain: Option<String>,
-    },
-}
 
 /// Receives AggregatedBatchState instances from the aggregator,
 /// verifies that all views of the L2 state are consistent across chains,
 /// and records the verified batch in the DB.
 pub struct StateVerifier {
     /// kill signal receiver
-    kill_sig_recv: KReceiver<bool>,
+    kill_sig_recv: KReceiver<ShutdownSignal>,
     /// aggregated batch receiver
     aggregated_receiver: Receiver<AggregatedBatchState>,
     /// DB handle
@@ -54,8 +33,8 @@ pub struct StateVerifier {
             >,
         >,
     >,
-    /// Verification event sender to notify block producer
-    verification_event_sender: Option<BroadcastSender<VerificationEvent>>,
+    /// Kill signal sender to stop block producer on verification failure
+    kill_sig_sender: BroadcastSender<ShutdownSignal>,
 }
 
 impl FmtDebug for StateVerifier {
@@ -67,7 +46,7 @@ impl FmtDebug for StateVerifier {
 impl StateVerifier {
     /// Creates a new StateVerifier instance.
     pub async fn new(
-        kill_sig_recv: KReceiver<bool>,
+        kill_sig_recv: KReceiver<ShutdownSignal>,
         aggregated_receiver: Receiver<AggregatedBatchState>,
         db: Arc<
             Mutex<
@@ -79,13 +58,13 @@ impl StateVerifier {
                 >,
             >,
         >,
-        verification_event_sender: Option<BroadcastSender<VerificationEvent>>,
+        kill_sig_sender: BroadcastSender<ShutdownSignal>,
     ) -> Result<Self, TwineSequencerError> {
         Ok(Self {
             kill_sig_recv,
             aggregated_receiver,
             db,
-            verification_event_sender,
+            kill_sig_sender,
         })
     }
 
@@ -144,21 +123,23 @@ impl StateVerifier {
                                 chain, reference_state, st.state
                             );
 
-                            // Notify block producer of verification failure
-                            if let Some(sender) = &self.verification_event_sender {
-                                let event = VerificationEvent::StateVerificationFailed {
-                                    batch_number,
-                                    reason: error_reason.clone(),
-                                    mismatched_chain: Some(chain.clone()),
-                                };
-
-                               if let Err(e) = sender.send(event) {
-                                   tracing::error!(
-                                       target = "final_verifier",
-                                       "failed to send verification failure event: {}",
-                                       e
-                                   );
-                               }
+                            // Send kill signal to stop block producer on verification failure
+                            let shutdown_signal = ShutdownSignal::VerificationFailure {
+                                batch_number,
+                                mismatched_chain: chain.clone(),
+                                reason: error_reason.clone(),
+                            };
+                            tracing::warn!(
+                                target = "final_verifier",
+                                "sending shutdown signal: {}",
+                                shutdown_signal
+                            );
+                            if let Err(e) = self.kill_sig_sender.send(shutdown_signal) {
+                                tracing::error!(
+                                    target = "final_verifier",
+                                    "failed to send kill signal: {}",
+                                    e
+                                );
                             }
 
                             return Err(TwineSequencerError::StateRecordMismatched(
@@ -186,22 +167,6 @@ impl StateVerifier {
                         batch_number,
                         reference_state.batch_hash
                     );
-
-                    // Notify block producer of successful verification
-                    if let Some(sender) = &self.verification_event_sender {
-                        let event = VerificationEvent::StateVerified {
-                            batch_number,
-                            state: reference_state,
-                        };
-                        if let Err(e) = sender.send(event) {
-                            tracing::error!(
-                                target = "final_verifier",
-
-                                "failed to send state verified event: {}",
-                                e
-                            );
-                        }
-                    }
                 }
             }
         }
