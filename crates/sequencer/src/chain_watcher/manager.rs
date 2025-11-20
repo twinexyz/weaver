@@ -54,12 +54,9 @@ impl ChainWatcherManager {
         .await?;
 
         // Initialize L2 (Twine) watcher
-        let mut l2_watcher = TwineChainWatcher::new(
-            kill_sig_recv.resubscribe(),
-            config.l2.clone(),
-            db.clone(),
-        )
-        .await?;
+        let mut l2_watcher =
+            TwineChainWatcher::new(kill_sig_recv.resubscribe(), config.l2.clone(), db.clone())
+                .await?;
 
         // Spawn all watchers as background tasks
         let eth_watcher_task = tokio::spawn(async move { eth_watcher.watch().await });

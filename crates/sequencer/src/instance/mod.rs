@@ -22,5 +22,8 @@ pub trait SequencerInstance: Send + Sync {
         Self: Sized;
 
     /// starts the sequencer instance
-    async fn start(&self, kill_sig_sender: Sender<ShutdownSignal>) -> Result<(), TwineSequencerError>;
+    async fn start(
+        &self,
+        kill_sig_sender: Sender<ShutdownSignal>,
+    ) -> Result<(), TwineSequencerError>;
 }
