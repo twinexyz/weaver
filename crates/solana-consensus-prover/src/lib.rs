@@ -4,7 +4,7 @@ use borsh::{BorshDeserialize, BorshSerialize};
 use log::{debug, info, warn};
 use serde::{Deserialize, Serialize};
 use twine_solana_sdk::{Hash, Pubkey};
-use {bincode, solana_short_vec as short_vec};
+use {solana_short_vec as short_vec};
 
 #[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize)]
 pub struct PublicValuesStruct {

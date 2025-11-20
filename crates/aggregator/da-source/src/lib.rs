@@ -40,6 +40,7 @@ impl TwineQuery for TwineReader {
                 self.batch_client.get_blocks_in_batch(batch_id).await
             })
             .await?;
+        #[allow(clippy::collection_is_never_read)]
         let mut batch_payload = Vec::new();
 
         for block in blocks_in_batch {

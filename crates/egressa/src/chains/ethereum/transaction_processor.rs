@@ -216,7 +216,7 @@ impl TransactionProcessor {
                         return Err(TransactionError::ReceiptTimeout);
                     }
 
-                    if attempts % 10 == 0 {
+                    if attempts.is_multiple_of(10) {
                         debug!(
                             "⏳ Still waiting for confirmation... Attempt {}/{}: {}",
                             attempts, max_attempts, tx_hash

@@ -282,7 +282,7 @@ mod batch_db_tests {
 
             store.seal_batch(
                 batch_number,
-                block_range.clone(),
+                block_range,
                 prev_batch_hash,
                 block_metadata,
             )?;
@@ -302,7 +302,7 @@ mod batch_db_tests {
 
             store.seal_batch(
                 batch_number,
-                block_range.clone(),
+                block_range,
                 prev_batch_hash,
                 block_metadata,
             )?;
@@ -322,7 +322,7 @@ mod batch_db_tests {
 
             store.seal_batch(
                 batch_number,
-                block_range.clone(),
+                block_range,
                 prev_batch_hash,
                 block_metadata,
             )?;
