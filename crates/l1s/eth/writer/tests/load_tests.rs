@@ -130,7 +130,10 @@ async fn processes_queued_transactions_against_anvil() -> eyre::Result<()> {
                 }
 
                 if let Some(status) = storage_backend.status(tx_id) {
-                    assert!(!status.is_failed(), "transaction {tx_id:?} failed: {status:?}");
+                    assert!(
+                        !status.is_failed(),
+                        "transaction {tx_id:?} failed: {status:?}"
+                    );
                 }
 
                 all_confirmed = false;

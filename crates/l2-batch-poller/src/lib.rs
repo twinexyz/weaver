@@ -13,7 +13,7 @@ use twine_types::VersionedBatchMeta;
 /// Checkpoint for batch poller
 #[async_trait::async_trait]
 pub trait CheckpointStore: Send + Sync + Debug {
-    /// Load the starting batch index (e.g., from DB).  
+    /// Load the starting batch index (e.g., from DB).
     /// Should return `start_from` if nothing stored yet.
     async fn load(&self) -> eyre::Result<u64>;
 

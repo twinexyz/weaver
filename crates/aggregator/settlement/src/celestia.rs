@@ -7,9 +7,7 @@ use twine_aggregator_common::{DAChains, DALayer};
 pub struct CelestiaDA {}
 
 impl Default for CelestiaDA {
-    fn default() -> Self {
-        Self::new()
-    }
+    fn default() -> Self { Self::new() }
 }
 
 impl CelestiaDA {

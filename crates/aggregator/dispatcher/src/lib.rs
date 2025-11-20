@@ -138,9 +138,7 @@ where
                     if let Err(e) =
                         settlement::run_settlement_pipeline(pool, client, poll_interval_ms).await
                     {
-                        eprintln!(
-                            "Settlement pipeline error for chain {chain_name}: {e:?} "
-                        );
+                        eprintln!("Settlement pipeline error for chain {chain_name}: {e:?} ");
                     }
                     Ok::<(), eyre::Report>(())
                 });

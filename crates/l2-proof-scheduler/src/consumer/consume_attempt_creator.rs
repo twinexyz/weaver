@@ -86,7 +86,7 @@ impl ConsumeAttemptCreator for TwineBatchTransformResultConsumeAttemptCreator {
         }
 
         let consume_attempt_id =
-            consume_attempt_id.unwrap_or_else(||TwineBatchTransformResultConsumeAttemptID {
+            consume_attempt_id.unwrap_or_else(|| TwineBatchTransformResultConsumeAttemptID {
                 identifier: 0,
                 transform_attempt_identifier: request.identifier.clone(),
             });
@@ -171,9 +171,7 @@ impl ConsumeAttemptCreator for TwineBatchTransformResultConsumeAttemptCreator {
             return Ok(Duration::from_secs(elapsed_time));
         }
 
-        log::warn!(
-            "Key {transform_request_id:?} not found in consume attempts record"
-        );
+        log::warn!("Key {transform_request_id:?} not found in consume attempts record");
         Ok(Duration::from_secs(0))
     }
 }

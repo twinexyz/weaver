@@ -69,9 +69,7 @@ pub struct EthReaderBuilder {
 }
 
 impl Default for EthReaderBuilder {
-    fn default() -> Self {
-        Self::new()
-    }
+    fn default() -> Self { Self::new() }
 }
 
 impl EthReaderBuilder {

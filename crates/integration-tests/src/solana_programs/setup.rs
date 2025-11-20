@@ -400,7 +400,7 @@ pub fn sol_check_last_finalized_batch_step() -> eyre::Result<TestStep> {
                     let c = ctx.borrow();
                     c.get(solana_ctx_keys::SOLANA_TWINE_CHAIN)
                         .expect("Could not get solana twine chain program in context")
-                        .clone() 
+                        .clone()
                 };
 
                 let chain_id = consts::SOLANA_CHAIN_ID.parse::<u64>()?;

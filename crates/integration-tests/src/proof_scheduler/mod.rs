@@ -80,10 +80,7 @@ fn generate_proof_scheduler_config(
     batch_subscriber.insert("next_transform_request_id".into(), Value::Integer(0));
 
     let mut consumer = toml::map::Map::new();
-    consumer.insert(
-        "kafka_broker_url".into(),
-        Value::String(kafka_bootstrap),
-    );
+    consumer.insert("kafka_broker_url".into(), Value::String(kafka_bootstrap));
     consumer.insert("kafka_topics".into(), Value::String("l2-proofs".into()));
     consumer.insert("kafka_groups".into(), Value::String("test-group".into()));
     consumer.insert("auto_offset_reset".into(), Value::String("earliest".into()));

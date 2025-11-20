@@ -60,8 +60,9 @@ mod account_serialize {
         rent_epoch: Epoch,
     }
 
-    /// allows us to implement serialize on `AccountSharedData` that is equivalent
-    /// to `Account::serialize` without making a copy of the Vec<u8>
+    /// allows us to implement serialize on `AccountSharedData` that is
+    /// equivalent to `Account::serialize` without making a copy of the
+    /// Vec<u8>
     pub(super) fn serialize_account<S>(
         account: &(impl ReadableAccount + Serialize),
         serializer: S,

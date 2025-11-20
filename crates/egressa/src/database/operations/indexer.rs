@@ -17,8 +17,8 @@ impl<'a> IndexerOperations<'a> {
     /// Find all pending transaction events that need processing
     ///
     /// This query finds:
-    /// 1. Deposit events with `l2_handle_tx_hash`, status 0, no `l1_execute_hash`,
-    ///    and `is_completed` = false
+    /// 1. Deposit events with `l2_handle_tx_hash`, status 0, no
+    ///    `l1_execute_hash`, and `is_completed` = false
     /// 2. Withdraw events that don't have corresponding records in
     ///    `transaction_flow` table
     /// 3. Forced withdraw events with `l2_handle_hash` but no `l1_execute_hash`

@@ -208,7 +208,6 @@ impl BatchStore {
         let bytes = self.db.get_cf(cf, batch_number.to_be_bytes()).ok()??;
         let (version, payload) = bincode_utils::deserialize_versioned(&bytes).ok()?;
 
-        
         match version {
             BatchVersionID::V0 => bincode::deserialize::<BatchMeta>(payload)
                 .ok()
@@ -280,12 +279,7 @@ mod batch_db_tests {
                 })
                 .collect::<Vec<BlockMetadata>>();
 
-            store.seal_batch(
-                batch_number,
-                block_range,
-                prev_batch_hash,
-                block_metadata,
-            )?;
+            store.seal_batch(batch_number, block_range, prev_batch_hash, block_metadata)?;
         }
 
         {
@@ -300,12 +294,7 @@ mod batch_db_tests {
                 })
                 .collect::<Vec<BlockMetadata>>();
 
-            store.seal_batch(
-                batch_number,
-                block_range,
-                prev_batch_hash,
-                block_metadata,
-            )?;
+            store.seal_batch(batch_number, block_range, prev_batch_hash, block_metadata)?;
         }
 
         {
@@ -320,12 +309,7 @@ mod batch_db_tests {
                 })
                 .collect::<Vec<BlockMetadata>>();
 
-            store.seal_batch(
-                batch_number,
-                block_range,
-                prev_batch_hash,
-                block_metadata,
-            )?;
+            store.seal_batch(batch_number, block_range, prev_batch_hash, block_metadata)?;
         }
 
         {

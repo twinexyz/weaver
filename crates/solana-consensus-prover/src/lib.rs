@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use borsh::{BorshDeserialize, BorshSerialize};
 use log::{debug, info, warn};
 use serde::{Deserialize, Serialize};
+use solana_short_vec as short_vec;
 use twine_solana_sdk::{Hash, Pubkey};
-use {solana_short_vec as short_vec};
 
 #[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize)]
 pub struct PublicValuesStruct {

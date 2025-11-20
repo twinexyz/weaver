@@ -116,7 +116,8 @@ impl<'a> EgressaOperations<'a> {
     }
 
     /// Bulk check which withdrawal events are already processed or failed
-    /// Returns a `HashSet` of `l2_transaction_hashes` that are already processed
+    /// Returns a `HashSet` of `l2_transaction_hashes` that are already
+    /// processed
     pub async fn get_already_processed_events(
         &self,
         l2_transaction_hashes: &[String],

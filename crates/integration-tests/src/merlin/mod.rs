@@ -100,9 +100,7 @@ fn call_merlin_prover(config: TestConfig, operation: MerlinProverKind) -> eyre::
                 .output()?;
 
             if !output.status.success() {
-                log::info!(
-                    "Could not run {make_target} on txn hash. Output: {output:?}"
-                );
+                log::info!("Could not run {make_target} on txn hash. Output: {output:?}");
                 eyre::bail!("Could not run {} on txn hash", make_target);
             }
 

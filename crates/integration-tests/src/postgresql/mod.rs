@@ -39,7 +39,7 @@ pub fn fetch_txn_hash_from_db() -> eyre::Result<TestStep> {
         futurefn: Box::new(move |ctx| {
             Box::new(async move {
                 let connection_url = {
-                    let bindings = ctx.borrow(); 
+                    let bindings = ctx.borrow();
                     bindings
                         .get::<String>(&ctx::common_ctx_keys::MERKORA_DB_CONNECTION.into())
                         .expect("Could not find Merkora DB connection string in context")

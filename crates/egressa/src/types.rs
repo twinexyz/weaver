@@ -23,7 +23,6 @@ impl std::fmt::Display for WithdrawalEventType {
     }
 }
 
-
 impl WithdrawalEventType {
     /// Create a new withdrawal event type from a database string
     pub fn from_db_string(event_type: String) -> Result<Self, String> {

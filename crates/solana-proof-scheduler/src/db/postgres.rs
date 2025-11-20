@@ -56,18 +56,19 @@ impl DBConnection {
 //         nonce,
 //         message_type: "Deposit".to_string(),
 //         txn_hash:
-// "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470".to_string(),
-//         from_address: "41BGd2kDfWCPWpYXtXHmzEG1vg7bcoGnP37tsfji7zcz".to_string(),
-//         l1_token: "41BGd2kDfWCPWpYXtXHmzEG1vg7bcoGnP37tsfji7zcz".to_string(),
-//         l2_token: "0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0".to_string(),
-//         to_address: "0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0".to_string(),
-//         amount: "10".to_string(),
-//         block_number: 40000,
+// "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470".
+// to_string(),         from_address:
+// "41BGd2kDfWCPWpYXtXHmzEG1vg7bcoGnP37tsfji7zcz".to_string(),         l1_token:
+// "41BGd2kDfWCPWpYXtXHmzEG1vg7bcoGnP37tsfji7zcz".to_string(),         l2_token:
+// "0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0".to_string(),         to_address:
+// "0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0".to_string(),         amount:
+// "10".to_string(),         block_number: 40000,
 //         block_time: 500,
 //         data: vec![],
 //         prev_rolling_hash: Some(
-//             "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470".to_string(),
-//         ),
+//
+// "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470".
+// to_string(),         ),
 //     }
 // }
 

@@ -19,7 +19,8 @@ pub enum LamportsError {
 impl From<LamportsError> for InstructionError {
     fn from(error: LamportsError) -> Self {
         match error {
-            LamportsError::ArithmeticOverflow | LamportsError::ArithmeticUnderflow => Self::ArithmeticOverflow,
+            LamportsError::ArithmeticOverflow | LamportsError::ArithmeticUnderflow =>
+                Self::ArithmeticOverflow,
         }
     }
 }

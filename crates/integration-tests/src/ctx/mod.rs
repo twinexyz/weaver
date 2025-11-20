@@ -52,10 +52,8 @@ pub mod common_ctx_keys {
     pub const SOL_BALANCE_SNAPSHOT: &str = "sol_balance_snapshot";
 }
 
-pub fn ctx_get(
-    ctx: &std::collections::HashMap<String, String>,
-    key: &str,
-) -> eyre::Result<String> {
+pub fn ctx_get(ctx: &std::collections::HashMap<String, String>, key: &str) -> eyre::Result<String> {
     ctx.get(key)
-        .ok_or_else(|| eyre!("Missing context key: {key}")).cloned()
+        .ok_or_else(|| eyre!("Missing context key: {key}"))
+        .cloned()
 }

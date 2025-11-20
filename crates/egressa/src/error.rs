@@ -58,9 +58,6 @@ impl EgressaError {
 
     /// Check if error should trigger circuit breaker
     pub fn should_trigger_circuit_breaker(&self) -> bool {
-        matches!(
-            self,
-            Self::Database(_) | Self::ResourceExhaustion(_)
-        )
+        matches!(self, Self::Database(_) | Self::ResourceExhaustion(_))
     }
 }
