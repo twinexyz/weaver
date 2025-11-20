@@ -1,7 +1,6 @@
 //! Twine L2 block execution proof scheduler
 
 use clap::Parser;
-use env_logger;
 
 /// command line arguments for scheduler binary
 #[derive(Debug, Parser)]

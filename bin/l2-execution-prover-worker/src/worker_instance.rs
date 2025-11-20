@@ -166,7 +166,7 @@ impl WorkerInstance {
 
         if self.prove {
             env::set_var("SP1_PROVER", "cuda");
-            env::set_var("SP1_PORT", self.sp1_port.to_owned());
+            env::set_var("SP1_PORT", &self.sp1_port);
             if let Some(network) = self.network.clone() {
                 env::set_var("SP1_NETWORK", network);
             }
@@ -202,14 +202,14 @@ impl WorkerInstance {
                     loop {
                         tokio::select! {
                             line = out_lines.next_line() => match line {
-                                Ok(Some(l)) => log::info!("[child stdout] {}", l),
+                                Ok(Some(l)) => log::info!("[child stdout] {l}"),
                                 Ok(None) => break,
-                                Err(e) => { log::warn!("reading child stdout failed: {}", e); }
+                                Err(e) => { log::warn!("reading child stdout failed: {e}"); }
                             },
                             line = err_lines.next_line() => match line {
-                                Ok(Some(l)) => log::error!("[child stderr] {}", l),
+                                Ok(Some(l)) => log::error!("[child stderr] {l}"),
                                 Ok(None) => break,
-                                Err(e) => { log::warn!("reading child stderr failed: {}", e); }
+                                Err(e) => { log::warn!("reading child stderr failed: {e}"); }
                             },
                         }
                     }
@@ -265,6 +265,6 @@ impl WorkerInstance {
     fn process_proof_result(&self, proof_file: String) -> Result<SP1Proof, ProverError> {
         let proof_file =
             fs::File::open(proof_file).map_err(|e| ProverError::Other(e.to_string()))?;
-        return serde_json::from_reader(proof_file).map_err(|e| ProverError::Other(e.to_string()));
+        serde_json::from_reader(proof_file).map_err(|e| ProverError::Other(e.to_string()))
     }
 }

@@ -20,7 +20,7 @@ use twine_aggregator_common::{DALayer, SettleBatch, TwineQuery};
 pub mod da;
 pub mod settlement;
 
-/// A simple TwineQuery implementation that always returns None
+/// A simple `TwineQuery` implementation that always returns None
 /// This is a placeholder - a real implementation would fetch data from Twine
 #[derive(Clone)]
 struct SimpleTwineQuery;
@@ -107,7 +107,7 @@ where
                     if let Err(e) =
                         da::run_da_pipeline(pool, twine_query, da, poll_interval_ms).await
                     {
-                        eprintln!("DA pipeline error: {:?}", e);
+                        eprintln!("DA pipeline error: {e:?}");
                     }
                     Ok::<(), eyre::Report>(())
                 });
@@ -139,8 +139,7 @@ where
                         settlement::run_settlement_pipeline(pool, client, poll_interval_ms).await
                     {
                         eprintln!(
-                            "Settlement pipeline error for chain {}: {:?} ",
-                            chain_name, e
+                            "Settlement pipeline error for chain {chain_name}: {e:?} "
                         );
                     }
                     Ok::<(), eyre::Report>(())

@@ -29,7 +29,7 @@ fn create_balanced_batches(events: Vec<WithdrawalEvent>) -> Vec<Vec<WithdrawalEv
     for event in events {
         events_by_chain
             .entry(event.l1_chain_id)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(event);
     }
 

@@ -140,7 +140,7 @@ pub async fn start_worker_register_server(
         last_timed_out_check: Mutex::new(Instant::now()),
     });
 
-    let cloned_connection = connections.clone();
+    let cloned_connection = connections;
     let cloned_sender = sender.clone();
     let wss_handle = tokio::spawn(async move {
         let total_connections = Arc::new(Mutex::new(ConnectionID(0u64)));

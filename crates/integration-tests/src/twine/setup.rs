@@ -170,7 +170,7 @@ pub fn update_sol_token_mapping() -> eyre::Result<TestStep> {
 }
 
 /// Deploy a test contract to try deposit and call
-/// Param: contracts_dir: point to testing/
+/// Param: `contracts_dir`: point to testing/
 pub fn deploy_cat_contract(contracts_dir: PathBuf) -> eyre::Result<TestStep> {
     Ok(TestStep::AsyncFn(Box::new(AsyncFnStep {
         name: "Deploy Cat Contract".to_string(),

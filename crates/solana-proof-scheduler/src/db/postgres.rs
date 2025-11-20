@@ -20,7 +20,7 @@ impl DBConnection {
         let pool = PgPool::connect(&connection_string)
             .await
             .expect("Could not establish connection with merkora DB");
-        DBConnection { chain_id, pool }
+        Self { chain_id, pool }
     }
 
     /// Queries the DB for the next unprocessed message
@@ -91,7 +91,7 @@ pub struct SolanaEventDB {
 
 impl From<SolanaEventDB> for SolanaEvent {
     fn from(value: SolanaEventDB) -> Self {
-        SolanaEvent {
+        Self {
             chain_id: value.chain_id as u64,
             nonce: value.nonce as u64,
             message_type: value.message_type,

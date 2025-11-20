@@ -86,7 +86,6 @@ async fn processes_queued_transactions_against_anvil() -> eyre::Result<()> {
     );
 
     let mut config = TransactionServiceConfig::default();
-    config.transaction_timeout = Duration::from_secs(120);
     config.nonce_check_interval = Duration::from_secs(1);
 
     let (service, handle) = TransactionService::new(
@@ -130,9 +129,7 @@ async fn processes_queued_transactions_against_anvil() -> eyre::Result<()> {
                 }
 
                 if let Some(status) = storage_backend.status(tx_id) {
-                    if status.is_failed() {
-                        panic!("transaction {tx_id:?} failed: {status:?}");
-                    }
+                    assert!(!status.is_failed(), "transaction {tx_id:?} failed: {status:?}");
                 }
 
                 all_confirmed = false;

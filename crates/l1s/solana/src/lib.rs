@@ -56,7 +56,7 @@ impl SolanaProvider {
 impl SolanaProvider {
     /// Waits for the tx to reach the desired commitment level and returns
     ///
-    /// Ok()        – transaction succeeded
+    /// `Ok()`        – transaction succeeded
     ///
     /// Err(_)      – RPC / timeout error / Transaction Failed
     ///             - Catch error to view type of error
@@ -77,7 +77,7 @@ impl SolanaProvider {
                 .await
             {
                 Ok(s) => {
-                    if let Some(status) = s.value.get(0).and_then(|x| x.as_ref()) {
+                    if let Some(status) = s.value.first().and_then(|x| x.as_ref()) {
                         // Check if transaction failed
                         if status.err.is_some() {
                             return Err(TransactionError::OnChainFailure(
@@ -144,7 +144,7 @@ impl SolanaProvider {
         let recent = rpc
             .get_latest_blockhash()
             .await
-            .map_err(|e| TransactionError::RpcQueryError(format!("{}", e)))?;
+            .map_err(|e| TransactionError::RpcQueryError(format!("{e}")))?;
         let payer =
             read_keypair_file(&self.admin_wallet_path).expect("Failed loading solana payer");
         let payer_pubkey = payer.pubkey();
@@ -159,7 +159,7 @@ impl SolanaProvider {
                 ..Default::default()
             })
             .await
-            .map_err(|e| TransactionError::SendError(format!("{}", e)))?;
+            .map_err(|e| TransactionError::SendError(format!("{e}")))?;
 
         Ok(sig)
     }

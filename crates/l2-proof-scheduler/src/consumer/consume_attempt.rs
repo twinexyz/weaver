@@ -96,7 +96,7 @@ impl ConsumeAttempt for TwineBatchTransformResultConsumeAttempt {
         self.consume_status = ctx.consume_status;
     }
 
-    /// Given the ConsumeAttempt is the latest in the stream,
+    /// Given the `ConsumeAttempt` is the latest in the stream,
     /// what dynamic configs need to be updated, Key is always a
     /// string, value is always a `Vec<u8>` representing the serialized
     /// value.

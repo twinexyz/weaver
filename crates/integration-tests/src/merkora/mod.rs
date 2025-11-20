@@ -16,7 +16,7 @@ mod merkora_config;
 
 pub fn make_merkora_subprocess_service(config: &MerkoraConfig) -> SubProcessService {
     let binary_path = prepare_merkora(config);
-    debug!("Using merkora binary at: {}", binary_path);
+    debug!("Using merkora binary at: {binary_path}");
 
     SubProcessService {
         name: "Merkora".into(),

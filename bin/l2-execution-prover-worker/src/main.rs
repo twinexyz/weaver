@@ -8,7 +8,6 @@ pub mod worker_instance;
 pub mod wss_client;
 
 use clap::Parser;
-use env_logger;
 
 /// command line arguments
 #[derive(Debug, Clone, Parser)]

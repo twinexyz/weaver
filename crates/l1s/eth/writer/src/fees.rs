@@ -172,10 +172,9 @@ impl FeeContext {
                 // If we need to bump the base fee, this is fatal because we don't want to wait
                 // for base fee to decrease.
                 return Err(FeesError::CantAffordReplacement);
-            } else {
-                // If we only need to bump the priority fee, it might be fine to wait a bit.
-                return Ok(None);
             }
+            // If we only need to bump the priority fee, it might be fine to wait a bit.
+            return Ok(None);
         }
 
         // Fail if we can't afford the latest base fee.

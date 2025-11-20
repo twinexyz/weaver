@@ -50,7 +50,7 @@ impl AccountsHasher {
             })
             .collect();
         let elapsed_time = start_time.elapsed();
-        log::debug!("hashing {} {:?}", total_hashes, elapsed_time);
+        log::debug!("hashing {total_hashes} {elapsed_time:?}");
 
         if result.len() == 1 {
             result[0]
@@ -66,7 +66,7 @@ impl AccountsHasher {
 
     pub fn div_ceil(x: usize, y: usize) -> usize {
         let mut result = x / y;
-        if x % y != 0 {
+        if !x.is_multiple_of(y) {
             result += 1;
         }
         result

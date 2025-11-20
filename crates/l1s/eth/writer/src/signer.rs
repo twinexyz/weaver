@@ -283,7 +283,7 @@ impl Signer {
     #[instrument(skip_all, fields(chain_id = %self.chain_id))]
     async fn validate_transaction(
         &self,
-        tx: &mut EthereumTransaction,
+        tx: &EthereumTransaction,
         fees: Eip1559Estimation,
     ) -> Result<(), SignerError> {
         // Individual transaction config
@@ -326,14 +326,12 @@ impl Signer {
     /// Signs a given transaction.
     #[instrument(skip_all)]
     async fn sign_transaction(&self, tx: TypedTransaction) -> Result<TxEnvelope, SignerError> {
-        Ok(
-            NetworkWallet::<Ethereum>::sign_transaction_from(&self.wallet, self.address(), tx)
+        NetworkWallet::<Ethereum>::sign_transaction_from(&self.wallet, self.address(), tx)
                 .await
                 .map_err(|e| {
                     error!(error=?e, "sign transaction error");
                     SignerError::Other(e.into())
-                })?,
-        )
+                })
     }
 
     /// Broadcasts a given transaction.

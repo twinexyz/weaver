@@ -114,7 +114,7 @@ impl SolanaProverWorkerManager {
                 Ok(zk_proof_bundle) => WorkerManagerResult::Success(
                     attempt.identifier.clone(),
                     (
-                        attempt.identifier.clone(),
+                        attempt.identifier,
                         return_context,
                         Ok(SolanaMessageTransformReturnType(zk_proof_bundle)),
                     ),
@@ -122,7 +122,7 @@ impl SolanaProverWorkerManager {
                 Err(e) => WorkerManagerResult::Failure(
                     attempt.identifier.clone(),
                     (
-                        attempt.identifier.clone(),
+                        attempt.identifier,
                         return_context,
                         Err(ProofSchedulerError::Other(format!("{e}"))),
                     ),

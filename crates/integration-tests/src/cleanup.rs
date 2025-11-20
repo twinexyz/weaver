@@ -10,9 +10,9 @@ use crate::consts::{
 fn remove_dir_if_exists(path: &str) -> eyre::Result<()> {
     if std::path::Path::new(path).exists() {
         std::fs::remove_dir_all(path)?;
-        info!("Successfully removed directory: {}", path);
+        info!("Successfully removed directory: {path}");
     } else {
-        info!("Directory does not exist, skipping: {}", path);
+        info!("Directory does not exist, skipping: {path}");
     }
     Ok(())
 }
@@ -20,9 +20,9 @@ fn remove_dir_if_exists(path: &str) -> eyre::Result<()> {
 fn remove_file_if_exists(path: &str) -> eyre::Result<()> {
     if std::path::Path::new(path).exists() {
         std::fs::remove_file(path)?;
-        info!("Successfully removed file: {}", path);
+        info!("Successfully removed file: {path}");
     } else {
-        info!("File does not exist, skipping: {}", path);
+        info!("File does not exist, skipping: {path}");
     }
     Ok(())
 }

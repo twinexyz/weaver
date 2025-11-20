@@ -24,8 +24,8 @@ impl ProofSource {
     /// Get the string representation of the source for metrics
     pub fn as_str(&self) -> &'static str {
         match self {
-            ProofSource::Kafka => "kafka",
-            ProofSource::JsonRpc => "jsonrpc",
+            Self::Kafka => "kafka",
+            Self::JsonRpc => "jsonrpc",
         }
     }
 }

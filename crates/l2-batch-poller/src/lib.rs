@@ -3,7 +3,7 @@
 use std::future::Future;
 use std::time::Duration;
 
-use reth_tracing::tracing::{self};
+use reth_tracing::tracing;
 use tokio::time::sleep;
 use twine_rpc::client::BatchClient;
 use twine_types::VersionedBatchMeta;

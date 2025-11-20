@@ -38,14 +38,14 @@ impl MerkleTree {
         let mut layers = vec![hashes.to_vec()];
         let mut cur = hashes.to_vec();
         while cur.len() > 1 {
-            let mut next = Vec::with_capacity((cur.len() + 1) / 2);
+            let mut next = Vec::with_capacity(cur.len().div_ceil(2));
             for chunk in cur.chunks(2) {
                 next.push(hash_pair(chunk[0], *chunk.get(1).unwrap_or(&chunk[0])));
             }
             cur = next;
             layers.push(cur.clone());
         }
-        MerkleTree {
+        Self {
             leaves: hashes.to_vec(),
             layers,
         }
@@ -81,7 +81,7 @@ pub struct MerkleProof {
 
 impl MerkleProof {
     /// Instantiate Merkle Proof
-    pub fn new(proof: Vec<Hash>) -> MerkleProof { MerkleProof { proof } }
+    pub fn new(proof: Vec<Hash>) -> Self { Self { proof } }
 
     /// Verify merkle proof
     pub fn verify(&self, root: Hash, index: usize, leaf: Hash) -> bool {

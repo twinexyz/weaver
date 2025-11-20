@@ -108,7 +108,7 @@ pub fn deploy_solana_program_step(program_path: PathBuf) -> eyre::Result<TestSte
                     .insert(solana_ctx_keys::SOLANA_ADDRESS.into(), address.clone());
 
                 let out = Command::new("make")
-                    .args(["update-admin", &format!("ADMIN={}", address)])
+                    .args(["update-admin", &format!("ADMIN={address}")])
                     .current_dir(&program_path)
                     .stderr(Stdio::inherit())
                     .stdout(Stdio::inherit())
@@ -225,7 +225,7 @@ pub fn update_sol_token_mapping(program_path: PathBuf) -> eyre::Result<TestStep>
                     .args([
                         "update-token-mapping",
                         &format!("l1_token={}", consts::SOLANA_NATIVECOIN),
-                        &format!("l2_token={}", sol_token),
+                        &format!("l2_token={sol_token}"),
                         "l1_decimals=9",
                         "l2_decimals=9",
                     ])
@@ -273,7 +273,7 @@ pub fn deposit_sol_step(
                             .get(twine_ctx_keys::TWINE_CALL_PARAM_COMPRESSED)
                             .context("No calldata in context for deposit and call")?;
                         let trimmed = calldata.strip_prefix("0x").unwrap_or(calldata);
-                        format!("data={}", trimmed)
+                        format!("data={trimmed}")
                     }
                     SolanaTestType::Refund => "data=deadbeef".to_string(), // garbage calldata
                 };
@@ -282,8 +282,8 @@ pub fn deposit_sol_step(
                     .args([
                         "deposit-native-token",
                         &format!("amount={}", consts::TEST_DEPOSIT_AMOUNT),
-                        &format!("receiver_address={}", evm_address),
-                        &format!("l2_token={}", l2_token),
+                        &format!("receiver_address={evm_address}"),
+                        &format!("l2_token={l2_token}"),
                         &calldata,
                     ])
                     .current_dir(program_path)
@@ -302,7 +302,7 @@ pub fn deposit_sol_step(
                     .captures(&stdout)
                     .and_then(|c| c.get(1).map(|m| m.as_str().to_string()))
                     .ok_or_else(|| eyre!("Could not find `Transaction:` line in deposit output"))?;
-                info!("Solana deposit tx hash: {}", tx_hash);
+                info!("Solana deposit tx hash: {tx_hash}");
                 bindings.insert(solana_ctx_keys::SOLANA_TX_SIGNATURE.into(), tx_hash);
                 Ok(())
             })
@@ -408,7 +408,7 @@ pub fn sol_check_last_finalized_batch_step() -> eyre::Result<TestStep> {
                     chain_id,
                     twine_chain_program: twine_chain_pubkey,
                     admin_pubkey,
-                    admin_wallet_path: "".into(),
+                    admin_wallet_path: String::new(),
                 };
                 let twine_chain_storage = solana_provider.get_twine_chain_storage().await?;
                 let last_finalized_batch = twine_chain_storage.last_finalized_batch_number;
@@ -539,8 +539,8 @@ pub fn call_execute_forced_withdrawal(program_path: std::path::PathBuf) -> eyre:
             let output = Command::new("make")
                 .args([
                     "process-native-forced-withdrawal",
-                    &format!("receiver={}", solana_l1_address),
-                    &format!("public_values={}", public_values),
+                    &format!("receiver={solana_l1_address}"),
+                    &format!("public_values={public_values}"),
                     &format!("proof={}", "0x"),
                 ])
                 .current_dir(program_path)
@@ -590,9 +590,9 @@ pub fn call_forced_withdraw_solana_step(
             let output = Command::new("make")
                 .args([
                     "forced-native-withdrawal",
-                    &format!("l2_token={}", l2_token),
-                    &format!("from_address={}", from_address),
-                    &format!("receiver_address={}", solana_l1_address),
+                    &format!("l2_token={l2_token}"),
+                    &format!("from_address={from_address}"),
+                    &format!("receiver_address={solana_l1_address}"),
                     &format!("private_key={}", consts::EVM_ACCOUNT_PRIVATE_KEY),
                     &format!("amount={}", consts::TEST_DEPOSIT_AMOUNT),
                 ])
@@ -640,8 +640,8 @@ pub fn call_execute_refund(program_path: PathBuf) -> eyre::Result<TestStep> {
             let output = Command::new("make")
                 .args([
                     "process-native-refund",
-                    &format!("receiver={}", solana_l1_address),
-                    &format!("public_values={}", public_values),
+                    &format!("receiver={solana_l1_address}"),
+                    &format!("public_values={public_values}"),
                     &format!("proof={}", "0x"),
                 ])
                 .current_dir(program_path)
@@ -685,8 +685,8 @@ pub fn call_execute_withdrawal(program_path: PathBuf) -> eyre::Result<TestStep> 
                 .args([
                     "execute-native-l2-withdrawal",
                     // &format!("splToken={}", twine_token),
-                    &format!("receiver={}", solana_l1_address),
-                    &format!("publicValue={}", public_values),
+                    &format!("receiver={solana_l1_address}"),
+                    &format!("publicValue={public_values}"),
                     &format!("executionProof={}", "0x"),
                 ])
                 .current_dir(program_path)

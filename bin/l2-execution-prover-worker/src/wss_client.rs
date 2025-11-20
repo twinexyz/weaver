@@ -40,7 +40,7 @@ pub struct WSSClient {
 }
 
 impl WSSClient {
-    /// Creates new instance of WSSClient
+    /// Creates new instance of `WSSClient`
     pub fn new(
         worker_manager_url: String,
         worker_to_manager_message_receiver: Receiver<ConnectionMessage>,

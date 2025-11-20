@@ -68,6 +68,12 @@ pub struct EthReaderBuilder {
     wss_url: Option<String>,
 }
 
+impl Default for EthReaderBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EthReaderBuilder {
     /// Initializes new eth reader
     pub fn new() -> Self {
@@ -107,10 +113,7 @@ impl EthReaderBuilder {
             None => None,
         };
 
-        let beacon = match self.beacon_rpc {
-            Some(rpc_url) => Some(EthQueryBeaconClient::new(rpc_url)),
-            None => None,
-        };
+        let beacon = self.beacon_rpc.map(EthQueryBeaconClient::new);
 
         let wss = match self.wss_url {
             Some(wss_url) => Some(
@@ -138,10 +141,7 @@ impl EthReaderBuilder {
             None => None,
         };
 
-        let beacon = match self.beacon_rpc {
-            Some(rpc_url) => Some(EthQueryBeaconClient::new(rpc_url)),
-            None => None,
-        };
+        let beacon = self.beacon_rpc.map(EthQueryBeaconClient::new);
 
         let wss = match self.wss_url {
             Some(wss_url) => Some(

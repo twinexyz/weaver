@@ -9,6 +9,7 @@ pub mod l2_twine_messenger {
 
     sol!(
         #[allow(missing_docs)]
+        #[allow(clippy::too_many_arguments)]
         #[sol(rpc)]
         #[derive(Serialize, Deserialize, Debug)]
         L2TwineMessenger,

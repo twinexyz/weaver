@@ -217,7 +217,7 @@ impl Backoff {
     /// Wait duration
     pub fn wait_duration(&self) -> u64 {
         std::cmp::min(
-            2u64.checked_pow(self.retry.clone() as u32)
+            2u64.checked_pow(self.retry as u32)
                 .unwrap_or(MAX_RPC_RETRY_INTERVAL + 1),
             MAX_RPC_RETRY_INTERVAL,
         )

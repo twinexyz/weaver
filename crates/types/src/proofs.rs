@@ -81,7 +81,7 @@ impl ProofConstraint for SP1Proof {
 
 impl From<SP1Proof> for CommonProofData {
     fn from(sp1_proof: SP1Proof) -> Self {
-        CommonProofData {
+        Self {
             proof: sp1_proof.get_proof().to_vec(),
             public_value: sp1_proof.get_public_values().to_vec(),
             verification_key: sp1_proof.get_verification_key().to_vec(),

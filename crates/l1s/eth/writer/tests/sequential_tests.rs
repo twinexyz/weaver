@@ -59,12 +59,12 @@ async fn increments_sequential_counter() -> eyre::Result<()> {
     .await
     .wrap_err("failed to build transaction service")?;
 
-    let service_task = tokio::spawn(async move { service.await });
+    let service_task = tokio::spawn(service);
 
     let deployment_rx = handle
         .submit_transaction(EthereumTransaction::new(
             TxKind::Create,
-            Bytes::from(bytecode),
+            bytecode,
             ChainId::from(chain_id),
             3_000_000,
             U256::ZERO,

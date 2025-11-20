@@ -49,7 +49,7 @@ impl Config for ProofSchedulerConfig {
             }
         }
 
-        Ok(ProofSchedulerConfig {
+        Ok(Self {
             static_config: config,
             dynamic_config: HashMap::new(),
         })

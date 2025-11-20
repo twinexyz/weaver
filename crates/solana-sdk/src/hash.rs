@@ -108,17 +108,17 @@ impl FromStr for Hash {
         let bytes = bs58::decode(s)
             .into_vec()
             .map_err(|_| ParseHashError::Invalid)?;
-        if bytes.len() != mem::size_of::<Hash>() {
-            Err(ParseHashError::WrongSize)
+        if bytes.len() == mem::size_of::<Self>() {
+            Ok(Self::new(&bytes))
         } else {
-            Ok(Hash::new(&bytes))
+            Err(ParseHashError::WrongSize)
         }
     }
 }
 
 impl Hash {
     pub fn new(hash_slice: &[u8]) -> Self {
-        Hash(<[u8; HASH_BYTES]>::try_from(hash_slice).unwrap())
+        Self(<[u8; HASH_BYTES]>::try_from(hash_slice).unwrap())
     }
 
     pub const fn new_from_array(hash_array: [u8; HASH_BYTES]) -> Self { Self(hash_array) }

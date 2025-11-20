@@ -12,7 +12,7 @@ pub struct SolanaMessageTransformRequestID {
     pub identifier: u64,
 }
 
-/// TransformRequestInput
+/// `TransformRequestInput`
 /// Converts this transform request input to output by doing
 /// operations on the input
 /// eg. In this case this input is taken by the worker and
@@ -79,7 +79,7 @@ impl TransformRequest for SolanaMessageTransformRequest {
     /// Returns the input for the transformation request.
     fn input(&self) -> &Self::Input { &self.transform_input }
 
-    /// Given the TransformRequest is the latest in the stream,
+    /// Given the `TransformRequest` is the latest in the stream,
     /// what dynamic configs need to be updated, Key is always a
     /// string, value is always a `Vec<u8>` representing the serialized
     /// value

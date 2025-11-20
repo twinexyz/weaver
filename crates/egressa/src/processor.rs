@@ -166,9 +166,7 @@ impl WithdrawalProcessor {
 
         let proof = generated_proof.proof_data;
 
-        let proof_data = match proof {
-            ProofData::SP1(sp1_proof) => sp1_proof,
-        };
+        let ProofData::SP1(proof_data) = proof;
 
         let public_values = proof_data.public_value;
         let proof = proof_data.proof;

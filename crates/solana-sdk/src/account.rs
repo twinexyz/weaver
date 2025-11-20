@@ -60,8 +60,8 @@ mod account_serialize {
         rent_epoch: Epoch,
     }
 
-    /// allows us to implement serialize on AccountSharedData that is equivalent
-    /// to Account::serialize without making a copy of the Vec<u8>
+    /// allows us to implement serialize on `AccountSharedData` that is equivalent
+    /// to `Account::serialize` without making a copy of the Vec<u8>
     pub(super) fn serialize_account<S>(
         account: &(impl ReadableAccount + Serialize),
         serializer: S,
@@ -115,7 +115,7 @@ pub struct AccountSharedData {
     rent_epoch: Epoch,
 }
 
-/// Compares two ReadableAccounts
+/// Compares two `ReadableAccounts`
 ///
 /// Returns true if accounts are essentially equivalent as in all fields are
 /// equivalent.
@@ -241,7 +241,7 @@ impl WritableAccount for Account {
         executable: bool,
         rent_epoch: Epoch,
     ) -> Self {
-        Account {
+        Self {
             lamports,
             data,
             owner,
@@ -273,7 +273,7 @@ impl WritableAccount for AccountSharedData {
         executable: bool,
         rent_epoch: Epoch,
     ) -> Self {
-        AccountSharedData {
+        Self {
             lamports,
             data: Arc::new(data),
             owner,

@@ -74,7 +74,7 @@ where
         Ok(())
     }
 
-    async fn commit(&mut self, chain: &Chain) -> Result<Option<BlockNumHash>> {
+    async fn commit(&self, chain: &Chain) -> Result<Option<BlockNumHash>> {
         let mut finished_height = None;
         let blocks = chain.blocks();
         let bundles = chain.range().filter_map(|block_number| {
@@ -92,27 +92,26 @@ where
         Ok(finished_height)
     }
 
-    async fn process_block(&mut self, current_block: u64) -> Result<()> {
+    async fn process_block(&self, current_block: u64) -> Result<()> {
         let last_block = self.store.load_last_height()?.unwrap_or_default();
 
         // This does not need to run in a loop
         // If the gap between current_block and last block is high
         // Then, this current loop seals one batch
         // Another batch is sealed on next loop
-        if current_block > last_block {
-            if current_block - last_block >= 5 + self.config.max_blocks {
+        if current_block > last_block
+            && current_block - last_block >= 5 + self.config.max_blocks {
                 let next_batch_start: u64 = last_block + 1;
                 let next_batch_end = next_batch_start + self.config.max_blocks - 1;
                 let next_batch_number = self.store.get_next_batch_number().unwrap_or(0);
                 self.seal_batch(next_batch_number, next_batch_start, next_batch_end)
                     .await?;
             }
-        }
 
         Ok(())
     }
 
-    async fn seal_batch(&mut self, next_batch_number: u64, start: u64, end: u64) -> Result<()> {
+    async fn seal_batch(&self, next_batch_number: u64, start: u64, end: u64) -> Result<()> {
         assert_eq!(end - start + 1, self.config.max_blocks);
         info!(start, end, "Sealing batch {}", next_batch_number);
         let mut ab = ActiveBatch::new(next_batch_number, start);

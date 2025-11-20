@@ -24,17 +24,17 @@ pub enum MerlinProverKind {
 impl MerlinProverKind {
     pub fn make_target(&self) -> &'static str {
         match self {
-            MerlinProverKind::ForcedWithdraw => "run-forced-withdraw",
-            MerlinProverKind::Withdraw => "run-withdraw",
-            MerlinProverKind::Refund => "run-refund",
+            Self::ForcedWithdraw => "run-forced-withdraw",
+            Self::Withdraw => "run-withdraw",
+            Self::Refund => "run-refund",
         }
     }
 
     pub fn name(&self) -> &'static str {
         match self {
-            MerlinProverKind::ForcedWithdraw => "forced withdraw",
-            MerlinProverKind::Withdraw => "withdraw",
-            MerlinProverKind::Refund => "refund",
+            Self::ForcedWithdraw => "forced withdraw",
+            Self::Withdraw => "withdraw",
+            Self::Refund => "refund",
         }
     }
 
@@ -82,7 +82,7 @@ fn call_merlin_prover(config: TestConfig, operation: MerlinProverKind) -> eyre::
 
             let txn_hash = bindings
                 .get("txn_hash")
-                .expect(format!("{} transaction hash not set in context", operation_name).as_str());
+                .unwrap_or_else(|| panic!("{operation_name} transaction hash not set in context"));
 
             let twine_messenger = bindings
                 .get(ctx::twine_ctx_keys::TWINE_MESSENGER)
@@ -92,8 +92,8 @@ fn call_merlin_prover(config: TestConfig, operation: MerlinProverKind) -> eyre::
             let output = Command::new("make")
                 .args([
                     format!("rpc_url={}", consts::TWINE_RPC_URL),
-                    format!("txn_hash={}", txn_hash),
-                    format!("twine_messenger={}", twine_messenger),
+                    format!("txn_hash={txn_hash}"),
+                    format!("twine_messenger={twine_messenger}"),
                     make_target.clone(),
                 ])
                 .current_dir(path)
@@ -101,14 +101,13 @@ fn call_merlin_prover(config: TestConfig, operation: MerlinProverKind) -> eyre::
 
             if !output.status.success() {
                 log::info!(
-                    "Could not run {} on txn hash. Output: {output:?}",
-                    make_target
+                    "Could not run {make_target} on txn hash. Output: {output:?}"
                 );
                 eyre::bail!("Could not run {} on txn hash", make_target);
             }
 
             let stdout = String::from_utf8_lossy(&output.stdout);
-            log::info!("{} prover stdout:\n{stdout}", operation_name);
+            log::info!("{operation_name} prover stdout:\n{stdout}");
 
             let sp1_values = extract_sp1_public_values(&stdout)?;
 

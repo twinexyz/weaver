@@ -52,7 +52,7 @@ impl EgressaError {
     pub fn is_recoverable(&self) -> bool {
         matches!(
             self,
-            EgressaError::Network(_) | EgressaError::Timeout(_) | EgressaError::ChainOperation(_)
+            Self::Network(_) | Self::Timeout(_) | Self::ChainOperation(_)
         )
     }
 
@@ -60,7 +60,7 @@ impl EgressaError {
     pub fn should_trigger_circuit_breaker(&self) -> bool {
         matches!(
             self,
-            EgressaError::Database(_) | EgressaError::ResourceExhaustion(_)
+            Self::Database(_) | Self::ResourceExhaustion(_)
         )
     }
 }

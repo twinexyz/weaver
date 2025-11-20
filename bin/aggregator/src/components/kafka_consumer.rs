@@ -8,7 +8,7 @@ use twine_aggregator_common::config::AppCfg;
 use twine_aggregator_consumer::{process_proof, ProofSource};
 use twine_kafka::twine_kafka_common::config::KafkaCommonConfig;
 use twine_kafka::twine_kafka_common::serde::JsonSerde;
-use twine_kafka::twine_kafka_common::{self};
+use twine_kafka::twine_kafka_common;
 use twine_kafka::twine_kafka_consumer::KafkaConsumer;
 use twine_kafka::CommitMode;
 use twine_types::proofs::ZkProof;
@@ -88,11 +88,9 @@ pub(crate) async fn start_kafka_consumer(
                 }
                 Ok(None) => {
                     trace!("Kafka consumer timeout, no message received");
-                    continue;
                 }
                 Err(e) => {
                     error!("Error polling for messages: {:?}", e);
-                    continue;
                 }
             }
         }

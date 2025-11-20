@@ -49,7 +49,7 @@ async fn rejects_when_queue_is_full() -> eyre::Result<()> {
     .await
     .wrap_err("failed to build transaction service")?;
 
-    let service_task = tokio::spawn(async move { service.await });
+    let service_task = tokio::spawn(service);
 
     let err = handle
         .submit_transaction(make_transfer(recipient, U256::from(1u64)))

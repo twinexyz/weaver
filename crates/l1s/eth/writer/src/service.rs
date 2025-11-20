@@ -221,6 +221,7 @@ impl TransactionService {
         Ok((this, handle))
     }
 
+    #[allow(clippy::too_many_arguments)]
     async fn create_signer(
         provider: DynProvider,
         private_key: &str,
@@ -284,7 +285,7 @@ impl TransactionService {
 }
 
 /// Configuration for transaction service.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TransactionServiceConfig {
     /// Maximum number of transactions allowed to sit in the in-memory queue.
     pub max_queued_transactions: usize,

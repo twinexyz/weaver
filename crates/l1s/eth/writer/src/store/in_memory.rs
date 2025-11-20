@@ -101,11 +101,9 @@ impl TransactionWriterStorageApi for InMemoryTransactionStore {
                         .value()
                         .iter()
                         .find(|queued| queued.id == tx)
-                        .map(|_| entry.key().clone())
+                        .map(|_| *entry.key())
                 })
-            })
-            .map(ChainId::from)
-            .unwrap_or_else(|| ChainId::from(0u64));
+            }).unwrap_or_else(|| ChainId::from(0u64));
 
         self.statuses.insert(tx, (chain_id, status.clone()));
         Ok(())

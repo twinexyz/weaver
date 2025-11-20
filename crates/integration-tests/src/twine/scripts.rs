@@ -31,11 +31,10 @@ pub struct TwineContracts {
 /// load twine contracts
 pub fn load_twine_addresses(addresses_path: &PathBuf) -> eyre::Result<TwineContracts> {
     info!(
-        "Loading application configuration from JSON file: {:?}",
-        addresses_path
+        "Loading application configuration from JSON file: {addresses_path:?}"
     );
     if !addresses_path.exists() {
-        error!("Configuration file not found: {:?}", addresses_path);
+        error!("Configuration file not found: {addresses_path:?}");
         return Err(eyre::eyre!(
             "Configuration file not found: {:?}",
             addresses_path

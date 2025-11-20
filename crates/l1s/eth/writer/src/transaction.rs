@@ -54,7 +54,7 @@ impl TransactionStatus {
     /// Whether the transaction has failed.
     pub fn is_failed(&self) -> bool { matches!(self, Self::Failed(_)) }
 
-    /// Whether the transaction is pending (either InFlight or Pending).
+    /// Whether the transaction is pending (either `InFlight` or Pending).
     pub fn is_pending(&self) -> bool { matches!(self, Self::InFlight | Self::Pending(_)) }
 
     /// The transaction hash of the transaction, if any.
@@ -80,14 +80,14 @@ pub async fn wait_for_receipt(
     mut rx: broadcast::Receiver<TransactionStatus>,
 ) -> eyre::Result<TransactionReceipt> {
     loop {
+        // Not handled Ok(_), and Lagged(_) can be skipped
         match rx.recv().await {
             Ok(TransactionStatus::Confirmed(receipt)) => return Ok(*receipt),
             Ok(TransactionStatus::Failed(err)) =>
                 return Err(eyre::eyre!("transaction failed: {err}")),
-            Ok(_) => continue,
             Err(broadcast::error::RecvError::Closed) =>
                 return Err(eyre::eyre!("status channel closed")),
-            Err(broadcast::error::RecvError::Lagged(_)) => continue,
+            _ => {}
         }
     }
 }

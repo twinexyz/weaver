@@ -24,7 +24,7 @@ struct Cutover {
     pub start: u64,
 }
 
-/// Convert a u8 to a BatchVersionID
+/// Convert a u8 to a `BatchVersionID`
 fn u8_to_batch_version_id<'de, D>(d: D) -> Result<BatchVersionID, D::Error>
 where
     D: Deserializer<'de>, {
