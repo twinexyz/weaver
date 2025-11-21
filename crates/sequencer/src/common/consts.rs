@@ -14,8 +14,13 @@ pub const LAST_FINALIZED_BLOCK_HASH: &str = "LAST_FINALIZED_BLOCK_HASH";
 /// Key for last finalized block number
 pub const LAST_FINALIZED_BLOCK_NUMBER: &str = "LAST_FINALIZED_BLOCK_NUMBER";
 
-/// Database namespace for chain watchers
-pub const NS_CHAIN_WATCHER: &str = "CHAIN_WATCHER";
+/// Database namespace for Ethereum chain watcher
+pub const NS_ETHEREUM_WATCHER: &str = "ETHEREUM_WATCHER";
+/// Database namespace for Solana chain watcher
+pub const NS_SOLANA_WATCHER: &str = "SOLANA_WATCHER";
+/// Database namespace for Twine L2 chain watcher
+pub const NS_TWINE_WATCHER: &str = "TWINE_WATCHER";
+
 /// Key for Ethereum processed batch
 pub const ETH_PROCESSED_BATCH: &str = "ETH_PROCESSED_BATCH";
 /// Key for Solana processed batch
@@ -29,8 +34,13 @@ pub const NS_CHAIN_STATE_VERIFIER: &str = "CHAIN_STATE_VERIFIER";
 pub const VERIFIED_BATCH: &str = "VERIFIED_BATCH";
 
 /// Default database namespaces that should be initialized
-pub const DEFAULT_DB_NAMESPACES: &[&str] =
-    &[NS_BLOCK_PRODUCER, NS_CHAIN_STATE_VERIFIER, NS_CHAIN_WATCHER];
+pub const DEFAULT_DB_NAMESPACES: &[&str] = &[
+    NS_BLOCK_PRODUCER,
+    NS_CHAIN_STATE_VERIFIER,
+    NS_ETHEREUM_WATCHER,
+    NS_SOLANA_WATCHER,
+    NS_TWINE_WATCHER,
+];
 
 /// List of all registered L1 chains for verification
 pub const REGISTERED_L1_CHAINS: &[&str] = &[ETHEREUM_CHAIN_IDENTIFIER, SOLANA_CHAIN_IDENTIFIER];
@@ -41,8 +51,3 @@ pub const ALL_CHAINS: &[&str] = &[
     ETHEREUM_CHAIN_IDENTIFIER,
     TWINE_CHAIN_IDENTIFIER,
 ];
-
-/// Creates a chain-specific batch key for storing the L2 state
-pub fn make_chain_batch_key(chain_db_key: &str, batch_number: u64) -> String {
-    format!("{}_{}", chain_db_key, batch_number)
-}

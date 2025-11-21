@@ -13,10 +13,8 @@ use twine_sequencer_db::db::SequencerDB;
 use twine_sequencer_db::error::TwineSequencerDBError;
 
 use crate::chain_state::state::State;
-use crate::common::consts::{
-    make_chain_batch_key, ETH_PROCESSED_BATCH, NS_CHAIN_STATE_VERIFIER, NS_CHAIN_WATCHER,
-    SOLANA_PROCESSED_BATCH, TWINE_PROCESSED_BATCH, VERIFIED_BATCH,
-};
+use crate::common::consts::{NS_CHAIN_STATE_VERIFIER, VERIFIED_BATCH};
+use crate::common::db_strings::DBStrings;
 use crate::common::shutdown::ShutdownSignal;
 use crate::errors::TwineSequencerError;
 
@@ -95,7 +93,7 @@ impl StateAggregator {
         {
             Ok(Some(s)) =>
                 s.parse::<u64>().map_err(|e| {
-                    TwineSequencerError::Other(format!("Failed to parse verified batch: {}", e))
+                    TwineSequencerError::Other(format!("Failed to parse verified batch: {e}"))
                 })? + 1, // next batch after last verified
             Ok(None) => 1, // batch 1 if no verified batch exists
             Err(e) => {
@@ -183,14 +181,14 @@ impl StateAggregator {
         let mut states = HashMap::new();
 
         for chain in &self.registered_chains {
-            let db_key_base = self.get_db_key_for_chain(chain);
-            let db_key = make_chain_batch_key(&db_key_base, batch_number);
+            let db_strings = DBStrings::for_chain(chain);
+            let db_key = DBStrings::make_batch_key(&db_strings.batch_key, batch_number);
 
             let state_json = match self
                 .db
                 .lock()
                 .await
-                .get(NS_CHAIN_WATCHER.to_string(), db_key.clone())
+                .get(db_strings.namespace.to_string(), db_key.clone())
                 .await
             {
                 Ok(Some(s)) => s,
@@ -217,8 +215,7 @@ impl StateAggregator {
 
             let state: State = serde_json::from_str(&state_json).map_err(|e| {
                 TwineSequencerError::Other(format!(
-                    "Failed to deserialize state for chain {}: {}",
-                    chain, e
+                    "Failed to deserialize state for chain {chain}: {e}"
                 ))
             })?;
 
@@ -243,19 +240,9 @@ impl StateAggregator {
         };
 
         self.aggregated_sender.send(aggregated).await.map_err(|e| {
-            TwineSequencerError::Other(format!("Failed to send aggregated state: {}", e))
+            TwineSequencerError::Other(format!("Failed to send aggregated state: {e}"))
         })?;
 
         Ok(true)
-    }
-
-    /// Get the DB key for a specific chain's processed batch
-    fn get_db_key_for_chain(&self, chain: &str) -> String {
-        match chain {
-            "ethereum" => ETH_PROCESSED_BATCH.to_string(),
-            "solana" => SOLANA_PROCESSED_BATCH.to_string(),
-            "twine" => TWINE_PROCESSED_BATCH.to_string(),
-            _ => format!("{}_PROCESSED_BATCH", chain.to_uppercase()),
-        }
     }
 }

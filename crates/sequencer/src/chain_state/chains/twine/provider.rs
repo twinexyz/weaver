@@ -12,7 +12,8 @@ use twine_sequencer_db::error::TwineSequencerDBError;
 
 use super::twine_rpc_client::L2RpcClient;
 use crate::chain_watcher::watcher::{ChainStateProvider, ChainWatcher};
-use crate::common::consts::{TWINE_CHAIN_IDENTIFIER, TWINE_PROCESSED_BATCH};
+use crate::common::consts::TWINE_CHAIN_IDENTIFIER;
+use crate::common::db_strings::DBStrings;
 use crate::common::shutdown::ShutdownSignal;
 use crate::config::config::L2Config;
 use crate::errors::TwineSequencerError;
@@ -43,7 +44,7 @@ impl ChainStateProvider for L2ChainProvider {
 
     fn chain_id(&self) -> &str { TWINE_CHAIN_IDENTIFIER }
 
-    fn db_batch_key(&self) -> &str { TWINE_PROCESSED_BATCH }
+    fn db_config(&self) -> DBStrings { DBStrings::for_chain(TWINE_CHAIN_IDENTIFIER) }
 
     fn log_target(&self) -> &str { "l2_watcher" }
 
@@ -72,6 +73,6 @@ impl ChainWatcher<L2ChainProvider> {
             >,
         >,
     ) -> Result<Self, TwineSequencerError> {
-        Self::from_config(kill_sig_recv, config, db, None).await
+        Self::from_config(kill_sig_recv, config, db).await
     }
 }

@@ -10,7 +10,8 @@ use twine_evm_contracts::twine_chain::TwineChain;
 use twine_l1_eth::twine_l1_eth_reader::{EthReader, EthReaderBuilder};
 
 use crate::chain_watcher::watcher::ChainStateProvider;
-use crate::common::consts::{ETHEREUM_CHAIN_IDENTIFIER, ETH_PROCESSED_BATCH};
+use crate::common::consts::ETHEREUM_CHAIN_IDENTIFIER;
+use crate::common::db_strings::DBStrings;
 use crate::config::config::L1Config;
 use crate::errors::TwineSequencerError;
 
@@ -54,7 +55,7 @@ impl ChainStateProvider for EthereumChainProvider {
 
     fn chain_id(&self) -> &str { ETHEREUM_CHAIN_IDENTIFIER }
 
-    fn db_batch_key(&self) -> &str { ETH_PROCESSED_BATCH }
+    fn db_config(&self) -> DBStrings { DBStrings::for_chain(ETHEREUM_CHAIN_IDENTIFIER) }
 
     fn log_target(&self) -> &str { "eth_watcher" }
 

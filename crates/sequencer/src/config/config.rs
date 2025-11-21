@@ -25,10 +25,6 @@ pub struct Args {
     pub l1_eth_rpc: Option<String>,
     #[arg(long, env = "NEST_L1_SOLANA_RPC", value_name = "URL")]
     pub l1_solana_rpc: Option<String>,
-    #[arg(long, env = "NEST_L1_SOLANA_VERIFIED_BATCH", value_name = "URL")]
-    pub l1_solana_verified_batch: Option<String>,
-    #[arg(long, env = "NEST_L1_ETHEREUM_VERIFIED_BATCH", value_name = "URL")]
-    pub l1_ethereum_verified_batch: Option<String>,
     #[arg(long, env = "NEST_L2_RPC", value_name = "URL")]
     pub l2_rpc_endpoint: Option<String>,
     #[arg(long, env = "NEST_ENGINE_API", value_name = "URL")]
@@ -72,7 +68,6 @@ pub struct L1Config {
     pub rpc_url: String,
     pub bridge_contract_address: String,
     pub twine_chain_address: String,
-    pub verified_batch: u64,
     pub chain_id: u64,
 }
 
@@ -142,38 +137,6 @@ impl Config {
             }
         }
 
-        #[cfg(feature = "verifier")]
-        {
-            use crate::common::consts::{NS_CHAIN_STATE_VERIFIER, VERIFIED_BATCH};
-            let db_verified_batch = db
-                .lock()
-                .await
-                .get(
-                    NS_CHAIN_STATE_VERIFIER.to_string(),
-                    VERIFIED_BATCH.to_string(),
-                )
-                .await
-                .map_err(|e| TwineSequencerError::SequencerDBError(e.to_string()))?;
-
-            if let Some(verified_block) = db_verified_batch {
-                let verified_batch = verified_block
-                    .parse()
-                    .map_err(|e| TwineSequencerError::Other(format!("{e}")))?;
-                self.solana.verified_batch = verified_batch;
-                self.ethereum.verified_batch = verified_batch;
-            } else {
-                let min_verified_batch =
-                    std::cmp::min(self.solana.verified_batch, self.ethereum.verified_batch);
-                self.solana.verified_batch = min_verified_batch;
-                self.ethereum.verified_batch = min_verified_batch;
-                tracing::warn!(
-                    target = "config",
-                    "last verified batch not found in DB, using the minimum verified batch in the config file: verified batch: {}",
-                    min_verified_batch
-                );
-            }
-        }
-
         Ok(self)
     }
 
@@ -185,18 +148,12 @@ impl Config {
         if let Some(solana_bridge_address) = args.solana_bridge_program {
             self.solana.bridge_contract_address = solana_bridge_address;
         }
-        if let Some(solana_verified_batch) = args.l1_solana_verified_batch {
-            self.solana.verified_batch = solana_verified_batch.parse().unwrap()
-        }
 
         if let Some(ethereum_rpc_url) = args.l1_eth_rpc {
             self.ethereum.rpc_url = ethereum_rpc_url;
         }
         if let Some(ethereum_bridge_address) = args.eth_bridge_address {
             self.ethereum.bridge_contract_address = ethereum_bridge_address;
-        }
-        if let Some(ethereum_verified_batch) = args.l1_ethereum_verified_batch {
-            self.ethereum.verified_batch = ethereum_verified_batch.parse().unwrap();
         }
 
         if let Some(twine_rpc_url) = args.l2_rpc_endpoint {

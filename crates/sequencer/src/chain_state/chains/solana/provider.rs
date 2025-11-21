@@ -7,7 +7,8 @@ use async_trait::async_trait;
 use twine_l1_solana::SolanaProvider;
 
 use crate::chain_watcher::watcher::ChainStateProvider;
-use crate::common::consts::{SOLANA_CHAIN_IDENTIFIER, SOLANA_PROCESSED_BATCH};
+use crate::common::consts::SOLANA_CHAIN_IDENTIFIER;
+use crate::common::db_strings::DBStrings;
 use crate::config::config::L1Config;
 use crate::errors::TwineSequencerError;
 
@@ -42,7 +43,7 @@ impl ChainStateProvider for SolanaChainProvider {
 
     fn chain_id(&self) -> &str { SOLANA_CHAIN_IDENTIFIER }
 
-    fn db_batch_key(&self) -> &str { SOLANA_PROCESSED_BATCH }
+    fn db_config(&self) -> DBStrings { DBStrings::for_chain(SOLANA_CHAIN_IDENTIFIER) }
 
     fn log_target(&self) -> &str { "solana_watcher" }
 
