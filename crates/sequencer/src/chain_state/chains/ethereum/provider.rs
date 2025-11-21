@@ -36,10 +36,15 @@ impl ChainStateProvider for EthereumChainProvider {
     type Config = L1Config;
 
     async fn from_config(config: Self::Config) -> Result<Self, TwineSequencerError> {
-        let twine_chain_address: alloy_primitives::Address =
-            config.twine_chain_address.parse().map_err(|e| {
-                TwineSequencerError::Other(format!("Invalid twine chain address: {}", e))
-            })?;
+        let twine_chain_address: alloy_primitives::Address = config
+            .twine_chain_address
+            .ok_or_else(|| {
+                TwineSequencerError::Other(
+                    "twine_chain_address is required for Ethereum provider".to_string(),
+                )
+            })?
+            .parse()
+            .map_err(|e| TwineSequencerError::Other(format!("Invalid twine chain address: {e}")))?;
 
         let client = EthReaderBuilder::new()
             .with_execution_rpc(config.rpc_url)
@@ -67,7 +72,7 @@ impl ChainStateProvider for EthereumChainProvider {
             TwineSequencerError::Other("Execution client not initialized".to_string())
         })?;
 
-        let call = TwineChain::committedBatchCall { 0: batch_number };
+        let call = TwineChain::committedBatchCall(batch_number);
         let calldata = call.abi_encode();
 
         let tx = TransactionRequest::default()
@@ -79,23 +84,18 @@ impl ChainStateProvider for EthereumChainProvider {
             .await
             .map_err(|e| {
                 TwineSequencerError::Other(format!(
-                    "Failed to call bridge for batch {}: {}",
-                    batch_number, e
+                    "Failed to call bridge for batch {batch_number}: {e}"
                 ))
             })?;
 
         if result.0.is_empty() {
             return Err(TwineSequencerError::Other(format!(
-                "Empty result from bridge contract for batch {}",
-                batch_number
+                "Empty result from bridge contract for batch {batch_number}"
             )));
         }
 
         let decoded = TwineChain::committedBatchCall::abi_decode_returns(&result).map_err(|e| {
-            TwineSequencerError::Other(format!(
-                "ABI decode failed for batch {}: {}",
-                batch_number, e
-            ))
+            TwineSequencerError::Other(format!("ABI decode failed for batch {batch_number}: {e}"))
         })?;
 
         Ok(FixedBytes::<32>::from(decoded.0))
