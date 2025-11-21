@@ -13,7 +13,9 @@ use twine_sequencer_db::db::SequencerDB;
 use twine_sequencer_db::error::TwineSequencerDBError;
 
 use crate::chain_state::state::{L2State, L2StateCheckpoint, State};
-use crate::common::consts::NS_CHAIN_WATCHER;
+use crate::common::consts::{
+    make_chain_batch_key, NS_CHAIN_STATE_VERIFIER, NS_CHAIN_WATCHER, VERIFIED_BATCH,
+};
 use crate::common::shutdown::ShutdownSignal;
 use crate::errors::TwineSequencerError;
 
@@ -31,8 +33,8 @@ pub struct RetryConfig {
 impl Default for RetryConfig {
     fn default() -> Self {
         Self {
-            max_retries: 5,
-            initial_delay_ms: 1000,
+            max_retries: 7,
+            initial_delay_ms: 2000,
             max_delay_secs: 10,
         }
     }
@@ -64,8 +66,7 @@ impl WatcherConfig {
 }
 
 /// Trait for chain-specific batch state operations
-/// Each chain (Ethereum, Solana, L2) implements this trait with its specific
-/// logic
+/// Each chain implements this trait with its specific logic
 #[async_trait]
 pub trait ChainStateProvider: Send + Sync + Debug {
     /// Configuration type for this chain
@@ -83,7 +84,6 @@ pub trait ChainStateProvider: Send + Sync + Debug {
     fn db_batch_key(&self) -> &str;
 
     /// Fetch the batch hash for a given batch number
-    /// Returns ZERO hash if batch is not ready yet
     async fn fetch_batch_hash(
         &self,
         batch_number: u64,
@@ -110,7 +110,7 @@ pub struct ChainWatcher<P: ChainStateProvider> {
     >,
     /// Last verified batch number
     verified_batch: u64,
-    /// Chain-specific state provider
+    /// Chain-specific provider for fetching state
     provider: P,
     /// Watcher configuration
     config: WatcherConfig,
@@ -143,16 +143,14 @@ impl<P: ChainStateProvider> ChainWatcher<P> {
         >,
         initial_batch: Option<u64>,
     ) -> Result<Self, TwineSequencerError> {
-        // Initialize the provider from config
         let provider = P::from_config(config).await?;
 
-        // Build watcher config from provider
         let watcher_config = WatcherConfig::new(
             NS_CHAIN_WATCHER.to_string(),
             provider.db_batch_key().to_string(),
         );
 
-        // Read verified batch from DB, or use provided initial value, or default to 0
+        // use initial batch if provided, else read from DB or default to 0
         let verified_batch: u64 = if let Some(batch) = initial_batch {
             batch
         } else {
@@ -160,21 +158,36 @@ impl<P: ChainStateProvider> ChainWatcher<P> {
                 .lock()
                 .await
                 .get(
-                    watcher_config.db_namespace.clone(),
-                    watcher_config.db_batch_key.clone(),
+                    NS_CHAIN_STATE_VERIFIER.to_string(),
+                    VERIFIED_BATCH.to_string(),
                 )
                 .await
             {
-                Ok(Some(s)) => s.parse().unwrap_or(0),
-                Ok(None) => 0,
-                Err(e) => {
-                    tracing::warn!(
+                Ok(Some(s)) => {
+                    let verified = s.parse::<u64>().map_err(|e| {
+                        TwineSequencerError::Other(format!("Failed to parse verified batch: {}", e))
+                    })?;
+                    tracing::info!(
                         target = provider.log_target(),
                         chain = provider.chain_id(),
-                        "failed to read processed batch from DB, defaulting to 0: {:?}",
-                        e
+                        "found verified batch in DB: {}",
+                        verified
+                    );
+                    verified
+                }
+                Ok(None) => {
+                    tracing::info!(
+                        target = provider.log_target(),
+                        chain = provider.chain_id(),
+                        "no verified batch found in DB, starting from 0"
                     );
                     0
+                }
+                Err(e) => {
+                    return Err(TwineSequencerError::Other(format!(
+                        "Failed to read verified batch from DB: {}",
+                        e
+                    )));
                 }
             }
         };
@@ -195,7 +208,7 @@ impl<P: ChainStateProvider> ChainWatcher<P> {
         })
     }
 
-    /// Watch the chain and notify subscribers of new batch states
+    /// Watch the chain for new batches
     pub async fn watch(&mut self) -> Result<(), TwineSequencerError> {
         tracing::info!(
             target = self.provider.log_target(),
@@ -221,7 +234,7 @@ impl<P: ChainStateProvider> ChainWatcher<P> {
 
                     match self.get_state(L2StateCheckpoint::BatchNumber(next_expected_batch)).await {
                         Ok(next_state) => {
-                            // Check if batch is ready
+                            // retry if batch not ready yet
                             if next_state.state.batch_hash == FixedBytes::<32>::ZERO {
                                 tracing::debug!(
                                     target = self.provider.log_target(),
@@ -236,14 +249,18 @@ impl<P: ChainStateProvider> ChainWatcher<P> {
 
                             self.verified_batch = next_expected_batch;
 
-                            // Persist to database
+                            let state_json = serde_json::to_string(&next_state.state)
+                                .map_err(|e| TwineSequencerError::Other(format!("Failed to serialize state: {}", e)))?;
+
+                            let batch_key = make_chain_batch_key(&self.config.db_batch_key, next_expected_batch);
+
                             self.db
                                 .lock()
                                 .await
                                 .insert(
                                     self.config.db_namespace.clone(),
-                                    self.config.db_batch_key.clone(),
-                                    self.verified_batch.to_string(),
+                                    batch_key,
+                                    state_json,
                                 )
                                 .await
                                 .map_err(|e| TwineSequencerError::Other(e.to_string()))?;
@@ -272,7 +289,7 @@ impl<P: ChainStateProvider> ChainWatcher<P> {
         }
     }
 
-    /// Get state at a specific checkpoint with retry logic
+    /// Get state at a specific L2 State checkpoint
     pub async fn get_state(
         &self,
         checkpoint: L2StateCheckpoint,
@@ -324,7 +341,6 @@ impl<P: ChainStateProvider> ChainWatcher<P> {
 
                             tokio::time::sleep(retry_delay).await;
 
-                            // Exponential backoff
                             retry_delay = std::cmp::min(
                                 retry_delay * 2,
                                 Duration::from_secs(self.config.retry_config.max_delay_secs),
@@ -337,7 +353,7 @@ impl<P: ChainStateProvider> ChainWatcher<P> {
         }
     }
 
-    /// Try to fetch state once (without retry)
+    /// Try to fetch state once, this can fail and be retried
     async fn try_fetch_state(&self, number: u64) -> Result<L2State, TwineSequencerError> {
         let batch_hash = self.provider.fetch_batch_hash(number).await?;
 

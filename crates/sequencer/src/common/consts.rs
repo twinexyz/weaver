@@ -28,23 +28,21 @@ pub const NS_CHAIN_STATE_VERIFIER: &str = "CHAIN_STATE_VERIFIER";
 /// Key for verified batch
 pub const VERIFIED_BATCH: &str = "VERIFIED_BATCH";
 
-// /// Database namespace for L2 watcher
-// pub const NS_L2_WATCHER: &str = "L2_WATCHER";
-
 /// Default database namespaces that should be initialized
-pub const DEFAULT_DB_NAMESPACES: &[&str] = &[
-    NS_BLOCK_PRODUCER,
-    NS_CHAIN_STATE_VERIFIER,
-    NS_CHAIN_WATCHER,
-    // NS_L2_WATCHER,
-];
+pub const DEFAULT_DB_NAMESPACES: &[&str] =
+    &[NS_BLOCK_PRODUCER, NS_CHAIN_STATE_VERIFIER, NS_CHAIN_WATCHER];
 
 /// List of all registered L1 chains for verification
 pub const REGISTERED_L1_CHAINS: &[&str] = &[ETHEREUM_CHAIN_IDENTIFIER, SOLANA_CHAIN_IDENTIFIER];
 
-/// List of all chains (L1s + L2) for aggregation
+/// All chains
 pub const ALL_CHAINS: &[&str] = &[
     SOLANA_CHAIN_IDENTIFIER,
     ETHEREUM_CHAIN_IDENTIFIER,
     TWINE_CHAIN_IDENTIFIER,
 ];
+
+/// Creates a chain-specific batch key for storing the L2 state
+pub fn make_chain_batch_key(chain_db_key: &str, batch_number: u64) -> String {
+    format!("{}_{}", chain_db_key, batch_number)
+}

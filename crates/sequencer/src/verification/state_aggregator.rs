@@ -14,8 +14,8 @@ use twine_sequencer_db::error::TwineSequencerDBError;
 
 use crate::chain_state::state::State;
 use crate::common::consts::{
-    ETH_PROCESSED_BATCH, NS_CHAIN_STATE_VERIFIER, NS_CHAIN_WATCHER, SOLANA_PROCESSED_BATCH,
-    TWINE_PROCESSED_BATCH, VERIFIED_BATCH,
+    make_chain_batch_key, ETH_PROCESSED_BATCH, NS_CHAIN_STATE_VERIFIER, NS_CHAIN_WATCHER,
+    SOLANA_PROCESSED_BATCH, TWINE_PROCESSED_BATCH, VERIFIED_BATCH,
 };
 use crate::common::shutdown::ShutdownSignal;
 use crate::errors::TwineSequencerError;
@@ -49,7 +49,7 @@ pub struct StateAggregator {
     >,
     /// list of chains we expect a state from
     registered_chains: Vec<String>,
-    /// aggregated state sender (to the final verifier task)
+    /// aggregated state sender to verifier
     aggregated_sender: Sender<AggregatedBatchState>,
     /// next batch to verify
     next_batch: u64,
@@ -68,7 +68,6 @@ impl Debug for StateAggregator {
 
 impl StateAggregator {
     /// Creates a new StateAggregator instance.
-    /// Reads the last verified batch from DB and starts aggregating from there.
     pub async fn new(
         kill_sig_recv: KReceiver<ShutdownSignal>,
         db: Arc<
@@ -85,7 +84,6 @@ impl StateAggregator {
         aggregated_sender: Sender<AggregatedBatchState>,
         poll_interval_secs: u64,
     ) -> Result<Self, TwineSequencerError> {
-        // Read last verified batch from DB to resume from there
         let next_batch: u64 = match db
             .lock()
             .await
@@ -98,11 +96,11 @@ impl StateAggregator {
             Ok(Some(s)) =>
                 s.parse::<u64>().map_err(|e| {
                     TwineSequencerError::Other(format!("Failed to parse verified batch: {}", e))
-                })? + 1, // Start from next batch after last verified
-            Ok(None) => 1, // Start from batch 1 if no verified batch exists
+                })? + 1, // next batch after last verified
+            Ok(None) => 1, // batch 1 if no verified batch exists
             Err(e) => {
-                tracing::warn!(
-                    target = "aggregator",
+                tracing::debug!(
+                    target = "state_aggregator",
                     "failed to read verified batch from DB, starting from batch 1: {:?}",
                     e
                 );
@@ -130,7 +128,7 @@ impl StateAggregator {
     /// and emits aggregated state once all chains have committed the batch.
     pub async fn run(&mut self) -> Result<(), TwineSequencerError> {
         tracing::info!(
-            target = "aggregator",
+            target = "state_aggregator",
             "state aggregator loop started, polling every {}s",
             self.poll_interval_secs
         );
@@ -150,25 +148,23 @@ impl StateAggregator {
                         Ok(true) => {
                             // Batch successfully aggregated, move to next
                             tracing::info!(
-                                target = "aggregator",
-                                "batch {} aggregated successfully, moving to batch {}",
+                                target = "state_aggregator",
+                                "Batch {} aggregated successfully",
                                 self.next_batch,
-                                self.next_batch + 1
                             );
                             self.next_batch += 1;
                         }
                         Ok(false) => {
                             // Not all chains have committed this batch yet, keep waiting
                             tracing::debug!(
-                                target = "aggregator",
-                                "batch {} not ready yet, waiting for all chains",
+                                target = "state_aggregator",
+                                "Batch {} not ready yet, waiting for all chains",
                                 self.next_batch
                             );
                         }
                         Err(e) => {
-                            // Log error but continue polling - don't exit on failures
                             tracing::error!(
-                                target = "aggregator",
+                                target = "state_aggregator",
                                 "error aggregating batch {}: {:?}, will retry",
                                 self.next_batch,
                                 e
@@ -182,57 +178,65 @@ impl StateAggregator {
 
     /// Try to aggregate a specific batch by reading from DB.
     /// Returns Ok(true) if batch was aggregated and sent, Ok(false) if not all
-    /// chains ready yet.
+    /// chains are ready yet.
     async fn try_aggregate_batch(&self, batch_number: u64) -> Result<bool, TwineSequencerError> {
         let mut states = HashMap::new();
 
-        // Read batch state from each chain's watcher DB entry
         for chain in &self.registered_chains {
-            let db_key = self.get_db_key_for_chain(chain);
+            let db_key_base = self.get_db_key_for_chain(chain);
+            let db_key = make_chain_batch_key(&db_key_base, batch_number);
 
-            let committed_batch = match self
+            let state_json = match self
                 .db
                 .lock()
                 .await
-                .get(NS_CHAIN_WATCHER.to_string(), db_key)
+                .get(NS_CHAIN_WATCHER.to_string(), db_key.clone())
                 .await
             {
-                Ok(Some(s)) => s.parse::<u64>().unwrap_or(0),
-                Ok(None) => 0,
+                Ok(Some(s)) => s,
+                Ok(None) => {
+                    tracing::debug!(
+                        target = "state_aggregator",
+                        "batch {} not found for chain {}, waiting",
+                        batch_number,
+                        chain
+                    );
+                    return Ok(false);
+                }
                 Err(e) => {
-                    tracing::warn!(
-                        target = "aggregator",
-                        "failed to read batch for chain {}: {:?}",
+                    tracing::debug!(
+                        target = "state_aggregator",
+                        "failed to read batch {} for chain {}: {:?}",
+                        batch_number,
                         chain,
                         e
                     );
-                    0
+                    return Ok(false);
                 }
             };
 
-            // If this chain hasn't committed this batch yet, we can't aggregate
-            if committed_batch < batch_number {
-                tracing::debug!(
-                    target = "aggregator",
-                    "chain {} at batch {}, waiting for batch {}",
+            let state: State = serde_json::from_str(&state_json).map_err(|e| {
+                TwineSequencerError::Other(format!(
+                    "Failed to deserialize state for chain {}: {}",
+                    chain, e
+                ))
+            })?;
+
+            // Verify the deserialized state matches the requested batch number
+            if state.batch_number != batch_number {
+                tracing::error!(
+                    target = "state_aggregator",
+                    "unexpected batch number for chain {}: expected {}, got {}",
                     chain,
-                    committed_batch,
-                    batch_number
+                    batch_number,
+                    state.batch_number
                 );
                 return Ok(false);
             }
 
-            // Fetch the actual batch hash for this batch number from the chain
-            // For now we create a placeholder state - the verifier will fetch actual hashes
-            let state = State {
-                batch_number,
-                batch_hash: alloy_primitives::FixedBytes::<32>::ZERO, // Will be fetched by verifier
-            };
-
             states.insert(chain.clone(), state);
         }
 
-        // All chains have committed this batch, send aggregated state
         let aggregated = AggregatedBatchState {
             batch_number,
             states,

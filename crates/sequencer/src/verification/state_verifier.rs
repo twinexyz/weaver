@@ -88,13 +88,6 @@ impl StateVerifier {
                         states.len()
                     );
 
-                    // should not be empty as aggregator won't send empty states
-                    // but kept just for safety
-                    if states.is_empty() {
-                        let error_msg = format!("no states to verify for batch: {}", batch_number);
-                        return Err(TwineSequencerError::StateRecordMismatched(error_msg));
-                    }
-
                     // take the first state as the reference
                     let reference_state = states
                         .values()

@@ -33,7 +33,6 @@ impl ChainWatcherManager {
             >,
         >,
     ) -> Result<Vec<JoinHandle<Result<(), TwineSequencerError>>>, TwineSequencerError> {
-        // Initialize Ethereum watcher
         let initial_eth_batch = Some(config.ethereum.verified_batch);
         let mut eth_watcher = EthereumStateWatcher::from_config(
             kill_sig_recv.resubscribe(),
@@ -43,7 +42,6 @@ impl ChainWatcherManager {
         )
         .await?;
 
-        // Initialize Solana watcher
         let initial_solana_batch = Some(config.solana.verified_batch);
         let mut solana_watcher = SolanaStateWatcher::from_config(
             kill_sig_recv.resubscribe(),
@@ -53,12 +51,11 @@ impl ChainWatcherManager {
         )
         .await?;
 
-        // Initialize L2 (Twine) watcher
         let mut l2_watcher =
             TwineChainWatcher::new(kill_sig_recv.resubscribe(), config.l2.clone(), db.clone())
                 .await?;
 
-        // Spawn all watchers as background tasks
+        // Spawn all the chain watchers
         let eth_watcher_task = tokio::spawn(async move { eth_watcher.watch().await });
 
         let solana_watcher_task = tokio::spawn(async move { solana_watcher.watch().await });
