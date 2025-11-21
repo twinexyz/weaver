@@ -110,33 +110,23 @@ impl StateVerifier {
                                 state,
                             );
 
-                            let error_reason = format!(
-                                "chain: {}, expected: {:?}, got: {:?}",
-                                chain, reference_state, state
-                            );
+                            let error = TwineSequencerError::StateRecordMismatched(format!(
+                                "batch: {batch_number}, chain: {chain}, expected: {reference_state:?}, got: {state:?}"
+                            ));
 
-                            // Send kill signal to stop block producer on verification failure
-                            let shutdown_signal = ShutdownSignal::VerificationFailure {
-                                batch_number,
-                                mismatched_chain: chain.clone(),
-                                reason: error_reason.clone(),
-                            };
-                            tracing::warn!(
+                            // On verification failure send kill signal to stop block producer
+                            let shutdown_signal = ShutdownSignal::VerificationFailure(error.clone());
+                            tracing::error!(
                                 target = "final_verifier",
                                 "sending shutdown signal: {}",
                                 shutdown_signal
                             );
-                            if let Err(e) = self.kill_sig_sender.send(shutdown_signal) {
-                                tracing::error!(
-                                    target = "final_verifier",
-                                    "failed to send kill signal: {}",
-                                    e
-                                );
-                            }
-
-                            return Err(TwineSequencerError::StateRecordMismatched(
-                                format!("batch: {}, {}", batch_number, error_reason),
-                            ));
+                            self.kill_sig_sender.send(shutdown_signal).map_err(|e| {
+                                TwineSequencerError::Other(format!(
+                                    "Channel error sending shutdown signal: {e}",
+                                ))
+                            })?;
+                            return Err(error);
                         }
                     }
 

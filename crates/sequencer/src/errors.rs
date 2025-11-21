@@ -3,7 +3,7 @@
 use thiserror::Error;
 
 /// Sequencer errors
-#[derive(Debug, Error)]
+#[derive(Debug, Clone, Error)]
 pub enum TwineSequencerError {
     /// failed to create new client
     #[error("Client creation failed: {0}")]
