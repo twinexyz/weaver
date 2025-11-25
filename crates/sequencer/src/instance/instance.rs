@@ -11,7 +11,8 @@ use twine_sequencer_db::error::TwineSequencerDBError;
 use twine_sequencer_db::inmemory::SequencerInMemoryDB;
 use twine_sequencer_db::rocksdb::SequencerRocksDB;
 
-use crate::common::DEFAULT_DB_NAMESPACES;
+use crate::common::consts;
+use crate::common::shutdown::ShutdownSignal;
 use crate::config::config::{Args, Config};
 use crate::errors::TwineSequencerError;
 use crate::instance::SequencerInstance;
@@ -63,7 +64,7 @@ impl SequencerInstance for TwineSequencerInstance {
             let mut db_cf = vec![];
             db_cf.append(&mut db_cfg.db_column_family);
 
-            for cf in DEFAULT_DB_NAMESPACES {
+            for cf in consts::DEFAULT_DB_NAMESPACES {
                 let cf = cf.to_string();
                 if !db_cf.contains(&cf) {
                     db_cf.push(cf.to_string());
@@ -91,77 +92,76 @@ impl SequencerInstance for TwineSequencerInstance {
     }
 
     /// start sequencer with different sequencer tasks
-    async fn start(&self, kill_sig_sender: Sender<bool>) -> Result<(), TwineSequencerError> {
+    async fn start(
+        &self,
+        kill_sig_sender: Sender<ShutdownSignal>,
+    ) -> Result<(), TwineSequencerError> {
         let config = self.config.clone();
         let mut join_handles = vec![];
 
         #[cfg(feature = "sequencer")]
         {
-            use std::path::PathBuf;
+            // use std::path::PathBuf;
 
-            use crate::block_progress::block_progress::BlockProducer;
+            // use crate::block_progress::block_progress::BlockProducer;
 
-            let mut block_producer = BlockProducer::new(
-                kill_sig_sender.subscribe(),
-                config.l2.head_block,
-                PathBuf::from(config.l2.jwt_token_path),
-                config.l2.auth_rpc_url,
-                config.l2.block_time,
-                config.l2.fee_recipient,
-                self.db.clone(),
-            );
-            let block_progress_task = tokio::spawn(async move { block_producer.progress().await });
-            join_handles.push(block_progress_task);
+            // let mut block_producer = BlockProducer::new(
+            //     kill_sig_sender.subscribe(),
+            //     config.l2.head_block,
+            //     PathBuf::from(config.l2.jwt_token_path),
+            //     config.l2.auth_rpc_url,
+            //     config.l2.block_time,
+            //     config.l2.fee_recipient,
+            //     self.db.clone(),
+            // );
+            // let block_progress_task = tokio::spawn(async move {
+            // block_producer.progress().await }); join_handles.
+            // push(block_progress_task);
         }
 
         #[cfg(feature = "verifier")]
         {
             use tokio::sync::mpsc;
 
-            use crate::l1_state::chains::ethereum::watcher::EthereumStateWatcher;
-            use crate::l1_state::chains::solana::watcher::SolanaStateWatcher;
-            use crate::l1_state::state_tracker::L1StateTracker;
-            use crate::l1_state::state_verifier::StateVerifier;
-            use crate::l1_state::verifier::L1StateVerifier;
+            use crate::chain_watcher::manager::ChainWatcherManager;
+            use crate::verification::state_aggregator::StateAggregator;
+            use crate::verification::state_verifier::StateVerifier;
 
-            let (state_sender, state_receiver) =
+            // Spawn all chain watchers and get task handles
+            let mut watcher_handles = ChainWatcherManager::spawn_all(
+                kill_sig_sender.subscribe(),
+                config.clone(),
+                self.db.clone(),
+            )
+            .await?;
+
+            let (aggregated_sender, aggregated_receiver) =
                 mpsc::channel(config.extras.verifer_channel_buffer_size);
 
-            let mut eth_watcher = EthereumStateWatcher::new(
+            let mut state_aggregator = StateAggregator::new(
                 kill_sig_sender.subscribe(),
-                config.ethereum,
-                state_sender.clone(),
                 self.db.clone(),
+                consts::ALL_CHAINS.iter().map(|s| s.to_string()).collect(),
+                aggregated_sender,
+                5, // poll interval in seconds
             )
             .await?;
 
-            let mut solana_watcher = SolanaStateWatcher::new(
+            let mut state_verifier = StateVerifier::new(
                 kill_sig_sender.subscribe(),
-                config.solana,
-                state_sender.clone(),
+                aggregated_receiver,
                 self.db.clone(),
+                kill_sig_sender.clone(),
             )
             .await?;
 
-            let mut state_verifier = L1StateVerifier::new(
-                kill_sig_sender.subscribe(),
-                vec!["solana".to_string(), "ethereum".to_string()],
-                state_receiver,
-                self.db.clone(),
-            )
-            .await?;
+            let state_aggregator_job = tokio::spawn(async move { state_aggregator.run().await });
 
-            let eth_watcher_job = tokio::spawn(async move { eth_watcher.watch().await });
+            let state_verifier_job = tokio::spawn(async move { state_verifier.run().await });
 
-            let solana_watcher_job = tokio::spawn(async move { solana_watcher.watch().await });
-
-            let state_verifier_job = tokio::spawn(async move { state_verifier.verify().await });
-
-            join_handles.append(&mut vec![
-                eth_watcher_job,
-                solana_watcher_job,
-                state_verifier_job,
-            ]);
+            // Collect all task handles
+            join_handles.append(&mut watcher_handles);
+            join_handles.append(&mut vec![state_aggregator_job, state_verifier_job]);
         }
 
         for handle in join_handles {
