@@ -3,13 +3,14 @@
 use clap::Parser;
 use tokio;
 use tokio::sync::broadcast;
+use twine_sequencer::common::shutdown::ShutdownSignal;
 use twine_sequencer::config::config::Args;
 use twine_sequencer::instance::instance::TwineSequencerInstance;
 use twine_sequencer::instance::SequencerInstance;
 
 #[tokio::main]
 async fn main() {
-    let (kill_sig_sender, mut kill_sig_recv) = broadcast::channel::<bool>(1);
+    let (kill_sig_sender, mut kill_sig_recv) = broadcast::channel::<ShutdownSignal>(1);
 
     let cloned_kill_sig_sender = kill_sig_sender.clone();
     tokio::spawn(async move {
@@ -18,7 +19,7 @@ async fn main() {
             .expect("error receiving kill signal");
         eprintln!("received ctrl-c");
         cloned_kill_sig_sender
-            .send(true)
+            .send(ShutdownSignal::UserInterrupt)
             .expect("channel send error");
     });
 
