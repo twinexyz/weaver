@@ -21,6 +21,8 @@ pub struct EthereumChainProvider {
     client: EthReader,
     /// Bridge contract address on Ethereum
     twine_chain_address: alloy_primitives::Address,
+    /// Polling interval in milliseconds
+    poll_interval: u64,
 }
 
 impl Debug for EthereumChainProvider {
@@ -55,12 +57,15 @@ impl ChainStateProvider for EthereumChainProvider {
         Ok(Self {
             client,
             twine_chain_address,
+            poll_interval: config.poll_interval,
         })
     }
 
     fn chain_id(&self) -> &str { ETHEREUM_CHAIN_IDENTIFIER }
 
     fn db_config(&self) -> DBStrings { DBStrings::for_chain(ETHEREUM_CHAIN_IDENTIFIER) }
+
+    fn poll_interval(&self) -> u64 { self.poll_interval }
 
     fn log_target(&self) -> &str { "eth_watcher" }
 

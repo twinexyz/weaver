@@ -16,6 +16,8 @@ use crate::errors::TwineSequencerError;
 pub struct SolanaChainProvider {
     /// Solana provider for querying chain state
     provider: SolanaProvider,
+    /// Polling interval in milliseconds
+    poll_interval: u64,
 }
 
 impl Debug for SolanaChainProvider {
@@ -38,12 +40,17 @@ impl ChainStateProvider for SolanaChainProvider {
             String::new(), // No admin wallet needed for querying
         );
 
-        Ok(Self { provider })
+        Ok(Self {
+            provider,
+            poll_interval: config.poll_interval,
+        })
     }
 
     fn chain_id(&self) -> &str { SOLANA_CHAIN_IDENTIFIER }
 
     fn db_config(&self) -> DBStrings { DBStrings::for_chain(SOLANA_CHAIN_IDENTIFIER) }
+
+    fn poll_interval(&self) -> u64 { self.poll_interval }
 
     fn log_target(&self) -> &str { "solana_watcher" }
 
