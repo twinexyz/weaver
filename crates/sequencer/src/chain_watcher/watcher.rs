@@ -41,8 +41,8 @@ impl Default for RetryConfig {
 /// Configuration for the chain watcher
 #[derive(Debug, Clone)]
 pub struct WatcherConfig {
-    /// Polling interval in seconds
-    pub poll_interval_secs: u64,
+    /// Polling interval in milliseconds
+    pub poll_interval: u64,
     /// Database namespace for storing progress
     pub db_namespace: String,
     /// Database key for storing the last processed batch
@@ -53,9 +53,9 @@ pub struct WatcherConfig {
 
 impl WatcherConfig {
     /// Create a new watcher configuration
-    pub fn new(db_namespace: String, db_batch_key: String) -> Self {
+    pub fn new(db_namespace: String, db_batch_key: String, poll_interval: u64) -> Self {
         Self {
-            poll_interval_secs: 5,
+            poll_interval,
             db_namespace,
             db_batch_key,
             retry_config: RetryConfig::default(),
@@ -80,6 +80,9 @@ pub trait ChainStateProvider: Send + Sync + Debug {
 
     /// Get the database configuration (namespace and batch key)
     fn db_config(&self) -> DBStrings;
+
+    /// Get the polling interval in milliseconds
+    fn poll_interval(&self) -> u64;
 
     /// Fetch the batch hash for a given batch number
     async fn fetch_batch_hash(
@@ -142,9 +145,13 @@ impl<P: ChainStateProvider> ChainWatcher<P> {
     ) -> Result<Self, TwineSequencerError> {
         let provider = P::from_config(config).await?;
         let db_config = provider.db_config();
+        let poll_interval = provider.poll_interval();
 
-        let watcher_config =
-            WatcherConfig::new(db_config.namespace.clone(), db_config.batch_key.clone());
+        let watcher_config = WatcherConfig::new(
+            db_config.namespace.clone(),
+            db_config.batch_key.clone(),
+            poll_interval,
+        );
 
         let latest_key = format!("{}_LATEST", db_config.batch_key);
         let last_stored_batch: u64 = match db
@@ -158,8 +165,9 @@ impl<P: ChainStateProvider> ChainWatcher<P> {
                     tracing::info!(
                         target = provider.log_target(),
                         chain = provider.chain_id(),
-                        "found last stored batch from LATEST key: {}",
-                        batch_num
+                        batch_num = batch_num,
+                        poll_interval_ms = poll_interval,
+                        "starting watcher from last stored batch"
                     );
                     batch_num
                 }
@@ -167,8 +175,10 @@ impl<P: ChainStateProvider> ChainWatcher<P> {
                     tracing::warn!(
                         target = provider.log_target(),
                         chain = provider.chain_id(),
-                        "failed to parse latest batch number, starting from 0: {}",
-                        e
+                        batch_num = 0,
+                        poll_interval_ms = poll_interval,
+                        error = ?e,
+                        "failed to parse latest batch number, starting watcher from batch 0"
                     );
                     0
                 }
@@ -177,7 +187,9 @@ impl<P: ChainStateProvider> ChainWatcher<P> {
                 tracing::info!(
                     target = provider.log_target(),
                     chain = provider.chain_id(),
-                    "no stored batch found in chain namespace, starting from 0"
+                    batch_num = 0,
+                    poll_interval_ms = poll_interval,
+                    "no stored batch found, starting watcher from batch 0"
                 );
                 0
             }
@@ -185,8 +197,10 @@ impl<P: ChainStateProvider> ChainWatcher<P> {
                 tracing::warn!(
                     target = provider.log_target(),
                     chain = provider.chain_id(),
-                    "failed to read from chain namespace, starting from 0: {}",
-                    e
+                    batch_num = 0,
+                    poll_interval_ms = poll_interval,
+                    error = ?e,
+                    "failed to query DB for last stored batch, starting watcher from batch 0"
                 );
                 0
             }
@@ -216,7 +230,7 @@ impl<P: ChainStateProvider> ChainWatcher<P> {
             "watcher loop started"
         );
 
-        let mut ticker = time::interval(Duration::from_secs(self.config.poll_interval_secs));
+        let mut ticker = time::interval(Duration::from_millis(self.config.poll_interval));
         ticker.set_missed_tick_behavior(MissedTickBehavior::Delay);
 
         loop {

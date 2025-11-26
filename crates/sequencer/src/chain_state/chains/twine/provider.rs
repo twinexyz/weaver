@@ -23,6 +23,8 @@ use crate::errors::TwineSequencerError;
 pub struct L2ChainProvider {
     /// L2 RPC client
     rpc_client: L2RpcClient,
+    /// Polling interval in milliseconds
+    poll_interval: u64,
 }
 
 impl Debug for L2ChainProvider {
@@ -39,12 +41,17 @@ impl ChainStateProvider for L2ChainProvider {
 
     async fn from_config(config: Self::Config) -> Result<Self, TwineSequencerError> {
         let rpc_client = L2RpcClient::new(config.rpc_url)?;
-        Ok(Self { rpc_client })
+        Ok(Self {
+            rpc_client,
+            poll_interval: config.poll_interval,
+        })
     }
 
     fn chain_id(&self) -> &str { TWINE_CHAIN_IDENTIFIER }
 
     fn db_config(&self) -> DBStrings { DBStrings::for_chain(TWINE_CHAIN_IDENTIFIER) }
+
+    fn poll_interval(&self) -> u64 { self.poll_interval }
 
     fn log_target(&self) -> &str { "l2_watcher" }
 

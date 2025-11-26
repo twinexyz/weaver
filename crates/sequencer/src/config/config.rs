@@ -43,6 +43,12 @@ pub struct Args {
     pub head_block: Option<String>,
     #[arg(long, env = "NEST_FEE_RECIPIENT", value_name = "ADDRESS")]
     pub fee_recipient: Option<String>,
+    #[arg(long, env = "NEST_ETH_POLL_INTERVAL", value_name = "MILLISECONDS")]
+    pub eth_poll_interval: Option<u64>,
+    #[arg(long, env = "NEST_SOLANA_POLL_INTERVAL", value_name = "MILLISECONDS")]
+    pub solana_poll_interval: Option<u64>,
+    #[arg(long, env = "NEST_L2_POLL_INTERVAL", value_name = "MILLISECONDS")]
+    pub l2_poll_interval: Option<u64>,
 }
 
 #[allow(missing_docs)]
@@ -69,6 +75,8 @@ pub struct L1Config {
     pub bridge_contract_address: String,
     pub twine_chain_address: Option<String>,
     pub chain_id: u64,
+    /// Polling interval in milliseconds
+    pub poll_interval: u64,
 }
 
 #[allow(missing_docs)]
@@ -87,6 +95,8 @@ pub struct L2Config {
     pub jwt_token_path: String,
     /// block time in ms
     pub block_time: u64,
+    /// Polling interval in milliseconds
+    pub poll_interval: u64,
 }
 
 impl Config {
@@ -175,6 +185,16 @@ impl Config {
 
         if let Some(block_time_ms) = args.block_time_ms {
             self.l2.block_time = block_time_ms;
+        }
+
+        if let Some(eth_poll_interval) = args.eth_poll_interval {
+            self.ethereum.poll_interval = eth_poll_interval;
+        }
+        if let Some(solana_poll_interval) = args.solana_poll_interval {
+            self.solana.poll_interval = solana_poll_interval;
+        }
+        if let Some(l2_poll_interval) = args.l2_poll_interval {
+            self.l2.poll_interval = l2_poll_interval;
         }
 
         Ok(self)

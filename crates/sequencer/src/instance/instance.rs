@@ -101,22 +101,21 @@ impl SequencerInstance for TwineSequencerInstance {
 
         #[cfg(feature = "sequencer")]
         {
-            // use std::path::PathBuf;
+            use std::path::PathBuf;
 
-            // use crate::block_progress::block_progress::BlockProducer;
+            use crate::block_progress::block_progress::BlockProducer;
 
-            // let mut block_producer = BlockProducer::new(
-            //     kill_sig_sender.subscribe(),
-            //     config.l2.head_block,
-            //     PathBuf::from(config.l2.jwt_token_path),
-            //     config.l2.auth_rpc_url,
-            //     config.l2.block_time,
-            //     config.l2.fee_recipient,
-            //     self.db.clone(),
-            // );
-            // let block_progress_task = tokio::spawn(async move {
-            // block_producer.progress().await }); join_handles.
-            // push(block_progress_task);
+            let mut block_producer = BlockProducer::new(
+                kill_sig_sender.subscribe(),
+                config.l2.head_block.clone(),
+                PathBuf::from(config.l2.jwt_token_path.clone()),
+                config.l2.auth_rpc_url.clone(),
+                config.l2.block_time,
+                config.l2.fee_recipient.clone(),
+                self.db.clone(),
+            );
+            let block_progress_task = tokio::spawn(async move { block_producer.progress().await });
+            join_handles.push(block_progress_task);
         }
 
         #[cfg(feature = "verifier")]
