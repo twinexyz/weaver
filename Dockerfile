@@ -63,7 +63,7 @@ RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
     cd bin/client && \
     cargo update && \
     cd ../.. && \
-    cargo build --release --bin rsp --features $FEATURES
+    cargo build --release --bin rsp --no-default-features --features $FEATURES 
 
 RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
     --mount=type=secret,id=github_username,env=GITHUB_USERNAME \
@@ -74,8 +74,10 @@ RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
 RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
     --mount=type=secret,id=github_username,env=GITHUB_USERNAME \
     git clone --branch v0.1.0-testnet https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${GITHUB_ORGANIZATION}/merlin.git && \
-    cd merlin && \
-    cargo build --release
+    cd merlin/withdraw-prover && \
+    cargo build --release --no-default-features --features ${FEATURES} && \
+    cd ../l1-txns-prover && \
+    cargo build --release 
 
 FROM nvidia/cuda:12.9.1-cudnn-runtime-ubuntu24.04 AS final
 
