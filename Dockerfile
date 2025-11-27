@@ -63,7 +63,7 @@ RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
     cd bin/client && \
     cargo update && \
     cd ../.. && \
-    cargo build --release --bin rsp --no-default-features --features $FEATURES 
+    cargo build --release --bin rsp --no-default-features --features $FEATURES
 
 RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
     --mount=type=secret,id=github_username,env=GITHUB_USERNAME \
@@ -77,7 +77,7 @@ RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
     cd merlin/withdraw-prover && \
     cargo build --release --no-default-features --features ${FEATURES} && \
     cd ../l1-txns-prover && \
-    cargo build --release 
+    cargo build --release
 
 FROM nvidia/cuda:12.9.1-cudnn-runtime-ubuntu24.04 AS final
 
