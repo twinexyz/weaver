@@ -36,23 +36,37 @@ impl WithdrawalEventPoller {
                     continue;
                 }
             };
-            let last_finalized_batch = match l1_sender.get_last_finalized_batch().await {
-                Ok(batch) => {
-                    if batch == 0 {
-                        warn!(
-                            "Chain {} has no finalized batches yet, skipping",
-                            chain_config.chain_id
+
+            let last_finalized_batch = if chain_config.is_centralized_bridge {
+                match twine_provider.batch_client.get_latest_batch().await {
+                    Ok(batch) => batch,
+                    Err(e) => {
+                        error!(
+                            "Failed to get latest batch for centralized bridge: {}, skipping",
+                            e
                         );
                         continue;
                     }
-                    batch
                 }
-                Err(e) => {
-                    error!(
-                        "Failed to get finalized batch for chain {}: {}, skipping",
-                        chain_config.chain_id, e
-                    );
-                    continue;
+            } else {
+                match l1_sender.get_last_finalized_batch().await {
+                    Ok(batch) => {
+                        if batch == 0 {
+                            warn!(
+                                "Chain {} has no finalized batches yet, skipping",
+                                chain_config.chain_id
+                            );
+                            continue;
+                        }
+                        batch
+                    }
+                    Err(e) => {
+                        error!(
+                            "Failed to get finalized batch for chain {}: {}, skipping",
+                            chain_config.chain_id, e
+                        );
+                        continue;
+                    }
                 }
             };
 
@@ -130,10 +144,12 @@ impl WithdrawalEventPoller {
                         l1_chain_id: chain_id,
                         l2_transaction_hash: event.l2_transaction_hash.unwrap_or_default(),
                         l1_token: event.l1_token,
+                        l2_token: event.l2_token,
                         l1_address: event.l1_address,
                         nonce,
                         height: event.l2_block_height as u64,
                         status: event.handle_status.unwrap_or(0) as u16,
+                        amount: event.amount,
                     })
                 })
                 .collect();

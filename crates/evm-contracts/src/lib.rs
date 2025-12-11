@@ -155,3 +155,28 @@ pub mod l1_message_handler {
         "artifacts/L1MessageHandler.json"
     );
 }
+
+pub mod centralized_twine_messenger {
+    use alloy_sol_types::sol;
+    use serde::{Deserialize, Serialize};
+    sol!(
+        #[allow(missing_docs)]
+        #[sol(rpc)]
+        #[derive(Serialize, Deserialize, Debug)]
+        CentralizedTwineMessenger,
+        "artifacts/CentralizedTwineMessenger.json"
+    );
+
+    sol! {
+    #[derive(Serialize, Deserialize, Debug)]
+    struct L2WithdrawValues {
+        uint64 batchNumber;
+        uint64 nonce;
+        bytes32 batchHash;
+        string to;
+        string l1Token;
+        string l2Token;
+        string amount;
+    }
+    }
+}

@@ -1,10 +1,12 @@
 use std::collections::hash_map::Values;
 use std::collections::HashMap;
 
+use reth_tracing::tracing::info;
+
 use crate::chains::ethereum::sender::EthereumSender;
 use crate::chains::solana::sender::SolanaSender;
 use crate::chains::L1TransactionSender;
-use crate::config::ChainConfig;
+use crate::config::{initialize_chains, ChainConfig};
 
 #[derive(Clone, Debug)]
 /// L1 sender factory
@@ -15,7 +17,11 @@ pub struct L1SenderFactory {
 
 impl L1SenderFactory {
     /// Create a new L1 sender factory
-    pub fn new(chains: HashMap<String, ChainConfig>) -> Self { Self { chains } }
+    pub fn new(chains: HashMap<String, ChainConfig>) -> Self {
+        initialize_chains(&chains).expect("failed to initialize chains");
+        info!("chains initialized");
+        Self { chains }
+    }
 
     /// Get the chain by ID
     pub fn get_chain_by_id(&self, chain_id: u64) -> Option<&ChainConfig> {
@@ -35,6 +41,14 @@ impl L1SenderFactory {
             }
             "solana" => {
                 let sender = SolanaSender::new(chain.clone()).await.ok()?;
+                Some(Box::new(sender))
+            }
+            "base" => {
+                let sender = EthereumSender::new(chain.clone()).await.ok()?;
+                Some(Box::new(sender))
+            }
+            "arbitrum" => {
+                let sender = EthereumSender::new(chain.clone()).await.ok()?;
                 Some(Box::new(sender))
             }
             _ => None,

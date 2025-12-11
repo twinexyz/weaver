@@ -1,10 +1,15 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::str::FromStr as _;
+use std::sync::OnceLock;
 
 use alloy_primitives::Address;
+use eyre::eyre;
+use reth_tracing::tracing::{debug, error};
 use serde::{Deserialize, Serialize};
 use solana_sdk::pubkey::Pubkey;
+
+use crate::metrics;
 
 /// The main application configuration structure.
 #[derive(Debug, Deserialize, Clone, Serialize)]
@@ -21,7 +26,6 @@ pub struct AppCfg {
     #[serde(default)]
     pub telemetry: Option<TelemetryConfig>,
 }
-
 /// Telemetry configuration for metrics and monitoring
 #[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct TelemetryConfig {
@@ -70,6 +74,8 @@ pub struct ChainConfig {
     pub max_retries: u32,
     /// Retry delay for transaction processing
     pub retry_delay: u64,
+    /// flag for centralized bridge
+    pub is_centralized_bridge: bool,
 }
 
 /// EVM-based chain contracts
@@ -270,7 +276,7 @@ impl ChainConfig {
         }
 
         // Validate chain type matches expected values
-        let valid_chain_types = ["ethereum", "solana"];
+        let valid_chain_types = ["ethereum", "solana", "base", "arbitrum"];
         if !valid_chain_types.contains(&self.chain.as_str()) {
             return Err(eyre::eyre!(
                 "Chain '{}': Invalid chain type '{}'. Must be one of: {}",
@@ -416,4 +422,63 @@ impl TwineConfig {
 
         Ok(())
     }
+}
+
+pub static CHAINS_CELL: OnceLock<HashMap<L1Chain, u64>> = OnceLock::new();
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
+pub enum L1Chain {
+    Ethereum,
+    Solana,
+    Arbitrum,
+    Base,
+}
+
+impl L1Chain {
+    /// Convert the L1 chain to its corresponding chain ID
+    pub fn to_chain_id(&self) -> u64 {
+        *CHAINS_CELL
+            .get()
+            .expect("CHAINS_CELL must be initialized before calling to_chain_id")
+            .get(self)
+            .expect("no corresponding chain id found for chain variant")
+    }
+
+    /// Convert a chain ID to its corresponding L1 chain
+    pub fn from_chain_id(chain_id: u64) -> Option<L1Chain> {
+        CHAINS_CELL.get().and_then(|map| {
+            map.iter()
+                .find(|(_, id)| **id == chain_id)
+                .map(|(chain, _)| *chain)
+        })
+    }
+}
+
+pub fn initialize_chains(l1s: &HashMap<String, ChainConfig>) -> eyre::Result<()> {
+    debug!("initializing chains");
+    let mut map = HashMap::new();
+    if let Some(arbitrum) = l1s.get("arbitrum") {
+        map.insert(L1Chain::Arbitrum, arbitrum.chain_id);
+        // metrics::record_chain_identifier(arbitrum.chain_id, &arbitrum.name);
+    }
+    if let Some(base) = l1s.get("base") {
+        map.insert(L1Chain::Base, base.chain_id);
+        // metrics::record_chain_identifier(base.chain_id, &base.name);
+    }
+    if let Some(ethereum) = l1s.get("ethereum") {
+        map.insert(L1Chain::Ethereum, ethereum.chain_id);
+        // metrics::record_chain_identifier(ethereum.chain_id, &ethereum.name);
+    }
+    if let Some(solana) = l1s.get("solana") {
+        map.insert(L1Chain::Solana, solana.chain_id);
+        // metrics::record_chain_identifier(solana.chain_id, &solana.name);
+    }
+
+    if CHAINS_CELL.set(map).is_err() {
+        error!("CHAINS_CELL was already initialized; re-initialization is not allowed");
+        return Err(eyre!("CHAINS_CELL already initialized"));
+    }
+
+    debug!("CHAINS_CELL initialized successfully");
+    Ok(())
 }

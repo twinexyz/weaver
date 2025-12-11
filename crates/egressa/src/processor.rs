@@ -1,13 +1,17 @@
 use std::collections::HashMap;
+use std::str::FromStr as _;
 use std::sync::Arc;
 
-use alloy_primitives::Bytes;
+use alloy_primitives::{Bytes, FixedBytes};
+use alloy_sol_types::SolValue;
 use reth_tracing::tracing::{debug, error, info, warn};
 use tokio::sync::Semaphore;
+use twine_evm_contracts::centralized_twine_messenger::L2WithdrawValues;
 use twine_types::proofs::ProofData;
 
 use crate::chains::factory::L1SenderFactory;
 use crate::chains::twine::provider::TwineProvider;
+use crate::config::L1Chain;
 use crate::database::client::DbClient;
 use crate::proof_generator::ProofGenerator;
 use crate::types::{WithdrawalEvent, WithdrawalEventStatus, WithdrawalEventWithProofs};
@@ -125,51 +129,55 @@ impl WithdrawalProcessor {
             chain_id, withdrawal_event.event_type, withdrawal_event.height, withdrawal_event.l2_transaction_hash
         );
 
-        // Generate proof for the withdrawal event
-        let generated_proof = match self.proof_generator.generate_proof(&withdrawal_event).await {
-            Ok(zk_proof) => zk_proof,
-            Err(e) => {
-                error!(
-                    "Failed to generate proof for withdrawal event {} after retries: {}",
-                    withdrawal_event.l2_transaction_hash, e
-                );
+        let l1_chain =
+            L1Chain::from_chain_id(chain_id).expect("no corresponding L1 chain found for chain ID");
 
-                let status = WithdrawalEventStatus {
-                    is_processed: false,
-                    is_failed: true,
-                    failure_reason: Some(e.to_string()),
-                    process_txn_hash: None,
-                };
-
-                if let Err(db_err) = self
-                    .db_client
-                    .egressa()
-                    .insert_withdrawal_event_with_proofs_and_status(
-                        WithdrawalEventWithProofs {
-                            withdrawal_event,
-                            public_values: Vec::new(),
-                            proof: Vec::new(),
-                        },
-                        status,
-                    )
-                    .await
-                {
+        let (public_values, proof) = if l1_chain == L1Chain::Base || l1_chain == L1Chain::Arbitrum {
+            get_public_values(withdrawal_event.clone(), self.twine_provider.clone())
+                .await
+                .unwrap_or((Vec::new(), Vec::new()))
+        } else {
+            // Generate proof for the withdrawal event
+            match self.proof_generator.generate_proof(&withdrawal_event).await {
+                Ok(zk_proof) => match zk_proof.proof_data {
+                    ProofData::SP1(sp1_proof) => (sp1_proof.public_value, sp1_proof.proof),
+                },
+                Err(e) => {
                     error!(
-                        "Failed to insert withdrawal event with proof generation error status: {}",
-                        db_err
+                        "Failed to generate proof for withdrawal event {} after retries: {}",
+                        withdrawal_event.l2_transaction_hash, e
                     );
-                }
 
-                return;
+                    let status = WithdrawalEventStatus {
+                        is_processed: false,
+                        is_failed: true,
+                        failure_reason: Some(e.to_string()),
+                        process_txn_hash: None,
+                    };
+
+                    if let Err(db_err) = self
+                        .db_client
+                        .egressa()
+                        .insert_withdrawal_event_with_proofs_and_status(
+                            WithdrawalEventWithProofs {
+                                withdrawal_event,
+                                public_values: Vec::new(),
+                                proof: Vec::new(),
+                            },
+                            status,
+                        )
+                        .await
+                    {
+                        error!(
+            "Failed to insert withdrawal event with proof generation error status: {}",
+            db_err
+        );
+                    }
+
+                    return;
+                }
             }
         };
-
-        let proof = generated_proof.proof_data;
-
-        let ProofData::SP1(proof_data) = proof;
-
-        let public_values = proof_data.public_value;
-        let proof = proof_data.proof;
 
         // Get the L1 sender for this chain
         let l1_sender = match self.l1_sender_factory.get_l1_provider(chain_id).await {
@@ -261,4 +269,50 @@ impl WithdrawalProcessor {
             }
         }
     }
+}
+
+async fn get_public_values(
+    withdrawal_event: WithdrawalEvent,
+    twine_provider: TwineProvider,
+) -> eyre::Result<(Vec<u8>, Vec<u8>)> {
+    let tx_hash = FixedBytes::from_str(withdrawal_event.l2_transaction_hash.as_str())
+        .expect("Invalid transaction hash");
+    let tx_receipt = twine_provider.get_transaction_receipt(tx_hash).await?;
+    if !tx_receipt.status() {
+        return Err(eyre::eyre!("Transaction failed on twine"));
+    }
+
+    let batch_number = twine_provider
+        .batch_client
+        .get_batch_number_for_block(withdrawal_event.height)
+        .await?;
+    let batch_meta = twine_provider
+        .batch_client
+        .get_full_batch(batch_number, Some(true))
+        .await?;
+
+    let batch_hash = FixedBytes::from_str(
+        batch_meta
+            .batch_hash()
+            .unwrap_or_default()
+            .to_string()
+            .as_str(),
+    )
+    .expect("Invalid batch hash");
+
+    let l2_withdraw_values = L2WithdrawValues {
+        batchNumber: batch_meta.batch_number(),
+        nonce: withdrawal_event.nonce,
+        batchHash: batch_hash,
+        to: withdrawal_event.l1_address,
+        l1Token: withdrawal_event.l1_token,
+        l2Token: withdrawal_event.l2_token,
+        amount: withdrawal_event.amount,
+    };
+
+    info!("L2 withdraw values: {:?}", l2_withdraw_values);
+    let public_values = L2WithdrawValues::abi_encode_packed(&l2_withdraw_values);
+    info!("Public values: {:?}", public_values);
+    let proof = Vec::new();
+    Ok((public_values, proof))
 }

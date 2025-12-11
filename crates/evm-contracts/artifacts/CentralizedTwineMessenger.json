@@ -1,0 +1,433 @@
+[
+    {
+      "type": "constructor",
+      "inputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "ERC20Gateway",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "counterpart",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "ethGateway",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "executeL2Withdraw",
+      "inputs": [
+        {
+          "name": "withdrawParams",
+          "type": "bytes",
+          "internalType": "bytes"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "feeVault",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "initialize",
+      "inputs": [
+        {
+          "name": "_counterpart",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "_roleManager",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "isL2WithdrawExecuted",
+      "inputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "messageIndex",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint64",
+          "internalType": "uint64"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "roleManager",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "sendMessage",
+      "inputs": [
+        {
+          "name": "txnType",
+          "type": "uint8",
+          "internalType": "enum ITwineL1MessengerBase.TransactionType"
+        },
+        {
+          "name": "from",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "to",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "l1Token",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "l2Token",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "amount",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "message",
+          "type": "bytes",
+          "internalType": "bytes"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "payable"
+    },
+    {
+      "type": "function",
+      "name": "setChainId",
+      "inputs": [
+        {
+          "name": "_chainId",
+          "type": "uint64",
+          "internalType": "uint64"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "setCounterpartMessenger",
+      "inputs": [
+        {
+          "name": "_counterpart",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "setFeeVault",
+      "inputs": [
+        {
+          "name": "_feeVault",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "setGatewayAddress",
+      "inputs": [
+        {
+          "name": "_ethGateway",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "_ERC20Gateway",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "setRoleManager",
+      "inputs": [
+        {
+          "name": "_roleManagerAddress",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "xDomainMessageSender",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "event",
+      "name": "ChainIdUpdated",
+      "inputs": [
+        {
+          "name": "oldChainId",
+          "type": "uint64",
+          "indexed": true,
+          "internalType": "uint64"
+        },
+        {
+          "name": "newChainId",
+          "type": "uint64",
+          "indexed": true,
+          "internalType": "uint64"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "Initialized",
+      "inputs": [
+        {
+          "name": "version",
+          "type": "uint64",
+          "indexed": false,
+          "internalType": "uint64"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "L2WithdrawExecuted",
+      "inputs": [
+        {
+          "name": "nonce",
+          "type": "uint64",
+          "indexed": false,
+          "internalType": "uint64"
+        },
+        {
+          "name": "l1Token",
+          "type": "string",
+          "indexed": true,
+          "internalType": "string"
+        },
+        {
+          "name": "l2Token",
+          "type": "string",
+          "indexed": false,
+          "internalType": "string"
+        },
+        {
+          "name": "receiver",
+          "type": "string",
+          "indexed": true,
+          "internalType": "string"
+        },
+        {
+          "name": "amount",
+          "type": "string",
+          "indexed": true,
+          "internalType": "string"
+        },
+        {
+          "name": "blockNumber",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "MessageTransaction",
+      "inputs": [
+        {
+          "name": "txnType",
+          "type": "uint8",
+          "indexed": false,
+          "internalType": "enum TwineTypes.TransactionType"
+        },
+        {
+          "name": "nonce",
+          "type": "uint64",
+          "indexed": false,
+          "internalType": "uint64"
+        },
+        {
+          "name": "chainId",
+          "type": "uint64",
+          "indexed": false,
+          "internalType": "uint64"
+        },
+        {
+          "name": "blockNumber",
+          "type": "uint64",
+          "indexed": false,
+          "internalType": "uint64"
+        },
+        {
+          "name": "l1Token",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "l2Token",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "l1Address",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "twineAddress",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "amount",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "message",
+          "type": "bytes",
+          "indexed": false,
+          "internalType": "bytes"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "error",
+      "name": "ErrorZeroAddress",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "InvalidChainId",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "InvalidInitialization",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "NotInitializing",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "ReentrancyGuardReentrantCall",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "WithdrawalAlreadyProcessed",
+      "inputs": []
+    }
+  ]
