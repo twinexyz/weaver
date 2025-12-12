@@ -310,9 +310,7 @@ async fn get_public_values(
         amount: withdrawal_event.amount,
     };
 
-    info!("L2 withdraw values: {:?}", l2_withdraw_values);
     let public_values = L2WithdrawValues::abi_encode_packed(&l2_withdraw_values);
-    info!("Public values: {:?}", public_values);
     let proof = Vec::new();
     Ok((public_values, proof))
 }
