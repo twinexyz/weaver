@@ -123,6 +123,7 @@ impl SequencerInstance for TwineSequencerInstance {
             use tokio::sync::mpsc;
 
             use crate::chain_watcher::manager::ChainWatcherManager;
+            use crate::da::workers::DAWorker;
             use crate::verification::state_aggregator::StateAggregator;
             use crate::verification::state_verifier::StateVerifier;
 
@@ -146,11 +147,22 @@ impl SequencerInstance for TwineSequencerInstance {
             )
             .await?;
 
+            let (da_sender, da_handle) = match DAWorker::from_config(config.da.clone()).await {
+                Ok((worker, handle)) => (worker.batch_tx, handle),
+                Err(e) => {
+                    return Err(TwineSequencerError::Other(format!(
+                        "Failed to initialize DA worker: {}",
+                        e
+                    )));
+                }
+            };
+
             let mut state_verifier = StateVerifier::new(
                 kill_sig_sender.subscribe(),
                 aggregated_receiver,
                 self.db.clone(),
                 kill_sig_sender.clone(),
+                da_sender,
             )
             .await?;
 
@@ -158,9 +170,10 @@ impl SequencerInstance for TwineSequencerInstance {
 
             let state_verifier_job = tokio::spawn(async move { state_verifier.run().await });
 
-            // Collect all task handles
             join_handles.append(&mut watcher_handles);
-            join_handles.append(&mut vec![state_aggregator_job, state_verifier_job]);
+            join_handles.push(state_aggregator_job);
+            join_handles.push(state_verifier_job);
+            join_handles.push(da_handle);
         }
 
         for handle in join_handles {

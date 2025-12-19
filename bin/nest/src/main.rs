@@ -1,7 +1,6 @@
 //! Twine sequencer binary
 
 use clap::Parser;
-use tokio;
 use tokio::sync::broadcast;
 use twine_sequencer::common::shutdown::ShutdownSignal;
 use twine_sequencer::config::config::Args;
