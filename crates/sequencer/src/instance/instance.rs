@@ -147,8 +147,8 @@ impl SequencerInstance for TwineSequencerInstance {
             )
             .await?;
 
-            let (da_sender, da_handle) = match DAWorker::from_config(config.da.clone()).await {
-                Ok((worker, handle)) => (worker.batch_tx, handle),
+            let (da_sender, da_handles) = match DAWorker::from_config(config.da.clone()).await {
+                Ok((worker, handles)) => (worker.batch_tx, handles),
                 Err(e) => {
                     return Err(TwineSequencerError::Other(format!(
                         "Failed to initialize DA worker: {}",
@@ -170,10 +170,10 @@ impl SequencerInstance for TwineSequencerInstance {
 
             let state_verifier_job = tokio::spawn(async move { state_verifier.run().await });
 
-            join_handles.append(&mut watcher_handles);
+            join_handles.extend(watcher_handles);
             join_handles.push(state_aggregator_job);
             join_handles.push(state_verifier_job);
-            join_handles.push(da_handle);
+            join_handles.extend(da_handles);
         }
 
         for handle in join_handles {

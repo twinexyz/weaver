@@ -8,26 +8,25 @@ use tokio::sync::mpsc::{channel, Receiver, Sender};
 use crate::config::config::DAConfig;
 use crate::da::celestia::CelestiaDA;
 use crate::da::traits::DA;
-use crate::da::types::{BatchInfo, DACheckpoint};
+use crate::da::types::{BatchInfo, DACheckpoint, DACommitment};
 use crate::errors::TwineSequencerError;
 
-/// DA Worker service that manages posting to DA and L1 verification in a
-/// background thread
+/// DA Worker service
 #[derive(Debug)]
 pub struct DAWorker {
-    /// Channel to send batch info for DA processing
+    /// Channel to send batch info for DA posting
     pub batch_tx: Sender<BatchInfo>,
 }
 
 impl DAWorker {
-    /// Create a new DA Worker instance from config and spawn background worker
-    /// Returns the worker and join handle for the worker thread
+    /// Create a new DA Worker instance from config and spawn background workers
+    /// Returns the worker and join handles for both poster and verifier threads
     pub async fn from_config(
         da_config: DAConfig,
     ) -> Result<
         (
             Self,
-            tokio::task::JoinHandle<Result<(), TwineSequencerError>>,
+            Vec<tokio::task::JoinHandle<Result<(), TwineSequencerError>>>,
         ),
         TwineSequencerError,
     > {
@@ -37,31 +36,26 @@ impl DAWorker {
 
         tracing::info!(target: "da_worker", "Celestia DA provider initialized successfully");
 
+        // channel for incoming batches to be posted to DA
         let (batch_tx, batch_rx) = channel::<BatchInfo>(100);
 
-        let handle = tokio::spawn(Self::worker_loop(Arc::new(provider), batch_rx));
+        // channel for verifing commitments after posting to DA
+        // large buffer since verification is slow (~1 hour)
+        let (commitment_tx, commitment_rx) = channel::<(BatchInfo, DACommitment)>(1000);
+
+        let provider_arc = Arc::new(provider);
+
+        let poster_handle = tokio::spawn(Self::poster_loop(
+            provider_arc.clone(),
+            batch_rx,
+            commitment_tx,
+        ));
+
+        let verifier_handle = tokio::spawn(Self::verifier_loop(provider_arc, commitment_rx));
 
         let worker = Self { batch_tx };
 
-        Ok((worker, handle))
-    }
-
-    /// Create a new DA Worker instance with a custom DA provider and spawn
-    /// background worker Returns the worker and join handle for the worker
-    /// thread
-    pub fn new<T: DA + Send + Sync + 'static>(
-        da_provider: Arc<T>,
-    ) -> (
-        Self,
-        tokio::task::JoinHandle<Result<(), TwineSequencerError>>,
-    ) {
-        let (batch_tx, batch_rx) = channel::<BatchInfo>(100);
-
-        let handle = tokio::spawn(Self::worker_loop(da_provider, batch_rx));
-
-        let worker = Self { batch_tx };
-
-        (worker, handle)
+        Ok((worker, vec![poster_handle, verifier_handle]))
     }
 
     /// Send a batch to the DA worker for processing
@@ -71,36 +65,30 @@ impl DAWorker {
         })
     }
 
-    /// DA worker loop that processes DA operations in the background
-    async fn worker_loop<T: DA>(
+    /// Poster worker loop
+    async fn poster_loop<T: DA>(
         da_provider: Arc<T>,
         mut batch_rx: Receiver<BatchInfo>,
+        commitment_tx: Sender<(BatchInfo, DACommitment)>,
     ) -> Result<(), TwineSequencerError> {
-        tracing::info!(target = "da_worker", "DA worker thread started");
+        tracing::info!(target = "da_poster", "DA poster thread started");
 
         while let Some(batch_info) = batch_rx.recv().await {
             let batch_number = batch_info.batch_num;
 
-            // Post batch to DA and get commitment
-            tracing::debug!(
-                target = "da_worker",
-                batch_number = batch_number,
-                "Posting verified batch to DA"
-            );
-
             let commitment = match da_provider.post_to_da(batch_info.clone()).await {
                 Ok(c) => {
                     tracing::info!(
-                        target = "da_worker",
+                        target = "da_poster",
                         batch_number = batch_number,
                         da_height = c.height,
-                        "Batch posted to DA"
+                        "Batch posted to DA successfully"
                     );
                     c
                 }
                 Err(e) => {
-                    tracing::warn!(
-                        target = "da_worker",
+                    tracing::error!(
+                        target = "da_poster",
                         batch_number = batch_number,
                         error = %e,
                         "Failed to post batch to DA"
@@ -109,14 +97,46 @@ impl DAWorker {
                 }
             };
 
-            // Get DA existence proof
+            // Forward to verifier
+            if let Err(e) = commitment_tx.send((batch_info, commitment)).await {
+                tracing::error!(
+                    target = "da_poster",
+                    batch_number = batch_number,
+                    error = %e,
+                    "Failed to send commitment to verifier"
+                );
+            } else {
+                tracing::debug!(
+                    target = "da_poster",
+                    batch_number = batch_number,
+                    "Commitment forwarded to verifier"
+                );
+            }
+        }
+
+        tracing::info!(target = "da_poster", "DA poster thread stopped");
+        Ok(())
+    }
+
+    /// Verifier worker loop
+    async fn verifier_loop<T: DA>(
+        da_provider: Arc<T>,
+        mut commitment_rx: Receiver<(BatchInfo, DACommitment)>,
+    ) -> Result<(), TwineSequencerError> {
+        tracing::info!(target = "da_verifier", "DA verifier thread started");
+
+        while let Some((batch_info, commitment)) = commitment_rx.recv().await {
+            let batch_number = batch_info.batch_num;
+
+            // Get DA existence proof (waits for Blobstream, takes ~1 hour to be available
+            // on L1)
             let proof = match da_provider
                 .get_da_existence_proof(batch_info.clone(), commitment.clone())
                 .await
             {
                 Ok(p) => {
                     tracing::info!(
-                        target = "da_worker",
+                        target = "da_verifier",
                         batch_number = batch_number,
                         proof_nonce = p.proof_nonce,
                         "DA existence proof obtained"
@@ -124,17 +144,20 @@ impl DAWorker {
                     p
                 }
                 Err(e) => {
-                    tracing::warn!(
-                        target = "da_worker",
+                    tracing::error!(
+                        target = "da_verifier",
                         batch_number = batch_number,
                         error = %e,
                         "Failed to get DA existence proof"
                     );
-                    continue;
+                    return Err(TwineSequencerError::DAError(format!(
+                        "Failed to get DA existence proof for batch {batch_number}: {e} 
+                    "
+                    )));
                 }
             };
 
-            // Verify checkpoint on L1
+            // Verify on L1
             let checkpoint = DACheckpoint {
                 batch_info,
                 da_commitment: commitment,
@@ -144,23 +167,27 @@ impl DAWorker {
             match da_provider.verify_da_on_l1(checkpoint).await {
                 Ok(()) => {
                     tracing::info!(
-                        target = "da_worker",
+                        target = "da_verifier",
                         batch_number = batch_number,
-                        "DA checkpoint verified on L1"
+                        "DA checkpoint verified on L1 successfully"
                     );
                 }
                 Err(e) => {
-                    tracing::warn!(
-                        target = "da_worker",
+                    tracing::error!(
+                        target = "da_verifier",
                         batch_number = batch_number,
                         error = %e,
                         "Failed to verify DA checkpoint on L1"
                     );
+                    return Err(TwineSequencerError::DAError(format!(
+                        "Failed to verify DA checkpoint on L1 for batch {batch_number}: {e}
+                    "
+                    )));
                 }
             }
         }
 
-        tracing::info!(target = "da_worker", "DA worker thread stopped");
+        tracing::info!(target = "da_verifier", "DA verifier thread stopped");
         Ok(())
     }
 }
