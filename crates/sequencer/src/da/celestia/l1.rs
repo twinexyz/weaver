@@ -8,6 +8,29 @@ use crate::config::config::DAConfig;
 use crate::da::types::{DACommitment, DAExistenceProof, DataCommitmentInfo};
 use crate::errors::TwineSequencerError;
 
+/// Check if a Celestia height is available on L1 by querying the latestBlock
+/// from the `SP1Blobstream` contract
+pub async fn height_exists_on_l1(
+    config: &DAConfig,
+    celestia_height: u64,
+) -> Result<bool, TwineSequencerError> {
+    let address: Address = config
+        .blobstream_contract
+        .parse()
+        .map_err(|e| TwineSequencerError::Other(format!("Invalid contract address: {e}")))?;
+
+    let provider = ProviderBuilder::new().connect_http(config.eth_rpc_url.parse().unwrap());
+    let contract = SP1Blobstream::new(address, provider);
+
+    let latest_block = contract.latestBlock().call().await.map_err(|e| {
+        TwineSequencerError::Other(format!(
+            "Failed to fetch latest block from Blobstream contract: {e}"
+        ))
+    })?;
+
+    Ok(celestia_height <= latest_block)
+}
+
 /// Check if any log covers the target Celestia height
 fn check_logs_for_height(
     logs: &[alloy_rpc_types::Log],

@@ -11,6 +11,9 @@ pub trait DA: Send + Sync {
     /// Posts batch information to DA layer
     async fn post_to_da(&self, batch_info: BatchInfo) -> Result<DACommitment, TwineSequencerError>;
 
+    /// Check if DA's block is available on L1 yet
+    async fn height_exists_on_l1(&self, celestia_height: u64) -> Result<bool, TwineSequencerError>;
+
     /// Retrieves DA existence proof for a posted batch
     async fn get_da_existence_proof(
         &self,

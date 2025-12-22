@@ -22,7 +22,11 @@ l2:
 da:
   rpc_url: "http://127.0.0.1:26658"
   namespace_id: "00000000746f77696e65"
-  poll_interval: 5000
+  auth_token: ""
+  consensus_rpc_url: "http://127.0.0.1:26657"
+  eth_rpc_url: "http://127.0.0.1:8570"
+  blobstream_contract: "0x0000000000000000000000000000000000000000"
+  verifier_poll_interval: 5000
 extras:
   verifer_channel_buffer_size: 10
 db:

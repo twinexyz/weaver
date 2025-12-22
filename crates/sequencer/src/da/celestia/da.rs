@@ -126,6 +126,13 @@ impl DA for CelestiaDA {
         })
     }
 
+    async fn height_exists_on_l1(
+        &self,
+        celestia_height: u64,
+    ) -> Result<bool, TwineSequencerError> {
+        l1::height_exists_on_l1(&self.config, celestia_height).await
+    }
+
     async fn get_da_existence_proof(
         &self,
         _batch_info: BatchInfo,

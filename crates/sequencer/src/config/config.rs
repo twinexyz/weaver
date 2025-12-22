@@ -53,8 +53,12 @@ pub struct Args {
     pub da_rpc: Option<String>,
     #[arg(long, env = "NEST_DA_NAMESPACE_ID", value_name = "NAMESPACE")]
     pub da_namespace_id: Option<String>,
-    #[arg(long, env = "NEST_DA_POLL_INTERVAL", value_name = "MILLISECONDS")]
-    pub da_poll_interval: Option<u64>,
+    #[arg(
+        long,
+        env = "NEST_DA_VERIFIER_POLL_INTERVAL",
+        value_name = "MILLISECONDS"
+    )]
+    pub da_verifier_poll_interval: Option<u64>,
     #[arg(long, env = "CELESTIA_NODE_AUTH_TOKEN", value_name = "TOKEN")]
     pub celestia_auth_token: Option<String>,
     #[arg(long, env = "CELESTIA_CONSENSUS_RPC", value_name = "URL")]
@@ -102,8 +106,6 @@ pub struct DAConfig {
     pub rpc_url: String,
     /// Namespace ID for rollup data
     pub namespace_id: String,
-    /// Polling interval in milliseconds
-    pub poll_interval: u64,
     /// Authentication token for Celestia node
     pub auth_token: String,
     /// Consensus RPC URL for inclusion proofs
@@ -112,6 +114,8 @@ pub struct DAConfig {
     pub eth_rpc_url: String,
     /// SP1 Blobstream contract address on L1
     pub blobstream_contract: String,
+    /// Verifier polling interval in milliseconds
+    pub verifier_poll_interval: u64,
 }
 
 #[allow(missing_docs)]
@@ -239,9 +243,10 @@ impl Config {
         if let Some(da_namespace_id) = args.da_namespace_id {
             self.da.namespace_id = da_namespace_id;
         }
-        if let Some(da_poll_interval) = args.da_poll_interval {
-            self.da.poll_interval = da_poll_interval;
+        if let Some(da_verifier_poll_interval) = args.da_verifier_poll_interval {
+            self.da.verifier_poll_interval = da_verifier_poll_interval;
         }
+
         if let Some(auth_token) = args.celestia_auth_token {
             self.da.auth_token = auth_token;
         }
