@@ -139,7 +139,7 @@ impl Config {
     pub fn load(cfg_path: &str) -> Result<Self, TwineSequencerError> {
         let config_file =
             File::open(cfg_path).map_err(|e| TwineSequencerError::Other(e.to_string()))?;
-        let config: Config = serde_yaml::from_reader(config_file)
+        let config: Self = serde_yaml::from_reader(config_file)
             .map_err(|e| TwineSequencerError::Other(e.to_string()))?;
         Ok(config)
     }

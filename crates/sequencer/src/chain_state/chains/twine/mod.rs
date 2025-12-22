@@ -1,7 +1,7 @@
 //! Twine L2 chain state watcher
 
 mod provider;
-mod twine_rpc_client;
+mod rpc_client;
 
 pub use provider::L2ChainProvider;
 

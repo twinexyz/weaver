@@ -151,7 +151,7 @@ impl DAWorker {
                         "Failed to get DA existence proof"
                     );
                     return Err(TwineSequencerError::DAError(format!(
-                        "Failed to get DA existence proof for batch {batch_number}: {e} 
+                        "Failed to get DA existence proof for batch {batch_number}: {e}
                     "
                     )));
                 }

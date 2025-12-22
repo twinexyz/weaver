@@ -1,6 +1,6 @@
 //! Data types for DA layer integration
 
-use alloy_primitives::{FixedBytes, U256};
+use alloy_primitives::FixedBytes;
 use serde::{Deserialize, Serialize};
 
 /// Batch information to be posted to DA

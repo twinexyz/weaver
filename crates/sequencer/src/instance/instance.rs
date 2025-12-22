@@ -67,7 +67,7 @@ impl SequencerInstance for TwineSequencerInstance {
             for cf in consts::DEFAULT_DB_NAMESPACES {
                 let cf = cf.to_string();
                 if !db_cf.contains(&cf) {
-                    db_cf.push(cf.to_string());
+                    db_cf.push(cf.clone());
                 }
             }
 
@@ -128,7 +128,7 @@ impl SequencerInstance for TwineSequencerInstance {
             use crate::verification::state_verifier::StateVerifier;
 
             // Spawn all chain watchers and get task handles
-            let mut watcher_handles = ChainWatcherManager::spawn_all(
+            let watcher_handles = ChainWatcherManager::spawn_all(
                 kill_sig_sender.subscribe(),
                 config.clone(),
                 self.db.clone(),

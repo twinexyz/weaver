@@ -89,8 +89,8 @@ impl L2RpcClient {
         let response = self.send_request::<BatchHashResponse>(request).await?;
         match response {
             Some(hash_str) => {
-                let hash_str = if hash_str.starts_with("0x") {
-                    &hash_str[2..]
+                let hash_str = if let Some(stripped) = hash_str.strip_prefix("0x") {
+                    stripped
                 } else {
                     &hash_str
                 };

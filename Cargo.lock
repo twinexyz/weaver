@@ -4141,7 +4141,6 @@ version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c606d892c9de11507fa0dcffc116434f94e105d0bbdc4e405b61519464c49d7b"
 dependencies = [
- "eyre",
  "paste",
 ]
 
@@ -7347,33 +7346,6 @@ checksum = "83a0692ec44e4cf1ef28ca317f14f8f07da2d95ec3fa01f86e4467b725e60917"
 dependencies = [
  "digest 0.10.7",
 ]
-
-[[package]]
-name = "peg"
-version = "0.8.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9928cfca101b36ec5163e70049ee5368a8a1c3c6efc9ca9c5f9cc2f816152477"
-dependencies = [
- "peg-macros",
- "peg-runtime",
-]
-
-[[package]]
-name = "peg-macros"
-version = "0.8.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6298ab04c202fa5b5d52ba03269fb7b74550b150323038878fe6c372d8280f71"
-dependencies = [
- "peg-runtime",
- "proc-macro2",
- "quote",
-]
-
-[[package]]
-name = "peg-runtime"
-version = "0.8.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "132dca9b868d927b35b5dd728167b2dee150eb1ad686008fc71ccb298b776fca"
 
 [[package]]
 name = "pem"
@@ -15215,20 +15187,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tendermint-config"
-version = "0.39.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8add7b85b0282e5901521f78fe441956ac1e2752452f4e1f2c0ce7e1f10d485"
-dependencies = [
- "flex-error",
- "serde",
- "serde_json",
- "tendermint 0.39.1",
- "toml 0.8.23",
- "url",
-]
-
-[[package]]
 name = "tendermint-proto"
 version = "0.39.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -15256,35 +15214,6 @@ dependencies = [
  "serde_bytes",
  "subtle-encoding",
  "time",
-]
-
-[[package]]
-name = "tendermint-rpc"
-version = "0.39.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9693f42544bf3b41be3cbbfa418650c86e137fb8f5a57981659a84b677721ecf"
-dependencies = [
- "async-trait",
- "bytes",
- "flex-error",
- "getrandom 0.2.16",
- "peg",
- "pin-project",
- "rand 0.8.5",
- "semver 1.0.27",
- "serde",
- "serde_bytes",
- "serde_json",
- "subtle",
- "subtle-encoding",
- "tendermint 0.39.1",
- "tendermint-config",
- "tendermint-proto 0.39.1",
- "thiserror 1.0.69",
- "time",
- "url",
- "uuid",
- "walkdir",
 ]
 
 [[package]]
@@ -16693,7 +16622,7 @@ dependencies = [
  "alloy-signer-local",
  "alloy-sol-types",
  "async-trait",
- "base64 0.21.7",
+ "base64 0.22.1",
  "borsh 1.6.0",
  "celestia-rpc",
  "celestia-types",
@@ -16716,7 +16645,6 @@ dependencies = [
  "solana-client",
  "solana-sdk",
  "tendermint 0.39.1",
- "tendermint-rpc",
  "thiserror 2.0.17",
  "tokio",
  "tracing",

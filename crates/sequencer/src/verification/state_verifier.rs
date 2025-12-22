@@ -15,7 +15,7 @@ use crate::da::types::BatchInfo;
 use crate::errors::TwineSequencerError;
 use crate::verification::state_aggregator::AggregatedBatchState;
 
-/// Receives AggregatedBatchState instances from the aggregator,
+/// Receives `AggregatedBatchState` instances from the aggregator,
 /// verifies that all views of the L2 state are consistent across chains,
 /// posts verified batches to DA, and records the verified batch in the DB.
 pub struct StateVerifier {
@@ -47,7 +47,7 @@ impl FmtDebug for StateVerifier {
 }
 
 impl StateVerifier {
-    /// Creates a new StateVerifier instance
+    /// Creates a new `StateVerifier` instance
     pub async fn new(
         kill_sig_recv: KReceiver<ShutdownSignal>,
         aggregated_receiver: Receiver<AggregatedBatchState>,
