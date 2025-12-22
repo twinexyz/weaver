@@ -69,7 +69,10 @@ pub async fn find_commitment_for_height(
         .parse()
         .map_err(|e| TwineSequencerError::Other(format!("Invalid contract address: {e}")))?;
 
-    let provider = ProviderBuilder::new().connect_http(config.eth_rpc_url.parse().unwrap());
+    let provider =
+        ProviderBuilder::new().connect_http(config.eth_rpc_url.parse().map_err(|e| {
+            TwineSequencerError::DAError(format!("Failed to construct Ethereuem Provider: {e}"))
+        })?);
 
     tracing::info!(
         target: "celestia_l1_verification",
@@ -79,14 +82,12 @@ pub async fn find_commitment_for_height(
     );
 
     let lookback = lookback_blocks.unwrap_or(15_000);
-    let batch_size = batch_size.unwrap_or(9);
+    let batch_size = batch_size.unwrap_or(1_000);
 
     let current_block = provider
         .get_block_number()
         .await
         .map_err(|e| TwineSequencerError::Other(format!("Failed to get current block: {e}")))?;
-
-    // let current_block = 9860004u64; // TESTING
 
     let start_block = current_block.saturating_sub(lookback);
 
@@ -97,10 +98,6 @@ pub async fn find_commitment_for_height(
         lookback = lookback,
         batch_size = batch_size,
         "Searching in batches"
-    );
-    println!(
-        "   Searching last {} blocks in batches of {}...",
-        lookback, batch_size
     );
 
     let mut from_block = current_block.saturating_sub(batch_size);

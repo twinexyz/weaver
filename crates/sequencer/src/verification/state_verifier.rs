@@ -47,7 +47,7 @@ impl FmtDebug for StateVerifier {
 }
 
 impl StateVerifier {
-    /// Creates a new `StateVerifier` instance
+    /// Creates a new `StateVerifier` instance.
     pub async fn new(
         kill_sig_recv: KReceiver<ShutdownSignal>,
         aggregated_receiver: Receiver<AggregatedBatchState>,

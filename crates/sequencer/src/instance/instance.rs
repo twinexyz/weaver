@@ -147,15 +147,16 @@ impl SequencerInstance for TwineSequencerInstance {
             )
             .await?;
 
-            let (da_sender, da_handles) = match DAWorker::from_config(config.da.clone()).await {
-                Ok((worker, handles)) => (worker.batch_tx, handles),
-                Err(e) => {
-                    return Err(TwineSequencerError::Other(format!(
-                        "Failed to initialize DA worker: {}",
-                        e
-                    )));
-                }
-            };
+            let (da_sender, da_handles) =
+                match DAWorker::from_config(config.da.clone(), self.db.clone()).await {
+                    Ok((worker, handles)) => (worker.batch_tx, handles),
+                    Err(e) => {
+                        return Err(TwineSequencerError::Other(format!(
+                            "Failed to initialize DA worker: {}",
+                            e
+                        )));
+                    }
+                };
 
             let mut state_verifier = StateVerifier::new(
                 kill_sig_sender.subscribe(),

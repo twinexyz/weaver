@@ -5,8 +5,12 @@ use std::collections::VecDeque;
 use std::sync::Arc;
 
 use tokio::sync::mpsc::{channel, Receiver, Sender};
+use tokio::sync::Mutex;
 use tokio::time::{interval, Duration};
+use twine_sequencer_db::db::SequencerDB;
+use twine_sequencer_db::error::TwineSequencerDBError;
 
+use crate::common::consts::{DA_POSTED_BATCH, NS_DA_BLOB_SUBMITTER};
 use crate::config::config::DAConfig;
 use crate::da::celestia::CelestiaDA;
 use crate::da::traits::DA;
@@ -25,6 +29,16 @@ impl DAWorker {
     /// Returns the worker and join handles for both poster and verifier threads
     pub async fn from_config(
         da_config: DAConfig,
+        db: Arc<
+            Mutex<
+                dyn SequencerDB<
+                    NameSpace = String,
+                    SequencerDBError = TwineSequencerDBError,
+                    Key = String,
+                    Value = String,
+                >,
+            >,
+        >,
     ) -> Result<
         (
             Self,
@@ -42,7 +56,7 @@ impl DAWorker {
         // channel for incoming batches to be posted to DA
         let (batch_tx, batch_rx) = channel::<BatchInfo>(100);
 
-        // channel for verifing commitments after posting to DA
+        // channel for verifying commitments after posting to DA
         // large buffer since verification is slow (~1 hour)
         let (commitment_tx, commitment_rx) = channel::<(BatchInfo, DACommitment)>(1000);
 
@@ -52,6 +66,7 @@ impl DAWorker {
             provider_arc.clone(),
             batch_rx,
             commitment_tx,
+            db,
         ));
 
         let verifier_handle = tokio::spawn(Self::verifier_loop(
@@ -65,18 +80,21 @@ impl DAWorker {
         Ok((worker, vec![poster_handle, verifier_handle]))
     }
 
-    /// Send a batch to the DA worker for processing
-    pub async fn post_batch(&self, batch_info: BatchInfo) -> Result<(), TwineSequencerError> {
-        self.batch_tx.send(batch_info).await.map_err(|e| {
-            TwineSequencerError::Other(format!("Failed to send batch to DA worker: {e}"))
-        })
-    }
-
     /// Poster worker loop
     async fn poster_loop<T: DA>(
         da_provider: Arc<T>,
         mut batch_rx: Receiver<BatchInfo>,
         commitment_tx: Sender<(BatchInfo, DACommitment)>,
+        db: Arc<
+            Mutex<
+                dyn SequencerDB<
+                    NameSpace = String,
+                    SequencerDBError = TwineSequencerDBError,
+                    Key = String,
+                    Value = String,
+                >,
+            >,
+        >,
     ) -> Result<(), TwineSequencerError> {
         tracing::info!(target = "da_poster", "DA poster thread started");
 
@@ -100,9 +118,39 @@ impl DAWorker {
                         error = %e,
                         "Failed to post batch to DA"
                     );
-                    continue;
+                    return Err(TwineSequencerError::DAError(format!(
+                        "Failed to post batch {batch_number} to DA: {e}"
+                    )));
                 }
             };
+
+            // Record batch posted to DA in database
+            if let Err(e) = db
+                .lock()
+                .await
+                .insert(
+                    NS_DA_BLOB_SUBMITTER.to_string(),
+                    format!("{DA_POSTED_BATCH}_{batch_number}"),
+                    serde_json::to_string(&commitment)
+                        .map_err(|e| TwineSequencerError::Other(e.to_string()))?,
+                )
+                .await
+            {
+                tracing::error!(
+                    target = "da_poster",
+                    batch_number = batch_number,
+                    error = %e,
+                    "Failed to record posted batch in database"
+                );
+                return Err(TwineSequencerError::SequencerDBError(e.to_string()));
+            }
+
+            tracing::info!(
+                target = "da_poster",
+                batch_number = batch_number,
+                da_height = commitment.height,
+                "Batch posted to DA recorded in database"
+            );
 
             // Forward to verifier
             if let Err(e) = commitment_tx.send((batch_info, commitment)).await {
@@ -143,17 +191,45 @@ impl DAWorker {
         loop {
             ticker.tick().await;
 
-            while let Ok((batch_info, commitment)) = commitment_rx.try_recv() {
-                tracing::debug!(
-                    target = "da_verifier",
-                    batch_number = batch_info.batch_num,
-                    celestia_height = commitment.height,
-                    "Received new commitment for verification"
-                );
-                pending_commitments.push_back((batch_info, commitment));
+            // Drain all available messages from the channel
+            loop {
+                match commitment_rx.try_recv() {
+                    Ok((batch_info, commitment)) => {
+                        tracing::debug!(
+                            target = "da_verifier",
+                            batch_number = batch_info.batch_num,
+                            celestia_height = commitment.height,
+                            "Received new commitment for verification"
+                        );
+                        pending_commitments.push_back((batch_info, commitment));
+                    }
+                    Err(tokio::sync::mpsc::error::TryRecvError::Empty) => {
+                        // No messages available right now
+                        break;
+                    }
+                    Err(tokio::sync::mpsc::error::TryRecvError::Disconnected) => {
+                        // Channel closed, all senders dropped
+                        tracing::info!(
+                            target = "da_verifier",
+                            pending_count = pending_commitments.len(),
+                            "Commitment channel closed, finishing remaining work"
+                        );
+                        // Process pending commitments before exiting
+                        if pending_commitments.is_empty() {
+                            tracing::info!(target = "da_verifier", "DA verifier thread stopped");
+                            return Ok(());
+                        }
+                        // Continue to process remaining commitments
+                        break;
+                    }
+                }
             }
 
             if pending_commitments.is_empty() {
+                if commitment_rx.is_closed() {
+                    tracing::info!(target = "da_verifier", "DA verifier thread stopped");
+                    return Ok(());
+                }
                 continue;
             }
 
@@ -195,7 +271,9 @@ impl DAWorker {
                 }
 
                 // Remove from queue and process
-                let (batch_info, commitment) = pending_commitments.pop_front().unwrap();
+                let (batch_info, commitment) = pending_commitments.pop_front().expect(
+                    "pending_commitments was empty in Verifier Loop after confirming a front element",
+                );
 
                 tracing::info!(
                     target = "da_verifier",
@@ -226,8 +304,7 @@ impl DAWorker {
                             "Failed to get DA existence proof"
                         );
                         return Err(TwineSequencerError::DAError(format!(
-                            "Failed to get DA existence proof for batch {batch_number}: {e}
-                    "
+                            "Failed to get DA existence proof for batch {batch_number}: {e}"
                         )));
                     }
                 };
@@ -255,8 +332,7 @@ impl DAWorker {
                             "Failed to verify DA checkpoint on L1"
                         );
                         return Err(TwineSequencerError::DAError(format!(
-                            "Failed to verify DA checkpoint on L1 for batch {batch_number}: {e}
-                    "
+                            "Failed to verify DA checkpoint on L1 for batch {batch_number}: {e}"
                         )));
                     }
                 }
