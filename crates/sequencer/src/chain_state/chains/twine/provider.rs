@@ -10,16 +10,15 @@ use tokio::sync::Mutex;
 use twine_sequencer_db::db::SequencerDB;
 use twine_sequencer_db::error::TwineSequencerDBError;
 
-use super::twine_rpc_client::L2RpcClient;
+use super::rpc_client::L2RpcClient;
 use crate::chain_watcher::watcher::{ChainStateProvider, ChainWatcher};
 use crate::common::consts::TWINE_CHAIN_IDENTIFIER;
 use crate::common::db_strings::DBStrings;
 use crate::common::shutdown::ShutdownSignal;
-use crate::config::config::L2Config;
+use crate::config::types::L2Config;
 use crate::errors::TwineSequencerError;
 
-/// L2 chain state provider - wraps L2RpcClient with chain-specific state
-/// fetching logic
+/// L2 chain state provider
 pub struct L2ChainProvider {
     /// L2 RPC client
     rpc_client: L2RpcClient,
@@ -63,7 +62,7 @@ impl ChainStateProvider for L2ChainProvider {
     }
 }
 
-/// Convenience methods for L2ChainWatcher
+/// Convenience methods for `L2ChainWatcher`
 impl ChainWatcher<L2ChainProvider> {
     /// Create new instance of L2 chain watcher from the L2-specific config
     pub async fn new(

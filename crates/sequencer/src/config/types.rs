@@ -49,16 +49,45 @@ pub struct Args {
     pub solana_poll_interval: Option<u64>,
     #[arg(long, env = "NEST_L2_POLL_INTERVAL", value_name = "MILLISECONDS")]
     pub l2_poll_interval: Option<u64>,
+    #[arg(long, env = "NEST_DA_RPC", value_name = "URL")]
+    pub da_rpc: Option<String>,
+    #[arg(long, env = "NEST_DA_NAMESPACE_ID", value_name = "NAMESPACE")]
+    pub da_namespace_id: Option<String>,
+    #[arg(
+        long,
+        env = "NEST_DA_VERIFIER_POLL_INTERVAL",
+        value_name = "MILLISECONDS"
+    )]
+    pub da_verifier_poll_interval: Option<u64>,
+    #[arg(long, env = "CELESTIA_NODE_AUTH_TOKEN", value_name = "TOKEN")]
+    pub celestia_auth_token: Option<String>,
+    #[arg(long, env = "CELESTIA_CONSENSUS_RPC", value_name = "URL")]
+    pub celestia_consensus_rpc: Option<String>,
+    #[arg(long, env = "SP1_BLOBSTREAM_RPC_URL", value_name = "URL")]
+    pub sp1_blobstream_rpc: Option<String>,
+    #[arg(long, env = "SP1_BLOBSTREAM_CONTRACT", value_name = "ADDRESS")]
+    pub sp1_blobstream_contract: Option<String>,
+    #[arg(long, env = "NEST_VERIFIER_CHANNEL_BUFFER_SIZE", value_name = "SIZE")]
+    pub verifier_channel_buffer_size: Option<usize>,
+    #[arg(long, env = "NEST_DA_BATCH_CHANNEL_BUFFER_SIZE", value_name = "SIZE")]
+    pub da_batch_channel_buffer_size: Option<usize>,
+    #[arg(
+        long,
+        env = "NEST_DA_COMMITMENT_CHANNEL_BUFFER_SIZE",
+        value_name = "SIZE"
+    )]
+    pub da_commitment_channel_buffer_size: Option<usize>,
 }
 
 #[allow(missing_docs)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
+    pub da: DAConfig,
     pub solana: L1Config,
     pub ethereum: L1Config,
     pub l2: L2Config,
     pub db: Option<DB>,
-    pub extras: Extras,
+    pub channels: ChannelConfig,
 }
 
 #[allow(missing_docs)]
@@ -79,10 +108,50 @@ pub struct L1Config {
     pub poll_interval: u64,
 }
 
+/// DA layer configuration (for Celestia)
+#[allow(missing_docs)]
+#[derive(Clone, Serialize, Deserialize)]
+pub struct DAConfig {
+    /// Celestia RPC URL for blob submission
+    pub rpc_url: String,
+    /// Namespace ID for rollup data
+    pub namespace_id: String,
+    /// Authentication token for Celestia node
+    pub auth_token: String,
+    /// Consensus RPC URL for inclusion proofs
+    pub consensus_rpc_url: String,
+    /// Ethereum L1 RPC URL for Blobstream contract
+    pub eth_rpc_url: String,
+    /// SP1 Blobstream contract address on L1
+    pub blobstream_contract: String,
+    /// Verifier polling interval in milliseconds
+    pub verifier_poll_interval: u64,
+}
+
+impl std::fmt::Debug for DAConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DAConfig")
+            .field("rpc_url", &self.rpc_url)
+            .field("namespace_id", &self.namespace_id)
+            .field("auth_token", &"[REDACTED]")
+            .field("consensus_rpc_url", &self.consensus_rpc_url)
+            .field("eth_rpc_url", &self.eth_rpc_url)
+            .field("blobstream_contract", &self.blobstream_contract)
+            .field("verifier_poll_interval", &self.verifier_poll_interval)
+            .finish()
+    }
+}
+
+/// Channel buffer size configuration
 #[allow(missing_docs)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Extras {
-    pub verifer_channel_buffer_size: usize,
+pub struct ChannelConfig {
+    /// Channel buffer size for state verifier aggregated batches
+    pub verifier_buffer_size: usize,
+    /// Channel buffer size for DA batch posting
+    pub da_batch_buffer_size: usize,
+    /// Channel buffer size for DA commitment verification
+    pub da_commitment_buffer_size: usize,
 }
 
 #[allow(missing_docs)]
@@ -104,7 +173,7 @@ impl Config {
     pub fn load(cfg_path: &str) -> Result<Self, TwineSequencerError> {
         let config_file =
             File::open(cfg_path).map_err(|e| TwineSequencerError::Other(e.to_string()))?;
-        let config: Config = serde_yaml::from_reader(config_file)
+        let config: Self = serde_yaml::from_reader(config_file)
             .map_err(|e| TwineSequencerError::Other(e.to_string()))?;
         Ok(config)
     }
@@ -195,6 +264,40 @@ impl Config {
         }
         if let Some(l2_poll_interval) = args.l2_poll_interval {
             self.l2.poll_interval = l2_poll_interval;
+        }
+
+        // DA layer overrides
+        if let Some(da_rpc) = args.da_rpc {
+            self.da.rpc_url = da_rpc;
+        }
+        if let Some(da_namespace_id) = args.da_namespace_id {
+            self.da.namespace_id = da_namespace_id;
+        }
+        if let Some(da_verifier_poll_interval) = args.da_verifier_poll_interval {
+            self.da.verifier_poll_interval = da_verifier_poll_interval;
+        }
+
+        if let Some(auth_token) = args.celestia_auth_token {
+            self.da.auth_token = auth_token;
+        }
+        if let Some(consensus_rpc) = args.celestia_consensus_rpc {
+            self.da.consensus_rpc_url = consensus_rpc;
+        }
+        if let Some(eth_rpc) = args.sp1_blobstream_rpc {
+            self.da.eth_rpc_url = eth_rpc;
+        }
+        if let Some(contract) = args.sp1_blobstream_contract {
+            self.da.blobstream_contract = contract;
+        }
+
+        if let Some(size) = args.verifier_channel_buffer_size {
+            self.channels.verifier_buffer_size = size;
+        }
+        if let Some(size) = args.da_batch_channel_buffer_size {
+            self.channels.da_batch_buffer_size = size;
+        }
+        if let Some(size) = args.da_commitment_channel_buffer_size {
+            self.channels.da_commitment_buffer_size = size;
         }
 
         Ok(self)

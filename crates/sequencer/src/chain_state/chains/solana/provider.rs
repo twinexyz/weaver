@@ -9,7 +9,7 @@ use twine_l1_solana::SolanaProvider;
 use crate::chain_watcher::watcher::ChainStateProvider;
 use crate::common::consts::SOLANA_CHAIN_IDENTIFIER;
 use crate::common::db_strings::DBStrings;
-use crate::config::config::L1Config;
+use crate::config::types::L1Config;
 use crate::errors::TwineSequencerError;
 
 /// Solana chain state provider

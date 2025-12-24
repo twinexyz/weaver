@@ -76,9 +76,9 @@ impl BlockProducer {
         let engine_client =
             EngineClient::new(el_auth_url, &jwt_token_path).expect("could not create new producer");
         let head_block = FixedBytes::from_hex(&head_block)
-            .expect(&format!("could not parse the head block {head_block}"));
+            .unwrap_or_else(|_| panic!("could not parse the head block {head_block}"));
         let fee_recepient = Address::from_hex(&fee_recepient)
-            .expect(&format!("could not parse address {fee_recepient}"));
+            .unwrap_or_else(|_| panic!("could not parse address {fee_recepient}"));
         Self {
             kill_sig_recv,
             head_block,

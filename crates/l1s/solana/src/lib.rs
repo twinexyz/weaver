@@ -42,14 +42,13 @@ impl SolanaProvider {
         admin_wallet_path: String,
     ) -> Self {
         let twine_chain = Pubkey::from_str_const(twine_chain_program);
-        let admin_pubkey: Pubkey;
-        if admin_wallet_path == "" {
-            admin_pubkey = Pubkey::default();
+        let admin_pubkey = if admin_wallet_path.is_empty() {
+            Pubkey::default()
         } else {
-            admin_pubkey = read_keypair_file(&admin_wallet_path)
+            read_keypair_file(&admin_wallet_path)
                 .expect("Failed to load keypair")
-                .pubkey();
-        }
+                .pubkey()
+        };
 
         Self {
             rpc,

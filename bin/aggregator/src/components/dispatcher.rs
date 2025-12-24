@@ -20,8 +20,7 @@ pub(crate) async fn start_dispatcher(
 
     let da_client = config.dispatcher.use_da.then(CelestiaDA::new);
 
-    if config.eth.is_some() {
-        let eth_config = config.eth.as_ref().unwrap();
+    if let Some(eth_config) = config.eth.as_ref() {
         let ethereum_l1 = EthereumL1::new(
             &eth_config.rpc,
             &eth_config.eth_private_key,
@@ -40,8 +39,7 @@ pub(crate) async fn start_dispatcher(
         settlement_chains.push(Arc::new(ethereum_l1));
     }
 
-    if config.sol.is_some() {
-        let sol_config = config.sol.as_ref().unwrap();
+    if let Some(sol_config) = config.sol.as_ref() {
         let solana_l1 = SolanaL1::new(
             &sol_config.rpc,
             sol_config.chain_id,

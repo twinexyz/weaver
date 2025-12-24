@@ -36,7 +36,8 @@ impl SequencerDB for SequencerRocksDB {
     ) -> Result<Self, Self::SequencerDBError>
     where
         Self: Sized, {
-        let db_path = db_path.ok_or(TwineSequencerDBError::Other(format!("db path is not set")))?;
+        let db_path = db_path
+            .ok_or_else(|| TwineSequencerDBError::Other("db path is not set".to_string()))?;
 
         let mut db_opts = Options::default();
         db_opts.create_if_missing(true);
@@ -57,12 +58,9 @@ impl SequencerDB for SequencerRocksDB {
         key: Self::Key,
         value: Self::Value,
     ) -> Result<(), Self::SequencerDBError> {
-        let ns = self
-            .db
-            .cf_handle(&ns)
-            .ok_or(TwineSequencerDBError::SequencerDBError(format!(
-                "Name space {ns} does not exist"
-            )))?;
+        let ns = self.db.cf_handle(&ns).ok_or_else(|| {
+            TwineSequencerDBError::SequencerDBError(format!("Name space {ns} does not exist"))
+        })?;
 
         self.db
             .put_cf(&ns, key, value)
@@ -77,12 +75,9 @@ impl SequencerDB for SequencerRocksDB {
         ns: Self::NameSpace,
         entries: HashMap<Self::Key, Self::Value>,
     ) -> Result<(), Self::SequencerDBError> {
-        let ns = self
-            .db
-            .cf_handle(&ns)
-            .ok_or(TwineSequencerDBError::SequencerDBError(format!(
-                "Name space {ns} does not exist"
-            )))?;
+        let ns = self.db.cf_handle(&ns).ok_or_else(|| {
+            TwineSequencerDBError::SequencerDBError(format!("Name space {ns} does not exist"))
+        })?;
 
         let txn = self.db.transaction();
         for entry in entries {
@@ -101,12 +96,9 @@ impl SequencerDB for SequencerRocksDB {
         ns: Self::NameSpace,
         key: Self::Key,
     ) -> Result<Option<Self::Value>, Self::SequencerDBError> {
-        let ns = self
-            .db
-            .cf_handle(&ns)
-            .ok_or(TwineSequencerDBError::SequencerDBError(format!(
-                "Name space {ns} does not exist"
-            )))?;
+        let ns = self.db.cf_handle(&ns).ok_or_else(|| {
+            TwineSequencerDBError::SequencerDBError(format!("Name space {ns} does not exist"))
+        })?;
 
         let value = self
             .db
@@ -129,28 +121,20 @@ impl SequencerDB for SequencerRocksDB {
         keys: Vec<Self::Key>,
     ) -> Result<Vec<Option<Self::Value>>, Self::SequencerDBError> {
         let mut return_map = vec![];
-        let ns = self
-            .db
-            .cf_handle(&ns)
-            .ok_or(TwineSequencerDBError::SequencerDBError(format!(
-                "Name space {ns} does not exist"
-            )))?;
+        let ns = self.db.cf_handle(&ns).ok_or_else(|| {
+            TwineSequencerDBError::SequencerDBError(format!("Name space {ns} does not exist"))
+        })?;
 
         let keys: Vec<(&rocksdb::ColumnFamily, String)> =
-            keys.iter().map(|k| (ns, k.to_string())).collect();
+            keys.iter().map(|k| (ns, k.clone())).collect();
 
         let values = self.db.multi_get_cf(keys);
 
         for value in values {
-            let value = if let Ok(value_inner) = value {
-                let value = if let Some(value_inner_inner) = value_inner {
-                    let value = String::from_utf8(value_inner_inner.clone())
-                        .map_err(|e| TwineSequencerDBError::Other(e.to_string()))?;
-                    Some(value)
-                } else {
-                    None
-                };
-                value
+            let value = if let Ok(Some(value_inner_inner)) = value {
+                let value = String::from_utf8(value_inner_inner.clone())
+                    .map_err(|e| TwineSequencerDBError::Other(e.to_string()))?;
+                Some(value)
             } else {
                 None
             };
@@ -166,12 +150,9 @@ impl SequencerDB for SequencerRocksDB {
         ns: Self::NameSpace,
         key: Self::Key,
     ) -> Result<Option<Self::Value>, Self::SequencerDBError> {
-        let ns = self
-            .db
-            .cf_handle(&ns)
-            .ok_or(TwineSequencerDBError::SequencerDBError(format!(
-                "Name space {ns} does not exist"
-            )))?;
+        let ns = self.db.cf_handle(&ns).ok_or_else(|| {
+            TwineSequencerDBError::SequencerDBError(format!("Name space {ns} does not exist"))
+        })?;
 
         let value = self
             .db
@@ -198,12 +179,9 @@ impl SequencerDB for SequencerRocksDB {
         keys: Vec<Self::Key>,
     ) -> Result<Vec<Option<Self::Value>>, Self::SequencerDBError> {
         let entries = self.get_multi(ns.clone(), keys.clone()).await?;
-        let ns = self
-            .db
-            .cf_handle(&ns)
-            .ok_or(TwineSequencerDBError::SequencerDBError(format!(
-                "Name space {ns} does not exist"
-            )))?;
+        let ns = self.db.cf_handle(&ns).ok_or_else(|| {
+            TwineSequencerDBError::SequencerDBError(format!("Name space {ns} does not exist"))
+        })?;
 
         for key in keys {
             self.db

@@ -1,3 +1,3 @@
 //! configuration for sequencer
 
-pub mod config;
+pub mod types;

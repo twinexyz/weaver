@@ -35,6 +35,9 @@ pub enum TwineSequencerError {
     /// db error
     #[error["DB error: {0}"]]
     SequencerDBError(String),
+    /// DA error
+    #[error("DA error: {0}")]
+    DAError(String),
     /// other failures
     #[error("{0}")]
     Other(String),

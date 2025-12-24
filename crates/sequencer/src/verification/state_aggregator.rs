@@ -29,7 +29,7 @@ pub struct AggregatedBatchState {
 }
 
 /// Polls the database for batch states from all chains and emits an
-/// AggregatedBatchState once all registered chains have committed a batch.
+/// `AggregatedBatchState` once all registered chains have committed a batch.
 /// Starts from the last verified batch and continues sequentially.
 pub struct StateAggregator {
     /// kill signal receiver
@@ -65,7 +65,7 @@ impl Debug for StateAggregator {
 }
 
 impl StateAggregator {
-    /// Creates a new StateAggregator instance.
+    /// Creates a new `StateAggregator` instance.
     pub async fn new(
         kill_sig_recv: KReceiver<ShutdownSignal>,
         db: Arc<
@@ -188,7 +188,7 @@ impl StateAggregator {
                 .db
                 .lock()
                 .await
-                .get(db_strings.namespace.to_string(), db_key.clone())
+                .get(db_strings.namespace.clone(), db_key.clone())
                 .await
             {
                 Ok(Some(s)) => s,

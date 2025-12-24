@@ -63,7 +63,7 @@ impl SequencerDB for SequencerInMemoryDB {
         key: Self::Key,
     ) -> Result<Option<Self::Value>, Self::SequencerDBError> {
         let key = format!("{ns}_{key}");
-        Ok(self.db.get(&key).map(|v| v.clone()))
+        Ok(self.db.get(&key).cloned())
     }
 
     /// get multiple entries
@@ -75,7 +75,7 @@ impl SequencerDB for SequencerInMemoryDB {
         let mut return_map = Vec::new();
         for key in keys {
             let key = format!("{ns}_{key}");
-            let value = self.db.get(&key).map(|v| v.clone());
+            let value = self.db.get(&key).cloned();
             return_map.push(value);
         }
         Ok(return_map)

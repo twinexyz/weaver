@@ -13,7 +13,7 @@ use twine_sequencer_db::rocksdb::SequencerRocksDB;
 
 use crate::common::consts;
 use crate::common::shutdown::ShutdownSignal;
-use crate::config::config::{Args, Config};
+use crate::config::types::{Args, Config};
 use crate::errors::TwineSequencerError;
 use crate::instance::SequencerInstance;
 
@@ -67,7 +67,7 @@ impl SequencerInstance for TwineSequencerInstance {
             for cf in consts::DEFAULT_DB_NAMESPACES {
                 let cf = cf.to_string();
                 if !db_cf.contains(&cf) {
-                    db_cf.push(cf.to_string());
+                    db_cf.push(cf.clone());
                 }
             }
 
@@ -103,7 +103,7 @@ impl SequencerInstance for TwineSequencerInstance {
         {
             use std::path::PathBuf;
 
-            use crate::block_progress::block_progress::BlockProducer;
+            use crate::block_progress::producer::BlockProducer;
 
             let mut block_producer = BlockProducer::new(
                 kill_sig_sender.subscribe(),
@@ -123,11 +123,13 @@ impl SequencerInstance for TwineSequencerInstance {
             use tokio::sync::mpsc;
 
             use crate::chain_watcher::manager::ChainWatcherManager;
+            use crate::da::types::{BatchInfo, DACommitment};
+            use crate::da::workers::DAWorker;
             use crate::verification::state_aggregator::StateAggregator;
             use crate::verification::state_verifier::StateVerifier;
 
             // Spawn all chain watchers and get task handles
-            let mut watcher_handles = ChainWatcherManager::spawn_all(
+            let watcher_handles = ChainWatcherManager::spawn_all(
                 kill_sig_sender.subscribe(),
                 config.clone(),
                 self.db.clone(),
@@ -135,7 +137,7 @@ impl SequencerInstance for TwineSequencerInstance {
             .await?;
 
             let (aggregated_sender, aggregated_receiver) =
-                mpsc::channel(config.extras.verifer_channel_buffer_size);
+                mpsc::channel(config.channels.verifier_buffer_size);
 
             let mut state_aggregator = StateAggregator::new(
                 kill_sig_sender.subscribe(),
@@ -146,11 +148,37 @@ impl SequencerInstance for TwineSequencerInstance {
             )
             .await?;
 
+            // Create DA channels
+            let (da_batch_tx, da_batch_rx) =
+                mpsc::channel::<BatchInfo>(config.channels.da_batch_buffer_size);
+            let (da_commitment_tx, da_commitment_rx) = mpsc::channel::<(BatchInfo, DACommitment)>(
+                config.channels.da_commitment_buffer_size,
+            );
+
+            let da_handles = match DAWorker::from_config(
+                &config.da,
+                da_batch_rx,
+                da_commitment_tx.clone(),
+                da_commitment_rx,
+                self.db.clone(),
+            )
+            .await
+            {
+                Ok(handles) => handles,
+                Err(e) => {
+                    return Err(TwineSequencerError::Other(format!(
+                        "Failed to initialize DA worker: {}",
+                        e
+                    )));
+                }
+            };
+
             let mut state_verifier = StateVerifier::new(
                 kill_sig_sender.subscribe(),
                 aggregated_receiver,
                 self.db.clone(),
                 kill_sig_sender.clone(),
+                da_batch_tx,
             )
             .await?;
 
@@ -158,9 +186,10 @@ impl SequencerInstance for TwineSequencerInstance {
 
             let state_verifier_job = tokio::spawn(async move { state_verifier.run().await });
 
-            // Collect all task handles
-            join_handles.append(&mut watcher_handles);
-            join_handles.append(&mut vec![state_aggregator_job, state_verifier_job]);
+            join_handles.extend(watcher_handles);
+            join_handles.push(state_aggregator_job);
+            join_handles.push(state_verifier_job);
+            join_handles.extend(da_handles);
         }
 
         for handle in join_handles {

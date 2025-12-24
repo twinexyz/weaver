@@ -1,5 +1,7 @@
 //! Constants used across sequencer components
 
+/// DA layer chain identifier (Celestia)
+pub const DA_CHAIN_IDENTIFIER: &str = "celestia";
 /// Ethereum chain identifier
 pub const ETHEREUM_CHAIN_IDENTIFIER: &str = "ethereum";
 /// Solana chain identifier
@@ -14,6 +16,8 @@ pub const LAST_FINALIZED_BLOCK_HASH: &str = "LAST_FINALIZED_BLOCK_HASH";
 /// Key for last finalized block number
 pub const LAST_FINALIZED_BLOCK_NUMBER: &str = "LAST_FINALIZED_BLOCK_NUMBER";
 
+/// Database namespace for DA layer watcher
+pub const NS_DA_BLOB_SUBMITTER: &str = "DA_BLOB_SUBMITTER";
 /// Database namespace for Ethereum chain watcher
 pub const NS_ETHEREUM_WATCHER: &str = "ETHEREUM_WATCHER";
 /// Database namespace for Solana chain watcher
@@ -21,6 +25,10 @@ pub const NS_SOLANA_WATCHER: &str = "SOLANA_WATCHER";
 /// Database namespace for Twine L2 chain watcher
 pub const NS_TWINE_WATCHER: &str = "TWINE_WATCHER";
 
+/// Key for DA layer processed batch
+pub const DA_PROCESSED_BATCH: &str = "DA_PROCESSED_BATCH";
+/// Key for DA layer posted batch
+pub const DA_POSTED_BATCH: &str = "DA_POSTED_BATCH";
 /// Key for Ethereum processed batch
 pub const ETH_PROCESSED_BATCH: &str = "ETH_PROCESSED_BATCH";
 /// Key for Solana processed batch
@@ -37,6 +45,7 @@ pub const VERIFIED_BATCH: &str = "VERIFIED_BATCH";
 pub const DEFAULT_DB_NAMESPACES: &[&str] = &[
     NS_BLOCK_PRODUCER,
     NS_CHAIN_STATE_VERIFIER,
+    NS_DA_BLOB_SUBMITTER,
     NS_ETHEREUM_WATCHER,
     NS_SOLANA_WATCHER,
     NS_TWINE_WATCHER,
