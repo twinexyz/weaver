@@ -240,8 +240,7 @@ pub fn query_refund_txn_status() -> eyre::Result<TestStep> {
             let txn_hash = ctx
                 .borrow()
                 .get(common_ctx_keys::MESSAGE_HASH)
-                .ok_or_else(|| eyre!("txn_hash not found in context"))?
-                .to_string();
+                .ok_or_else(|| eyre!("txn_hash not found in context"))?.clone();
 
             let args = [
                 "call",

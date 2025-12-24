@@ -51,20 +51,18 @@ impl TransformAttemptCreator for SolanaMessageTransformAttemptCreator {
     async fn new(config: std::sync::Arc<tokio::sync::Mutex<Self::Config>>) -> Self
     where
         Self: Sized, {
-        let mut max_attempts_per_request = DEFAULT_MAX_ATTEMPTS_PER_REQUEST;
-
-        if let Ok(max_attempts_from_config) = config
+        let max_attempts_per_request = if let Ok(attempts) = config
             .lock()
             .await
             .get("attempt.max_attempts_per_request".to_string())
             .await
         {
-            let max_attempts_from_config: toml::Value =
-                serde_json::from_slice(&max_attempts_from_config)
-                    .expect("could not deserialize config into toml value");
-
-            max_attempts_per_request = max_attempts_from_config.as_integer().unwrap_or(10) as u64;
-        }
+            let max_attempts_from_config: toml::Value = serde_json::from_slice(&attempts)
+                .expect("could not deserialize config into toml value");
+            max_attempts_from_config.as_integer().unwrap_or(10) as u64
+        } else {
+            DEFAULT_MAX_ATTEMPTS_PER_REQUEST
+        };
 
         Self {
             max_attempts_per_request,

@@ -452,7 +452,7 @@ mod tests {
                     "python3".to_string(),
                     "-m".to_string(),
                     "http.server".to_string(),
-                    ctx.borrow().get("port").unwrap().to_string(),
+                    ctx.borrow().get("port").unwrap().clone(),
                 ];
             }),
             child: None,
@@ -531,7 +531,7 @@ mod tests {
                     "-b".to_string(),
                     "1".to_string(),
                     "-p".to_string(),
-                    ctx.borrow().get("port").unwrap().to_string(),
+                    ctx.borrow().get("port").unwrap().clone(),
                 ];
             }),
             child: None,
