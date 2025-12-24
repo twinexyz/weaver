@@ -15,19 +15,15 @@ use crate::da::types::{BatchInfo, DACheckpoint, DACommitment, DAExistenceProof};
 use crate::errors::TwineSequencerError;
 
 /// Celestia DA poster using official SDK
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct CelestiaDA {
-    client: Arc<Client>,
+    /// Shared Celestia RPC client
+    pub client: Client,
     namespace: Namespace,
     config: DAConfig,
 }
 
 impl CelestiaDA {
-    /// Create a new Celestia poster from DA config
-    pub async fn from_config(config: DAConfig) -> Result<Self, TwineSequencerError> {
-        Self::new(config).await
-    }
-
     /// Create a new Celestia poster with explicit config
     pub async fn new(config: DAConfig) -> Result<Self, TwineSequencerError> {
         let namespace_bytes = hex::decode(config.namespace_id.trim_start_matches("0x"))
@@ -52,7 +48,7 @@ impl CelestiaDA {
             })?;
 
         Ok(Self {
-            client: Arc::new(client),
+            client,
             namespace,
             config,
         })

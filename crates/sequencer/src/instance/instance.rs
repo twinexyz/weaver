@@ -123,6 +123,7 @@ impl SequencerInstance for TwineSequencerInstance {
             use tokio::sync::mpsc;
 
             use crate::chain_watcher::manager::ChainWatcherManager;
+            use crate::da::types::{BatchInfo, DACommitment};
             use crate::da::workers::DAWorker;
             use crate::verification::state_aggregator::StateAggregator;
             use crate::verification::state_verifier::StateVerifier;
@@ -136,7 +137,7 @@ impl SequencerInstance for TwineSequencerInstance {
             .await?;
 
             let (aggregated_sender, aggregated_receiver) =
-                mpsc::channel(config.extras.verifer_channel_buffer_size);
+                mpsc::channel(config.channels.verifier_buffer_size);
 
             let mut state_aggregator = StateAggregator::new(
                 kill_sig_sender.subscribe(),
@@ -147,23 +148,37 @@ impl SequencerInstance for TwineSequencerInstance {
             )
             .await?;
 
-            let (da_sender, da_handles) =
-                match DAWorker::from_config(config.da.clone(), self.db.clone()).await {
-                    Ok((worker, handles)) => (worker.batch_tx, handles),
-                    Err(e) => {
-                        return Err(TwineSequencerError::Other(format!(
-                            "Failed to initialize DA worker: {}",
-                            e
-                        )));
-                    }
-                };
+            // Create DA channels
+            let (da_batch_tx, da_batch_rx) =
+                mpsc::channel::<BatchInfo>(config.channels.da_batch_buffer_size);
+            let (da_commitment_tx, da_commitment_rx) = mpsc::channel::<(BatchInfo, DACommitment)>(
+                config.channels.da_commitment_buffer_size,
+            );
+
+            let da_handles = match DAWorker::from_config(
+                &config.da,
+                da_batch_rx,
+                da_commitment_tx.clone(),
+                da_commitment_rx,
+                self.db.clone(),
+            )
+            .await
+            {
+                Ok(handles) => handles,
+                Err(e) => {
+                    return Err(TwineSequencerError::Other(format!(
+                        "Failed to initialize DA worker: {}",
+                        e
+                    )));
+                }
+            };
 
             let mut state_verifier = StateVerifier::new(
                 kill_sig_sender.subscribe(),
                 aggregated_receiver,
                 self.db.clone(),
                 kill_sig_sender.clone(),
-                da_sender,
+                da_batch_tx,
             )
             .await?;
 

@@ -4,7 +4,7 @@
 use std::collections::VecDeque;
 use std::sync::Arc;
 
-use tokio::sync::mpsc::{channel, Receiver, Sender};
+use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::Mutex;
 use tokio::time::{interval, Duration};
 use twine_sequencer_db::db::SequencerDB;
@@ -28,7 +28,10 @@ impl DAWorker {
     /// Create a new DA Worker instance from config and spawn background workers
     /// Returns the worker and join handles for both poster and verifier threads
     pub async fn from_config(
-        da_config: DAConfig,
+        da_config: &DAConfig,
+        batch_rx: Receiver<BatchInfo>,
+        commitment_tx: Sender<(BatchInfo, DACommitment)>,
+        commitment_rx: Receiver<(BatchInfo, DACommitment)>,
         db: Arc<
             Mutex<
                 dyn SequencerDB<
@@ -39,26 +42,14 @@ impl DAWorker {
                 >,
             >,
         >,
-    ) -> Result<
-        (
-            Self,
-            Vec<tokio::task::JoinHandle<Result<(), TwineSequencerError>>>,
-        ),
-        TwineSequencerError,
-    > {
+    ) -> Result<Vec<tokio::task::JoinHandle<Result<(), TwineSequencerError>>>, TwineSequencerError>
+    {
         tracing::info!(target: "da_worker", "Initializing Celestia DA worker");
 
         let verifier_poll_interval = da_config.verifier_poll_interval;
-        let provider = CelestiaDA::from_config(da_config).await?;
+        let provider = CelestiaDA::new(da_config.clone()).await?;
 
         tracing::info!(target: "da_worker", "Celestia DA provider initialized successfully");
-
-        // channel for incoming batches to be posted to DA
-        let (batch_tx, batch_rx) = channel::<BatchInfo>(100);
-
-        // channel for verifying commitments after posting to DA
-        // large buffer since verification is slow (~1 hour)
-        let (commitment_tx, commitment_rx) = channel::<(BatchInfo, DACommitment)>(1000);
 
         let provider_arc = Arc::new(provider);
 
@@ -75,9 +66,7 @@ impl DAWorker {
             verifier_poll_interval,
         ));
 
-        let worker = Self { batch_tx };
-
-        Ok((worker, vec![poster_handle, verifier_handle]))
+        Ok(vec![poster_handle, verifier_handle])
     }
 
     /// Poster worker loop

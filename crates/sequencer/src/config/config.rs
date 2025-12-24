@@ -67,6 +67,16 @@ pub struct Args {
     pub sp1_blobstream_rpc: Option<String>,
     #[arg(long, env = "SP1_BLOBSTREAM_CONTRACT", value_name = "ADDRESS")]
     pub sp1_blobstream_contract: Option<String>,
+    #[arg(long, env = "NEST_VERIFIER_CHANNEL_BUFFER_SIZE", value_name = "SIZE")]
+    pub verifier_channel_buffer_size: Option<usize>,
+    #[arg(long, env = "NEST_DA_BATCH_CHANNEL_BUFFER_SIZE", value_name = "SIZE")]
+    pub da_batch_channel_buffer_size: Option<usize>,
+    #[arg(
+        long,
+        env = "NEST_DA_COMMITMENT_CHANNEL_BUFFER_SIZE",
+        value_name = "SIZE"
+    )]
+    pub da_commitment_channel_buffer_size: Option<usize>,
 }
 
 #[allow(missing_docs)]
@@ -77,7 +87,7 @@ pub struct Config {
     pub ethereum: L1Config,
     pub l2: L2Config,
     pub db: Option<DB>,
-    pub extras: Extras,
+    pub channels: ChannelConfig,
 }
 
 #[allow(missing_docs)]
@@ -100,7 +110,7 @@ pub struct L1Config {
 
 /// DA layer configuration (for Celestia)
 #[allow(missing_docs)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct DAConfig {
     /// Celestia RPC URL for blob submission
     pub rpc_url: String,
@@ -118,10 +128,30 @@ pub struct DAConfig {
     pub verifier_poll_interval: u64,
 }
 
+impl std::fmt::Debug for DAConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DAConfig")
+            .field("rpc_url", &self.rpc_url)
+            .field("namespace_id", &self.namespace_id)
+            .field("auth_token", &"[REDACTED]")
+            .field("consensus_rpc_url", &self.consensus_rpc_url)
+            .field("eth_rpc_url", &self.eth_rpc_url)
+            .field("blobstream_contract", &self.blobstream_contract)
+            .field("verifier_poll_interval", &self.verifier_poll_interval)
+            .finish()
+    }
+}
+
+/// Channel buffer size configuration
 #[allow(missing_docs)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Extras {
-    pub verifer_channel_buffer_size: usize,
+pub struct ChannelConfig {
+    /// Channel buffer size for state verifier aggregated batches
+    pub verifier_buffer_size: usize,
+    /// Channel buffer size for DA batch posting
+    pub da_batch_buffer_size: usize,
+    /// Channel buffer size for DA commitment verification
+    pub da_commitment_buffer_size: usize,
 }
 
 #[allow(missing_docs)]
@@ -258,6 +288,16 @@ impl Config {
         }
         if let Some(contract) = args.sp1_blobstream_contract {
             self.da.blobstream_contract = contract;
+        }
+
+        if let Some(size) = args.verifier_channel_buffer_size {
+            self.channels.verifier_buffer_size = size;
+        }
+        if let Some(size) = args.da_batch_channel_buffer_size {
+            self.channels.da_batch_buffer_size = size;
+        }
+        if let Some(size) = args.da_commitment_channel_buffer_size {
+            self.channels.da_commitment_buffer_size = size;
         }
 
         Ok(self)

@@ -1,7 +1,8 @@
 //! SP1 Blobstream L1 verification and contract interactions
 
 use alloy_primitives::{Address, FixedBytes, U256};
-use alloy_provider::ProviderBuilder;
+use alloy_provider::{Provider, ProviderBuilder};
+use alloy_rpc_types::Filter;
 
 use super::blobstream_contract::SP1Blobstream;
 use crate::config::config::DAConfig;
@@ -61,9 +62,6 @@ pub async fn find_commitment_for_height(
     lookback_blocks: Option<u64>,
     batch_size: Option<u64>,
 ) -> Result<DataCommitmentInfo, TwineSequencerError> {
-    use alloy_provider::{Provider, ProviderBuilder};
-    use alloy_rpc_types::Filter;
-
     let contract_address: Address = config
         .blobstream_contract
         .parse()
