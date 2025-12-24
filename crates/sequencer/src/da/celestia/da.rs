@@ -1,6 +1,5 @@
 //! Celestia blob operations - submission and retrieval
 
-
 use async_trait::async_trait;
 use celestia_rpc::{BlobClient, Client, HeaderClient};
 use celestia_types::blob::Blob;
