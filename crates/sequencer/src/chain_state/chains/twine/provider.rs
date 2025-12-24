@@ -15,7 +15,7 @@ use crate::chain_watcher::watcher::{ChainStateProvider, ChainWatcher};
 use crate::common::consts::TWINE_CHAIN_IDENTIFIER;
 use crate::common::db_strings::DBStrings;
 use crate::common::shutdown::ShutdownSignal;
-use crate::config::config::L2Config;
+use crate::config::types::L2Config;
 use crate::errors::TwineSequencerError;
 
 /// L2 chain state provider

@@ -10,7 +10,7 @@ use twine_sequencer_db::error::TwineSequencerDBError;
 
 use crate::chain_state::chains::{EthereumStateWatcher, SolanaStateWatcher, TwineChainWatcher};
 use crate::common::shutdown::ShutdownSignal;
-use crate::config::config::Config;
+use crate::config::types::Config;
 use crate::errors::TwineSequencerError;
 
 /// Manages all chain watchers and their spawned tasks

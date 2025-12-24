@@ -64,7 +64,7 @@ impl EngineClient {
         let client = self.auth_client()?;
         let capabilities = EngineApiClient::<EthEngineTypes>::exchange_capabilities(
             &client,
-            CAPABILITIES.into_iter().map(|c| c.to_string()).collect(),
+            CAPABILITIES.iter().map(|c| c.to_string()).collect(),
         )
         .await
         .map_err(|e| TwineSequencerError::EngineAPIError(e.to_string()))?;
@@ -99,7 +99,7 @@ impl EngineClient {
                 );
                 self.validate_payload_status(&payload_status)
                     .then_some(payload_status)
-                    .ok_or_else(|| TwineSequencerError::InvalidPayloadStatus)
+                    .ok_or(TwineSequencerError::InvalidPayloadStatus)
             }
             Err(e) => {
                 tracing::warn!(
@@ -145,7 +145,7 @@ impl EngineClient {
                 (response.payload_id.is_some()
                     && self.validate_payload_status(&response.payload_status))
                 .then_some(response)
-                .ok_or_else(|| TwineSequencerError::InvalidForkchoiceStatus)
+                .ok_or(TwineSequencerError::InvalidForkchoiceStatus)
             }
             Err(e) => Err(TwineSequencerError::EngineAPIError(e.to_string())),
         }
@@ -185,7 +185,7 @@ impl EngineClient {
 
         self.validate_payload_status(&payload_status)
             .then_some(payload_status)
-            .ok_or_else(|| TwineSequencerError::InvalidPayloadStatus)
+            .ok_or(TwineSequencerError::InvalidPayloadStatus)
     }
 
     /// validates payload status

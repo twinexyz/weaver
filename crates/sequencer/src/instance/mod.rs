@@ -5,10 +5,10 @@ use tokio::sync::broadcast::Sender;
 use twine_sequencer_db::db::SequencerDB;
 
 use crate::common::shutdown::ShutdownSignal;
-use crate::config::config::Args;
+use crate::config::types::Args;
 use crate::errors::TwineSequencerError;
 
-pub mod instance;
+pub mod sequencer;
 
 /// Sequencer Instance trait
 #[async_trait]

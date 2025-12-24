@@ -5,7 +5,7 @@ use alloy_provider::{Provider, ProviderBuilder};
 use alloy_rpc_types::Filter;
 
 use super::blobstream_contract::SP1Blobstream;
-use crate::config::config::DAConfig;
+use crate::config::types::DAConfig;
 use crate::da::types::{DACommitment, DAExistenceProof, DataCommitmentInfo};
 use crate::errors::TwineSequencerError;
 

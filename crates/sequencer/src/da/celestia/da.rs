@@ -1,6 +1,5 @@
 //! Celestia blob operations - submission and retrieval
 
-use std::sync::Arc;
 
 use async_trait::async_trait;
 use celestia_rpc::{BlobClient, Client, HeaderClient};
@@ -9,7 +8,7 @@ use celestia_types::hash::Hash;
 use celestia_types::nmt::Namespace;
 
 use super::{l1, proof};
-use crate::config::config::DAConfig;
+use crate::config::types::DAConfig;
 use crate::da::traits::DA;
 use crate::da::types::{BatchInfo, DACheckpoint, DACommitment, DAExistenceProof};
 use crate::errors::TwineSequencerError;

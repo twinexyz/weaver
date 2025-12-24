@@ -11,7 +11,7 @@ use twine_sequencer_db::db::SequencerDB;
 use twine_sequencer_db::error::TwineSequencerDBError;
 
 use crate::common::consts::{DA_POSTED_BATCH, NS_DA_BLOB_SUBMITTER};
-use crate::config::config::DAConfig;
+use crate::config::types::DAConfig;
 use crate::da::celestia::CelestiaDA;
 use crate::da::traits::DA;
 use crate::da::types::{BatchInfo, DACheckpoint, DACommitment};

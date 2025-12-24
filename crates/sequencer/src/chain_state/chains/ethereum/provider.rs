@@ -12,7 +12,7 @@ use twine_l1_eth::twine_l1_eth_reader::{EthReader, EthReaderBuilder};
 use crate::chain_watcher::watcher::ChainStateProvider;
 use crate::common::consts::ETHEREUM_CHAIN_IDENTIFIER;
 use crate::common::db_strings::DBStrings;
-use crate::config::config::L1Config;
+use crate::config::types::L1Config;
 use crate::errors::TwineSequencerError;
 
 /// Ethereum chain state provider

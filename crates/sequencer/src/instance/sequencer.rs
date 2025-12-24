@@ -13,7 +13,7 @@ use twine_sequencer_db::rocksdb::SequencerRocksDB;
 
 use crate::common::consts;
 use crate::common::shutdown::ShutdownSignal;
-use crate::config::config::{Args, Config};
+use crate::config::types::{Args, Config};
 use crate::errors::TwineSequencerError;
 use crate::instance::SequencerInstance;
 
@@ -103,7 +103,7 @@ impl SequencerInstance for TwineSequencerInstance {
         {
             use std::path::PathBuf;
 
-            use crate::block_progress::block_progress::BlockProducer;
+            use crate::block_progress::producer::BlockProducer;
 
             let mut block_producer = BlockProducer::new(
                 kill_sig_sender.subscribe(),
