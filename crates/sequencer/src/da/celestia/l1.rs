@@ -56,6 +56,22 @@ fn check_logs_for_height(
 }
 
 /// Find the `DataCommitmentStored` event that covers a specific Celestia height
+///
+/// This function searches backwards through the L1 blocks to find a
+/// `DataCommitmentStored` event emitted by the SP1 Blobstream contract that
+/// includes the specified Celestia height within its range.
+///
+/// The search operates in batches, moving backwards from the most recent L1
+/// block:
+/// 1. Start at the latest L1 block and work backwards in fixed-size batches
+/// 2. For each batch, query the SP1 Blobstream contract for
+///    `DataCommitmentStored` events
+/// 3. Check if any event's `[start_block, end_block]` range covers the target
+///    Celestia height
+/// 4. Return immediately when a matching commitment is found
+/// 5. Continue searching until either:
+///    - A matching event is found, or
+///    - The entire lookback window has been exhausted
 pub async fn find_commitment_for_height(
     config: &DAConfig,
     celestia_height: u64,
@@ -79,77 +95,83 @@ pub async fn find_commitment_for_height(
         "Searching for DataCommitmentStored event covering height"
     );
 
-    let lookback = lookback_blocks.unwrap_or(15_000);
-    let batch_size = batch_size.unwrap_or(1_000);
+    let max_lookback_blocks = lookback_blocks.unwrap_or(15_000);
+    let blocks_per_batch = batch_size.unwrap_or(1_000);
 
-    let current_block = provider
+    let latest_block_number = provider
         .get_block_number()
         .await
         .map_err(|e| TwineSequencerError::Other(format!("Failed to get current block: {e}")))?;
 
-    let start_block = current_block.saturating_sub(lookback);
+    // Calculate the earliest block to search
+    let earliest_block_to_search = latest_block_number.saturating_sub(max_lookback_blocks);
 
     tracing::info!(
         target: "celestia_l1_verification",
-        from_block = start_block,
-        to_block = current_block,
-        lookback = lookback,
-        batch_size = batch_size,
+        from_block = earliest_block_to_search,
+        to_block = latest_block_number,
+        lookback = max_lookback_blocks,
+        batch_size = blocks_per_batch,
         "Searching in batches"
     );
 
-    let mut from_block = current_block.saturating_sub(batch_size);
-    let mut to_block = current_block;
-    let mut batch_count = 0u64;
-    let mut blocks_searched = 0u64;
+    // Initialize the search window
+    let mut current_batch_start = latest_block_number.saturating_sub(blocks_per_batch);
+    let mut current_batch_end = latest_block_number;
+    let mut batches_processed = 0u64;
+    let mut total_blocks_searched = 0u64;
 
-    while from_block >= start_block {
-        batch_count += 1;
-        blocks_searched += to_block - from_block + 1;
+    // Search backwards through L1 blocks in batches
+    while current_batch_start >= earliest_block_to_search {
+        batches_processed += 1;
+        total_blocks_searched += current_batch_end - current_batch_start + 1;
 
-        // Log progress every 500 blocks
-        if blocks_searched % 500 < batch_size || batch_count == 1 {
-            let progress_pct = (blocks_searched * 100) / lookback;
+        if total_blocks_searched % 500 < blocks_per_batch || batches_processed == 1 {
+            let progress_pct = (total_blocks_searched * 100) / max_lookback_blocks;
             tracing::info!(
                 target: "celestia_l1_verification",
-                batch = batch_count,
-                blocks_searched = blocks_searched,
+                batch = batches_processed,
+                blocks_searched = total_blocks_searched,
                 progress_pct = progress_pct,
-                current_range = format!("{}-{}", from_block, to_block),
+                current_range = format!("{}-{}", current_batch_start, current_batch_end),
                 "Search progress"
             );
         }
 
-        let filter_batch = Filter::new()
+        // Query logs for this batch of blocks
+        let event_filter = Filter::new()
             .address(contract_address)
             .event("DataCommitmentStored(uint256,uint64,uint64,bytes32)")
-            .from_block(from_block)
-            .to_block(to_block);
+            .from_block(current_batch_start)
+            .to_block(current_batch_end);
 
-        let batch_logs = provider.get_logs(&filter_batch).await.map_err(|e| {
+        let logs_in_batch = provider.get_logs(&event_filter).await.map_err(|e| {
             TwineSequencerError::Other(format!(
                 "Failed to get logs for batch {}-{}: {e}",
-                from_block, to_block
+                current_batch_start, current_batch_end
             ))
         })?;
 
-        if let Some(commitment_info) = check_logs_for_height(&batch_logs, celestia_height) {
+        // Check if any log in this batch covers our target Celestia height
+        if let Some(commitment_info) = check_logs_for_height(&logs_in_batch, celestia_height) {
             return Ok(commitment_info);
         }
 
-        // delay to avoid rate limiting
+        // Small delay to avoid ratelimiting
         tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
 
-        if from_block == start_block {
+        if current_batch_start == earliest_block_to_search {
             break;
         }
-        to_block = from_block.saturating_sub(1);
-        from_block = to_block.saturating_sub(batch_size).max(start_block);
+        current_batch_end = current_batch_start.saturating_sub(1);
+        current_batch_start = current_batch_end
+            .saturating_sub(blocks_per_batch)
+            .max(earliest_block_to_search);
     }
 
     Err(TwineSequencerError::Other(format!(
         "No DataCommitmentStored event found covering height {} (searched {} blocks)",
-        celestia_height, blocks_searched
+        celestia_height, total_blocks_searched
     )))
 }
 
