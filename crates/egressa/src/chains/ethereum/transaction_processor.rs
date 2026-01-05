@@ -7,6 +7,7 @@ use alloy_rpc_types::TransactionRequest;
 use eyre::Result;
 use reth_tracing::tracing::{debug, error, info, warn};
 use tokio::time::{sleep, Duration};
+use tracing::instrument;
 use twine_l1_eth::twine_l1_eth_reader::clients::execution::EthQueryExecutionClient;
 
 /// Transaction processing errors
@@ -245,6 +246,8 @@ impl TransactionProcessor {
     /// 1. Process transaction with retry logic
     /// 2. Wait for confirmation
     /// 3. Return final result
+
+    #[instrument(skip_all, fields(chain_id = %self.chain_id))]
     pub async fn process_and_confirm_transaction(
         &self,
         unsigned_tx: TransactionRequest,

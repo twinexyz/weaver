@@ -3,11 +3,12 @@ use alloy_rpc_types::TransactionRequest;
 use alloy_sol_types::SolCall;
 use eyre::Result;
 use reth_tracing::tracing::debug;
+use twine_evm_contracts::centralized_twine_messenger::CentralizedTwineMessenger;
 use twine_evm_contracts::twine_chain::TwineChain;
 use twine_l1_eth::twine_l1_eth_reader::clients::execution::EthQueryExecutionClient;
 
 use crate::chains::ethereum::gas_estimator::GasEstimator;
-use crate::config::EvmContracts;
+use crate::config::{EvmContracts, L1Chain};
 
 #[derive(Debug, Clone)]
 /// Transaction builder for Ethereum
@@ -99,12 +100,20 @@ impl TransactionBuilder {
         public_values: Bytes,
         withdraw_proof: Bytes,
     ) -> Result<TransactionRequest> {
-        let call = TwineChain::executeL2WithdrawCall {
-            publicValues: public_values,
-            withdrawProof: withdraw_proof,
-        };
+        let chain = L1Chain::from_chain_id(self.chain_id).expect("invalid chain id");
 
-        let calldata = call.abi_encode();
+        let calldata = if chain == L1Chain::Base || chain == L1Chain::Arbitrum {
+            CentralizedTwineMessenger::executeL2WithdrawCall {
+                withdrawParams: public_values.clone(),
+            }
+            .abi_encode()
+        } else {
+            TwineChain::executeL2WithdrawCall {
+                publicValues: public_values,
+                withdrawProof: withdraw_proof,
+            }
+            .abi_encode()
+        };
 
         // Get actual nonce and fee estimation from provider
         let nonce = self.query_client.get_nonce(from).await?;

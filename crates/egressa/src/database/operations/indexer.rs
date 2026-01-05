@@ -51,7 +51,8 @@ impl<'a> IndexerOperations<'a> {
                         st.l1_address,
                         st.transaction_hash as source_transaction_hash,
                         tf.handle_tx_hash as l2_transaction_hash,
-                        tf.handle_status
+                        tf.handle_status,
+                        st.amount::text as amount
                     FROM source_transactions st
                     JOIN transaction_flows tf ON st.chain_id = tf.chain_id AND st.nonce = tf.nonce
                     WHERE st.transaction_type = 'Deposit'::transaction_type_enum
@@ -74,7 +75,8 @@ impl<'a> IndexerOperations<'a> {
                         st.l1_address,
                         st.transaction_hash as source_transaction_hash,
                         st.transaction_hash as l2_transaction_hash,
-                        tf.handle_status
+                        tf.handle_status,
+                        st.amount::text as amount
                     FROM source_transactions st
                     LEFT JOIN transaction_flows tf ON st.chain_id = tf.chain_id AND st.nonce = tf.nonce
                     WHERE st.transaction_type = 'Withdraw'::transaction_type_enum
@@ -95,7 +97,8 @@ impl<'a> IndexerOperations<'a> {
                         st.l1_address,
                         st.transaction_hash as source_transaction_hash,
                         tf.handle_tx_hash as l2_transaction_hash,
-                        tf.handle_status
+                        tf.handle_status,
+                        st.amount::text as amount
                     FROM source_transactions st
                     JOIN transaction_flows tf ON st.chain_id = tf.chain_id AND st.nonce = tf.nonce
                     WHERE st.transaction_type = 'ForcedWithdraw'::transaction_type_enum

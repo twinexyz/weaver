@@ -7,7 +7,7 @@ use reth_tracing::tracing::{error, info};
 
 use crate::chains::factory::L1SenderFactory;
 use crate::chains::twine::provider::TwineProvider;
-use crate::config::AppCfg;
+use crate::config::{initialize_chains, AppCfg};
 use crate::database::client::DbClient;
 use crate::polling::WithdrawalEventPoller;
 use crate::processor::WithdrawalProcessor;
@@ -108,7 +108,7 @@ fn create_balanced_batches(events: Vec<WithdrawalEvent>) -> Vec<Vec<WithdrawalEv
 /// Main service runner
 pub async fn run_service(config: AppCfg, db_client: DbClient) -> eyre::Result<()> {
     // Initialize components
-    let l1_sender_factory = L1SenderFactory::new(config.chains);
+    let l1_sender_factory = L1SenderFactory::new(config.chains.clone());
     let twine_provider = TwineProvider::new(config.twine.clone().rpc);
     let proof_generator = ProofGenerator::new(config.prover, config.twine);
     let processor = WithdrawalProcessor::new(

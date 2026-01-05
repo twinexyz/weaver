@@ -46,6 +46,10 @@ pub struct WithdrawalEvent {
     pub l2_transaction_hash: String,
     /// Token address on L1 chain
     pub l1_token: String,
+    /// Token address on L2 chain
+    pub l2_token: String,
+    /// Amount of the withdrawal
+    pub amount: String,
     /// User address on L1 chain
     pub l1_address: String,
     /// Nonce of the message
@@ -91,6 +95,8 @@ pub struct FetchedIndexerEvent {
     pub l2_transaction_hash: Option<String>,
     /// Handle status
     pub handle_status: Option<i16>,
+    /// Amount (stored as String to handle PostgreSQL numeric(78) values)
+    pub amount: String,
 }
 
 /// Withdrawal event status
