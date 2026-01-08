@@ -31,10 +31,6 @@ jobs:
       - name: Add rustfmt (nightly)
         run: rustup component add --toolchain nightly rustfmt clippy
 
-      - name: Set Git Credentials
-        run: |
-          git config --global url."https://${{ secrets.GH_ACTION_PAT }}@github.com".insteadOf "https://github.com"
-
       - name: Cache cargo-udeps
         id: cache-cargo-udeps
         uses: actions/cache@v4.2.3
