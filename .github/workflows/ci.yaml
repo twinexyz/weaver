@@ -11,39 +11,50 @@ on:
 
 jobs:
   fmt-and-udeps:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest #self-hosted
     concurrency:
       group: ${{ github.ref }}-${{ github.workflow }}
       cancel-in-progress: true
     steps:
-    - uses: actions/checkout@v4.2.2
-    - name: Set up Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: nightly-2025-07-13
-        profile: minimal
-        override: true
-    - name: Add rustfmt (nightly)
-      run: rustup component add --toolchain nightly rustfmt clippy
-    - name: Set Git Credentials
-      run: |
-        git config --global url."https://${{ secrets.GH_ACTION_PAT }}@github.com".insteadOf "https://github.com"
-    - name: Cache cargo-udeps
-      id: cache-cargo-udeps
-      uses: actions/cache@v4.2.3
-      env:
-        ACTIONS_RESULTS_URL: ${{ secrets.CACHE_SERVER_URL }}
-      with:
-        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/Cargo.lock') }}
-        path: |
-          ~/.cargo/bin/cargo-udeps
-        restore-keys: |
-          ${{ runner.os }}-cargo-udeps-
-    - if: ${{ steps.cache-cargo-udeps.outputs.cache-hit != 'true' }}
-      name: Install cargo-udeps
-      run: cargo install cargo-udeps --locked --force
-    - uses: actions/setup-python@v3
-    - run: rustup component add clippy
-    - uses: pre-commit/action@v3.0.1
-    - name: Clean Up private Repo
-      run: rm -rf ~/.git-credentials
+      - name: Checkout tools repo
+        uses: actions/checkout@v5.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2025-07-13
+          profile: minimal
+          override: true
+
+      - name: Add rustfmt (nightly)
+        run: rustup component add --toolchain nightly rustfmt clippy
+
+      - name: Set Git Credentials
+        run: |
+          git config --global url."https://${{ secrets.GH_ACTION_PAT }}@github.com".insteadOf "https://github.com"
+
+      - name: Cache cargo-udeps
+        id: cache-cargo-udeps
+        uses: actions/cache@v4.2.3
+        env:
+          ACTIONS_RESULTS_URL: ${{ secrets.CACHE_SERVER_URL }}
+        with:
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/Cargo.lock') }}
+          path: |
+            ~/.cargo/bin/cargo-udeps
+          restore-keys: |
+            ${{ runner.os }}-cargo-udeps-
+
+      - if: ${{ steps.cache-cargo-udeps.outputs.cache-hit != 'true' }}
+        name: Install cargo-udeps
+        run: cargo install cargo-udeps --locked --force
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - run: rustup component add clippy
+
+      - uses: pre-commit/action@v3.0.1
