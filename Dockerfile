@@ -28,11 +28,11 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --defau
 ENV PATH="/root/.cargo/bin:${PATH}"
 RUN rustup toolchain install nightly --allow-downgrade --profile minimal --component clippy
 
-RUN wget -c https://github.com/mikefarah/yq/releases/download/v4.45.1/yq_linux_${ARCH} -O /usr/bin/yq && \
+RUN wget -c https://github.com/mikefarah/yq/releases/download/v4.50.1/yq_linux_${ARCH} -O /usr/bin/yq && \
     chmod +x /usr/bin/yq && \
-    curl -OL https://go.dev/dl/go1.24.0.linux-${ARCH}.tar.gz && \
-    tar -C /usr/local -xzf go1.24.0.linux-${ARCH}.tar.gz && \
-    rm go1.24.0.linux-${ARCH}.tar.gz
+    curl -OL https://go.dev/dl/go1.25.5.linux-${ARCH}.tar.gz && \
+    tar -C /usr/local -xzf go1.25.5.linux-${ARCH}.tar.gz && \
+    rm go1.25.5.linux-${ARCH}.tar.gz
 
 RUN curl -L https://sp1.succinct.xyz | bash && ~/.sp1/bin/sp1up
 
