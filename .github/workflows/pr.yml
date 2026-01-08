@@ -10,7 +10,7 @@ env:
 
 jobs:
   run_pipeline:
-    runs-on: [self-hosted, linux, x64]
+    runs-on: ubuntu-latest #[self-hosted, linux, x64]
     permissions:
       contents: write
       pull-requests: write

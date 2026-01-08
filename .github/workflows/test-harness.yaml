@@ -8,11 +8,9 @@ on:
     paths-ignore:
       - '.github/workflows/**'
 
-
-
 jobs:
   test-harness:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest #self-hosted
     concurrency:
       group: ${{ github.ref }}-${{ github.workflow }}
       cancel-in-progress: true
