@@ -50,7 +50,7 @@ RUN cargo build --release --bin twine-node --features $FEATURES && \
     cargo build --release --bin twine-egressa-bin && \
     cargo install tomq sqlx-cli
 
-RUN git clone --branch staging https://$github.com/${GITHUB_ORGANIZATION}/twine-rsp.git && \
+RUN git clone --branch staging https://github.com/${GITHUB_ORGANIZATION}/twine-rsp.git && \
     cd twine-rsp && \
     cargo update && \
     cd bin/client && \
@@ -62,7 +62,7 @@ RUN git clone --branch v0.1.0-devnet https://github.com/${GITHUB_ORGANIZATION}/s
     cd solana-stub-prover && \
     cargo build --release
 
-RUN git clone --branch v0.1.0-testnet https://@github.com/${GITHUB_ORGANIZATION}/merlin.git && \
+RUN git clone --branch v0.1.0-testnet https://github.com/${GITHUB_ORGANIZATION}/merlin.git && \
     cd merlin/withdraw-prover && \
     cargo build --release --no-default-features --features ${FEATURES} && \
     cd ../l1-txns-prover && \
