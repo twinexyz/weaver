@@ -843,6 +843,11 @@
   },
   {
     "type": "error",
+    "name": "L2ExecutionPending",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "LastFinalizedBatchHashMismatch",
     "inputs": []
   },
